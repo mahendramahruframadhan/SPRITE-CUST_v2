@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HR Report — Pusat Data Bantuan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="data-cases.js"></script>
+<script src="app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { brand: { 50:'#eef4ff',100:'#dfe9ff',200:'#c5d7ff',300:'#a2bcff',400:'#7d97fb',500:'#5f72f5',600:'#4a4fe9',700:'#3d3ece',800:'#3336a6',900:'#2f3383',950:'#1c1e4e' } } } } }
+</script>
+<style>
+  body{font-family:'Inter',sans-serif;}
+  .scrollbar-thin::-webkit-scrollbar{width:6px;height:6px;}
+  .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px;}
+  .fade-in{animation:fadeIn .3s ease both;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+  .sheet-table th{position:sticky;top:0;z-index:1;}
+  @media print{
+    aside, header, #filterCard, .no-print{display:none!important;}
+    main{margin-left:0!important;}
+    body{background:#fff;}
+    #reportCard{border:none;box-shadow:none;}
+  }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+<div class="flex min-h-screen">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-30">
+    <div class="px-5 py-5 flex items-center gap-3 border-b border-slate-100">
+      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      </div>
+      <div>
+        <h1 class="font-bold text-slate-900 text-sm">HR Report</h1>
+        <p class="text-[11px] text-slate-400">Performa tim support</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 py-3 text-sm font-medium text-slate-600 overflow-y-auto scrollbar-thin">
+      <p class="px-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Menu Utama</p>
+      <a href="index.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Dashboard
+      </a>
+      <a href="view-cases.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+        Data Kasus
+      </a>
+      <a href="mockup.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        Dashboard Mockup
+      </a>
+
+      <p class="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Operasional</p>
+      <a href="main-support.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        Form Kasus
+      </a>
+      <a href="hr-report.html" class="flex items-center gap-3 px-5 py-2.5 bg-brand-50 text-brand-700 border-r-[3px] border-brand-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        HR Report
+      </a>
+      <a href="config.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71 10.038 10.038 0 00-1.22 5.338c.09.62.732.99 1.305.806 2.32-.74 5.847-1.992 8.79-3.188.24-.1.48-.208.713-.32M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71M9.594 3.94l10.224 3.99M12.7 17.5l-1.426 4.073a.999.999 0 01-1.833.178L7.41 17.5H4.225a1 1 0 01-.997-1.098l.881-9.74A2.003 2.003 0 016.116 3h11.768a2.002 2.002 0 012.008 1.662l.88 9.74A1 1 0 0120.775 16h-3.185"/></svg>
+        Master Data
+      </a>
+      <a href="pricelist.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/></svg>
+        Price List
+      </a>
+
+      <p class="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Keuangan</p>
+      <a href="billing.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+        Billing & Audit
+      </a>
+      <a href="finance-audit.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Finance Audit
+      </a>
+
+      <p class="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Administrasi</p>
+      <a href="roles.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        Hak Akses
+      </a>
+    </nav>
+
+    <div class="p-4 border-t border-slate-100">
+      <button onclick="logout()" class="w-full flex items-center justify-center gap-2 text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="flex-1 ml-64">
+
+    <header class="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-4 flex items-center gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Support Div — HR Report</h2>
+        <p class="text-xs text-slate-400">Rekapitulasi performance Group KPI & laporan detail ticket per periode</p>
+      </div>
+      <div class="ml-auto flex items-center gap-2 no-print">
+        <button onclick="exportCSV()" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+          Export CSV
+        </button>
+        <button onclick="window.print()" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659"/></svg>
+          Print
+        </button>
+      </div>
+    </header>
+
+    <section class="px-8 py-6 space-y-5">
+
+      <!-- ===== FILTER (mirip sel input di sheet) ===== -->
+      <div id="filterCard" class="bg-white rounded-2xl border border-slate-200 p-5 fade-in">
+        <div class="flex flex-wrap items-end gap-4">
+          <div>
+            <label class="text-xs font-semibold text-slate-500">Date From</label>
+            <div class="mt-1 flex items-center gap-2">
+              <input id="fDateFrom" type="date" class="block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-amber-50/60" />
+              <span class="text-[10px] text-slate-400 font-mono"><<< yyyyMMdd</span>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-500">Date Until</label>
+            <div class="mt-1 flex items-center gap-2">
+              <input id="fDateTo" type="date" class="block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-amber-50/60" />
+              <span class="text-[10px] text-slate-400 font-mono"><<< yyyyMMdd</span>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-500">PIC Name</label>
+            <div class="mt-1 flex items-center gap-2">
+              <select id="fPic" class="block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-amber-50/60 min-w-[180px]">
+                <option value="">— Semua PIC —</option>
+              </select>
+              <span class="text-[10px] text-slate-400 font-mono"><<< input name</span>
+            </div>
+          </div>
+          <button onclick="applyFilter()" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-md shadow-brand-600/25">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+            Terapkan
+          </button>
+          <button onclick="resetFilter()" class="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition">Reset</button>
+          <div class="ml-auto text-xs text-slate-400">
+            Periode: <span id="periodLabel" class="font-semibold text-slate-600">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== REPORT PAPER (output seperti sheet) ===== -->
+      <div id="reportCard" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden fade-in" style="animation-delay:.08s">
+
+        <!-- Header laporan -->
+        <div class="px-8 py-6 border-b-2 border-slate-800">
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-brand-600">Revota — Customer Support</p>
+          <h1 class="mt-1 text-2xl font-extrabold text-slate-900">Support Div - HR Report</h1>
+          <p class="text-xs text-slate-400 mt-1">Periode <span id="reportPeriod" class="font-semibold text-slate-600">—</span> · Dibuat: <span id="generatedAt">—</span></p>
+        </div>
+
+        <div>
+
+          <!-- ===== REKAPITULASI ===== -->
+          <div class="border-b border-slate-200">
+            <div class="px-6 py-4 bg-slate-800 text-white">
+              <h3 class="font-bold text-sm">📊 REKAPITULASI PERFORMANCE GROUP KPI</h3>
+              <p class="text-[11px] text-slate-300 mt-0.5">Laporan komprehensif berdasarkan tim & kategori Group KPI</p>
+            </div>
+            <div class="overflow-x-auto scrollbar-thin">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr id="recapHead" class="bg-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200"></tr>
+                </thead>
+                <tbody id="recapBody" class="divide-y divide-slate-100"></tbody>
+                <tfoot id="recapFoot"></tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- ===== DETAIL TICKET ===== -->
+          <div>
+            <div class="px-6 py-4 bg-brand-700 text-white">
+              <h3 class="font-bold text-sm">📑 LAPORAN DETAIL TICKET & ISSUE</h3>
+              <p class="text-[11px] text-brand-200 mt-0.5">Data komprehensif log aktivitas per anggota tim</p>
+            </div>
+            <div class="overflow-x-auto scrollbar-thin">
+              <table class="w-full text-sm sheet-table">
+                <thead>
+                  <tr class="bg-brand-50 text-[10px] font-bold uppercase tracking-wider text-brand-700 border-b border-brand-100">
+                    <th class="px-4 py-2.5 text-left bg-brand-50">Assign To</th>
+                    <th class="px-4 py-2.5 text-left bg-brand-50">Date Issue</th>
+                    <th class="px-4 py-2.5 text-left bg-brand-50">Client</th>
+                    <th class="px-4 py-2.5 text-left bg-brand-50">Module</th>
+                    <th class="px-4 py-2.5 text-left bg-brand-50">Sub-Module</th>
+                    <th class="px-4 py-2.5 text-left bg-brand-50">Issue</th>
+                    <th class="px-4 py-2.5 text-left bg-brand-50">Group KPI</th>
+                  </tr>
+                </thead>
+                <tbody id="detailBody" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+            <div class="px-6 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between text-xs text-slate-400">
+              <span id="detailInfo">—</span>
+              <span>Sumber: Google Sheets (sinkron)</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<script>
+/* ================= HELPER ================= */
+function fmtDate8(s){
+  if(!s || String(s).length !== 8) return '-';
+  const y = String(s).slice(0,4), m = String(s).slice(4,6), d = String(s).slice(6,8);
+  const dt = new Date(`${y}-${m}-${d}`);
+  if(isNaN(dt)) return '-';
+  return dt.toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+}
+function normKpi(k){
+  k = (k || '').trim();
+  return k || 'TANPA KATEGORI';
+}
+
+/* Kategori utama persis seperti di sheet, kategori lain menyusul */
+const MAIN_KPIS = ['• AUDIT', '• GENERAL REQUEST', '• SPECIAL REQUEST'];
+const extraKpis = [...new Set(allCases.map(c => normKpi(c.groupKpi)).filter(k => k && !MAIN_KPIS.includes(k)))].sort();
+const KPI_COLS = [...MAIN_KPIS, ...extraKpis];
+
+const KPI_BADGE = {
+  '• AUDIT':            'bg-violet-50 text-violet-600 border-violet-200',
+  '• GENERAL REQUEST':  'bg-sky-50 text-sky-600 border-sky-200',
+  '• SPECIAL REQUEST':  'bg-amber-50 text-amber-600 border-amber-200',
+  'AUDIT':              'bg-violet-50 text-violet-600 border-violet-200',
+  'ON-DEMAND':          'bg-emerald-50 text-emerald-600 border-emerald-200',
+  'CUSTOM DEV':         'bg-rose-50 text-rose-600 border-rose-200',
+  '• SYSTEM UPDATE':    'bg-slate-100 text-slate-500 border-slate-200',
+  'TANPA KATEGORI':     'bg-slate-100 text-slate-400 border-slate-200'
+};
+function kpiBadge(k){
+  return `<span class="text-[10px] font-bold border rounded-full px-2 py-0.5 whitespace-nowrap ${KPI_BADGE[k] || 'bg-slate-100 text-slate-500 border-slate-200'}">${k}</span>`;
+}
+
+/* ================= FILTER ================= */
+let filtered = [];
+
+const pics = [...new Set(allCases.map(c => (c.assignTo || '').trim()).filter(Boolean))].sort();
+const picSel = document.getElementById('fPic');
+pics.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; picSel.appendChild(o); });
+
+/* Default: 7 hari terakhir dari data */
+(function initDates(){
+  const valid = allCases.map(c => String(c.dateIssue)).filter(d => /^\d{8}$/.test(d)).sort();
+  if(!valid.length) return;
+  const max = valid[valid.length - 1];
+  const maxDt = new Date(`${max.slice(0,4)}-${max.slice(4,6)}-${max.slice(6,8)}`);
+  const minDt = new Date(maxDt); minDt.setDate(minDt.getDate() - 6);
+  const toIso = dt => dt.toISOString().slice(0,10);
+  document.getElementById('fDateFrom').value = toIso(minDt);
+  document.getElementById('fDateTo').value = toIso(maxDt);
+})();
+
+function applyFilter(){
+  const from = document.getElementById('fDateFrom').value.replace(/-/g,'');
+  const to = document.getElementById('fDateTo').value.replace(/-/g,'');
+  const pic = document.getElementById('fPic').value;
+  filtered = allCases.filter(c => {
+    const d = String(c.dateIssue);
+    return (!from || d >= from) && (!to || d <= to) && (!pic || (c.assignTo || '').trim() === pic);
+  });
+  const fl = document.getElementById('fDateFrom').value || 'Awal';
+  const tl = document.getElementById('fDateTo').value || 'Akhir';
+  document.getElementById('periodLabel').textContent = (from || to) ? `${fl} s.d. ${tl}` : 'Semua tanggal';
+  document.getElementById('reportPeriod').textContent = `${fmtDate8(from)} — ${fmtDate8(to)}` + (pic ? ` · PIC: ${pic}` : '');
+  document.getElementById('generatedAt').textContent = new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
+  renderRecap();
+  renderDetail();
+}
+function resetFilter(){
+  document.getElementById('fPic').value = '';
+  applyFilter();
+}
+
+/* ================= REKAPITULASI (tabel kiri) ================= */
+function renderRecap(){
+  const byPic = {};
+  filtered.forEach(c => {
+    const p = (c.assignTo || '').trim() || 'UNKNOWN';
+    if(!byPic[p]) byPic[p] = {};
+    const k = normKpi(c.groupKpi);
+    byPic[p][k] = (byPic[p][k] || 0) + 1;
+  });
+  const picList = Object.keys(byPic).sort();
+
+  document.getElementById('recapHead').innerHTML =
+    `<th class="px-4 py-2.5 text-left">Assign To</th>` +
+    KPI_COLS.map(k => `<th class="px-3 py-2.5 text-center" title="${k}">${k.replace('• ','').replace('REQUEST','REQ.')}</th>`).join('') +
+    `<th class="px-4 py-2.5 text-center">Total Performance</th>`;
+
+  document.getElementById('recapBody').innerHTML = picList.map(p => {
+    const total = KPI_COLS.reduce((s,k) => s + (byPic[p][k] || 0), 0);
+    return `<tr class="hover:bg-slate-50 transition">
+      <td class="px-4 py-3 font-bold text-slate-800">${p}</td>
+      ${KPI_COLS.map(k => `<td class="px-3 py-3 text-center ${byPic[p][k] ? 'font-semibold text-slate-700' : 'text-slate-300'}">${byPic[p][k] || 0}</td>`).join('')}
+      <td class="px-4 py-3 text-center"><span class="inline-block min-w-[2rem] font-extrabold text-brand-700 bg-brand-50 rounded-lg px-2 py-0.5">${total}</span></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="${KPI_COLS.length + 2}" class="px-4 py-10 text-center text-slate-400 text-sm">Tidak ada data pada periode ini</td></tr>`;
+
+  const grand = {};
+  let grandTotal = 0;
+  KPI_COLS.forEach(k => { grand[k] = picList.reduce((s,p) => s + (byPic[p][k] || 0), 0); grandTotal += grand[k]; });
+  document.getElementById('recapFoot').innerHTML = `
+    <tr class="bg-slate-800 text-white text-sm">
+      <td class="px-4 py-3 font-extrabold">TOTAL KESELURUHAN</td>
+      ${KPI_COLS.map(k => `<td class="px-3 py-3 text-center font-bold">${grand[k]}</td>`).join('')}
+      <td class="px-4 py-3 text-center font-extrabold text-amber-300">${grandTotal}</td>
+    </tr>`;
+}
+
+/* ================= DETAIL (tabel kanan) ================= */
+function renderDetail(){
+  const rows = [...filtered].sort((a,b) => {
+    const pa = (a.assignTo||'').trim(), pb = (b.assignTo||'').trim();
+    return pa.localeCompare(pb) || String(a.dateIssue).localeCompare(String(b.dateIssue)) || ((+a.no||0) - (+b.no||0));
+  });
+  document.getElementById('detailBody').innerHTML = rows.map(c => `
+    <tr class="hover:bg-brand-50/40 transition">
+      <td class="px-4 py-2.5 font-bold text-slate-800 whitespace-nowrap">${(c.assignTo||'').trim() || '-'}</td>
+      <td class="px-4 py-2.5 text-slate-500 whitespace-nowrap text-xs">${fmtDate8(c.dateIssue)}</td>
+      <td class="px-4 py-2.5 font-semibold text-slate-700 whitespace-nowrap">${c.client || '-'}</td>
+      <td class="px-4 py-2.5"><span class="text-[10px] font-bold bg-slate-100 text-slate-600 rounded-full px-2 py-0.5 whitespace-nowrap">${c.module || '-'}</span></td>
+      <td class="px-4 py-2.5 text-xs text-slate-500 whitespace-nowrap">${c.subModule || '-'}</td>
+      <td class="px-4 py-2.5 text-xs text-slate-600 min-w-[220px]" title="${(c.issue||'').replace(/"/g,'&quot;')}">${c.issue || '-'}</td>
+      <td class="px-4 py-2.5">${kpiBadge(normKpi(c.groupKpi))}</td>
+    </tr>`).join('') || `<tr><td colspan="7" class="px-4 py-12 text-center text-slate-400 text-sm">Tidak ada ticket pada periode & filter ini</td></tr>`;
+  document.getElementById('detailInfo').textContent = `Menampilkan ${rows.length} ticket`;
+}
+
+/* ================= EXPORT ================= */
+function exportCSV(){
+  const headers = ['ASSIGN TO','DATE ISSUE','CLIENT','MODULE','SUB-MODULE','ISSUE','GROUP KPI'];
+  const rows = filtered.map(c => [c.assignTo, c.dateIssue, c.client, c.module, c.subModule, c.issue, normKpi(c.groupKpi)]
+    .map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const csv = [headers.join(','), rows].join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'hr-report.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+applyFilter();
+</script>
+</body>
+</html>

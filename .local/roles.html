@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hak Akses & Role — Pusat Data Bantuan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { brand: { 50:'#eef4ff',100:'#dfe9ff',200:'#c5d7ff',300:'#a2bcff',400:'#7d97fb',500:'#5f72f5',600:'#4a4fe9',700:'#3d3ece',800:'#3336a6',900:'#2f3383',950:'#1c1e4e' } } } } }
+</script>
+<style>
+  body{font-family:'Inter',sans-serif;}
+  .scrollbar-thin::-webkit-scrollbar{width:6px;height:6px;}
+  .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px;}
+  .fade-in{animation:fadeIn .3s ease both;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+  .tab-btn.active{background:#fff;color:#3d3ece;box-shadow:0 1px 2px rgb(0 0 0/.08);}
+  /* Toggle switch */
+  .toggle{position:relative;width:36px;height:20px;background:#cbd5e1;border-radius:9999px;transition:.2s;cursor:pointer;flex-shrink:0;}
+  .toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgb(0 0 0/.2);}
+  .toggle.on{background:#4a4fe9;}
+  .toggle.on::after{left:18px;}
+  /* Permission checkbox */
+  .perm-check{appearance:none;width:18px;height:18px;border:2px solid #cbd5e1;border-radius:5px;cursor:pointer;transition:.15s;position:relative;}
+  .perm-check:checked{background:#4a4fe9;border-color:#4a4fe9;}
+  .perm-check:checked::after{content:'';position:absolute;left:4.5px;top:1.5px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
+  .perm-check:disabled{cursor:not-allowed;opacity:.7;}
+  .modal-backdrop{background:rgba(15,23,42,.45);backdrop-filter:blur(2px);}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+<div class="flex min-h-screen">
+
+  <!-- ============ SIDEBAR (menu terpadu semua halaman) ============ -->
+  <aside class="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-30">
+    <div class="px-5 py-5 flex items-center gap-3 border-b border-slate-100">
+      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+      </div>
+      <div>
+        <h1 class="font-bold text-slate-900 text-sm">Hak Akses & Role</h1>
+        <p class="text-[11px] text-slate-400">Kelola pengguna & izin</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 py-3 text-sm font-medium text-slate-600 overflow-y-auto scrollbar-thin">
+      <p class="px-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Menu Utama</p>
+      <a href="index.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Dashboard
+      </a>
+      <a href="view-cases.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+        Data Kasus
+      </a>
+      <a href="main-support.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        Form Kasus
+      </a>
+      <a href="mockup.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        Dashboard Mockup
+      </a>
+
+      <p class="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Konfigurasi</p>
+      <a href="config.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71 10.038 10.038 0 00-1.22 5.338c.09.62.732.99 1.305.806 2.32-.74 5.847-1.992 8.79-3.188.24-.1.48-.208.713-.32M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71M9.594 3.94l10.224 3.99M12.7 17.5l-1.426 4.073a.999.999 0 01-1.833.178L7.41 17.5H4.225a1 1 0 01-.997-1.098l.881-9.74A2.003 2.003 0 016.116 3h11.768a2.002 2.002 0 012.008 1.662l.88 9.74A1 1 0 0120.775 16h-3.185"/></svg>
+        Master Data
+      </a>
+      <a href="pricelist.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/></svg>
+        Price List
+      </a>
+
+      <p class="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Keuangan</p>
+      <a href="billing.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+        Billing & Audit
+      </a>
+      <a href="finance-audit.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Finance Audit
+      </a>
+
+      <p class="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Administrasi</p>
+      <a href="roles.html" class="flex items-center gap-3 px-5 py-2.5 bg-brand-50 text-brand-700 border-r-[3px] border-brand-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        Hak Akses
+      </a>
+    </nav>
+
+    <div class="p-4 border-t border-slate-100">
+      <div class="flex items-center gap-3 mb-3">
+        <div id="userAvatar" class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-xs font-bold">?</div>
+        <div class="flex-1 min-w-0">
+          <p id="userName" class="text-sm font-semibold text-slate-800 truncate">Pengguna</p>
+          <p id="userEmail" class="text-[11px] text-slate-400 truncate">-</p>
+        </div>
+      </div>
+      <button onclick="logout()" class="w-full flex items-center justify-center gap-2 text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="flex-1 ml-64">
+
+    <!-- Topbar -->
+    <header class="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-4 flex items-center gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Hak Akses & Role</h2>
+        <p class="text-xs text-slate-400">Kelola pengguna, role, dan izin akses setiap modul</p>
+      </div>
+      <div class="ml-auto flex items-center gap-3">
+        <span id="topRoleBadge" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+          Login sebagai: <span id="topRole" class="font-bold">—</span>
+        </span>
+        <button onclick="openUserModal()" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          Tambah Pengguna
+        </button>
+      </div>
+    </header>
+
+    <div class="px-8 py-6 space-y-6">
+
+      <!-- Kartu statistik -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:.02s">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Pengguna</p>
+              <p class="mt-2 text-3xl font-extrabold text-slate-900" id="statUsers">0</p>
+              <p class="mt-1 text-xs text-slate-400 font-medium" id="statUsersActive">0 aktif</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:.06s">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jumlah Role</p>
+              <p class="mt-2 text-3xl font-extrabold text-slate-900" id="statRoles">5</p>
+              <p class="mt-1 text-xs text-slate-400 font-medium">Super Admin s/d Viewer</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-violet-50 text-violet-500 flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:.1s">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Modul Sistem</p>
+              <p class="mt-2 text-3xl font-extrabold text-slate-900" id="statModules">9</p>
+              <p class="mt-1 text-xs text-slate-400 font-medium">Dengan izin terpisah</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:.14s">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Nonaktif</p>
+              <p class="mt-2 text-3xl font-extrabold text-rose-600" id="statInactive">0</p>
+              <p class="mt-1 text-xs text-rose-500 font-medium">Akun ditangguhkan</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab -->
+      <div class="flex items-center gap-2 bg-slate-200/60 rounded-xl p-1 w-fit text-sm font-semibold fade-in" style="animation-delay:.18s">
+        <button class="tab-btn active px-4 py-2 rounded-lg text-slate-500 transition" data-tab="pengguna" onclick="switchTab('pengguna')">Pengguna</button>
+        <button class="tab-btn px-4 py-2 rounded-lg text-slate-500 transition" data-tab="role" onclick="switchTab('role')">Role & Izin Modul</button>
+        <button class="tab-btn px-4 py-2 rounded-lg text-slate-500 transition" data-tab="log" onclick="switchTab('log')">Log Aktivitas</button>
+      </div>
+
+      <!-- ============ TAB: PENGGUNA ============ -->
+      <section id="tab-pengguna" class="space-y-4">
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center gap-3 fade-in" style="animation-delay:.22s">
+          <div class="relative flex-1 min-w-[220px]">
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+            <input id="searchUser" oninput="renderUsers()" type="text" placeholder="Cari nama atau email..." class="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400" />
+          </div>
+          <select id="filterRole" onchange="renderUsers()" class="text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400">
+            <option value="">Semua Role</option>
+          </select>
+          <select id="filterStatus" onchange="renderUsers()" class="text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400">
+            <option value="">Semua Status</option>
+            <option value="aktif">Aktif</option>
+            <option value="nonaktif">Nonaktif</option>
+          </select>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden fade-in" style="animation-delay:.26s">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                <th class="px-6 py-3.5">Pengguna</th>
+                <th class="px-6 py-3.5">Role</th>
+                <th class="px-6 py-3.5">Login Terakhir</th>
+                <th class="px-6 py-3.5">Status</th>
+                <th class="px-6 py-3.5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+          <div id="userEmpty" class="hidden px-6 py-12 text-center text-sm text-slate-400">Tidak ada pengguna yang cocok dengan filter.</div>
+        </div>
+      </section>
+
+      <!-- ============ TAB: ROLE & IZIN ============ -->
+      <section id="tab-role" class="hidden space-y-4">
+        <!-- Kartu ringkasan role -->
+        <div id="roleCards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4"></div>
+
+        <!-- Matriks izin -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden fade-in">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 class="font-bold text-slate-900">Matriks Izin Modul</h3>
+              <p class="text-xs text-slate-400">Centang modul yang boleh diakses setiap role</p>
+            </div>
+            <button onclick="savePerms()" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              Simpan Perubahan
+            </button>
+          </div>
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                  <th class="px-6 py-3.5 text-left">Modul</th>
+                  <th class="px-4 py-3.5 text-center">Super Admin</th>
+                  <th class="px-4 py-3.5 text-center">Admin CS</th>
+                  <th class="px-4 py-3.5 text-center">Support</th>
+                  <th class="px-4 py-3.5 text-center">Finance</th>
+                  <th class="px-4 py-3.5 text-center">Viewer</th>
+                </tr>
+              </thead>
+              <tbody id="permMatrixBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+          <p class="px-6 py-3 text-[11px] text-slate-400 border-t border-slate-100 bg-slate-50/60">
+            * Super Admin selalu memiliki akses penuh dan tidak dapat diubah.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ TAB: LOG ============ -->
+      <section id="tab-log" class="hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+          <h3 class="font-bold text-slate-900 mb-4">Log Aktivitas Admin</h3>
+          <ol id="logList" class="relative border-l-2 border-slate-100 space-y-5 ml-2"></ol>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ============ MODAL PENGGUNA ============ -->
+<div id="userModal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <h3 id="modalTitle" class="font-bold text-slate-900">Tambah Pengguna</h3>
+      <button onclick="closeUserModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <form class="p-6 space-y-4" onsubmit="event.preventDefault(); saveUser();">
+      <input type="hidden" id="fUserId" />
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Lengkap</label>
+        <input id="fName" type="text" required class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400" placeholder="cth: Rani Admin" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Email</label>
+        <input id="fEmail" type="email" required class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400" placeholder="nama@revota.id" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Role</label>
+        <select id="fRole" class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400"></select>
+      </div>
+      <div class="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
+        <div>
+          <p class="text-sm font-semibold text-slate-700">Status Aktif</p>
+          <p class="text-[11px] text-slate-400">Pengguna nonaktif tidak bisa login</p>
+        </div>
+        <div id="fActive" class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeUserModal()" class="flex-1 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-lg transition">Batal</button>
+        <button type="submit" class="flex-1 text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95">Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-sm font-semibold px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 fade-in">
+  <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <span id="toastMsg">Berhasil disimpan</span>
+</div>
+
+<script>
+/* ================= DATA ================= */
+const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
+const ROLE_STYLE = {
+  'Super Admin': 'bg-violet-50 text-violet-600 border-violet-200',
+  'Admin CS':    'bg-brand-50 text-brand-700 border-brand-200',
+  'Support':     'bg-sky-50 text-sky-600 border-sky-200',
+  'Finance':     'bg-emerald-50 text-emerald-600 border-emerald-200',
+  'Viewer':      'bg-slate-100 text-slate-500 border-slate-200'
+};
+const ROLE_DESC = {
+  'Super Admin': 'Akses penuh semua modul & pengaturan',
+  'Admin CS':    'Kelola kasus, master data & billing',
+  'Support':     'Input & tindaklanjut kasus support',
+  'Finance':     'Billing, price list & audit keuangan',
+  'Viewer':      'Hanya melihat dashboard & data kasus'
+};
+const MODULES = [
+  { id:'dashboard',   name:'Dashboard',        desc:'Ringkasan & grafik bantuan' },
+  { id:'cases',       name:'Data Kasus',       desc:'Lihat semua data kasus support' },
+  { id:'form',        name:'Form Kasus',       desc:'Input kasus support baru' },
+  { id:'hrreport',    name:'HR Report',        desc:'Rekap performa tim & detail ticket' },
+  { id:'master',      name:'Master Data',      desc:'Konfigurasi master data' },
+  { id:'cfg',         name:'Konfigurasi Sheet',desc:'Master config dari Google Sheets' },
+  { id:'pricelist',   name:'Price List',       desc:'Harga layanan support' },
+  { id:'billing',     name:'Billing & Audit',  desc:'Validasi tagihan sebelum invoice' },
+  { id:'finance',     name:'Finance Audit',    desc:'Penerbitan invoice kasus tervalidasi' },
+  { id:'mockup',      name:'Dashboard Mockup', desc:'Mockup data Google Sheets' },
+  { id:'roles',       name:'Hak Akses',        desc:'Kelola pengguna & izin' }
+];
+const DEFAULT_PERMS = {
+  'Super Admin': { dashboard:1, cases:1, form:1, hrreport:1, master:1, cfg:1, pricelist:1, billing:1, finance:1, mockup:1, roles:1 },
+  'Admin CS':    { dashboard:1, cases:1, form:1, hrreport:1, master:1, cfg:1, pricelist:1, billing:1, finance:0, mockup:1, roles:0 },
+  'Support':     { dashboard:1, cases:1, form:1, hrreport:1, master:0, cfg:0, pricelist:0, billing:0, finance:0, mockup:0, roles:0 },
+  'Finance':     { dashboard:1, cases:0, form:0, hrreport:0, master:0, cfg:0, pricelist:1, billing:1, finance:1, mockup:0, roles:0 },
+  'Viewer':      { dashboard:1, cases:1, form:0, hrreport:0, master:0, cfg:0, pricelist:0, billing:0, finance:0, mockup:0, roles:0 }
+};
+const SEED_USERS = [
+  { id:1, name:'Rani Admin',    email:'rani@revota.id',    role:'Super Admin', active:true,  lastLogin:'Hari ini 09:12' },
+  { id:2, name:'Budi Santoso',  email:'budi.cs@revota.id', role:'Admin CS',    active:true,  lastLogin:'Hari ini 08:47' },
+  { id:3, name:'Sari Support',  email:'sari@revota.id',    role:'Support',     active:true,  lastLogin:'Kemarin 16:20' },
+  { id:4, name:'Fajar Finance', email:'finance@revota.id', role:'Finance',     active:true,  lastLogin:'Hari ini 07:55' },
+  { id:5, name:'Vina Viewer',   email:'vina@revota.id',    role:'Viewer',      active:false, lastLogin:'3 hari lalu' }
+];
+const SEED_LOGS = [
+  { who:'Rani Admin',    act:'mengubah role Fajar Finance menjadi Finance',      time:'Hari ini 09:10' },
+  { who:'Rani Admin',    act:'menonaktifkan akun Vina Viewer',                   time:'Kemarin 15:42' },
+  { who:'Budi Santoso',  act:'menambahkan pengguna baru Sari Support',           time:'2 hari lalu' },
+  { who:'Rani Admin',    act:'memperbarui izin modul untuk role Support',        time:'3 hari lalu' }
+];
+
+let users = load('appUsers', SEED_USERS);
+let perms = load('appPerms', DEFAULT_PERMS);
+let logs  = load('appLogs', SEED_LOGS);
+
+function load(key, fallback){
+  try { const v = JSON.parse(localStorage.getItem(key)); return v || structuredClone(fallback); }
+  catch(e){ return structuredClone(fallback); }
+}
+function persist(){ localStorage.setItem('appUsers', JSON.stringify(users)); localStorage.setItem('appPerms', JSON.stringify(perms)); localStorage.setItem('appLogs', JSON.stringify(logs)); }
+
+/* ================= USER INFO (sidebar/topbar) ================= */
+(function fillUser(){
+  const u = window.currentUser ? currentUser() : {name:'Pengguna', email:'-', role:'Viewer'};
+  document.getElementById('userName').textContent = u.name;
+  document.getElementById('userEmail').textContent = u.email;
+  document.getElementById('userAvatar').textContent = u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('topRole').textContent = u.role;
+})();
+
+/* ================= TAB ================= */
+function switchTab(tab){
+  ['pengguna','role','log'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('hidden', t !== tab);
+    document.querySelector(`.tab-btn[data-tab="${t}"]`).classList.toggle('active', t === tab);
+  });
+}
+
+/* ================= STAT ================= */
+function renderStats(){
+  document.getElementById('statUsers').textContent = users.length;
+  document.getElementById('statUsersActive').textContent = users.filter(u=>u.active).length + ' aktif';
+  document.getElementById('statInactive').textContent = users.filter(u=>!u.active).length;
+  document.getElementById('statRoles').textContent = ROLES.length;
+  document.getElementById('statModules').textContent = MODULES.length;
+}
+
+/* ================= PENGGUNA ================= */
+function initials(name){ return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+function renderUsers(){
+  const q = document.getElementById('searchUser').value.toLowerCase();
+  const fr = document.getElementById('filterRole').value;
+  const fs = document.getElementById('filterStatus').value;
+  const tbody = document.getElementById('userTableBody');
+
+  const filtered = users.filter(u =>
+    (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
+    (!fr || u.role === fr) &&
+    (!fs || (fs === 'aktif') === u.active)
+  );
+
+  tbody.innerHTML = filtered.map(u => `
+    <tr class="hover:bg-slate-50/70 transition">
+      <td class="px-6 py-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-xs font-bold shrink-0">${initials(u.name)}</div>
+          <div class="min-w-0">
+            <p class="font-semibold text-slate-800 truncate">${u.name}</p>
+            <p class="text-xs text-slate-400 truncate">${u.email}</p>
+          </div>
+        </div>
+      </td>
+      <td class="px-6 py-4">
+        <span class="inline-block text-[11px] font-bold border rounded-full px-2.5 py-1 ${ROLE_STYLE[u.role]}">${u.role}</span>
+      </td>
+      <td class="px-6 py-4 text-xs text-slate-500">${u.lastLogin}</td>
+      <td class="px-6 py-4">
+        <div class="flex items-center gap-2">
+          <div class="toggle ${u.active ? 'on' : ''}" onclick="toggleUser(${u.id})"></div>
+          <span class="text-xs font-semibold ${u.active ? 'text-emerald-600' : 'text-slate-400'}">${u.active ? 'Aktif' : 'Nonaktif'}</span>
+        </div>
+      </td>
+      <td class="px-6 py-4 text-right">
+        <button onclick="openUserModal(${u.id})" class="p-2 rounded-lg hover:bg-brand-50 text-slate-400 hover:text-brand-600 transition" title="Edit">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+        </button>
+        <button onclick="deleteUser(${u.id})" class="p-2 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition" title="Hapus">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+        </button>
+      </td>
+    </tr>`).join('');
+
+  document.getElementById('userEmpty').classList.toggle('hidden', filtered.length > 0);
+  renderStats();
+}
+
+function toggleUser(id){
+  const u = users.find(x => x.id === id);
+  if(!u) return;
+  u.active = !u.active;
+  addLog(`${u.active ? 'mengaktifkan' : 'menonaktifkan'} akun ${u.name}`);
+  persist(); renderUsers();
+  showToast(`Akun ${u.name} ${u.active ? 'diaktifkan' : 'dinonaktifkan'}`);
+}
+
+function deleteUser(id){
+  const u = users.find(x => x.id === id);
+  if(!u) return;
+  if(u.role === 'Super Admin'){ showToast('Super Admin tidak dapat dihapus'); return; }
+  if(!confirm(`Hapus pengguna "${u.name}"?`)) return;
+  users = users.filter(x => x.id !== id);
+  addLog(`menghapus pengguna ${u.name}`);
+  persist(); renderUsers();
+  showToast('Pengguna dihapus');
+}
+
+/* ================= MODAL ================= */
+function openUserModal(id){
+  const sel = document.getElementById('fRole');
+  sel.innerHTML = ROLES.map(r => `<option>${r}</option>`).join('');
+  document.getElementById('fUserId').value = id || '';
+  if(id){
+    const u = users.find(x => x.id === id);
+    document.getElementById('modalTitle').textContent = 'Edit Pengguna';
+    document.getElementById('fName').value = u.name;
+    document.getElementById('fEmail').value = u.email;
+    sel.value = u.role;
+    document.getElementById('fActive').classList.toggle('on', u.active);
+  } else {
+    document.getElementById('modalTitle').textContent = 'Tambah Pengguna';
+    document.getElementById('fName').value = '';
+    document.getElementById('fEmail').value = '';
+    sel.value = 'Viewer';
+    document.getElementById('fActive').classList.add('on');
+  }
+  document.getElementById('userModal').classList.remove('hidden');
+}
+function closeUserModal(){ document.getElementById('userModal').classList.add('hidden'); }
+document.getElementById('userModal').addEventListener('click', e => { if(e.target.id === 'userModal') closeUserModal(); });
+
+function saveUser(){
+  const id = document.getElementById('fUserId').value;
+  const name = document.getElementById('fName').value.trim();
+  const email = document.getElementById('fEmail').value.trim();
+  const role = document.getElementById('fRole').value;
+  const active = document.getElementById('fActive').classList.contains('on');
+
+  if(id){
+    const u = users.find(x => x.id === +id);
+    Object.assign(u, { name, email, role, active });
+    addLog(`mengubah data pengguna ${name}`);
+  } else {
+    users.push({ id: Date.now(), name, email, role, active, lastLogin: 'Belum pernah login' });
+    addLog(`menambahkan pengguna baru ${name} (${role})`);
+  }
+  persist(); closeUserModal(); renderUsers();
+  showToast('Data pengguna disimpan');
+}
+
+/* ================= ROLE & IZIN ================= */
+function renderRoleCards(){
+  document.getElementById('roleCards').innerHTML = ROLES.map((r, i) => {
+    const count = users.filter(u => u.role === r).length;
+    const modCount = MODULES.filter(m => perms[r] && perms[r][m.id]).length;
+    return `
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 fade-in" style="animation-delay:${.05*i}s">
+        <span class="inline-block text-[11px] font-bold border rounded-full px-2.5 py-1 ${ROLE_STYLE[r]}">${r}</span>
+        <p class="mt-2.5 text-[11px] text-slate-400 leading-relaxed min-h-[32px]">${ROLE_DESC[r]}</p>
+        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <span class="font-bold text-slate-700">${count} pengguna</span>
+          <span class="text-slate-400">${modCount}/${MODULES.length} modul</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderPermMatrix(){
+  document.getElementById('permMatrixBody').innerHTML = MODULES.map(m => `
+    <tr class="hover:bg-slate-50/70 transition">
+      <td class="px-6 py-3.5">
+        <p class="font-semibold text-slate-800">${m.name}</p>
+        <p class="text-[11px] text-slate-400">${m.desc}</p>
+      </td>
+      ${ROLES.map(r => {
+        const locked = r === 'Super Admin';
+        const checked = perms[r] && perms[r][m.id];
+        return `<td class="px-4 py-3.5 text-center">
+          <input type="checkbox" class="perm-check" data-role="${r}" data-module="${m.id}" ${checked ? 'checked' : ''} ${locked ? 'disabled checked' : ''} onchange="setPerm(this)" />
+        </td>`;
+      }).join('')}
+    </tr>`).join('');
+}
+
+function setPerm(el){
+  const r = el.dataset.role, m = el.dataset.module;
+  if(!perms[r]) perms[r] = {};
+  perms[r][m] = el.checked ? 1 : 0;
+  renderRoleCards();
+}
+
+function savePerms(){
+  persist();
+  addLog('memperbarui matriks izin modul');
+  renderLogs();
+  showToast('Matriks izin berhasil disimpan');
+}
+
+/* ================= LOG ================= */
+function addLog(act){
+  const u = window.currentUser ? currentUser() : { name: 'Admin' };
+  logs.unshift({ who: u.name, act, time: 'Baru saja' });
+  if(logs.length > 30) logs = logs.slice(0, 30);
+  persist(); renderLogs();
+}
+function renderLogs(){
+  document.getElementById('logList').innerHTML = logs.map(l => `
+    <li class="ml-5 relative">
+      <span class="absolute -left-[27px] top-1 w-3 h-3 rounded-full bg-brand-100 border-2 border-brand-500"></span>
+      <p class="text-sm text-slate-700"><span class="font-bold">${l.who}</span> ${l.act}</p>
+      <p class="text-[11px] text-slate-400 mt-0.5">${l.time}</p>
+    </li>`).join('');
+}
+
+/* ================= TOAST ================= */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 2600);
+}
+
+/* ================= INIT ================= */
+(function init(){
+  const fr = document.getElementById('filterRole');
+  fr.innerHTML = '<option value="">Semua Role</option>' + ROLES.map(r => `<option>${r}</option>`).join('');
+  renderUsers();
+  renderRoleCards();
+  renderPermMatrix();
+  renderLogs();
+})();
+</script>
+</body>
+</html>

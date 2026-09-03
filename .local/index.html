@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — Pusat Data Bantuan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="data-cases.js"></script>
+<script src="app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { brand: { 50:'#eef4ff',100:'#dfe9ff',200:'#c5d7ff',300:'#a2bcff',400:'#7d97fb',500:'#5f72f5',600:'#4a4fe9',700:'#3d3ece',800:'#3336a6',900:'#2f3383',950:'#1c1e4e' } } } } }
+</script>
+<style>
+  body{font-family:'Inter',sans-serif;}
+  .scrollbar-thin::-webkit-scrollbar{width:6px;height:6px;}
+  .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px;}
+  .fade-in{animation:fadeIn .35s ease both;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .spin{animation:spin .8s linear;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+<div class="flex min-h-screen">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-30">
+    <div class="px-5 py-5 flex items-center gap-3 border-b border-slate-100">
+      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/></svg>
+      </div>
+      <div>
+        <h1 class="font-bold text-slate-900 leading-tight text-sm">Pusat Data Bantuan</h1>
+        <p class="text-[11px] text-slate-400">Sinkron dari Google Sheets</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 py-3 text-sm font-medium text-slate-600 overflow-y-auto scrollbar-thin">
+      <p class="px-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Menu Utama</p>
+      <a href="index.html" class="flex items-center gap-3 px-5 py-2.5 bg-brand-50 text-brand-700 border-r-[3px] border-brand-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Dashboard
+      </a>
+      <a href="view-cases.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+        Data Kasus
+      </a>
+      <a href="mockup.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        Dashboard Mockup
+      </a>
+
+      <p class="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Operasional</p>
+      <a href="main-support.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        Form Kasus
+      </a>
+      <a href="config.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71 10.038 10.038 0 00-1.22 5.338c.09.62.732.99 1.305.806 2.32-.74 5.847-1.992 8.79-3.188.24-.1.48-.208.713-.32M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71M9.594 3.94l10.224 3.99M12.7 17.5l-1.426 4.073a.999.999 0 01-1.833.178L7.41 17.5H4.225a1 1 0 01-.997-1.098l.881-9.74A2.003 2.003 0 016.116 3h11.768a2.002 2.002 0 012.008 1.662l.88 9.74A1 1 0 0120.775 16h-3.185"/></svg>
+        Master Data
+      </a>
+      <a href="pricelist.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/></svg>
+        Price List
+      </a>
+
+      <p class="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Keuangan</p>
+      <a href="billing.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+        Billing & Audit
+      </a>
+      <a href="finance-audit.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Finance Audit
+      </a>
+
+      <p class="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Administrasi</p>
+      <a href="roles.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        Hak Akses
+      </a>
+    </nav>
+
+    <div class="p-4 border-t border-slate-100">
+      <div class="flex items-center gap-3">
+        <div id="sbAvatar" class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-xs font-bold">?</div>
+        <div class="flex-1 min-w-0">
+          <p id="sbName" class="text-sm font-semibold text-slate-800 truncate">Pengguna</p>
+          <p id="sbEmail" class="text-[11px] text-slate-400 truncate">-</p>
+        </div>
+        <button onclick="logout()" class="text-slate-400 hover:text-rose-500 transition" title="Keluar">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="flex-1 ml-64">
+
+    <!-- Topbar -->
+    <header class="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-4 flex items-center gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Dashboard</h2>
+        <p class="text-xs text-slate-400">Rekap seluruh aktivitas dari semua fitur — satu halaman</p>
+      </div>
+      <div class="ml-auto flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          Terakhir diperbarui: <span id="lastUpdated" class="font-semibold text-slate-700">—</span>
+        </div>
+        <button id="btnRefresh" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95">
+          <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+          Muat Terbaru
+        </button>
+      </div>
+    </header>
+
+    <div class="px-8 py-6 space-y-6">
+
+      <!-- ===== Kartu Angka Penting ===== -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:.02s">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Kasus</p>
+              <p class="mt-2 text-3xl font-extrabold text-slate-900" id="statTotal">—</p>
+              <p class="mt-1 text-xs text-slate-400 font-medium" id="statTotalSub">—</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:.06s">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kasus Bulan Terakhir</p>
+              <p class="mt-2 text-3xl font-extrabold text-slate-900" id="statMonth">—</p>
+              <p class="mt-1 text-xs text-slate-400 font-medium" id="statMonthSub">—</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:.1s">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kasus Berbayar</p>
+              <p class="mt-2 text-3xl font-extrabold text-amber-600" id="statPaid">—</p>
+              <p class="mt-1 text-xs text-amber-600 font-medium" id="statPaidSub">—</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:.14s">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Nilai Billing</p>
+              <p class="mt-2 text-3xl font-extrabold text-emerald-600" id="statCharges">—</p>
+              <p class="mt-1 text-xs text-emerald-600 font-medium" id="statChargesSub">—</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Rekap per Fitur ===== -->
+      <div>
+        <h3 class="font-bold text-slate-900 mb-3 fade-in" style="animation-delay:.16s">Rekap per Fitur</h3>
+        <div id="featureRecap" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- ===== Grafik: Tren + Billing ===== -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div class="xl:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 fade-in" style="animation-delay:.2s">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-900">Tren Kasus per Bulan</h3>
+            <p class="text-xs text-slate-400">Jumlah kasus masuk berdasarkan tanggal issue</p>
+          </div>
+          <div class="h-64"><canvas id="chartTrend"></canvas></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in" style="animation-delay:.24s">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-900">Status Billing</h3>
+            <p class="text-xs text-slate-400">Pembagian FREE / ON-CALL / MONTHLY</p>
+          </div>
+          <div class="h-64 flex items-center justify-center"><canvas id="chartBilling"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ===== Grafik: Modul + Channel + Charges ===== -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in" style="animation-delay:.28s">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-900">Kasus per Modul</h3>
+            <p class="text-xs text-slate-400">Modul terbanyak ditangani</p>
+          </div>
+          <div class="h-64"><canvas id="chartModule"></canvas></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in" style="animation-delay:.32s">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-900">Channel Tiket</h3>
+            <p class="text-xs text-slate-400">Sumber masuknya kasus</p>
+          </div>
+          <div class="h-64 flex items-center justify-center"><canvas id="chartChannel"></canvas></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in" style="animation-delay:.36s">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-900">Nilai Billing per Bulan</h3>
+            <p class="text-xs text-slate-400">Total charges (Rp) dari kasus berbayar</p>
+          </div>
+          <div class="h-64"><canvas id="chartCharges"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ===== Top Klien + Kinerja Tim ===== -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div class="xl:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 fade-in" style="animation-delay:.4s">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-900">Top 8 Klien</h3>
+            <p class="text-xs text-slate-400">Klien dengan kasus terbanyak</p>
+          </div>
+          <div class="h-72"><canvas id="chartClient"></canvas></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in" style="animation-delay:.44s">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-900">Kinerja Tim Support</h3>
+            <p class="text-xs text-slate-400">Kasus ditangani per petugas</p>
+          </div>
+          <div id="teamPerf" class="space-y-5"></div>
+        </div>
+      </div>
+
+      <!-- ===== Kasus Terbaru ===== -->
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden fade-in" style="animation-delay:.48s">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-900">Kasus Terbaru</h3>
+            <p class="text-xs text-slate-400">10 kasus terakhir dari Google Sheets</p>
+          </div>
+          <a href="view-cases.html" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700 transition">
+            Lihat Semua Data
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+          </a>
+        </div>
+        <div class="overflow-x-auto scrollbar-thin">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                <th class="px-6 py-3">Tanggal</th>
+                <th class="px-6 py-3">Klien</th>
+                <th class="px-6 py-3">Kendala</th>
+                <th class="px-6 py-3">Modul</th>
+                <th class="px-6 py-3">Petugas</th>
+                <th class="px-6 py-3">Billing</th>
+                <th class="px-6 py-3 text-right">Biaya</th>
+              </tr>
+            </thead>
+            <tbody id="recentBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+/* ================= HELPER ================= */
+const fmtNum  = n => n.toLocaleString('id-ID');
+const fmtRp   = n => 'Rp ' + fmtNum(Math.round(n));
+const fmtRpShort = n => {
+  if (n >= 1e9) return 'Rp ' + (n/1e9).toLocaleString('id-ID',{maximumFractionDigits:2}) + ' M';
+  if (n >= 1e6) return 'Rp ' + (n/1e6).toLocaleString('id-ID',{maximumFractionDigits:1}) + ' jt';
+  if (n >= 1e3) return 'Rp ' + (n/1e3).toLocaleString('id-ID',{maximumFractionDigits:0}) + ' rb';
+  return fmtRp(n);
+};
+const MONTH_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+function parseDate(ds){
+  const s = String(ds||'').replace(/\D/g,'').padStart(8,'0');
+  if (s.length !== 8 || s === '00000000') return null;
+  const y = +s.slice(0,4), m = +s.slice(4,6), d = +s.slice(6,8);
+  if (!y || m < 1 || m > 12 || !d) return null;
+  return new Date(y, m-1, d);
+}
+function fmtDate(ds){
+  const dt = parseDate(ds);
+  return dt ? dt.getDate() + ' ' + MONTH_ID[dt.getMonth()] + ' ' + dt.getFullYear() : '-';
+}
+function countBy(arr, fn){
+  const m = {};
+  arr.forEach(c => { const k = fn(c); if (k) m[k] = (m[k]||0) + 1; });
+  return m;
+}
+function topEntries(obj, n){
+  return Object.entries(obj).sort((a,b) => b[1]-a[1]).slice(0, n||Infinity);
+}
+
+/* ================= AGREGASI DATA ================= */
+const CASES = (window.allCases || []).map(c => ({ ...c, charges: +c.charges || 0, _dt: parseDate(c.dateIssue) }));
+const TOTAL = CASES.length;
+
+// per year-month
+const ymMap = {};
+CASES.forEach(c => {
+  if (!c._dt) return;
+  const k = c._dt.getFullYear() + '-' + String(c._dt.getMonth()+1).padStart(2,'0');
+  if (!ymMap[k]) ymMap[k] = { count: 0, charges: 0 };
+  ymMap[k].count++;
+  ymMap[k].charges += c.charges;
+});
+const ymKeys = Object.keys(ymMap).sort();
+const ymLabels = ymKeys.map(k => {
+  const [y, m] = k.split('-');
+  return MONTH_ID[+m-1] + ' ' + String(y).slice(2);
+});
+const latestYM = ymKeys[ymKeys.length-1];
+
+const billMap   = countBy(CASES, c => (c.billingStatus||'').trim() || 'LAINNYA');
+const moduleMap = countBy(CASES, c => (c.module||'').trim());
+const chanMap   = countBy(CASES, c => (c.channelTicket||'').trim());
+const clientMap = countBy(CASES, c => (c.client||'').trim());
+const teamMap   = countBy(CASES, c => (c.assignTo||'').trim());
+const priceRefs = new Set(CASES.map(c => (c.refPriceList||'').trim()).filter(Boolean)).size;
+
+const paidCases   = CASES.filter(c => c.charges > 0);
+const totalCharge = paidCases.reduce((s,c) => s + c.charges, 0);
+const uniqueClients = Object.keys(clientMap).length;
+
+/* ================= STAT CARDS ================= */
+document.getElementById('statTotal').textContent = fmtNum(TOTAL);
+document.getElementById('statTotalSub').textContent = uniqueClients + ' klien · ' + Object.keys(moduleMap).length + ' modul';
+document.getElementById('statMonth').textContent = fmtNum(latestYM ? ymMap[latestYM].count : 0);
+document.getElementById('statMonthSub').textContent = latestYM ? ('periode ' + ymLabels[ymLabels.length-1]) : '—';
+document.getElementById('statPaid').textContent = fmtNum(paidCases.length);
+document.getElementById('statPaidSub').textContent = ((paidCases.length/TOTAL*100).toFixed(1) + '% dari total kasus');
+document.getElementById('statCharges').textContent = fmtRpShort(totalCharge);
+document.getElementById('statChargesSub').textContent = 'dari ' + fmtNum(paidCases.length) + ' kasus berbayar';
+
+/* ================= REKAP PER FITUR ================= */
+const FEATURES = [
+  { title:'Data Kasus', href:'view-cases.html', color:'brand',
+    metric: fmtNum(TOTAL) + ' kasus', desc: uniqueClients + ' klien tercatat di Google Sheets',
+    icon:'<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/>' },
+  { title:'Form Kasus', href:'main-support.html', color:'sky',
+    metric: fmtNum(latestYM ? ymMap[latestYM].count : 0) + ' kasus', desc: 'masuk pada bulan terakhir periode data',
+    icon:'<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>' },
+  { title:'Billing & Audit', href:'billing.html', color:'amber',
+    metric: fmtNum((billMap['ON-CALL']||0) + (billMap['MONTHLY']||0)) + ' tagihan', desc: 'ON-CALL: ' + fmtNum(billMap['ON-CALL']||0) + ' · MONTHLY: ' + fmtNum(billMap['MONTHLY']||0),
+    icon:'<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>' },
+  { title:'Finance Audit', href:'finance-audit.html', color:'emerald',
+    metric: fmtRpShort(totalCharge), desc: 'total nilai charges yang tercatat',
+    icon:'<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>' },
+  { title:'Price List', href:'pricelist.html', color:'violet',
+    metric: priceRefs + ' paket', desc: 'referensi price list yang dipakai kasus',
+    icon:'<path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/>' },
+  { title:'Master Data', href:'config.html', color:'slate',
+    metric: Object.keys(moduleMap).length + ' modul', desc: Object.keys(teamMap).length + ' petugas · ' + Object.keys(chanMap).length + ' channel aktif',
+    icon:'<path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71 10.038 10.038 0 00-1.22 5.338c.09.62.732.99 1.305.806 2.32-.74 5.847-1.992 8.79-3.188.24-.1.48-.208.713-.32M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71M9.594 3.94l10.224 3.99M12.7 17.5l-1.426 4.073a.999.999 0 01-1.833.178L7.41 17.5H4.225a1 1 0 01-.997-1.098l.881-9.74A2.003 2.003 0 016.116 3h11.768a2.002 2.002 0 012.008 1.662l.88 9.74A1 1 0 0120.775 16h-3.185"/>' }
+];
+const COLOR_BOX = {
+  brand:'bg-brand-50 text-brand-600', sky:'bg-sky-50 text-sky-500', amber:'bg-amber-50 text-amber-500',
+  emerald:'bg-emerald-50 text-emerald-500', violet:'bg-violet-50 text-violet-500', slate:'bg-slate-100 text-slate-500'
+};
+document.getElementById('featureRecap').innerHTML = FEATURES.map((f,i) => `
+  <a href="${f.href}" class="group bg-white rounded-2xl border border-slate-200 p-5 flex items-start gap-4 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-600/5 transition fade-in" style="animation-delay:${.16 + i*.04}s">
+    <div class="w-11 h-11 shrink-0 rounded-xl ${COLOR_BOX[f.color]} flex items-center justify-center">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">${f.icon}</svg>
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">${f.title}</p>
+      <p class="mt-1 text-lg font-extrabold text-slate-900">${f.metric}</p>
+      <p class="text-[11px] text-slate-400 truncate">${f.desc}</p>
+    </div>
+    <svg class="w-4 h-4 mt-1 text-slate-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+  </a>`).join('');
+
+/* ================= CHARTS ================= */
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = '#94a3b8';
+const gridOpt = { color:'#f1f5f9' };
+const charts = [];
+
+charts.push(new Chart(document.getElementById('chartTrend'), {
+  type: 'line',
+  data: { labels: ymLabels, datasets: [{
+    label: 'Kasus', data: ymKeys.map(k => ymMap[k].count),
+    borderColor: '#4a4fe9', backgroundColor: 'rgba(74,79,233,.12)', fill: true,
+    tension: .35, pointRadius: 4, pointBackgroundColor: '#4a4fe9', borderWidth: 2.5
+  }]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+    scales:{ y:{ beginAtZero:true, grid:gridOpt, ticks:{ precision:0 } }, x:{ grid:{ display:false } } } }
+}));
+
+const BILL_COLORS = { 'FREE':'#10b981', 'ON-CALL':'#f59e0b', 'MONTHLY':'#0ea5e9', 'LAINNYA':'#cbd5e1' };
+const billEntries = topEntries(billMap);
+charts.push(new Chart(document.getElementById('chartBilling'), {
+  type: 'doughnut',
+  data: { labels: billEntries.map(e => e[0]), datasets: [{
+    data: billEntries.map(e => e[1]),
+    backgroundColor: billEntries.map(e => BILL_COLORS[e[0]] || '#cbd5e1'),
+    borderWidth: 3, borderColor: '#fff'
+  }]},
+  options: { responsive:true, maintainAspectRatio:false, cutout:'62%',
+    plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, padding:14, font:{ weight:600 } } } } }
+}));
+
+const modEntries = topEntries(moduleMap, 6);
+charts.push(new Chart(document.getElementById('chartModule'), {
+  type: 'bar',
+  data: { labels: modEntries.map(e => e[0]), datasets: [{
+    data: modEntries.map(e => e[1]), backgroundColor: '#5f72f5', borderRadius: 6, maxBarThickness: 22
+  }]},
+  options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+    scales:{ x:{ beginAtZero:true, grid:gridOpt, ticks:{ precision:0 } }, y:{ grid:{ display:false }, ticks:{ font:{ size:10, weight:600 } } } } }
+}));
+
+const CHAN_COLORS = ['#4a4fe9','#10b981','#f59e0b','#94a3b8'];
+const chanEntries = topEntries(chanMap);
+charts.push(new Chart(document.getElementById('chartChannel'), {
+  type: 'doughnut',
+  data: { labels: chanEntries.map(e => e[0]), datasets: [{
+    data: chanEntries.map(e => e[1]), backgroundColor: CHAN_COLORS, borderWidth: 3, borderColor: '#fff'
+  }]},
+  options: { responsive:true, maintainAspectRatio:false, cutout:'62%',
+    plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, padding:14, font:{ weight:600 } } } } }
+}));
+
+charts.push(new Chart(document.getElementById('chartCharges'), {
+  type: 'bar',
+  data: { labels: ymLabels, datasets: [{
+    label: 'Charges', data: ymKeys.map(k => ymMap[k].charges),
+    backgroundColor: '#f59e0b', borderRadius: 6, maxBarThickness: 26
+  }]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false },
+      tooltip:{ callbacks:{ label: ctx => ' ' + fmtRp(ctx.parsed.y) } } },
+    scales:{ y:{ beginAtZero:true, grid:gridOpt, ticks:{ callback: v => fmtRpShort(v) } }, x:{ grid:{ display:false } } } }
+}));
+
+const clientEntries = topEntries(clientMap, 8);
+charts.push(new Chart(document.getElementById('chartClient'), {
+  type: 'bar',
+  data: { labels: clientEntries.map(e => e[0]), datasets: [{
+    data: clientEntries.map(e => e[1]), backgroundColor: '#3d3ece', borderRadius: 6, maxBarThickness: 30
+  }]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+    scales:{ y:{ beginAtZero:true, grid:gridOpt, ticks:{ precision:0 } },
+      x:{ grid:{ display:false }, ticks:{ font:{ size:9, weight:600 }, maxRotation: 45, minRotation: 45 } } } }
+}));
+
+/* ================= KINERJA TIM ================= */
+const TEAM_COLORS = ['bg-brand-500','bg-emerald-500','bg-amber-500','bg-sky-500','bg-violet-500'];
+const teamEntries = topEntries(teamMap);
+const maxTeam = teamEntries.length ? teamEntries[0][1] : 1;
+document.getElementById('teamPerf').innerHTML = teamEntries.map(([name, count], i) => {
+  const charge = CASES.filter(c => (c.assignTo||'').trim() === name).reduce((s,c) => s + c.charges, 0);
+  const pct = Math.round(count / maxTeam * 100);
+  return `
+    <div>
+      <div class="flex items-center justify-between text-sm mb-1.5">
+        <span class="font-bold text-slate-700">${name}</span>
+        <span class="text-xs text-slate-400 font-semibold">${fmtNum(count)} kasus · ${fmtRpShort(charge)}</span>
+      </div>
+      <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+        <div class="h-full ${TEAM_COLORS[i % TEAM_COLORS.length]} rounded-full transition-all duration-700" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+}).join('');
+
+/* ================= KASUS TERBARU ================= */
+const BILL_BADGE = {
+  'FREE':    'bg-emerald-50 text-emerald-600 border-emerald-200',
+  'ON-CALL': 'bg-amber-50 text-amber-600 border-amber-200',
+  'MONTHLY': 'bg-sky-50 text-sky-600 border-sky-200'
+};
+const recent = [...CASES]
+  .sort((a,b) => (b._dt - a._dt) || ((+b.no||0) - (+a.no||0)))
+  .slice(0, 10);
+document.getElementById('recentBody').innerHTML = recent.map(c => {
+  const bs = (c.billingStatus||'').trim() || '-';
+  return `
+    <tr class="hover:bg-slate-50/70 transition">
+      <td class="px-6 py-3.5 text-xs text-slate-500 whitespace-nowrap">${fmtDate(c.dateIssue)}</td>
+      <td class="px-6 py-3.5 font-semibold text-slate-800 whitespace-nowrap">${c.client || '-'}</td>
+      <td class="px-6 py-3.5 text-xs text-slate-500 max-w-[280px] truncate" title="${(c.issue||'').replace(/"/g,'&quot;')}">${c.issue || '-'}</td>
+      <td class="px-6 py-3.5"><span class="text-[11px] font-bold text-slate-500 bg-slate-100 rounded-full px-2.5 py-1">${c.module || '-'}</span></td>
+      <td class="px-6 py-3.5 text-xs font-semibold text-slate-600">${c.assignTo || '-'}</td>
+      <td class="px-6 py-3.5"><span class="text-[11px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[bs] || 'bg-slate-100 text-slate-500 border-slate-200'}">${bs}</span></td>
+      <td class="px-6 py-3.5 text-right text-xs font-bold ${c.charges > 0 ? 'text-amber-600' : 'text-slate-300'}">${c.charges > 0 ? fmtRp(c.charges) : '—'}</td>
+    </tr>`;
+}).join('');
+
+/* ================= USER & REFRESH ================= */
+(function fillUser(){
+  const u = window.currentUser ? currentUser() : { name:'Pengguna', email:'-' };
+  document.getElementById('sbName').textContent = u.name;
+  document.getElementById('sbEmail').textContent = u.email;
+  document.getElementById('sbAvatar').textContent = u.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+})();
+
+function stampUpdated(){
+  const now = new Date();
+  document.getElementById('lastUpdated').textContent =
+    now.getDate() + ' ' + MONTH_ID[now.getMonth()] + ' ' + now.getFullYear() + ', ' +
+    String(now.getHours()).padStart(2,'0') + '.' + String(now.getMinutes()).padStart(2,'0');
+}
+stampUpdated();
+document.getElementById('btnRefresh').addEventListener('click', function(){
+  const ic = document.getElementById('refreshIcon');
+  ic.classList.remove('spin'); void ic.offsetWidth; ic.classList.add('spin');
+  setTimeout(stampUpdated, 500);
+});
+</script>
+</body>
+</html>

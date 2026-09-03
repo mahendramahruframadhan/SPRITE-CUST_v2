@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Finance Audit — Pusat Data Bantuan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="data-cases.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<script src="app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { brand: { 50:'#eef4ff',100:'#dfe9ff',200:'#c5d7ff',300:'#a2bcff',400:'#7d97fb',500:'#5f72f5',600:'#4a4fe9',700:'#3d3ece',800:'#3336a6',900:'#2f3383',950:'#1c1e4e' } } } } }
+</script>
+<style>
+  body{font-family:'Inter',sans-serif;}
+  .scrollbar-thin::-webkit-scrollbar{width:6px;height:6px;}
+  .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px;}
+  .fade-in{animation:fadeIn .3s ease both;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+<script>
+  // Auth guard
+  if(!localStorage.getItem('loggedIn')){
+    location.href = 'login.html';
+  }
+</script>
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-30">
+    <div class="px-5 py-5 flex items-center gap-3 border-b border-slate-100">
+      <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-600/30">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div><h1 class="font-bold text-slate-900 text-sm">Finance Audit</h1><p class="text-[11px] text-slate-400">Khusus tim finance</p></div>
+    </div>
+    <nav class="flex-1 py-3 text-sm font-medium text-slate-600 overflow-y-auto scrollbar-thin">
+      <a href="index.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Dashboard
+      </a>
+      <a href="billing.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Billing
+      </a>
+      <a href="finance-audit.html" class="flex items-center gap-3 px-5 py-2.5 bg-emerald-50 text-emerald-700 border-r-[3px] border-emerald-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Finance Audit
+      </a>
+    </nav>
+    <div class="p-4 border-t border-slate-100">
+      <button onclick="logout()" class="w-full flex items-center justify-center gap-2 text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 ml-64">
+    <header class="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-4 flex items-center gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Finance — Penerbitan Invoice</h2>
+        <p class="text-xs text-slate-400">Kasus yang sudah divalidasi tim support, siap diterbitkan invoice</p>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <span class="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg" id="userLabel">Finance User</span>
+        <button id="btnExport" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+          Export
+        </button>
+      </div>
+    </header>
+
+    <section class="px-8 py-6 space-y-5">
+
+      <!-- Info alur kerja -->
+      <div class="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3 fade-in">
+        <svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+        <p class="text-xs text-emerald-800 leading-relaxed">
+          <span class="font-bold">Alur kerja:</span> tim support memvalidasi kasus ON-CALL / MONTHLY di menu <span class="font-semibold">Billing & Audit</span> (kejadian betul & harga sesuai). Kasus berstatus <span class="font-bold">VALID - SIAP INVOICE</span> otomatis tampil di halaman ini untuk diterbitkan invoice-nya: <span class="font-bold">MENUNGGU INVOICE</span> → <span class="font-bold">INVOICE TERBIT</span> → <span class="font-bold">PAID</span>.
+        </p>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5" id="kpiCards"></div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h3 class="font-bold text-slate-900 mb-1">Distribusi Status Invoice</h3>
+          <p class="text-xs text-slate-400 mb-4">Status penerbitan invoice kasus tervalidasi</p>
+          <div class="h-64"><canvas id="auditDistChart"></canvas></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h3 class="font-bold text-slate-900 mb-1">Outstanding per Brand</h3>
+          <p class="text-xs text-slate-400 mb-4">Brand dengan invoice belum PAID terbesar</p>
+          <div class="h-64"><canvas id="outstandingChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-end gap-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-500">Date From</label>
+          <input id="fDateFrom" type="date" class="mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/40" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-500">Date Until</label>
+          <input id="fDateTo" type="date" class="mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/40" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-500">Brand</label>
+          <select id="fBrand" class="mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white min-w-[200px]">
+            <option value="">Semua Brand</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-500">Billing Status</label>
+          <select id="fBillStatus" class="mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white min-w-[150px]">
+            <option value="">ON-CALL + MONTHLY</option>
+            <option value="ON-CALL">ON-CALL</option>
+            <option value="MONTHLY">MONTHLY</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-500">Status Invoice</label>
+          <select id="fAudit" class="mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white min-w-[180px]">
+            <option value="">Semua</option>
+          </select>
+        </div>
+        <button onclick="applyFilter()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-md shadow-emerald-600/25">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          Terapkan
+        </button>
+        <button onclick="resetFilter()" class="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition">Reset</button>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-2xl border border-slate-200">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 class="font-bold text-slate-900">Kasus Tervalidasi — Siap Invoice</h3>
+          <span id="tableInfo" class="text-xs text-slate-400">—</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <th class="px-6 py-3 font-semibold">No</th>
+                <th class="px-4 py-3 font-semibold">Tanggal</th>
+                <th class="px-4 py-3 font-semibold">Brand</th>
+                <th class="px-4 py-3 font-semibold">PIC</th>
+                <th class="px-4 py-3 font-semibold">Issue</th>
+                <th class="px-4 py-3 font-semibold">Module</th>
+                <th class="px-4 py-3 font-semibold">Billing Status</th>
+                <th class="px-4 py-3 font-semibold">Billing Category</th>
+                <th class="px-4 py-3 font-semibold text-right">Charges</th>
+                <th class="px-4 py-3 font-semibold">Status Invoice</th>
+                <th class="px-6 py-3 font-semibold text-center">Aksi Cepat</th>
+              </tr>
+            </thead>
+            <tbody id="detailTable" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+          <span>Hanya kasus <span class="font-semibold text-emerald-600">VALID - SIAP INVOICE</span> dari Billing & Audit yang tampil di halaman ini</span>
+          <span class="font-bold text-slate-700" id="tableTotal">Total: Rp 0</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+let filteredCases = [];
+let auditDistChart, outstandingChart;
+
+// Status validasi dari Billing & Audit (dibaca di sini) + status invoice milik finance
+const VALID_TAG = 'VALID - SIAP INVOICE';
+const MIGRATE_ACTION = { 'BELUM DI AUDIT':'BELUM DIVALIDASI', 'DONE BLM DI AUDIT':'VALID - SIAP INVOICE', 'FOLLOW UP FINANCE':'PERLU DICEK ULANG', 'PAID':'VALID - SIAP INVOICE' };
+let caseAuditStatus = JSON.parse(localStorage.getItem('caseAuditStatus')) || {};
+Object.keys(caseAuditStatus).forEach(k => { caseAuditStatus[k] = MIGRATE_ACTION[caseAuditStatus[k]] || caseAuditStatus[k]; });
+
+const INVOICE_ACTIONS = ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'PAID'];
+let caseInvoiceStatus = JSON.parse(localStorage.getItem('caseInvoiceStatus')) || {};
+
+// Pool kasus yang boleh diproses finance: berbayar + sudah divalidasi tim support
+function validatedCases(){
+  return allCases.filter(c => (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY') && caseAuditStatus[c.recordUuid] === VALID_TAG);
+}
+validatedCases().forEach(c => { if(!caseInvoiceStatus[c.recordUuid]) caseInvoiceStatus[c.recordUuid] = 'MENUNGGU INVOICE'; });
+
+function saveInvoiceState(){
+  localStorage.setItem('caseInvoiceStatus', JSON.stringify(caseInvoiceStatus));
+}
+
+function fmtDate8(s){
+  if(!s || s.length!==8) return '-';
+  const y=s.slice(0,4), m=s.slice(4,6), d=s.slice(6,8);
+  return new Date(`${y}-${m}-${d}`).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+}
+function fmtMoney(n){ return 'Rp ' + (n||0).toLocaleString('id-ID'); }
+
+const brands = [...new Set(allCases.map(c => c.client).filter(Boolean))].sort();
+const brandSel = document.getElementById('fBrand');
+brands.forEach(b => { const o=document.createElement('option'); o.value=b; o.textContent=b; brandSel.appendChild(o); });
+
+const auditSel = document.getElementById('fAudit');
+function fillInvoiceFilter(){
+  auditSel.innerHTML = '<option value="">Semua Status Invoice</option>';
+  INVOICE_ACTIONS.forEach(a => { const o=document.createElement('option'); o.value=a; o.textContent=a; auditSel.appendChild(o); });
+}
+fillInvoiceFilter();
+
+function applyFilter(){
+  const from = document.getElementById('fDateFrom').value.replace(/-/g,'');
+  const to = document.getElementById('fDateTo').value.replace(/-/g,'');
+  const brand = document.getElementById('fBrand').value;
+  const inv = document.getElementById('fAudit').value;
+  const bs = document.getElementById('fBillStatus').value;
+  filteredCases = validatedCases().filter(c => {
+    const d = c.dateIssue;
+    const s = caseInvoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE';
+    return (!from || d >= from) && (!to || d <= to) && (!brand || c.client === brand) && (!bs || c.billingStatus === bs) && (!inv || s === inv);
+  });
+  renderAll();
+}
+function resetFilter(){
+  document.getElementById('fDateFrom').value = '';
+  document.getElementById('fDateTo').value = '';
+  document.getElementById('fBrand').value = '';
+  document.getElementById('fBillStatus').value = '';
+  document.getElementById('fAudit').value = '';
+  applyFilter();
+}
+
+function computeStats(){
+  const pool = validatedCases();
+  const byStatus = a => pool.filter(c => (caseInvoiceStatus[c.recordUuid]||'MENUNGGU INVOICE') === a);
+  const outstanding = pool.filter(c => (caseInvoiceStatus[c.recordUuid]||'MENUNGGU INVOICE') !== 'PAID');
+  return {
+    total: pool.length,
+    totalAmount: pool.reduce((a,c)=>a+(c.charges||0),0),
+    menunggu: byStatus('MENUNGGU INVOICE').length,
+    terbit: byStatus('INVOICE TERBIT').length,
+    paid: byStatus('PAID').length,
+    outstandingCount: outstanding.length,
+    outstandingAmount: outstanding.reduce((a,c)=>a+(c.charges||0),0)
+  };
+}
+
+function renderKPI(){
+  const s = computeStats();
+  const kpi = [
+    { t:'Siap Invoice', v:s.total.toLocaleString('id-ID'), sub:fmtMoney(s.totalAmount)+' tervalidasi', color:'brand' },
+    { t:'Menunggu Invoice', v:s.menunggu.toLocaleString('id-ID'), sub:'kasus', color:'amber' },
+    { t:'Invoice Terbit', v:s.terbit.toLocaleString('id-ID'), sub:'kasus', color:'violet' },
+    { t:'Paid', v:s.paid.toLocaleString('id-ID'), sub:`dari ${s.total} kasus tervalidasi`, color:'emerald' },
+    { t:'Total Outstanding', v:fmtMoney(s.outstandingAmount), sub:`${s.outstandingCount} kasus belum PAID`, color:'rose' }
+  ];
+  document.getElementById('kpiCards').innerHTML = kpi.map((d,i)=>`
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:${i*.05}s">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">${d.t}</p>
+      <p class="mt-2 text-2xl font-extrabold text-${d.color==='brand'?'brand-600':d.color+'-600'}">${d.v}</p>
+      <p class="mt-1 text-xs text-slate-400 font-medium">${d.sub}</p>
+    </div>`).join('');
+}
+
+function renderCharts(){
+  const s = computeStats();
+  const pool = validatedCases();
+  const invCounts = {};
+  INVOICE_ACTIONS.forEach(a => invCounts[a]=0);
+  pool.forEach(c => {
+    const a = caseInvoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE';
+    invCounts[a] = (invCounts[a]||0)+1;
+  });
+  if(auditDistChart) auditDistChart.destroy();
+  auditDistChart = new Chart(document.getElementById('auditDistChart'),{
+    type:'pie',
+    data:{ labels:INVOICE_ACTIONS, datasets:[{ data:INVOICE_ACTIONS.map(a=>invCounts[a]||0), backgroundColor:['#f59e0b','#8b5cf6','#10b981'], borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ usePointStyle:true, boxWidth:8, font:{size:10} } } } }
+  });
+
+  const outstanding = pool.filter(c => (caseInvoiceStatus[c.recordUuid]||'MENUNGGU INVOICE') !== 'PAID');
+  const clientOut = {};
+  outstanding.forEach(c => { clientOut[c.client] = (clientOut[c.client]||0)+(c.charges||0); });
+  const top = Object.entries(clientOut).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if(outstandingChart) outstandingChart.destroy();
+  outstandingChart = new Chart(document.getElementById('outstandingChart'),{
+    type:'bar',
+    data:{ labels:top.map(t=>t[0]), datasets:[{ label:'Outstanding (Rp)', data:top.map(t=>t[1]), backgroundColor:'#10b981', borderRadius:6 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ x:{ beginAtZero:true, grid:{color:'#f1f5f9'} }, y:{ grid:{display:false}, ticks:{ font:{size:10} } } } }
+  });
+}
+
+function setInvoice(uuid, action){
+  caseInvoiceStatus[uuid] = action;
+  saveInvoiceState();
+  applyFilter();
+}
+
+function renderTable(){
+  const q = (document.getElementById('searchTab')?.value || '').toLowerCase();
+  const items = filteredCases; // search already handled by filter if needed
+  const total = items.reduce((a,c)=>a+(c.charges||0),0);
+  document.getElementById('detailTable').innerHTML = items.map((c,i)=>`
+    <tr class="hover:bg-emerald-50/40 transition">
+      <td class="px-6 py-3.5 text-slate-400">${c.no}</td>
+      <td class="px-4 py-3.5 text-slate-500 whitespace-nowrap">${fmtDate8(c.dateIssue)}</td>
+      <td class="px-4 py-3.5 font-semibold text-slate-800">${c.client}</td>
+      <td class="px-4 py-3.5 text-slate-500">${c.picName||'-'}</td>
+      <td class="px-4 py-3.5 text-slate-500 text-xs max-w-[260px] truncate" title="${(c.issue||'').replace(/"/g,'&quot;')}">${c.issue||'-'}</td>
+      <td class="px-4 py-3.5"><span class="text-xs bg-slate-100 text-slate-600 font-medium px-2 py-1 rounded-full">${c.module}</span></td>
+      <td class="px-4 py-3.5 text-slate-500">${c.billingStatus}</td>
+      <td class="px-4 py-3.5 text-slate-600">${c.billingCategory||'-'}</td>
+      <td class="px-4 py-3.5 text-right font-medium text-slate-700">${fmtMoney(c.charges)}</td>
+      <td class="px-4 py-3.5">
+        <select onchange="setInvoice('${c.recordUuid}', this.value)" class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white max-w-[180px]">
+          ${INVOICE_ACTIONS.map(a => `<option value="${a}" ${(caseInvoiceStatus[c.recordUuid]||'MENUNGGU INVOICE')===a?'selected':''}>${a}</option>`).join('')}
+        </select>
+      </td>
+      <td class="px-6 py-3.5 text-center">
+        <div class="flex items-center justify-center gap-1 flex-wrap">
+          <button onclick="setInvoice('${c.recordUuid}','INVOICE TERBIT')" class="text-[10px] font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 px-2 py-1 rounded transition">Terbit Invoice</button>
+          <button onclick="setInvoice('${c.recordUuid}','PAID')" class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded transition">Paid</button>
+        </div>
+      </td>
+    </tr>
+  `).join('') || `<tr><td colspan="11" class="px-6 py-12 text-center text-slate-400 text-sm">Belum ada kasus tervalidasi — validasi dulu kasus di menu <a href="billing.html" class="font-semibold text-emerald-600 hover:underline">Billing &amp; Audit</a></td></tr>`;
+  document.getElementById('tableInfo').textContent = `Menampilkan ${items.length} kasus tervalidasi`;
+  document.getElementById('tableTotal').textContent = `Total: ${fmtMoney(total)}`;
+}
+
+function renderAll(){
+  renderKPI();
+  renderCharts();
+  renderTable();
+}
+
+function exportData(){
+  const headers = ['NO','DATE ISSUE','CLIENT','PIC NAME','ISSUE','MODULE','BILLING STATUS','BILLING CATEGORY','SUPPORT TYPE','CHARGES','STATUS VALIDASI','STATUS INVOICE','COMPLETION NOTES','RECORD_UUID'];
+  const rows = filteredCases.map(c => headers.map(h => {
+    const map = {'NO':c.no,'DATE ISSUE':c.dateIssue,'CLIENT':c.client,'PIC NAME':c.picName,'ISSUE':c.issue,'MODULE':c.module,'BILLING STATUS':c.billingStatus,'BILLING CATEGORY':c.billingCategory,'SUPPORT TYPE':c.supportType,'CHARGES':c.charges,'STATUS VALIDASI':caseAuditStatus[c.recordUuid]||'','STATUS INVOICE':caseInvoiceStatus[c.recordUuid]||'','COMPLETION NOTES':c.completionNotes,'RECORD_UUID':c.recordUuid};
+    const v = map[h]||''; return `"${String(v).replace(/"/g,'""')}"`;
+  }).join(',')).join('\n');
+  const csv = [headers.join(','), rows].join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='finance-audit.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+function logout(){
+  localStorage.removeItem('loggedIn');
+  location.href = 'login.html';
+}
+
+document.getElementById('btnExport').addEventListener('click', exportData);
+
+applyFilter();
+</script>
+</body>
+</html>

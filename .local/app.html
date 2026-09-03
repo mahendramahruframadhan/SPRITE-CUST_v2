@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pusat Data Bantuan — Aplikasi Terpadu</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { brand: { 50:'#eef4ff',100:'#dfe9ff',200:'#c5d7ff',300:'#a2bcff',400:'#7d97fb',500:'#5f72f5',600:'#4a4fe9',700:'#3d3ece',800:'#3336a6',900:'#2f3383',950:'#1c1e4e' } } } } }
+</script>
+<style>
+  body{font-family:'Inter',sans-serif;}
+  .scrollbar-thin::-webkit-scrollbar{width:6px;height:6px;}
+  .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px;}
+  .fade-in{animation:fadeIn .4s ease both;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .shell-nav{color:#475569;}
+  .shell-nav:hover{background:#f8fafc;}
+  .shell-nav.active{background:#eef4ff;color:#3d3ece;border-right:3px solid #4a4fe9;}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+<!-- ==================== LOGIN VIEW ==================== -->
+<div id="loginView" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-brand-50 p-4">
+  <div class="w-full max-w-md fade-in">
+    <div class="bg-white rounded-2xl shadow-xl shadow-brand-600/10 border border-slate-200 p-8">
+      <div class="flex items-center justify-center gap-3 mb-8">
+        <div class="w-12 h-12 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/></svg>
+        </div>
+        <div class="text-center">
+          <h1 class="text-xl font-bold text-slate-900">Pusat Data Bantuan</h1>
+          <p class="text-xs text-slate-400">Login untuk mengakses aplikasi</p>
+        </div>
+      </div>
+
+      <form class="space-y-5" onsubmit="event.preventDefault(); doLogin();">
+        <div id="errorBox" class="hidden bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold px-4 py-3 rounded-lg">
+          Email atau password salah (min. 6 karakter).
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Email</label>
+          <div class="relative">
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+            <input id="email" type="email" value="rani@revota.id" class="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400" placeholder="nama@perusahaan.id" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Password</label>
+          <div class="relative">
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+            <input id="password" type="password" value="password123" class="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400" placeholder="••••••••" />
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold py-3 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95">
+          Login
+        </button>
+      </form>
+
+      <div class="mt-6 pt-6 border-t border-slate-100">
+        <p class="text-[11px] text-slate-400 text-center mb-2">Akun demo (password bebas, min. 6 karakter):</p>
+        <div class="flex flex-wrap justify-center gap-1.5">
+          <button onclick="fillLogin('rani@revota.id')" class="text-[11px] font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-full px-2.5 py-1 transition">Super Admin</button>
+          <button onclick="fillLogin('budi.cs@revota.id')" class="text-[11px] font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-full px-2.5 py-1 transition">Admin CS</button>
+          <button onclick="fillLogin('sari@revota.id')" class="text-[11px] font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-full px-2.5 py-1 transition">Support</button>
+          <button onclick="fillLogin('finance@revota.id')" class="text-[11px] font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-full px-2.5 py-1 transition">Finance</button>
+          <button onclick="fillLogin('vina@revota.id')" class="text-[11px] font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-full px-2.5 py-1 transition">Viewer</button>
+        </div>
+      </div>
+    </div>
+    <p class="text-center text-xs text-slate-400 mt-6">© 2025 Pusat Data Bantuan — Sinkron dari Google Sheets</p>
+  </div>
+</div>
+
+<!-- ==================== APP VIEW ==================== -->
+<div id="appView" class="hidden">
+
+  <!-- Sidebar utama (satu untuk seluruh aplikasi) -->
+  <aside class="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-40">
+    <div class="px-5 py-5 flex items-center gap-3 border-b border-slate-100">
+      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/></svg>
+      </div>
+      <div>
+        <h1 class="font-bold text-slate-900 leading-tight text-sm">Pusat Data Bantuan</h1>
+        <p class="text-[11px] text-slate-400">Sinkron dari Google Sheets</p>
+      </div>
+    </div>
+
+    <nav id="shellNav" class="flex-1 py-4 text-sm font-medium overflow-y-auto scrollbar-thin"></nav>
+
+    <div class="p-4 border-t border-slate-100">
+      <div class="flex items-center gap-3 mb-3">
+        <div id="userAvatar" class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-xs font-bold">?</div>
+        <div class="flex-1 min-w-0">
+          <p id="userName" class="text-sm font-semibold text-slate-800 truncate">Pengguna</p>
+          <p id="userRole" class="text-[11px] text-slate-400 truncate">—</p>
+        </div>
+      </div>
+      <button onclick="doLogout()" class="w-full flex items-center justify-center gap-2 text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="ml-64 flex flex-col h-screen overflow-hidden">
+    <header class="shrink-0 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-3.5 flex items-center gap-4 z-30">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900" id="pageTitle">Dashboard</h2>
+        <p class="text-xs text-slate-400" id="pageSubtitle">—</p>
+      </div>
+      <div class="ml-auto flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          Data dari Google Sheets
+        </div>
+        <span class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+          <span id="topRole">—</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Kontainer modul (iframe per halaman, di-cache agar state tidak hilang) -->
+    <div id="frameWrap" class="flex-1 relative bg-slate-100"></div>
+  </main>
+</div>
+
+<script>
+/* ==================== KONFIGURASI MODUL ==================== */
+const ICONS = {
+  dashboard: '<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/>',
+  cases: '<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/>',
+  mockup: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/>',
+  form: '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>',
+  report: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>',
+  master: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71 10.038 10.038 0 00-1.22 5.338c.09.62.732.99 1.305.806 2.32-.74 5.847-1.992 8.79-3.188.24-.1.48-.208.713-.32M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71M9.594 3.94l10.224 3.99M12.7 17.5l-1.426 4.073a.999.999 0 01-1.833.178L7.41 17.5H4.225a1 1 0 01-.997-1.098l.881-9.74A2.003 2.003 0 016.116 3h11.768a2.002 2.002 0 012.008 1.662l.88 9.74A1 1 0 0120.775 16h-3.185"/>',
+  cfg: '<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>',
+  price: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/>',
+  billing: '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>',
+  finance: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+  roles: '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>'
+};
+
+const MODULES = [
+  { group:'Menu Utama' },
+  { id:'dashboard', title:'Dashboard',        sub:'Ringkasan, percakapan, status & laporan bantuan', src:'index.html',        icon:ICONS.dashboard },
+  { id:'kasus',     title:'Data Kasus',       sub:'Semua data kasus support dari Google Sheets',     src:'view-cases.html',   icon:ICONS.cases },
+  { id:'mockup',    title:'Dashboard Mockup', sub:'Visualisasi data Google Sheets',                  src:'mockup.html',       icon:ICONS.mockup },
+  { group:'Operasional' },
+  { id:'form',      title:'Form Kasus',       sub:'Input data kasus support baru',                   src:'main-support.html', icon:ICONS.form },
+  { id:'hrreport',  title:'HR Report',        sub:'Rekap performa tim & detail ticket per periode', src:'hr-report.html',    icon:ICONS.report },
+  { id:'cfg',       title:'Konfigurasi Sheet',sub:'Master config sheet: master data, pricelist, brand, mapping', src:'sheet-config.html', icon:ICONS.cfg },
+  // Disembunyikan dari menu: fungsi Master Data & Price List sudah ada di Konfigurasi Sheet (id: cfg)
+  { id:'master',    title:'Master Data',      sub:'Konfigurasi master data',                         src:'config.html',       icon:ICONS.master, hidden:true },
+  { id:'pricelist', title:'Price List',       sub:'Harga layanan support',                           src:'pricelist.html',    icon:ICONS.price, hidden:true },
+  { group:'Keuangan' },
+  { id:'billing',   title:'Billing & Audit',  sub:'Validasi tagihan sebelum diterbitkan invoice',      src:'billing.html',      icon:ICONS.billing },
+  { id:'finance',   title:'Finance Audit',    sub:'Penerbitan invoice kasus tervalidasi',              src:'finance-audit.html',icon:ICONS.finance },
+  { group:'Administrasi' },
+  { id:'roles',     title:'Hak Akses',        sub:'Kelola pengguna, role & izin modul',              src:'roles.html',        icon:ICONS.roles }
+];
+
+/* ==================== AUTH ==================== */
+const MOCK_USERS = {
+  'rani@revota.id':    { name:'Rani Admin',    role:'Super Admin' },
+  'budi.cs@revota.id': { name:'Budi Santoso',  role:'Admin CS' },
+  'sari@revota.id':    { name:'Sari Support',  role:'Support' },
+  'finance@revota.id': { name:'Fajar Finance', role:'Finance' },
+  'vina@revota.id':    { name:'Vina Viewer',   role:'Viewer' }
+};
+
+function fillLogin(email){
+  document.getElementById('email').value = email;
+  document.getElementById('password').value = 'password123';
+  document.getElementById('errorBox').classList.add('hidden');
+}
+
+function doLogin(){
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  if(email && password.length >= 6){
+    const u = MOCK_USERS[email.toLowerCase()] || { name: email.split('@')[0], role:'Viewer' };
+    localStorage.setItem('loggedIn', 'true');
+    localStorage.setItem('userEmail', email);
+    localStorage.setItem('userName', u.name);
+    localStorage.setItem('userRole', u.role);
+    showApp();
+  } else {
+    document.getElementById('errorBox').classList.remove('hidden');
+  }
+}
+
+function doLogout(){
+  ['loggedIn','userEmail','userName','userRole'].forEach(k => localStorage.removeItem(k));
+  // Hancurkan cache iframe agar sesi berikutnya bersih
+  Object.values(frames).forEach(f => f.remove());
+  for (const k in frames) delete frames[k];
+  document.getElementById('appView').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+  history.replaceState(null, '', location.pathname);
+}
+
+// Logout dari dalam modul (iframe) diteruskan ke sini
+window.addEventListener('message', function(e){
+  if(e.data === 'app:logout') doLogout();
+});
+
+/* ==================== SHELL & ROUTING ==================== */
+const frames = {};
+const frameWrap = document.getElementById('frameWrap');
+
+function buildNav(){
+  const nav = document.getElementById('shellNav');
+  // Modul tersembunyi (sudah tergabung di halaman lain) tidak ditampilkan di sidebar
+  const visible = MODULES.filter(m => m.group || !m.hidden);
+  nav.innerHTML = visible.map(m => {
+    if(m.group) return `<p class="px-5 ${m.group === 'Menu Utama' ? '' : 'pt-5'} pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">${m.group}</p>`;
+    return `
+      <a href="#/${m.id}" data-mod="${m.id}" class="shell-nav flex items-center gap-3 px-5 py-2.5 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">${m.icon}</svg>
+        ${m.title}
+      </a>`;
+  }).join('');
+  nav.querySelectorAll('a[data-mod]').forEach(a => {
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      activate(a.dataset.mod);
+    });
+  });
+}
+
+function activate(id){
+  // Modul tersembunyi diarahkan ke penggantinya di Konfigurasi Sheet
+  if(id === 'master' || id === 'pricelist') id = 'cfg';
+  const m = MODULES.find(x => x.id === id) || MODULES.find(x => x.id === 'dashboard');
+
+  document.querySelectorAll('.shell-nav').forEach(a => a.classList.toggle('active', a.dataset.mod === m.id));
+  document.getElementById('pageTitle').textContent = m.title;
+  document.getElementById('pageSubtitle').textContent = m.sub;
+
+  if(!frames[m.id]){
+    const f = document.createElement('iframe');
+    f.src = m.src;
+    f.title = m.title;
+    f.className = 'absolute inset-0 w-full h-full border-0';
+    frameWrap.appendChild(f);
+    frames[m.id] = f;
+  }
+  Object.entries(frames).forEach(([k, f]) => f.classList.toggle('hidden', k !== m.id));
+  history.replaceState(null, '', '#/' + m.id);
+}
+
+function showApp(){
+  const name  = localStorage.getItem('userName')  || 'Pengguna';
+  const role  = localStorage.getItem('userRole')  || 'Viewer';
+  document.getElementById('userName').textContent = name;
+  document.getElementById('userRole').textContent = role + ' · ' + (localStorage.getItem('userEmail') || '-');
+  document.getElementById('userAvatar').textContent = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('topRole').textContent = role;
+
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('appView').classList.remove('hidden');
+
+  const hash = (location.hash || '').replace('#/', '');
+  activate(hash || 'dashboard');
+}
+
+window.addEventListener('hashchange', function(){
+  const hash = (location.hash || '').replace('#/', '');
+  if(hash) activate(hash);
+});
+
+/* ==================== INIT ==================== */
+buildNav();
+if(localStorage.getItem('loggedIn')){
+  showApp();
+} else {
+  document.getElementById('loginView').classList.remove('hidden');
+}
+</script>
+</body>
+</html>

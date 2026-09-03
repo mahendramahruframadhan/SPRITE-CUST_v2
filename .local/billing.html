@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Billing & Audit — Pusat Data Bantuan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="data-cases.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<script src="app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { brand: { 50:'#eef4ff',100:'#dfe9ff',200:'#c5d7ff',300:'#a2bcff',400:'#7d97fb',500:'#5f72f5',600:'#4a4fe9',700:'#3d3ece',800:'#3336a6',900:'#2f3383',950:'#1c1e4e' } } } } }
+</script>
+<style>
+  body{font-family:'Inter',sans-serif;}
+  .scrollbar-thin::-webkit-scrollbar{width:6px;height:6px;}
+  .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px;}
+  .fade-in{animation:fadeIn .3s ease both;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-30">
+    <div class="px-5 py-5 flex items-center gap-3 border-b border-slate-100">
+      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div><h1 class="font-bold text-slate-900 text-sm">Billing & Audit</h1><p class="text-[11px] text-slate-400">Validasi tagihan support</p></div>
+    </div>
+    <nav class="flex-1 py-3 text-sm font-medium text-slate-600 overflow-y-auto scrollbar-thin">
+      <a href="index.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Dashboard
+      </a>
+      <a href="view-cases.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+        Semua Data
+      </a>
+      <a href="billing.html" class="flex items-center gap-3 px-5 py-2.5 bg-brand-50 text-brand-700 border-r-[3px] border-brand-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Billing
+      </a>
+      <a href="config.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71 10.038 10.038 0 00-1.22 5.338c.09.62.732.99 1.305.806 2.32-.74 5.847-1.992 8.79-3.188.24-.1.48-.208.713-.32M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71M9.594 3.94l10.224 3.99M12.7 17.5l-1.426 4.073a.999.999 0 01-1.833.178L7.41 17.5H4.225a1 1 0 01-.997-1.098l.881-9.74A2.003 2.003 0 016.116 3h11.768a2.002 2.002 0 012.008 1.662l.88 9.74A1 1 0 0120.775 16h-3.185"/></svg>
+        Master Data
+      </a>
+      <a href="pricelist.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Price List
+      </a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 ml-64">
+    <header class="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-4 flex items-center gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Billing & Audit Support</h2>
+        <p class="text-xs text-slate-400">Validasi kasus ON-CALL / MONTHLY — yang VALID diteruskan ke Finance untuk diterbitkan invoice</p>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <button onclick="openAuditMaster()" class="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-4 py-2 rounded-lg transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Master Status Validasi
+        </button>
+        <button id="btnExport" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+          Export
+        </button>
+      </div>
+    </header>
+
+    <section class="px-8 py-6 space-y-5">
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5" id="kpiCards"></div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h3 class="font-bold text-slate-900 mb-1">Distribusi Billing</h3>
+          <p class="text-xs text-slate-400 mb-4">Jumlah kasus per kategori billing</p>
+          <div class="h-64"><canvas id="billingDistChart"></canvas></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h3 class="font-bold text-slate-900 mb-1">Total Tagihan per Kategori</h3>
+          <p class="text-xs text-slate-400 mb-4">Dalam Rupiah</p>
+          <div class="h-64"><canvas id="billingAmountChart"></canvas></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h3 class="font-bold text-slate-900 mb-1">Distribusi Status Validasi</h3>
+          <p class="text-xs text-slate-400 mb-4">Status validasi kasus berbayar</p>
+          <div class="h-64"><canvas id="auditDistChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Detail Kasus -->
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <!-- Filter & summary -->
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+            <div class="bg-white rounded-xl border border-slate-200 p-3 text-center">
+              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Kasus</p>
+              <p class="text-xl font-extrabold text-slate-800" id="ocTotal">0</p>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-3 text-center">
+              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Tagihan</p>
+              <p class="text-xl font-extrabold text-emerald-600" id="ocAmount">Rp 0</p>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-3 text-center">
+              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Valid — Siap Invoice</p>
+              <p class="text-xl font-extrabold text-brand-600" id="ocDoneAudit">0</p>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-3 text-center">
+              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Perlu Dicek Ulang</p>
+              <p class="text-xl font-extrabold text-rose-600" id="ocFollowUp">0</p>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-3 text-center">
+              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Belum Divalidasi</p>
+              <p class="text-xl font-extrabold text-amber-600" id="ocBelumAudit">0</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-end gap-3">
+            <div>
+              <label class="text-xs font-semibold text-slate-500">Date From</label>
+              <input id="fDateFrom" type="date" class="mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40" />
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-500">Date Until</label>
+              <input id="fDateTo" type="date" class="mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40" />
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-500">Brand</label>
+              <select id="fBrand" class="mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white min-w-[200px]">
+                <option value="">Semua Brand</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-500">Status</label>
+              <select id="fStatus" class="mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white min-w-[150px]">
+                <option value="">Semua Status</option>
+                <option value="ON-CALL">ON-CALL</option>
+                <option value="MONTHLY">MONTHLY</option>
+                <option value="FREE">FREE</option>
+              </select>
+            </div>
+            <button onclick="applyFilter()" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-md shadow-brand-600/25">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+              Terapkan
+            </button>
+            <button onclick="resetFilter()" class="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition">Reset</button>
+            <div class="ml-auto text-xs text-slate-400">
+              Periode: <span id="periodLabel" class="font-semibold text-slate-600">Semua tanggal</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
+          <h3 class="font-bold text-slate-900" id="tableTitle">Detail Kasus</h3>
+          <div class="ml-auto relative">
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+            <input id="searchTab" type="text" placeholder="Cari kasus..." class="pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40" />
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <th class="px-6 py-3 font-semibold">No</th>
+                <th class="px-4 py-3 font-semibold">Tanggal</th>
+                <th class="px-4 py-3 font-semibold">Brand</th>
+                <th class="px-4 py-3 font-semibold">PIC</th>
+                <th class="px-4 py-3 font-semibold">Module</th>
+                <th class="px-4 py-3 font-semibold">Status</th>
+                <th class="px-4 py-3 font-semibold">Billing Category</th>
+                <th class="px-4 py-3 font-semibold">Support Type</th>
+                <th class="px-4 py-3 font-semibold text-right">Charges</th>
+                <th class="px-4 py-3 font-semibold">Status Validasi</th>
+                <th class="px-6 py-3 font-semibold">Completion Notes</th>
+              </tr>
+            </thead>
+            <tbody id="detailTable" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+          <span id="tabInfo">—</span>
+          <span class="font-bold text-slate-700" id="tabGrandTotal">Total: Rp 0</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL Master Audit Action -->
+<div id="auditMasterModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeAuditMaster()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in">
+    <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="font-bold text-slate-900">Master Status Validasi</h3>
+      <button onclick="closeAuditMaster()" class="p-2 rounded-lg hover:bg-slate-100 text-slate-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="px-6 py-5 space-y-4">
+      <div class="flex gap-2">
+        <input id="newAuditAction" type="text" placeholder="Tambah status validasi baru..." class="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40" />
+        <button onclick="addAuditAction()" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">Tambah</button>
+      </div>
+      <ul id="auditActionList" class="divide-y divide-slate-100 max-h-64 overflow-y-auto scrollbar-thin"></ul>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl text-xs text-slate-400">
+      Status validasi dapat diedit / ditambah kapan saja. Kasus berstatus <span class="font-semibold text-emerald-600">VALID - SIAP INVOICE</span> otomatis tampil di halaman Finance Audit.
+    </div>
+  </div>
+</div>
+
+<script>
+let filteredCases = [...allCases];
+let distChart, amountChart, auditDistChart;
+
+// Status validasi oleh tim support (Billing & Audit) — dibagikan ke Finance Audit via localStorage
+const DEFAULT_ACTIONS = ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'];
+const MIGRATE_ACTION = { 'BELUM DI AUDIT':'BELUM DIVALIDASI', 'DONE BLM DI AUDIT':'VALID - SIAP INVOICE', 'FOLLOW UP FINANCE':'PERLU DICEK ULANG', 'PAID':'VALID - SIAP INVOICE' };
+let auditActions = JSON.parse(localStorage.getItem('auditActions')) || [...DEFAULT_ACTIONS];
+auditActions = [...new Set(auditActions.map(a => MIGRATE_ACTION[a] || a))];
+let caseAuditStatus = JSON.parse(localStorage.getItem('caseAuditStatus')) || {};
+Object.keys(caseAuditStatus).forEach(k => { caseAuditStatus[k] = MIGRATE_ACTION[caseAuditStatus[k]] || caseAuditStatus[k]; });
+allCases.forEach(c => { if(!caseAuditStatus[c.recordUuid]) caseAuditStatus[c.recordUuid] = 'BELUM DIVALIDASI'; });
+saveAuditState();
+
+function saveAuditState(){
+  localStorage.setItem('auditActions', JSON.stringify(auditActions));
+  localStorage.setItem('caseAuditStatus', JSON.stringify(caseAuditStatus));
+}
+
+function fmtDate8(s){
+  if(!s || s.length!==8) return '-';
+  const y=s.slice(0,4), m=s.slice(4,6), d=s.slice(6,8);
+  return new Date(`${y}-${m}-${d}`).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+}
+function fmtMoney(n){ return 'Rp ' + (n||0).toLocaleString('id-ID'); }
+
+// Fill brand filter
+const brands = [...new Set(allCases.map(c => c.client).filter(Boolean))].sort();
+const brandSel = document.getElementById('fBrand');
+brands.forEach(b => { const o=document.createElement('option'); o.value=b; o.textContent=b; brandSel.appendChild(o); });
+
+function applyFilter(){
+  const from = document.getElementById('fDateFrom').value.replace(/-/g,'');
+  const to = document.getElementById('fDateTo').value.replace(/-/g,'');
+  const brand = document.getElementById('fBrand').value;
+  const status = document.getElementById('fStatus').value;
+  filteredCases = allCases.filter(c => {
+    const d = c.dateIssue;
+    return (!from || d >= from) && (!to || d <= to) && (!brand || c.client === brand) && (!status || c.billingStatus === status);
+  });
+  const fromLabel = document.getElementById('fDateFrom').value || 'Awal';
+  const toLabel = document.getElementById('fDateTo').value || 'Akhir';
+  document.getElementById('periodLabel').textContent = (from || to) ? `${fromLabel} s.d. ${toLabel}` : 'Semua tanggal';
+  renderAll();
+}
+function resetFilter(){
+  document.getElementById('fDateFrom').value = '';
+  document.getElementById('fDateTo').value = '';
+  document.getElementById('fBrand').value = '';
+  document.getElementById('fStatus').value = '';
+  applyFilter();
+}
+
+function computeStats(){
+  const free = filteredCases.filter(c => c.billingStatus === 'FREE');
+  const oncall = filteredCases.filter(c => c.billingStatus === 'ON-CALL');
+  const monthly = filteredCases.filter(c => c.billingStatus === 'MONTHLY');
+  const paidCases = oncall.concat(monthly);
+  const auditCounts = {};
+  auditActions.forEach(a => auditCounts[a]=0);
+  paidCases.forEach(c => { const a = caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI'; auditCounts[a]=(auditCounts[a]||0)+1; });
+  return {
+    free: { count: free.length, amount: 0 },
+    oncall: { count: oncall.length, amount: oncall.reduce((a,c)=>a+(c.charges||0),0) },
+    monthly: { count: monthly.length, amount: monthly.reduce((a,c)=>a+(c.charges||0),0) },
+    totalAmount: oncall.reduce((a,c)=>a+(c.charges||0),0) + monthly.reduce((a,c)=>a+(c.charges||0),0),
+    auditCounts
+  };
+}
+
+function renderKPI(){
+  const s = computeStats();
+  const paidCount = s.oncall.count + s.monthly.count;
+  const validCount = (s.auditCounts['VALID - SIAP INVOICE']||0);
+  const recheckCount = (s.auditCounts['PERLU DICEK ULANG']||0);
+  const kpi = [
+    { t: 'Total Kasus', v: filteredCases.length.toLocaleString('id-ID'), sub: 'dalam periode', color: 'brand' },
+    { t: 'Total Tagihan', v: fmtMoney(s.totalAmount), sub: 'ON-CALL + MONTHLY', color: 'emerald' },
+    { t: 'ON-CALL', v: fmtMoney(s.oncall.amount), sub: `${s.oncall.count} kasus`, color: 'amber' },
+    { t: 'MONTHLY', v: fmtMoney(s.monthly.amount), sub: `${s.monthly.count} kasus`, color: 'violet' },
+    { t: 'Valid — Siap Invoice', v: validCount.toLocaleString('id-ID'), sub: `${recheckCount} kasus perlu dicek ulang`, color: 'rose' }
+  ];
+  document.getElementById('kpiCards').innerHTML = kpi.map((d,i)=>`
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:${i*.05}s">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">${d.t}</p>
+      <p class="mt-2 text-2xl font-extrabold text-${d.color==='brand'?'brand-600':d.color+'-600'}">${d.v}</p>
+      <p class="mt-1 text-xs text-slate-400 font-medium">${d.sub}</p>
+    </div>`).join('');
+}
+
+function renderCharts(){
+  const s = computeStats();
+  if(distChart) distChart.destroy();
+  distChart = new Chart(document.getElementById('billingDistChart'),{
+    type:'doughnut',
+    data:{ labels:['ON-CALL','MONTHLY','FREE'], datasets:[{ data:[s.oncall.count, s.monthly.count, s.free.count], backgroundColor:['#f59e0b','#8b5cf6','#0ea5e9'], borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true, boxWidth:8, font:{size:11} } } } }
+  });
+  if(amountChart) amountChart.destroy();
+  amountChart = new Chart(document.getElementById('billingAmountChart'),{
+    type:'bar',
+    data:{ labels:['ON-CALL','MONTHLY','FREE'], datasets:[{ label:'Tagihan (Rp)', data:[s.oncall.amount, s.monthly.amount, s.free.amount], backgroundColor:['#f59e0b','#8b5cf6','#0ea5e9'], borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{display:false}}, y:{ beginAtZero:true, grid:{color:'#f1f5f9'} } } }
+  });
+  if(auditDistChart) auditDistChart.destroy();
+  const auditLabels = auditActions;
+  const auditData = auditActions.map(a => s.auditCounts[a]||0);
+  auditDistChart = new Chart(document.getElementById('auditDistChart'),{
+    type:'pie',
+    data:{ labels:auditLabels, datasets:[{ data:auditData, backgroundColor:['#94a3b8','#10b981','#f43f5e','#f59e0b','#8b5cf6','#06b6d4'], borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ usePointStyle:true, boxWidth:8, font:{size:10} } } } }
+  });
+}
+
+const BILL_BADGE = {
+  'FREE':    'bg-emerald-50 text-emerald-600 border-emerald-200',
+  'ON-CALL': 'bg-amber-50 text-amber-600 border-amber-200',
+  'MONTHLY': 'bg-sky-50 text-sky-600 border-sky-200'
+};
+
+function renderTable(){
+  const q = document.getElementById('searchTab').value.toLowerCase();
+  const items = filteredCases.filter(c => (c.client+' '+c.issue+' '+c.billingCategory+' '+c.picName).toLowerCase().includes(q));
+  const total = items.reduce((a,c)=>a+(c.charges||0),0);
+  document.getElementById('detailTable').innerHTML = items.map((c,i)=>`
+    <tr class="hover:bg-slate-50 transition">
+      <td class="px-6 py-3.5 text-slate-400">${c.no}</td>
+      <td class="px-4 py-3.5 text-slate-500 whitespace-nowrap">${fmtDate8(c.dateIssue)}</td>
+      <td class="px-4 py-3.5 font-semibold text-slate-800">${c.client}</td>
+      <td class="px-4 py-3.5 text-slate-500">${c.picName||'-'}</td>
+      <td class="px-4 py-3.5"><span class="text-xs bg-slate-100 text-slate-600 font-medium px-2 py-1 rounded-full">${c.module}</span></td>
+      <td class="px-4 py-3.5"><span class="text-[11px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[c.billingStatus]||'bg-slate-100 text-slate-500 border-slate-200'}">${c.billingStatus||'-'}</span></td>
+      <td class="px-4 py-3.5 text-slate-600">${c.billingCategory||'-'}</td>
+      <td class="px-4 py-3.5 text-slate-500">${c.supportType||'-'}</td>
+      <td class="px-4 py-3.5 text-right font-medium text-slate-700">${fmtMoney(c.charges)}</td>
+      <td class="px-4 py-3.5">
+        ${c.billingStatus !== 'FREE' ? `
+        <select onchange="updateAudit('${c.recordUuid}', this.value)" class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white max-w-[180px]">
+          ${auditActions.map(a => `<option value="${a}" ${(caseAuditStatus[c.recordUuid]||'BELUM DIVALIDASI')===a?'selected':''}>${a}</option>`).join('')}
+        </select>` : '<span class="text-xs text-slate-400">-</span>'}
+      </td>
+      <td class="px-6 py-3.5 text-slate-500 max-w-xs truncate" title="${c.completionNotes||''}">${c.completionNotes||'-'}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="11" class="px-6 py-12 text-center text-slate-400 text-sm">Tidak ada data yang cocok dengan filter</td></tr>`;
+  document.getElementById('tabInfo').textContent = `Menampilkan ${items.length} data`;
+  document.getElementById('tabGrandTotal').textContent = `Total: ${fmtMoney(total)}`;
+}
+
+function updateAudit(uuid, action){
+  caseAuditStatus[uuid] = action;
+  saveAuditState();
+  renderCharts();
+  renderKPI();
+  renderOnCallSummary();
+}
+
+function renderOnCallSummary(){
+  const oncall = filteredCases;
+  const amount = oncall.reduce((a,c)=>a+(c.charges||0),0);
+  const done = oncall.filter(c => (caseAuditStatus[c.recordUuid]||'') === 'VALID - SIAP INVOICE').length;
+  const follow = oncall.filter(c => (caseAuditStatus[c.recordUuid]||'') === 'PERLU DICEK ULANG').length;
+  const belum = oncall.filter(c => (caseAuditStatus[c.recordUuid]||'BELUM DIVALIDASI') === 'BELUM DIVALIDASI').length;
+  document.getElementById('ocTotal').textContent = oncall.length.toLocaleString('id-ID');
+  document.getElementById('ocAmount').textContent = fmtMoney(amount);
+  document.getElementById('ocDoneAudit').textContent = done.toLocaleString('id-ID');
+  document.getElementById('ocFollowUp').textContent = follow.toLocaleString('id-ID');
+  document.getElementById('ocBelumAudit').textContent = belum.toLocaleString('id-ID');
+}
+
+function renderAll(){
+  renderKPI();
+  renderCharts();
+  renderOnCallSummary();
+  renderTable();
+}
+
+// Master audit action modal
+function openAuditMaster(){
+  renderAuditMasterList();
+  document.getElementById('auditMasterModal').classList.remove('hidden');
+}
+function closeAuditMaster(){ document.getElementById('auditMasterModal').classList.add('hidden'); }
+function renderAuditMasterList(){
+  document.getElementById('auditActionList').innerHTML = auditActions.map((a,i)=>`
+    <li class="py-3 flex items-center justify-between gap-2">
+      <span class="text-sm text-slate-700 font-medium">${a}</span>
+      ${i >= 3 ? `<button onclick="removeAuditAction('${a}')" class="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition">Hapus</button>` : '<span class="text-[10px] text-slate-400">Default</span>'}
+    </li>
+  `).join('');
+}
+function addAuditAction(){
+  const input = document.getElementById('newAuditAction');
+  const val = input.value.trim();
+  if(!val) return;
+  if(auditActions.includes(val)){ alert('Action sudah ada'); return; }
+  auditActions.push(val);
+  saveAuditState();
+  input.value = '';
+  renderAuditMasterList();
+  renderTable();
+  renderCharts();
+}
+function removeAuditAction(action){
+  if(!confirm('Yakin hapus action ini? Kasus yang menggunakan action ini akan kembali ke default.')) return;
+  auditActions = auditActions.filter(a => a !== action);
+  Object.keys(caseAuditStatus).forEach(uuid => { if(caseAuditStatus[uuid] === action) caseAuditStatus[uuid] = 'BELUM DIVALIDASI'; });
+  saveAuditState();
+  renderAuditMasterList();
+  renderAll();
+}
+
+function exportData(){
+  const headers = ['NO','DATE ISSUE','CLIENT','PIC NAME','MODULE','BILLING STATUS','BILLING CATEGORY','SUPPORT TYPE','CHARGES','STATUS VALIDASI','COMPLETION NOTES','RECORD_UUID'];
+  const rows = filteredCases.map(c => headers.map(h => {
+    const map = {'NO':c.no,'DATE ISSUE':c.dateIssue,'CLIENT':c.client,'PIC NAME':c.picName,'MODULE':c.module,'BILLING STATUS':c.billingStatus,'BILLING CATEGORY':c.billingCategory,'SUPPORT TYPE':c.supportType,'CHARGES':c.charges,'STATUS VALIDASI':caseAuditStatus[c.recordUuid]||'','COMPLETION NOTES':c.completionNotes,'RECORD_UUID':c.recordUuid};
+    const v = map[h]||''; return `"${String(v).replace(/"/g,'""')}"`;
+  }).join(',')).join('\n');
+  const csv = [headers.join(','), rows].join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='billing-audit.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+document.getElementById('searchTab').addEventListener('input', renderTable);
+document.getElementById('btnExport').addEventListener('click', exportData);
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeAuditMaster(); });
+
+applyFilter();
+</script>
+</body>
+</html>

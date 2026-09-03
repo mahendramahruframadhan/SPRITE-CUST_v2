@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lihat Semua Data Kasus — Pusat Data Bantuan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="data-cases.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<script src="app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { brand: { 50:'#eef4ff',100:'#dfe9ff',200:'#c5d7ff',300:'#a2bcff',400:'#7d97fb',500:'#5f72f5',600:'#4a4fe9',700:'#3d3ece',800:'#3336a6',900:'#2f3383',950:'#1c1e4e' } } } } }
+</script>
+<style>
+  body{font-family:'Inter',sans-serif;}
+  .scrollbar-thin::-webkit-scrollbar{width:6px;height:6px;}
+  .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px;}
+  .fade-in{animation:fadeIn .3s ease both;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+<div class="flex min-h-screen">
+  <aside class="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-30">
+    <div class="px-5 py-5 flex items-center gap-3 border-b border-slate-100">
+      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+      </div>
+      <div><h1 class="font-bold text-slate-900 text-sm">Data Kasus Support</h1><p class="text-[11px] text-slate-400">Semua data dari Google Sheets</p></div>
+    </div>
+    <nav class="flex-1 py-3 text-sm font-medium text-slate-600 overflow-y-auto scrollbar-thin">
+      <a href="index.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Dashboard
+      </a>
+      <a href="mockup.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        Dashboard Mockup
+      </a>
+      <a href="main-support.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        Form Kasus
+      </a>
+      <a href="view-cases.html" class="flex items-center gap-3 px-5 py-2.5 bg-brand-50 text-brand-700 border-r-[3px] border-brand-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+        Lihat Semua Data
+      </a>
+      <a href="config.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71 10.038 10.038 0 00-1.22 5.338c.09.62.732.99 1.305.806 2.32-.74 5.847-1.992 8.79-3.188.24-.1.48-.208.713-.32M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71M9.594 3.94l10.224 3.99M12.7 17.5l-1.426 4.073a.999.999 0 01-1.833.178L7.41 17.5H4.225a1 1 0 01-.997-1.098l.881-9.74A2.003 2.003 0 016.116 3h11.768a2.002 2.002 0 012.008 1.662l.88 9.74A1 1 0 0120.775 16h-3.185"/></svg>
+        Master Data
+      </a>
+      <a href="pricelist.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Price List
+      </a>
+    </nav>
+  </aside>
+
+  <main class="flex-1 ml-64">
+    <header class="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-4 flex items-center gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Semua Data Kasus Support</h2>
+        <p class="text-xs text-slate-400">Tabel lengkap dengan filter, pencarian, paginasi, dan detail</p>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="btnExport" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+          Export CSV
+        </button>
+        <button id="btnRefresh" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95">
+          <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+          Muat Ulang
+        </button>
+      </div>
+    </header>
+
+    <section class="px-8 py-6 space-y-5">
+      <!-- Filters -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+        <div class="relative">
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          <input id="fKeyword" type="text" placeholder="Cari client / pic / issue..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40" />
+        </div>
+        <select id="fModule" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"><option value="">Semua Modul</option></select>
+        <select id="fStatus" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"><option value="">Semua Status</option></select>
+        <select id="fBilling" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"><option value="">Semua Billing</option></select>
+        <select id="fAssign" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"><option value="">Semua PIC</option></select>
+        <select id="fChannel" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"><option value="">Semua Channel</option></select>
+        <select id="fSupportType" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"><option value="">Semua Tipe Support</option></select>
+        <input id="fDateFrom" type="date" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40" />
+        <input id="fDateTo" type="date" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40" />
+        <button onclick="resetFilters()" class="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition">Reset Filter</button>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-2xl border border-slate-200">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 class="font-bold text-slate-900">Daftar Kasus</h3>
+          <span id="resultCount" class="text-xs text-slate-400">—</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <th class="px-6 py-3 font-semibold">No</th>
+                <th class="px-4 py-3 font-semibold">Tanggal</th>
+                <th class="px-4 py-3 font-semibold">Client</th>
+                <th class="px-4 py-3 font-semibold">PIC</th>
+                <th class="px-4 py-3 font-semibold">Module</th>
+                <th class="px-4 py-3 font-semibold">Sub</th>
+                <th class="px-4 py-3 font-semibold">Lokasi</th>
+                <th class="px-4 py-3 font-semibold">Issue</th>
+                <th class="px-4 py-3 font-semibold">Assign</th>
+                <th class="px-4 py-3 font-semibold">Status</th>
+                <th class="px-4 py-3 font-semibold">Billing</th>
+                <th class="px-4 py-3 font-semibold text-right">Tagihan</th>
+                <th class="px-6 py-3 font-semibold text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="caseTable" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+          <div class="flex items-center gap-2 text-xs text-slate-500">
+            <span>Tampilkan</span>
+            <select id="pageSize" class="text-xs border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+            <span>baris per halaman</span>
+          </div>
+          <div class="flex items-center gap-1" id="pagination"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeModal()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col fade-in">
+    <div class="px-6 py-5 border-b border-slate-100 flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-2">
+          <h3 id="mClient" class="font-bold text-lg text-slate-900">—</h3>
+          <span id="mStatus" class="text-xs font-semibold px-2.5 py-1 rounded-full">—</span>
+        </div>
+        <p id="mIssue" class="text-sm text-slate-500 mt-0.5">—</p>
+      </div>
+      <button onclick="closeModal()" class="p-2 rounded-lg hover:bg-slate-100 text-slate-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div id="mBody" class="flex-1 overflow-x-auto scrollbar-thin px-6 py-5">
+      <!-- Semua kolom ditampilkan sebagai tabel horizontal (scroll kiri → kanan) -->
+      <div class="min-w-max">
+        <table class="text-sm border-collapse">
+          <thead id="mHeadRow"></thead>
+          <tbody id="mValueRow"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+      <p class="text-[11px] text-slate-400">RECORD_UUID: <span id="mUuid" class="font-mono text-slate-600">—</span></p>
+    </div>
+  </div>
+</div>
+
+<script>
+function fmtDate8(s){
+  if(!s || s.length!==8) return '-';
+  const y=s.slice(0,4), m=s.slice(4,6), d=s.slice(6,8);
+  return new Date(`${y}-${m}-${d}`).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+}
+function iso8(s){ if(!s || s.length!==8) return ''; const y=s.slice(0,4), m=s.slice(4,6), d=s.slice(6,8); return `${y}-${m}-${d}`; }
+function fmtMoney(n){ return n ? 'Rp '+n.toLocaleString('id-ID') : '-'; }
+function statusMeta(s){ return (s||'').toUpperCase()==='DONE' ? {label:'Selesai', cls:'bg-emerald-50 text-emerald-600 border border-emerald-200'} : {label:'Dalam Proses', cls:'bg-amber-50 text-amber-600 border border-amber-200'}; }
+
+const unique = key => [...new Set(allCases.map(c=>c[key]).filter(Boolean))].sort();
+function fillSelect(id, arr){ const el=document.getElementById(id); arr.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o); }); }
+fillSelect('fModule', unique('module'));
+fillSelect('fStatus', unique('status'));
+fillSelect('fBilling', unique('billingStatus'));
+fillSelect('fAssign', unique('assignTo'));
+fillSelect('fChannel', unique('channelTicket'));
+fillSelect('fSupportType', unique('supportType'));
+
+let filtered = [...allCases];
+let currentPage = 1;
+let pageSize = 50;
+
+function applyFilters(){
+  const kw=document.getElementById('fKeyword').value.toLowerCase();
+  const mod=document.getElementById('fModule').value;
+  const st=document.getElementById('fStatus').value;
+  const bill=document.getElementById('fBilling').value;
+  const asg=document.getElementById('fAssign').value;
+  const chn=document.getElementById('fChannel').value;
+  const stp=document.getElementById('fSupportType').value;
+  const from=document.getElementById('fDateFrom').value.replace(/-/g,'');
+  const to=document.getElementById('fDateTo').value.replace(/-/g,'');
+  filtered=allCases.filter(c=>{
+    const text=(c.client+' '+c.picName+' '+c.issue+' '+c.location+' '+c.subModule).toLowerCase();
+    const d=c.dateIssue;
+    return text.includes(kw) && (!mod||c.module===mod) && (!st||c.status===st) && (!bill||c.billingStatus===bill)
+      && (!asg||c.assignTo===asg) && (!chn||c.channelTicket===chn) && (!stp||c.supportType===stp)
+      && (!from||d>=from) && (!to||d<=to);
+  });
+  currentPage=1;
+  render();
+}
+
+function resetFilters(){
+  ['fKeyword','fModule','fStatus','fBilling','fAssign','fChannel','fSupportType','fDateFrom','fDateTo'].forEach(id=>document.getElementById(id).value='');
+  applyFilters();
+}
+
+function render(){
+  const start=(currentPage-1)*pageSize;
+  const pageItems=filtered.slice(start,start+pageSize);
+  document.getElementById('caseTable').innerHTML=pageItems.map(c=>{
+    const s=statusMeta(c.status);
+    return `<tr class="hover:bg-brand-50/40 cursor-pointer transition">
+      <td class="px-6 py-3.5 text-slate-500">${c.no}</td>
+      <td class="px-4 py-3.5 text-slate-500 whitespace-nowrap">${fmtDate8(c.dateIssue)}</td>
+      <td class="px-4 py-3.5 font-semibold text-slate-800">${c.client}</td>
+      <td class="px-4 py-3.5 text-slate-500">${c.picName||'-'}</td>
+      <td class="px-4 py-3.5"><span class="text-xs bg-slate-100 text-slate-600 font-medium px-2 py-1 rounded-full">${c.module}</span></td>
+      <td class="px-4 py-3.5 text-slate-500">${c.subModule||'-'}</td>
+      <td class="px-4 py-3.5 text-slate-500">${c.location||'-'}</td>
+      <td class="px-4 py-3.5 text-slate-600 max-w-xs truncate" title="${c.issue}">${c.issue}</td>
+      <td class="px-4 py-3.5 text-slate-500">${c.assignTo||'-'}</td>
+      <td class="px-4 py-3.5"><span class="text-xs font-semibold px-2 py-1 rounded-full ${s.cls}">${s.label}</span></td>
+      <td class="px-4 py-3.5 text-slate-500">${c.billingStatus||'-'}</td>
+      <td class="px-4 py-3.5 text-right font-medium text-slate-700">${fmtMoney(c.charges)}</td>
+      <td class="px-6 py-3.5 text-center"><button onclick="openModal('${c.recordUuid}')" class="text-xs font-semibold text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition">Detail</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="13" class="px-6 py-12 text-center text-slate-400 text-sm">Tidak ada data yang cocok</td></tr>`;
+  document.getElementById('resultCount').textContent=`${filtered.length.toLocaleString('id-ID')} kasus ditemukan`;
+  renderPagination();
+}
+
+function renderPagination(){
+  const totalPages=Math.ceil(filtered.length/pageSize)||1;
+  const wrap=document.getElementById('pagination');
+  let html='';
+  html+=`<button onclick="goPage(${currentPage-1})" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 ${currentPage===1?'opacity-50 cursor-not-allowed':''}">‹</button>`;
+  for(let i=1;i<=totalPages;i++){
+    if(i===1 || i===totalPages || (i>=currentPage-2 && i<=currentPage+2)){
+      html+=`<button onclick="goPage(${i})" class="px-3 py-1.5 rounded-lg text-sm font-semibold ${i===currentPage?'bg-brand-600 text-white':'border border-slate-200 text-slate-500 hover:bg-slate-50'}">${i}</button>`;
+    } else if(i===currentPage-3 || i===currentPage+3){
+      html+=`<span class="px-2 text-slate-400">…</span>`;
+    }
+  }
+  html+=`<button onclick="goPage(${currentPage+1})" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 ${currentPage===totalPages?'opacity-50 cursor-not-allowed':''}">›</button>`;
+  wrap.innerHTML=html;
+}
+function goPage(p){ const total=Math.ceil(filtered.length/pageSize)||1; if(p<1||p>total) return; currentPage=p; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+function prettyKey(k){ return k.replace(/([A-Z])/g,' $1').replace(/[_-]+/g,' ').trim().replace(/^./, c=>c.toUpperCase()); }
+const KEY_FMT = { dateIssue:'date', startDate:'date', finishDate:'date', charges:'money' };
+function fmtField(k, v){
+  if(v===null || v===undefined || v==='') return '-';
+  if(KEY_FMT[k]==='date')  return fmtDate8(String(v));
+  if(KEY_FMT[k]==='money') return fmtMoney(Number(v));
+  return v;
+}
+
+function openModal(uuid){
+  const c=allCases.find(x=>x.recordUuid===uuid); if(!c) return;
+  const s=statusMeta(c.status);
+  document.getElementById('mClient').textContent=c.client;
+  document.getElementById('mIssue').textContent=c.issue;
+  const st=document.getElementById('mStatus'); st.textContent=s.label; st.className='text-xs font-semibold px-2.5 py-1 rounded-full '+s.cls;
+
+  // Semua kolom data ditampilkan (dinamis mengikuti field yang ada), scroll kiri → kanan
+  const keys=Object.keys(c);
+  const headCell = k => `<th class="px-4 py-2 text-left align-top text-[11px] font-semibold uppercase tracking-wider text-slate-400 border border-slate-100 bg-slate-50/80 min-w-[140px]">${prettyKey(k)}</th>`;
+  const valCell  = k => {
+    const v = fmtField(k, c[k]);
+    const align = KEY_FMT[k]==='money' ? 'text-right font-semibold text-slate-800' : 'text-slate-700';
+    return `<td class="px-4 py-3 align-top ${align} border border-slate-100 whitespace-pre-wrap break-words min-w-[140px] ${k==='completionNotes'?'max-w-[320px]':''}">${v}</td>`;
+  };
+  document.getElementById('mHeadRow').innerHTML  = '<tr>' + keys.map(headCell).join('') + '</tr>';
+  document.getElementById('mValueRow').innerHTML = '<tr>' + keys.map(valCell).join('') + '</tr>';
+
+  document.getElementById('mUuid').textContent=c.recordUuid;
+  document.getElementById('mBody').scrollLeft = 0;
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+function closeModal(){ document.getElementById('detailModal').classList.add('hidden'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+function exportCSV(){
+  const headers=['NO','DATE ISSUE','START DATE','FINISH DATE','CLIENT','PIC NAME','MODULE','SUB-MODULE','LOCATION','ISSUE','ASSIGN TO','STATUS','SUPPORT CATEGORY','BILLING STATUS','BILLING CATEGORY','REF PRICE LIST','CHANNEL TICKET','SUPPORT TYPE','CHARGES','COMPLETION NOTES','GROUP KPI','GROUP KPI DESC','MONTH','WEEKNUM','RECORD_UUID'];
+  const rows=filtered.map(c=>[headers.map(h=>{
+    const map={'NO':c.no,'DATE ISSUE':c.dateIssue,'START DATE':c.startDate,'FINISH DATE':c.finishDate,'CLIENT':c.client,'PIC NAME':c.picName,'MODULE':c.module,'SUB-MODULE':c.subModule,'LOCATION':c.location,'ISSUE':c.issue,'ASSIGN TO':c.assignTo,'STATUS':c.status,'SUPPORT CATEGORY':c.supportCategory,'BILLING STATUS':c.billingStatus,'BILLING CATEGORY':c.billingCategory,'REF PRICE LIST':c.refPriceList,'CHANNEL TICKET':c.channelTicket,'SUPPORT TYPE':c.supportType,'CHARGES':c.charges,'COMPLETION NOTES':c.completionNotes,'GROUP KPI':c.groupKpi,'GROUP KPI DESC':c.groupKpiDesc,'MONTH':c.month,'WEEKNUM':c.weeknum,'RECORD_UUID':c.recordUuid};
+    const v=map[h]||''; return `"${String(v).replace(/"/g,'""')}"`;
+  }).join(',')]).join('\n');
+  const csv=[headers.join(','), rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='data-kasus-support.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+['fKeyword','fModule','fStatus','fBilling','fAssign','fChannel','fSupportType','fDateFrom','fDateTo'].forEach(id=>document.getElementById(id).addEventListener('input', applyFilters));
+document.getElementById('pageSize').addEventListener('change', e=>{ pageSize=parseInt(e.target.value); currentPage=1; render(); });
+document.getElementById('btnExport').addEventListener('click', exportCSV);
+document.getElementById('btnRefresh').addEventListener('click', ()=>{ const icon=document.getElementById('refreshIcon'); icon.classList.add('animate-spin'); setTimeout(()=>{icon.classList.remove('animate-spin'); applyFilters();},800); });
+
+applyFilters();
+</script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Konfigurasi Price List — Pusat Data Bantuan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<script src="app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { brand: { 50:'#eef4ff',100:'#dfe9ff',200:'#c5d7ff',300:'#a2bcff',400:'#7d97fb',500:'#5f72f5',600:'#4a4fe9',700:'#3d3ece',800:'#3336a6',900:'#2f3383',950:'#1c1e4e' } } } } }
+</script>
+<style> body{font-family:'Inter',sans-serif;} .scrollbar-thin::-webkit-scrollbar{width:6px;height:6px;} .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px;} .fade-in{animation:fadeIn .3s ease both;} @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}} </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+<div class="flex min-h-screen">
+  <aside class="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-30">
+    <div class="px-5 py-5 flex items-center gap-3 border-b border-slate-100">
+      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div><h1 class="font-bold text-slate-900 text-sm">Price List Config</h1><p class="text-[11px] text-slate-400">Harga layanan support</p></div>
+    </div>
+    <nav class="flex-1 py-3 text-sm font-medium text-slate-600 overflow-y-auto scrollbar-thin">
+      <a href="index.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Dashboard
+      </a>
+      <a href="config.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71 10.038 10.038 0 00-1.22 5.338c.09.62.732.99 1.305.806 2.32-.74 5.847-1.992 8.79-3.188.24-.1.48-.208.713-.32M9.594 3.94c.09-.542-.56-.97-1.053-.712a9.968 9.968 0 00-4.87 4.71M9.594 3.94l10.224 3.99M12.7 17.5l-1.426 4.073a.999.999 0 01-1.833.178L7.41 17.5H4.225a1 1 0 01-.997-1.098l.881-9.74A2.003 2.003 0 016.116 3h11.768a2.002 2.002 0 012.008 1.662l.88 9.74A1 1 0 0120.775 16h-3.185"/></svg>
+        Master Data
+      </a>
+      <a href="pricelist.html" class="flex items-center gap-3 px-5 py-2.5 bg-brand-50 text-brand-700 border-r-[3px] border-brand-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.191-2.074-.571a1.918 1.918 0 01-1.816-1.816A2.487 2.487 0 0112 7.5a2.487 2.487 0 012.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Price List
+      </a>
+      <a href="main-support.html" class="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        Form Kasus
+      </a>
+    </nav>
+  </aside>
+
+  <main class="flex-1 ml-64">
+    <header class="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-4 flex items-center gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Price List Layanan Support</h2>
+        <p class="text-xs text-slate-400">Atur harga per kategori layanan untuk REF PRICE LIST 1 &amp; 2</p>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="btnImport" class="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-4 py-2 rounded-lg transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+          Impor dari Sheets
+        </button>
+        <button id="btnSave" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-md shadow-brand-600/25 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Simpan Perubahan
+        </button>
+      </div>
+    </header>
+
+    <section class="px-8 py-6 space-y-5">
+      <!-- KPI -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5" id="kpiCards"></div>
+
+      <!-- Toolbar -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center gap-3">
+        <div class="relative flex-1 min-w-[200px]">
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          <input id="searchInput" type="text" placeholder="Cari kategori layanan..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400" />
+        </div>
+        <button id="btnAdd" class="ml-auto inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          Tambah Kategori
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <th class="px-6 py-3 font-semibold w-14">No</th>
+                <th class="px-4 py-3 font-semibold">Kategori Layanan</th>
+                <th class="px-4 py-3 font-semibold text-right">Pricelist 1 (Rp)</th>
+                <th class="px-4 py-3 font-semibold text-right">Pricelist 2 (Rp)</th>
+                <th class="px-4 py-3 font-semibold text-center">Satuan</th>
+                <th class="px-4 py-3 font-semibold">Keterangan</th>
+                <th class="px-4 py-3 font-semibold text-center">Aktif</th>
+                <th class="px-6 py-3 font-semibold text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="priceTable" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-100 text-xs text-slate-400 flex justify-between">
+          <span id="tableInfo">—</span>
+          <span class="text-[11px]">Harga bersifat mockup / dapat diedit. Nantinya disimpan ke sheet price list.</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div id="formModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeForm()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg fade-in">
+    <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="font-bold text-slate-900" id="modalTitle">Tambah Kategori</h3>
+      <button onclick="closeForm()" class="p-2 rounded-lg hover:bg-slate-100 text-slate-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <input type="hidden" id="editId" />
+      <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-500">Kategori Layanan</label><input id="inputCategory" type="text" class="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40" /></div>
+      <div><label class="text-xs font-semibold text-slate-500">Harga Pricelist 1 (Rp)</label><input id="inputPl1" type="number" min="0" class="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40" /></div>
+      <div><label class="text-xs font-semibold text-slate-500">Harga Pricelist 2 (Rp)</label><input id="inputPl2" type="number" min="0" class="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40" /></div>
+      <div><label class="text-xs font-semibold text-slate-500">Satuan</label><input id="inputUnit" type="text" value="per kasus" class="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40" /></div>
+      <div class="flex items-center gap-2 md:col-span-1"><input id="inputActive" type="checkbox" checked class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" /><label for="inputActive" class="text-sm text-slate-700">Aktif</label></div>
+      <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-500">Keterangan</label><textarea id="inputNote" rows="2" class="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40"></textarea></div>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+      <button onclick="closeForm()" class="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition">Batal</button>
+      <button onclick="saveItem()" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition shadow-md shadow-brand-600/25">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const priceListData = /*PRICELIST_DATA*/[{"id":1,"category":"AUDIT","pl1":0,"pl2":0,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":2,"category":"CASHIER PAYMENT","pl1":0,"pl2":0,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":3,"category":"CONSIGNEE PAYMENT","pl1":71444,"pl2":71444,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":4,"category":"INJECT SHOP CONTROL","pl1":0,"pl2":0,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":5,"category":"PINDAH SERVER","pl1":136393,"pl2":136393,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":6,"category":"PREPAID LICENSE","pl1":555000,"pl2":555000,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":7,"category":"REBUILD DATABASE","pl1":417312,"pl2":417312,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":8,"category":"REINSTALL TRAVICS","pl1":48176,"pl2":48176,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":9,"category":"REPAIR DATABASE","pl1":307039,"pl2":307039,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":10,"category":"REQUEST REPORT","pl1":0,"pl2":0,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":11,"category":"ROLLBACK TRANSAKSI","pl1":6856,"pl2":6856,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":12,"category":"SERVICE","pl1":1844,"pl2":1844,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":13,"category":"SETTING HARDWARE","pl1":41707,"pl2":41707,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":14,"category":"UPDATE REPORT","pl1":23170,"pl2":23170,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true},{"id":15,"category":"UPDATE TRANSAKSI","pl1":33018,"pl2":33018,"unit":"per kasus","note":"Harga rata-rata dari data sheet","active":true}];
+
+function fmtMoney(n){ return 'Rp ' + (n||0).toLocaleString('id-ID'); }
+function unFmt(v){ return parseInt((v||'').replace(/[^0-9]/g,'')) || 0; }
+
+let nextId = priceListData.length ? Math.max(...priceListData.map(x=>x.id)) + 1 : 1;
+
+function renderKPI(){
+  const active = priceListData.filter(p=>p.active);
+  const totalPl1 = active.reduce((a,p)=>a+(p.pl1||0),0);
+  const totalPl2 = active.reduce((a,p)=>a+(p.pl2||0),0);
+  const avg = active.length ? Math.round(totalPl2/active.length) : 0;
+  const kpi=[
+    {t:'Kategori Aktif', v:active.length, sub:'dari '+priceListData.length+' kategori', color:'brand'},
+    {t:'Total Harga PL-2', v:fmtMoney(totalPl2), sub:'jumlah harga aktif', color:'emerald'},
+    {t:'Rata-rata PL-2', v:fmtMoney(avg), sub:'per kategori', color:'amber'}
+  ];
+  document.getElementById('kpiCards').innerHTML=kpi.map((d,i)=>`
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in" style="animation-delay:${i*.05}s">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">${d.t}</p>
+      <p class="mt-2 text-3xl font-extrabold text-${d.color==='brand'?'brand-600':d.color+'-600'}">${d.v}</p>
+      <p class="mt-1 text-xs text-slate-400 font-medium">${d.sub}</p>
+    </div>`).join('');
+}
+
+function filteredItems(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  return priceListData.filter(p=>(p.category||'').toLowerCase().includes(q));
+}
+
+function renderTable(){
+  const items=filteredItems();
+  document.getElementById('priceTable').innerHTML=items.map((p,i)=>`
+    <tr class="hover:bg-slate-50 transition">
+      <td class="px-6 py-3.5 text-slate-400">${i+1}</td>
+      <td class="px-4 py-3.5 font-semibold text-slate-800">${p.category}</td>
+      <td class="px-4 py-3.5 text-right font-medium text-slate-700">${fmtMoney(p.pl1)}</td>
+      <td class="px-4 py-3.5 text-right font-medium text-slate-700">${fmtMoney(p.pl2)}</td>
+      <td class="px-4 py-3.5 text-center text-slate-500">${p.unit||'-'}</td>
+      <td class="px-4 py-3.5 text-slate-500 max-w-xs truncate" title="${p.note||''}">${p.note||'-'}</td>
+      <td class="px-4 py-3.5 text-center">
+        <button onclick="toggleActive(${p.id})" class="w-9 h-5 rounded-full transition ${p.active?'bg-brand-600':'bg-slate-300'} relative"><span class="absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform ${p.active?'translate-x-4':''}"></span></button>
+      </td>
+      <td class="px-6 py-3.5 text-right">
+        <button onclick="openEdit(${p.id})" class="text-xs font-semibold text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition mr-1">Edit</button>
+        <button onclick="deleteItem(${p.id})" class="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-3 py-1.5 rounded-lg transition">Hapus</button>
+      </td>
+    </tr>
+  `).join('') || `<tr><td colspan="8" class="px-6 py-12 text-center text-slate-400 text-sm">Tidak ada data</td></tr>`;
+  document.getElementById('tableInfo').textContent=`Menampilkan ${items.length} dari ${priceListData.length} kategori`;
+  renderKPI();
+}
+
+function toggleActive(id){ const p=priceListData.find(x=>x.id===id); if(p){p.active=!p.active; renderTable();} }
+function deleteItem(id){ if(!confirm('Yakin hapus kategori ini?')) return; priceListData=priceListData.filter(x=>x.id!==id); renderTable(); }
+
+let editId=null;
+function openAdd(){ editId=null; document.getElementById('modalTitle').textContent='Tambah Kategori'; clearForm(); document.getElementById('formModal').classList.remove('hidden'); }
+function openEdit(id){ editId=id; const p=priceListData.find(x=>x.id===id); document.getElementById('modalTitle').textContent='Edit Kategori'; document.getElementById('inputCategory').value=p.category; document.getElementById('inputPl1').value=p.pl1||0; document.getElementById('inputPl2').value=p.pl2||0; document.getElementById('inputUnit').value=p.unit||'per kasus'; document.getElementById('inputNote').value=p.note||''; document.getElementById('inputActive').checked=p.active!==false; document.getElementById('formModal').classList.remove('hidden'); }
+function clearForm(){ document.getElementById('inputCategory').value=''; document.getElementById('inputPl1').value=''; document.getElementById('inputPl2').value=''; document.getElementById('inputUnit').value='per kasus'; document.getElementById('inputNote').value=''; document.getElementById('inputActive').checked=true; }
+function closeForm(){ document.getElementById('formModal').classList.add('hidden'); }
+function saveItem(){
+  const category=document.getElementById('inputCategory').value.trim();
+  if(!category) return alert('Kategori wajib diisi');
+  const pl1=parseInt(document.getElementById('inputPl1').value)||0;
+  const pl2=parseInt(document.getElementById('inputPl2').value)||0;
+  const unit=document.getElementById('inputUnit').value.trim()||'per kasus';
+  const note=document.getElementById('inputNote').value.trim();
+  const active=document.getElementById('inputActive').checked;
+  if(editId){ const p=priceListData.find(x=>x.id===editId); p.category=category; p.pl1=pl1; p.pl2=pl2; p.unit=unit; p.note=note; p.active=active; }
+  else { priceListData.push({id:nextId++, category, pl1, pl2, unit, note, active}); }
+  closeForm(); renderTable();
+}
+
+document.getElementById('btnAdd').addEventListener('click', openAdd);
+document.getElementById('searchInput').addEventListener('input', renderTable);
+document.getElementById('btnImport').addEventListener('click', ()=>alert('Mockup: harga sudah diisi otomatis dari rata-rata CHARGES per BILLING CATEGORY di Google Sheets.'));
+document.getElementById('btnSave').addEventListener('click', ()=>alert('Mockup: perubahan disimpan sementara di browser. Nantinya ditulis ke sheet Price List.'));
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeForm(); });
+
+renderTable();
+</script>
+</body>
+</html>
