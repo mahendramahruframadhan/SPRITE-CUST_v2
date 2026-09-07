@@ -1,8 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { toNodeHandler } from 'better-auth/node';
-import { auth } from './auth/better-auth';
 import { initDb } from './db/init';
 
 async function bootstrap() {
@@ -16,15 +14,10 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableCors({ origin: [frontendUrl, 'http://localhost:3000'], credentials: true });
 
-  // ponytail: Better Auth drizzle pg adapter needs real Postgres; for local pg-mem we use AuthController fallback (see src/auth/auth.controller.ts). Mount real handler only when DATABASE_URL is postgres
-  const isRealPg = String(process.env.DATABASE_URL || '').startsWith('postgres');
-  if (isRealPg) {
-    const expressApp = app.getHttpAdapter().getInstance();
-    expressApp.all('/api/auth/*', toNodeHandler(auth));
-    console.log('[backend] Better Auth real handler mounted (postgres)');
-  } else {
-    console.log('[backend] Auth fallback (pg-mem) — use POST /api/auth/sign-in/email {email,password}');
-  }
+  // ponytail: AuthController (email/password cocok dengan user seed) menangani
+  // /api/auth/* di semua env. Handler Better Auth asli tidak di-mount karena
+  // expressApp.all terdaftar sebelum route Nest (shadowing) + password seed plaintext.
+  console.log('[backend] Auth via AuthController — POST /api/auth/sign-in/email {email,password}');
 
   await app.listen(port);
   console.log(`[backend] listening on http://localhost:${port}/api — health: /api/health`);
