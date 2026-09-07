@@ -78,34 +78,34 @@ function SyncBanner({ last }) {
   const via = last.source === 'cron' ? 'otomatis' : 'manual';
   if (last.status === 'success' && rows > 0) {
     return (
-      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3 animate-fade-in-fast">
-        <span className="relative flex h-2.5 w-2.5 mt-1 shrink-0">
+      <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2 animate-fade-in-fast">
+        <span className="relative flex h-2 w-2 shrink-0">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
         </span>
-        <p className="text-xs text-emerald-800 leading-relaxed">
-          <span className="font-bold">Ada update dari Google Sheets: {rows.toLocaleString('id-ID')} baris baru/diupdate.</span>
-          <br />Diupdate pada <span className="font-bold">{when}</span> (cek {via}).
+        <p className="text-[11px] text-emerald-800 leading-snug">
+          <span className="font-bold">Ada update Sheets: {rows.toLocaleString('id-ID')} baris</span>
+          {' · '}{when} (cek {via})
         </p>
       </div>
     );
   }
   if (last.status === 'success') {
     return (
-      <div className="bg-sky-50 border border-sky-200 rounded-2xl px-5 py-3.5 flex items-start gap-3 animate-fade-in-fast">
-        <svg className="w-5 h-5 text-sky-500 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <div className="bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 flex items-center gap-2 animate-fade-in-fast">
+        <svg className="w-3.5 h-3.5 text-sky-500 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p className="text-xs text-sky-800 leading-relaxed">
-          Google Sheets dicek <span className="font-bold">{when}</span> (cek {via}) — <span className="font-semibold">tidak ada tambahan baru</span>.
+        <p className="text-[11px] text-sky-800 leading-snug">
+          Sheets dicek {when} — <span className="font-semibold">tidak ada tambahan</span>
         </p>
       </div>
     );
   }
   return (
-    <div className="bg-rose-50 border border-rose-200 rounded-2xl px-5 py-3.5 text-xs text-rose-700 animate-fade-in-fast">
-      <span className="font-bold">Sinkron Google Sheets gagal</span> ({when})
-      {last.error_message ? `: ${last.error_message}` : '.'} Coba lagi via Muat Terbaru.
+    <div className="bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-[11px] text-rose-700 animate-fade-in-fast">
+      <span className="font-bold">Sync gagal</span> ({when})
+      {last.error_message ? `: ${last.error_message}` : '.'}
     </div>
   );
 }
@@ -311,8 +311,8 @@ export default function DashboardPage() {
       ) : sync.last ? (
         <SyncBanner last={sync.last} />
       ) : (
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-xs text-slate-500">
-          Belum ada riwayat sinkron Google Sheets — klik <span className="font-bold">Muat Terbaru</span> untuk cek sekarang.
+        <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] text-slate-500">
+          Belum ada riwayat sinkron — klik <span className="font-bold">Muat Terbaru</span>.
         </div>
       )}
       {error && (
