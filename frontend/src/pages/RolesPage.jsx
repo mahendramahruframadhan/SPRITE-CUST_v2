@@ -86,6 +86,10 @@ export default function RolesPage() {
   const [hasKey, setHasKey] = useState(false);
   const [testingAi, setTestingAi] = useState(false);
   const [aiTest, setAiTest] = useState(null); // {ok, msg} — notif kecil di bawah tombol
+  // Daftar koneksi AI (riwayat): [{id, name, provider, baseURL, model, apiKey(mask), hasKey, active}]
+  const [conns, setConns] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [showAiForm, setShowAiForm] = useState(false);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -114,18 +118,34 @@ export default function RolesPage() {
         if (!ignore && Array.isArray(r) && r.length) setLogs(r);
       })
       .catch(() => {});
-    // Koneksi AI: ambil sekali (key ter-mask)
-    getConfig('aiConfig')
+    // Koneksi AI: daftar (key ter-mask); migrasi sekali dari aiConfig lama bila ada
+    getConfig('aiConnections')
       .then((r) => {
-        if (ignore || !r || typeof r.config !== 'object') return;
-        const c = r.config;
-        setAiCfg({
-          provider: c.provider || 'openai',
-          baseURL: c.baseURL || AI_PRESETS[c.provider || 'openai']?.baseURL || '',
-          model: c.model || AI_PRESETS[c.provider || 'openai']?.model || '',
-          apiKey: '',
-        });
-        setHasKey(!!c.apiKey);
+        if (ignore) return;
+        const list = r && r.config && Array.isArray(r.config.connections) ? r.config.connections : [];
+        if (list.length) {
+          setConns(list);
+          return;
+        }
+        getConfig('aiConfig')
+          .then((old) => {
+            if (ignore || !old || !old.config || !old.config.apiKey) return;
+            const c = old.config;
+            const migrated = [{
+              id: `ai_${Date.now()}`,
+              name: 'AI Utama',
+              provider: c.provider || 'gemini',
+              baseURL: c.baseURL || '',
+              model: c.model || '',
+              hasKey: false,
+              active: true,
+            }];
+            // ponytail: tanpa apiKey (mask tak boleh tersimpan) — chat tetap jalan via
+            // fallback aiConfig lama sampai user Edit + isi key baru
+            setConns(migrated);
+            putConfig({ connections: migrated }, 'aiConnections').catch(() => {});
+          })
+          .catch(() => {});
       })
       .catch(() => {});
     return () => {
@@ -277,13 +297,75 @@ export default function RolesPage() {
     showToast('Matriks izin berhasil disimpan');
   }
 
-  function saveAi() {
-    putConfig({ ...aiCfg, apiKey: aiKeyInput || '' }, 'aiConfig')
+  function persistConns(list) {
+    setConns(list);
+    return putConfig({ connections: list }, 'aiConnections');
+  }
+
+  // Toggle pakai: hanya satu koneksi aktif; klik yang aktif = nonaktifkan semua
+  function activateConn(id) {
+    const list = conns.map((c) => ({ ...c, active: c.id === id ? !c.active : false }));
+    persistConns(list)
+      .then(() => showToast(list.find((c) => c.id === id)?.active ? 'AI diaktifkan' : 'AI dinonaktifkan', 'ok'))
+      .catch(() => showToast('Gagal menyimpan — backend tidak terjangkau', 'err'));
+  }
+
+  function removeConn(id) {
+    const hit = conns.find((c) => c.id === id);
+    if (!hit || !confirm(`Hapus koneksi "${hit.name}"?`)) return;
+    persistConns(conns.filter((c) => c.id !== id))
+      .then(() => showToast('Koneksi dihapus', 'ok'))
+      .catch(() => showToast('Gagal menghapus', 'err'));
+  }
+
+  function startAddConn() {
+    setEditingId(null);
+    setAiCfg({ ...DEFAULT_AI, name: '' });
+    setAiKeyInput('');
+    setHasKey(false);
+    setAiTest(null);
+    setShowAiForm(true);
+  }
+
+  function startEditConn(id) {
+    const hit = conns.find((c) => c.id === id);
+    if (!hit) return;
+    setEditingId(id);
+    setAiCfg({ name: hit.name || '', provider: hit.provider || 'gemini', baseURL: hit.baseURL || '', model: hit.model || '', apiKey: '' });
+    setAiKeyInput('');
+    setHasKey(!!hit.hasKey);
+    setAiTest(null);
+    setShowAiForm(true);
+  }
+
+  function saveAiForm() {
+    if (!aiCfg.baseURL.trim() || !aiCfg.model.trim()) {
+      showToast('Base URL dan model wajib diisi', 'err');
+      return;
+    }
+    const name = (aiCfg.name || '').trim() || 'Koneksi AI';
+    let list;
+    if (editingId) {
+      const old = conns.find((c) => c.id === editingId);
+      list = conns.map((c) => (c.id === editingId
+        ? { ...c, name, provider: aiCfg.provider, baseURL: aiCfg.baseURL.trim(), model: aiCfg.model.trim(), ...(aiKeyInput ? { apiKey: aiKeyInput, hasKey: true } : {}) }
+        : c));
+      if (!old) return;
+    } else {
+      if (!aiKeyInput) {
+        showToast('API Key wajib untuk koneksi baru', 'err');
+        return;
+      }
+      list = [...conns, {
+        id: `ai_${Date.now()}`, name, provider: aiCfg.provider,
+        baseURL: aiCfg.baseURL.trim(), model: aiCfg.model.trim(),
+        apiKey: aiKeyInput, hasKey: true, active: conns.length === 0,
+      }];
+    }
+    persistConns(list)
       .then(() => {
-        if (aiKeyInput) {
-          setHasKey(true);
-          setAiKeyInput('');
-        }
+        setShowAiForm(false);
+        setAiKeyInput('');
         showToast('Koneksi AI tersimpan', 'ok');
       })
       .catch(() => showToast('Gagal menyimpan — backend tidak terjangkau', 'err'));
@@ -293,6 +375,7 @@ export default function RolesPage() {
     setTestingAi(true);
     setAiTest(null);
     try {
+      // Tes memakai koneksi AKTIF di DB (bukan draf form) — simpan dulu bila baru diubah
       const r = await chatAi([{ role: 'user', content: 'Balas persis: OK' }]);
       if (r && r.ok) setAiTest({ ok: true, msg: 'Koneksi berhasil — AI menjawab.' });
       else setAiTest({ ok: false, msg: 'Tidak berhasil: ' + (r?.error || 'unknown') });
@@ -543,58 +626,121 @@ export default function RolesPage() {
       {/* TAB: AI & API Key */}
       {tab === 'ai' && (
         <section className="space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 animate-fade-in-fast">
-            <h3 className="font-bold text-slate-900 text-sm">Koneksi AI Eksternal</h3>
-            <p className="text-[11px] text-slate-400 mb-4">OpenAI atau server OpenAI-compatible. Key disimpan di backend, tak pernah utuh ke browser.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-500">Provider</label>
-                <select
-                  value={aiCfg.provider}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setAiCfg(AI_PRESETS[v] ? { provider: v, baseURL: AI_PRESETS[v].baseURL, model: AI_PRESETS[v].model, apiKey: '' } : { ...aiCfg, provider: v });
-                  }}
-                  className={`${inputCls} mt-1 w-full`}
-                >
-                  <option value="gemini">Google Gemini</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="custom">Custom (OpenAI-compatible)</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-500">Model</label>
-                <input value={aiCfg.model} onChange={(e) => setAiCfg({ ...aiCfg, model: e.target.value })} placeholder="gemini-2.0-flash" className={`${inputCls} mt-1 w-full`} />
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-xs font-semibold text-slate-500">Base URL</label>
-                <input value={aiCfg.baseURL} onChange={(e) => setAiCfg({ ...aiCfg, baseURL: e.target.value })} placeholder="https://api.openai.com/v1" className={`${inputCls} mt-1 w-full font-mono`} />
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-xs font-semibold text-slate-500">API Key {hasKey && <span className="text-emerald-600 font-bold">● tersimpan</span>}</label>
-                <input
-                  type="password"
-                  value={aiKeyInput}
-                  onChange={(e) => setAiKeyInput(e.target.value)}
-                  placeholder={hasKey ? 'Kosongkan bila tidak diganti' : 'sk-…'}
-                  className={`${inputCls} mt-1 w-full font-mono`}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={saveAi} className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition">
-                Simpan Koneksi
-              </button>
-              <button onClick={testAi} disabled={testingAi} className="text-sm font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-lg px-5 py-2.5 transition disabled:opacity-60">
-                {testingAi ? 'Mengetes…' : 'Tes Koneksi'}
-              </button>
-            </div>
-            {aiTest && (
-              <p className={`mt-2 text-xs font-semibold ${aiTest.ok ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {aiTest.ok ? '✓ ' : '✕ '}{aiTest.msg}
-              </p>
-            )}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500">
+              <span className="font-bold text-slate-700">{conns.filter((c) => c.active).length ? '1 AI dipakai' : 'Tidak ada AI dipakai'}</span>
+              {' '}— chat memakai koneksi bertanda DIPAKAI
+            </p>
+            <button
+              onClick={startAddConn}
+              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
+            >
+              + Tambah AI
+            </button>
           </div>
+
+          {conns.map((c) => (
+            <div key={c.id} className={`bg-white rounded-2xl border p-5 animate-fade-in-fast ${c.active ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-slate-200'}`}>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={() => activateConn(c.id)}
+                  title={c.active ? 'Nonaktifkan (chat jadi mode lokal)' : 'Pakai AI ini'}
+                  className={`relative w-12 h-7 rounded-full transition shrink-0 ${c.active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                >
+                  <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${c.active ? 'left-6' : 'left-1'}`} />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-slate-900 text-sm">{c.name}</h3>
+                    {c.active && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">DIPAKAI</span>}
+                    {c.hasKey && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">KEY ●</span>}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5 font-mono">{c.provider} · {c.model}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{c.baseURL}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {c.active && (
+                    <button onClick={testAi} disabled={testingAi} title="Tes koneksi yang dipakai" className="text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-lg px-3 py-2 transition disabled:opacity-60">
+                      {testingAi ? '…' : 'Tes'}
+                    </button>
+                  )}
+                  <button onClick={() => startEditConn(c.id)} title="Edit (termasuk ganti API key)" className="p-2 rounded-lg hover:bg-brand-50 text-slate-400 hover:text-brand-600 transition">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                    </svg>
+                  </button>
+                  <button onClick={() => removeConn(c.id)} title="Hapus" className="p-2 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {aiTest && c.active && (
+                <p className={`mt-2 text-xs font-semibold ${aiTest.ok ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {aiTest.ok ? '✓ ' : '✕ '}{aiTest.msg}
+                </p>
+              )}
+            </div>
+          ))}
+          {conns.length === 0 && !showAiForm && (
+            <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">
+              Belum ada AI terdaftar — klik <span className="font-bold">+ Tambah AI</span>.
+            </div>
+          )}
+
+          {showAiForm && (
+            <div className="bg-white rounded-2xl border border-brand-200 p-6 animate-fade-in-fast">
+              <h3 className="font-bold text-slate-900 text-sm mb-4">{editingId ? 'Edit Koneksi AI' : 'Tambah AI Baru'}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold text-slate-500">Nama</label>
+                  <input value={aiCfg.name || ''} onChange={(e) => setAiCfg({ ...aiCfg, name: e.target.value })} placeholder="mis. Gemini Utama" className={`${inputCls} mt-1 w-full`} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500">Provider</label>
+                  <select
+                    value={aiCfg.provider}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setAiCfg(AI_PRESETS[v] ? { ...aiCfg, provider: v, baseURL: AI_PRESETS[v].baseURL, model: AI_PRESETS[v].model } : { ...aiCfg, provider: v });
+                    }}
+                    className={`${inputCls} mt-1 w-full`}
+                  >
+                    <option value="gemini">Google Gemini</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="custom">Custom (OpenAI-compatible)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500">Model</label>
+                  <input value={aiCfg.model} onChange={(e) => setAiCfg({ ...aiCfg, model: e.target.value })} placeholder="gemini-2.0-flash" className={`${inputCls} mt-1 w-full`} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold text-slate-500">Base URL</label>
+                  <input value={aiCfg.baseURL} onChange={(e) => setAiCfg({ ...aiCfg, baseURL: e.target.value })} placeholder="https://…" className={`${inputCls} mt-1 w-full font-mono`} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold text-slate-500">API Key {hasKey && <span className="text-emerald-600 font-bold">● tersimpan</span>}</label>
+                  <input
+                    type="password"
+                    value={aiKeyInput}
+                    onChange={(e) => setAiKeyInput(e.target.value)}
+                    placeholder={hasKey ? 'Kosongkan bila tidak diganti' : 'sk-… / AIza…'}
+                    className={`${inputCls} mt-1 w-full font-mono`}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button onClick={saveAiForm} className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition">
+                  Simpan
+                </button>
+                <button onClick={() => { setShowAiForm(false); setAiKeyInput(''); }} className="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition">
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
