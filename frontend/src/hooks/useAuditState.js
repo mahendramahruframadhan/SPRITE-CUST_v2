@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { allCases } from '../data/cases.js';
+import { patchAudit } from '../lib/api.js';
 
 // Status validasi Billing & Audit — dibagikan ke Finance Audit via localStorage
 export const DEFAULT_ACTIONS = ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'];
@@ -21,9 +21,6 @@ function loadCaseStatus() {
   Object.keys(st).forEach((k) => {
     st[k] = MIGRATE_ACTION[st[k]] || st[k];
   });
-  allCases.forEach((c) => {
-    if (!st[c.recordUuid]) st[c.recordUuid] = 'BELUM DIVALIDASI';
-  });
   return st;
 }
 
@@ -41,6 +38,7 @@ export function useAuditState() {
 
   const updateAudit = useCallback((uuid, action) => {
     setCaseAuditStatus((prev) => ({ ...prev, [uuid]: action }));
+    patchAudit(uuid, action).catch(() => {}); // backend sumber kebenaran; localStorage tetap cache instan
   }, []);
 
   const addAction = useCallback((val) => {

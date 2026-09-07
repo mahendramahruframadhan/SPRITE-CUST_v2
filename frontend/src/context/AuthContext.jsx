@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { signIn as apiSignIn, signOut as apiSignOut } from '../lib/api.js';
 
-// Auth mock — nanti diganti API NestJS
+// Role per email (backend menyimpan user tanpa role) + akun demo yang di-seed backend
+// (password awal: password123 — lihat backend/src/db/init.ts)
 export const MOCK_USERS = {
   'rani@revota.id': { name: 'Rani Admin', role: 'Super Admin' },
   'budi.cs@revota.id': { name: 'Budi Santoso', role: 'Admin CS' },
@@ -32,12 +34,20 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       user,
-      login(email, password) {
+      async login(email, password) {
         const key = email.trim().toLowerCase();
         if (!key || !password || password.length < 6) {
           throw new Error('Email atau password salah (min. 6 karakter).');
         }
-        const u = MOCK_USERS[key] || { name: key.split('@')[0], role: 'Viewer' };
+        // POST /api/auth/sign-in/email — user & password 'password123' sudah di-seed backend
+        let r;
+        try {
+          r = await apiSignIn(key, password);
+        } catch {
+          throw new Error('Backend tidak terjangkau — pastikan backend jalan di port 5005.');
+        }
+        if (!r || r.error || !r.user) throw new Error('Email atau password salah.');
+        const u = MOCK_USERS[key] || { name: r.user.name || key.split('@')[0], role: 'Viewer' };
         localStorage.setItem('loggedIn', 'true');
         localStorage.setItem('userEmail', key);
         localStorage.setItem('userName', u.name);
@@ -47,6 +57,7 @@ export function AuthProvider({ children }) {
         return session;
       },
       logout() {
+        apiSignOut().catch(() => {});
         ['loggedIn', 'userEmail', 'userName', 'userRole'].forEach((k) =>
           localStorage.removeItem(k)
         );

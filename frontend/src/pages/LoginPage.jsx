@@ -10,10 +10,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     try {
-      login(email, password);
+      await login(email, password);
       navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.message);
@@ -76,7 +76,7 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-6 border-t border-slate-100">
             <p className="text-[11px] text-slate-400 text-center mb-2">
-              Akun demo (password bebas, min. 6 karakter):
+              Akun demo (password: password123):
             </p>
             <div className="flex flex-wrap justify-center gap-1.5">
               {Object.entries(MOCK_USERS).map(([em, u]) => (
