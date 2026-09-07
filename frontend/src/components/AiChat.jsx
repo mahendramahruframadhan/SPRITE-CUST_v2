@@ -5,17 +5,63 @@ import { fmtMoney } from '../utils/format.js';
 
 // Asisten AI lokal — menjawab dari data kasus backend (tanpa API AI eksternal).
 // Nanti bisa diganti: kirim q + konteks ke endpoint AI bila agent di /cfg aktif.
-const SUGGESTIONS = ['Berapa total kasus?', 'Kasus OPEN ada berapa?', 'Top 5 client', 'Total tagihan'];
+const SUGGESTIONS = ['Total kasus', 'Kasus OPEN ada berapa?', 'Top 5 client', 'Tagihan bulan ini', 'On-call bulan lalu'];
+const MONTH_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const BILL_LABEL = { 'ON-CALL': 'ON-CALL', MONTHLY: 'MONTHLY', FREE: 'FREE' };
+
+function ym(d) { return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`; }
+function ymLabel(v) { return `${MONTH_ID[+String(v).slice(4, 6) - 1]} ${String(v).slice(0, 4)}`; }
+function ymRange(v) {
+  const y = String(v).slice(0, 4), m = String(v).slice(4, 6);
+  const last = new Date(+y, +m, 0).getDate();
+  return `01-${m}-${y} s.d. ${String(last).padStart(2, '0')}-${m}-${y}`;
+}
+
+// Deteksi bulan target dari teks: "bulan lalu/kemarin", "bulan ini",
+// atau nama bulan (Jan..Des, tanpa/tahun). Default null = semua.
+function detectMonth(t) {
+  const now = new Date();
+  if (/bulan (lalu|kemarin)/.test(t)) {
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return ym(d);
+  }
+  if (/bulan ini/.test(t)) return ym(now);
+  const m = t.match(/\b(jan(?:uari)?|feb(?:ruari)?|mar(?:et)?|apr(?:il)?|mei|jun(?:i)?|jul(?:i)?|agu(?:stus)?|sep(?:tember)?|okt(?:ober)?|nov(?:ember)?|des(?:ember)?)\b/);
+  if (m) {
+    const MONTH_IDX = { jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06', jul: '07', agu: '08', sep: '09', okt: '10', nov: '11', des: '12' };
+    const mm = MONTH_IDX[m[1].slice(0, 3)] || MONTH_IDX[m[1]];
+    const y = t.match(/\b(20\d{2})\b/);
+    const year = y ? y[1] : now.getFullYear();
+    return `${year}${mm}`;
+  }
+  return null;
+}
+
+function billAnswer(cases, ymTarget, billKey) {
+  const num = (n) => n.toLocaleString('id-ID');
+  const all = ymTarget ? cases.filter((c) => String(c.dateIssue || '').startsWith(ymTarget)) : cases;
+  const hit = billKey ? all.filter((c) => c.billingStatus === billKey) : all;
+  const label = billKey ? `${BILL_LABEL[billKey]} ` : '';
+  const period = ymTarget ? `bulan ${ymLabel(ymTarget)}` : 'keseluruhan';
+  const sum = hit.reduce((s, c) => s + (+c.charges || 0), 0);
+  const base = `Total ${label}${period}: ${num(hit.length)} kasus`;
+  const money = billKey && billKey !== 'FREE' ? ` — tagihannya ${fmtMoney(sum)}` : '';
+  const filterHint = ymTarget
+    ? `\nMau detailnya? Filter di menu Kasus periode ${ymRange(ymTarget)}.`
+    : '';
+  return `${base}${money}.${filterHint}`;
+}
 
 function answer(q, cases) {
   const t = q.toLowerCase().trim();
   const num = (n) => n.toLocaleString('id-ID');
+  const ymTarget = detectMonth(t);
   if (!cases.length) return 'Data kasus belum termuat — pastikan backend jalan, lalu coba lagi.';
   if (/^(halo|hai|hallo|pagi|siang|sore|malam|assalamualaikum)/.test(t)) {
-    return `Halo! Saya asisten data bantuan (${num(cases.length)} kasus termuat). Tanya mis. "kasus OPEN ada berapa?" atau "cari MAYOUTFIT".`;
+    return `Halo! Saya asisten data bantuan (${num(cases.length)} kasus termuat).\nTanya mis. "kasus OPEN ada berapa?", "on-call bulan lalu", "tagihan bulan ini", atau "top client".`;
   }
   if (/bisa apa|bantuan|help|fitur|contoh/.test(t)) {
-    return 'Saya bisa:\n• Hitung kasus (total / per status / per billing)\n• Top client & total tagihan\n• Cari kasus by keyword — ketik "cari ..."';
+    return 'Saya bisa:\n• Kasus: total, per status, per bulan\n• Billing: ON-CALL / MONTHLY / FREE, tagihan per bulan\n• Finance: status invoice & audit\n• HR: kategori support & PIC\n• Cari kasus by keyword — ketik "cari ..."';
   }
   const search = t.match(/^(cari|search|temukan)\s+(.+)/);
   if (search) {
@@ -36,24 +82,44 @@ function answer(q, cases) {
     const top = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 5);
     return `Top 5 client:\n${top.map(([k, v], i) => `${i + 1}. ${k} — ${num(v)} kasus`).join('\n')}`;
   }
+  // Billing + per bulan (on-call / monthly / free / tagihan)
+  if (/on.?call/.test(t)) return billAnswer(cases, ymTarget, 'ON-CALL');
+  if (/monthly/.test(t)) return billAnswer(cases, ymTarget, 'MONTHLY');
+  if (/\bfree\b/.test(t)) return billAnswer(cases, ymTarget, 'FREE');
   if (/tagihan|charges|rupiah|nilai/.test(t)) {
-    const now = new Date();
-    const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    if (/bulan/.test(t)) {
-      const m = cases.filter((c) => String(c.dateIssue || '').slice(0, 6) === ym);
-      const ms = m.reduce((s, c) => s + (+c.charges || 0), 0);
-      return `Total tagihan bulan ini adalah ${fmtMoney(ms)} (dari ${num(m.length)} kasus).`;
-    }
-    const done = cases.filter((c) => (c.status || '').toUpperCase() === 'DONE');
-    const doneSum = done.reduce((s, c) => s + (+c.charges || 0), 0);
-    return `Total tagihan saat ini adalah ${fmtMoney(doneSum)} (dari ${num(done.length)} kasus berstatus DONE).\nMau saya cek total tagihan bulan ini juga?`;
+    const periodCases = ymTarget ? cases.filter((c) => String(c.dateIssue || '').startsWith(ymTarget)) : cases;
+    const paid = periodCases.filter((c) => c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY');
+    const sum = paid.reduce((s, c) => s + (+c.charges || 0), 0);
+    const period = ymTarget ? `bulan ${ymLabel(ymTarget)}` : 'saat ini';
+    return `Total tagihan ${period} adalah ${fmtMoney(sum)} (dari ${num(paid.length)} kasus ON-CALL + MONTHLY).${ymTarget ? `\nFilter di menu Kasus periode ${ymRange(ymTarget)}.` : '\nMau saya cek total tagihan bulan ini juga?'}`;
+  }
+  // Finance / audit / invoice
+  if (/invoice/.test(t)) {
+    const valid = cases.filter((c) => (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY'));
+    return `Ada ${num(valid.length)} kasus berbayar (ON-CALL + MONTHLY) yang siap diproses invoice di menu Finance.`;
+  }
+  if (/audit|validasi/.test(t)) {
+    const paid = cases.filter((c) => (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY'));
+    return `Menu Billing dipakai untuk validasi kasus berbayar — saat ini ada ${num(paid.length)} kasus ON-CALL + MONTHLY yang perlu dicek.`;
+  }
+  // HR / kategori support
+  if (/\b(hr|kategori|jenis support|support category|general request|special request|audit)\b/.test(t)) {
+    const m = {};
+    cases.forEach((c) => {
+      const k = (c.groupKpi || 'TANPA KATEGORI').trim();
+      m[k] = (m[k] || 0) + 1;
+    });
+    const top = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    return `Top 5 kategori support (HR):\n${top.map(([k, v], i) => `${i + 1}. ${k} — ${num(v)} kasus`).join('\n')}`;
+  }
+  // Kasus per bulan (tanpa billing)
+  if (ymTarget) {
+    const m = cases.filter((c) => String(c.dateIssue || '').startsWith(ymTarget));
+    return `Total kasus bulan ${ymLabel(ymTarget)}: ${num(m.length)} kasus.\nFilter di menu Kasus periode ${ymRange(ymTarget)}.`;
   }
   const byStatus = (s) => cases.filter((c) => (c.status || '').toUpperCase() === s).length;
   if (/open/.test(t)) return `Kasus OPEN: ${num(byStatus('OPEN'))} dari ${num(cases.length)} total.`;
   if (/done|selesai/.test(t)) return `Kasus DONE: ${num(byStatus('DONE'))} dari ${num(cases.length)} total.`;
-  if (/on.?call/.test(t)) return `Billing ON-CALL: ${num(cases.filter((c) => c.billingStatus === 'ON-CALL').length)} kasus.`;
-  if (/monthly/.test(t)) return `Billing MONTHLY: ${num(cases.filter((c) => c.billingStatus === 'MONTHLY').length)} kasus.`;
-  if (/free/.test(t)) return `Billing FREE: ${num(cases.filter((c) => c.billingStatus === 'FREE').length)} kasus.`;
   if (/total|berapa|jumlah|semua/.test(t)) {
     return `Total ${num(cases.length)} kasus — OPEN: ${num(byStatus('OPEN'))}, DONE: ${num(byStatus('DONE'))}.`;
   }
