@@ -96,6 +96,15 @@ VITE_API_URL=http://host:5005/api
 | `finance@revota.id` | Finance | `password123` |
 | `vina@revota.id` | Viewer | `password123` |
 
+## Hak akses per role
+
+- **Super Admin** selalu punya semua akses (dikunci di backend, tak bisa dicabut).
+- Role lain mengikuti **matriks izin di halaman `/roles`** (tab Role & Izin Modul)
+  — menu yang tak diizinkan hilang otomatis, URL langsung ditolak, dan
+  API tulis mengembalikan `403` tanpa izin.
+- Mengubah matriks tersimpan di DB (`role_permissions`) dan berlaku
+  untuk semua user role tersebut saat itu juga.
+
 ## Alur data
 
 - Semua halaman baca kasus via `GET /api/cases` (hook `useCases`, cache 1x).

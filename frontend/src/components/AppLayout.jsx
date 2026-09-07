@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { usePermissions, menuPerm } from '../hooks/usePermissions.js';
 import { MODULES } from '../config/modules.js';
 import Icon from '../components/Icon.jsx';
 
@@ -8,6 +9,7 @@ const LEGACY = { master: '/cfg', pricelist: '/cfg' };
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  const { can } = usePermissions();
   const location = useLocation();
 
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
@@ -49,12 +51,12 @@ export default function AppLayout() {
               >
                 {m.group}
               </p>
-            ) : (
+            ) : can(menuPerm(m.id)) ? (
               <NavLink key={m.id} to={m.path} className="shell-nav">
                 <Icon name={m.id === 'kasus' ? 'cases' : m.id} />
                 {m.title}
               </NavLink>
-            )
+            ) : null
           )}
         </nav>
 

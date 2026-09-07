@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { DEFAULT_PERMS } from '../hooks/usePermissions.js';
 import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog } from '../lib/api.js';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
@@ -28,13 +29,6 @@ const MODULES = [
   { id: 'mockup', name: 'Dashboard Mockup', desc: 'Mockup data Google Sheets' },
   { id: 'roles', name: 'Hak Akses', desc: 'Kelola pengguna & izin' },
 ];
-const DEFAULT_PERMS = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0 },
-  Support: { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0 },
-  Finance: { dashboard: 1, cases: 0, form: 0, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0 },
-};
 const SEED_USERS = [
   { id: 1, name: 'Rani Admin', email: 'rani@revota.id', role: 'Super Admin', active: true, lastLogin: 'Hari ini 09:12' },
   { id: 2, name: 'Budi Santoso', email: 'budi.cs@revota.id', role: 'Admin CS', active: true, lastLogin: 'Hari ini 08:47' },

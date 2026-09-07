@@ -5,7 +5,8 @@ export const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 async function req(path, opts = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    // x-user-email = identitas untuk PermGuard backend (diisi saat login)
+    headers: { 'Content-Type': 'application/json', 'x-user-email': localStorage.getItem('userEmail') || '' },
     ...opts,
     ...(opts.body && typeof opts.body !== 'string' ? { body: JSON.stringify(opts.body) } : {}),
   });
