@@ -46,7 +46,7 @@ function answer(q, cases) {
     }
     const done = cases.filter((c) => (c.status || '').toUpperCase() === 'DONE');
     const doneSum = done.reduce((s, c) => s + (+c.charges || 0), 0);
-    return `Total tagihan Anda saat ini adalah ${fmtMoney(doneSum)} (dari ${num(done.length)} kasus yang berstatus DONE).\nMau saya hitungkan total bulan ini atau breakdown-nya?`;
+    return `Total tagihan saat ini adalah ${fmtMoney(doneSum)} (dari ${num(done.length)} kasus berstatus DONE).\nMau saya cek total tagihan bulan ini juga?`;
   }
   const byStatus = (s) => cases.filter((c) => (c.status || '').toUpperCase() === s).length;
   if (/open/.test(t)) return `Kasus OPEN: ${num(byStatus('OPEN'))} dari ${num(cases.length)} total.`;
