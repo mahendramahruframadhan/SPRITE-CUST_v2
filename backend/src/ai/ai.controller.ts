@@ -22,7 +22,18 @@ SPRITE-CUST_v2 saja. Silakan tanyakan tentang React, NestJS, atau PostgreSQL di 
 3. Jawab dari knowledge base project di bawah + snapshot data. Jika tak ada di
 dokumentasi: "Saya tidak menemukan informasi tersebut di dokumentasi project saat ini."
 Jangan mengarang.
-4. Beri contoh kode relevan bila perlu (React+Vite, NestJS, PostgreSQL, raw SQL).`;
+4. Beri contoh kode relevan bila perlu (React+Vite, NestJS, PostgreSQL, raw SQL).
+
+ATURAN ASISTEN KEUANGAN (tagihan):
+5. Bila user tanya total tagihan ("total tagihan saya/berapa total tagihan/tagihan saya"):
+langsung jawab Total Tagihan All-Time dari snapshot, mis: "Total tagihan Anda saat
+ini adalah Rp 17.231.765 (dari 2.034 kasus yang berstatus DONE)." Rapi dan mudah dibaca.
+6. JANGAN beri query SQL/kode NestJS/penjelasan teknis DB kecuali user eksplisit minta
+("cara query-nya"/"kode-nya"/"bagaimana cara menghitungnya").
+7. Bila user tanya tagihanBULAN INI/berjalan: pakai angka bulan berjalan dari snapshot.
+8. Bahasa Indonesia natural, sopan, tidak kaku. Sesudah total boleh tawarkan: total bulan
+ini, breakdown detail, atau daftar kasus terbaru — bila relevan.
+9. Bila data tak tersedia: jujur + tawarkan alternatif (mis. total all-time).`;
 
 // Knowledge base ringkas project (sumber kebenaran untuk jawaban AI).
 const PROJECT_KB = `STACK: Frontend React 18 + Vite 5 + Tailwind (port 5173, proxy /api), Backend NestJS 10 + Drizzle ORM (port 5005, prefix /api), DB Postgres 16 Docker (db sprite_cust).
@@ -118,14 +129,21 @@ export class AiController {
     const msgs = Array.isArray(body.messages) ? body.messages.slice(-8) : [];
     if (!msgs.length) return { ok: false, error: 'messages kosong' };
 
-    // Konteks ringkas data agar AI bisa jawab soal kasus (3 query cepat)
+    // Konteks ringkas data agar AI bisa jawab soal kasus & tagihan (query cepat)
     let snapshot = '';
     try {
+      const now = new Date();
+      const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
       const t: any = await this.db.execute(`SELECT COUNT(*) as c FROM assistance_records` as any);
       const s: any = await this.db.execute(`SELECT status, COUNT(*) as c FROM assistance_records GROUP BY status` as any);
       const ch: any = await this.db.execute(`SELECT SUM(charges) as s FROM assistance_records` as any);
+      const done: any = await this.db.execute(`SELECT COUNT(*) as c, COALESCE(SUM(charges),0) as s FROM assistance_records WHERE status='DONE'` as any);
+      const mth: any = await this.db.execute(`SELECT COUNT(*) as c, COALESCE(SUM(charges),0) as s FROM assistance_records WHERE date_issue LIKE '${ym}%'` as any);
       const byStatus = ((s.rows || s) as any[]).map((r: any) => `${r.status || '?'}: ${r.c}`).join(', ');
-      snapshot = `Data saat ini: total ${(t.rows || t)[0]?.c || 0} kasus (${byStatus}), total tagihan Rp ${Number((ch.rows || ch)[0]?.s || 0).toLocaleString('id-ID')}.`;
+      const dRow = (done.rows || done)[0] || {};
+      const mRow = (mth.rows || mth)[0] || {};
+      const rp = (n: any) => `Rp ${Number(n || 0).toLocaleString('id-ID')}`;
+      snapshot = `Data saat ini: total ${(t.rows || t)[0]?.c || 0} kasus (${byStatus}), total tagihan all-time ${rp((ch.rows || ch)[0]?.s)}. Kasus DONE: ${Number(dRow.c || 0).toLocaleString('id-ID')} (tagihan ${rp(dRow.s)}). Bulan berjalan (${ym}): ${Number(mRow.c || 0).toLocaleString('id-ID')} kasus, tagihan ${rp(mRow.s)}.`;
     } catch {}
 
     try {
