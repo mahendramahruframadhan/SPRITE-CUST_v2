@@ -47,7 +47,18 @@ export function AuthProvider({ children }) {
           throw new Error('Backend tidak terjangkau — pastikan backend jalan di port 5005.');
         }
         if (!r || r.error || !r.user) throw new Error('Email atau password salah.');
-        const u = MOCK_USERS[key] || { name: r.user.name || key.split('@')[0], role: 'Viewer' };
+        // Role: appUsers (diatur admin di /roles) → MOCK_USERS → Viewer
+        let stored = null;
+        try {
+          stored = (JSON.parse(localStorage.getItem('appUsers')) || []).find(
+            (u) => String(u.email || '').toLowerCase() === key
+          );
+        } catch {
+          stored = null;
+        }
+        const u =
+          (stored && { name: stored.name, role: stored.role }) ||
+          MOCK_USERS[key] || { name: r.user.name || key.split('@')[0], role: 'Viewer' };
         localStorage.setItem('loggedIn', 'true');
         localStorage.setItem('userEmail', key);
         localStorage.setItem('userName', u.name);

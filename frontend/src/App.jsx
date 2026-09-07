@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import AppLayout from './components/AppLayout.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import SignUpPage from './pages/SignUpPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import DataKasusPage from './pages/DataKasusPage.jsx';
 import MockupPage from './pages/MockupPage.jsx';
@@ -18,6 +19,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
 
           <Route element={<AppLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

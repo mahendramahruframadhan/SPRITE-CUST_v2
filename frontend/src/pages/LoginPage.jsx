@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, MOCK_USERS } from '../context/AuthContext.jsx';
 import Icon from '../components/Icon.jsx';
 
@@ -93,6 +93,12 @@ export default function LoginPage() {
         </div>
         <p className="text-center text-xs text-slate-400 mt-6">
           © 2025 Pusat Data Bantuan — Sinkron dari Google Sheets
+        </p>
+        <p className="text-center text-xs text-slate-400 mt-2">
+          Belum punya akun?{' '}
+          <Link to="/signup" className="font-semibold text-brand-600 hover:underline">
+            Daftar di sini
+          </Link>
         </p>
       </div>
     </div>

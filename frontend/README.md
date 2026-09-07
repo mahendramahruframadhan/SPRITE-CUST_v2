@@ -60,6 +60,7 @@ frontend/
 | Path | Halaman | Sumber data |
 | --- | --- | --- |
 | `/login` | Login | `POST /api/auth/sign-in/email` |
+| `/signup` | Daftar akun (role Viewer) | `POST /api/auth/sign-up/email` |
 | `/dashboard` | Dashboard | `GET /api/cases` |
 | `/kasus` | Data Kasus | `GET /api/cases` |
 | `/mockup` | Dashboard Mockup | `GET /api/cases` |
@@ -68,4 +69,4 @@ frontend/
 | `/cfg` | Konfigurasi Sheet | `GET/PUT /api/config` |
 | `/billing` | Billing & Audit | `GET /api/cases` + `PATCH …/audit` |
 | `/finance` | Finance Audit | `GET /api/cases` + `PATCH …/invoice` |
-| `/roles` | Hak Akses & Role | localStorage |
+| `/roles` | Hak Akses & Role | localStorage + `POST /api/auth/sign-up/email` (password user baru) |

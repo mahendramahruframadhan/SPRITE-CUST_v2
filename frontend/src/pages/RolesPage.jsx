@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { signUp } from '../lib/api.js';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 const ROLE_STYLE = {
@@ -69,7 +70,8 @@ export default function RolesPage() {
   const [q, setQ] = useState('');
   const [fRole, setFRole] = useState('');
   const [fStatus, setFStatus] = useState('');
-  const [modal, setModal] = useState(null); // {id?, name, email, role, active}
+  const [modal, setModal] = useState(null); // {id?, name, email, role, active, password?}
+  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -129,21 +131,41 @@ export default function RolesPage() {
       const u = users.find((x) => x.id === id);
       setModal({ id, name: u.name, email: u.email, role: u.role, active: u.active });
     } else {
-      setModal({ id: null, name: '', email: '', role: 'Viewer', active: true });
+      setModal({ id: null, name: '', email: '', role: 'Viewer', active: true, password: '' });
     }
   }
 
-  function saveUser() {
-    const { id, name, email, role, active } = modal;
+  async function saveUser() {
+    const { id, name, email, role, active, password } = modal;
+    if (!name.trim() || !email.trim()) {
+      showToast('Nama dan email wajib diisi');
+      return;
+    }
     if (id) {
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, name, email, role, active } : u)));
       addLog(`mengubah data pengguna ${name}`);
-    } else {
-      setUsers((prev) => [...prev, { id: Date.now(), name, email, role, active, lastLogin: 'Belum pernah login' }]);
-      addLog(`menambahkan pengguna baru ${name} (${role})`);
+      setModal(null);
+      showToast('Data pengguna disimpan');
+      return;
     }
-    setModal(null);
-    showToast('Data pengguna disimpan');
+    if (!password || password.length < 6) {
+      showToast('Password baru min. 6 karakter');
+      return;
+    }
+    setSaving(true);
+    try {
+      // Buat kredensial login di backend; role disimpan lokal (appUsers)
+      const r = await signUp(email.trim().toLowerCase(), password, name.trim());
+      if (!r || r.error || !r.user) throw new Error('Email sudah terdaftar?');
+      setUsers((prev) => [...prev, { id: Date.now(), name: name.trim(), email: email.trim().toLowerCase(), role, active, lastLogin: 'Belum pernah login' }]);
+      addLog(`menambahkan pengguna baru ${name} (${role})`);
+      setModal(null);
+      showToast('Pengguna + password tersimpan');
+    } catch (e) {
+      showToast('Gagal: ' + (e.message || 'backend tidak terjangkau'));
+    } finally {
+      setSaving(false);
+    }
   }
 
   /* ---- Role & izin ---- */
@@ -465,6 +487,20 @@ export default function RolesPage() {
                   ))}
                 </select>
               </div>
+              {!modal.id && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-500">
+                    Password login <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={modal.password || ''}
+                    onChange={(e) => setModal({ ...modal, password: e.target.value })}
+                    placeholder="Min. 6 karakter — tersimpan di backend"
+                    className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                  />
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setModal({ ...modal, active: !modal.active })}
@@ -483,9 +519,10 @@ export default function RolesPage() {
               </button>
               <button
                 onClick={saveUser}
-                className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2 rounded-lg shadow-md shadow-brand-600/25 transition"
+                disabled={saving}
+                className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2 rounded-lg shadow-md shadow-brand-600/25 transition disabled:opacity-60"
               >
-                Simpan
+                {saving ? 'Menyimpan…' : 'Simpan'}
               </button>
             </div>
           </div>
