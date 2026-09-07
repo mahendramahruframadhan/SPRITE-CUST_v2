@@ -1,6 +1,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { randomUUID } from 'crypto';
 import { getDb, getMemDb } from './drizzle.service';
+
+// Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
+const ROLE_PERMS: Record<string, Record<string, number>> = {
+  'Super Admin': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1 },
+  'Admin CS': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0 },
+  Support: { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0 },
+  Finance: { dashboard: 1, cases: 0, form: 0, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0 },
+  Viewer: { dashboard: 1, cases: 1, form: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0 },
+};
 
 export async function initDb() {
   const db: any = getDb();
@@ -28,6 +38,10 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'MENUNGGU INVOICE', updated_by TEXT, updated_at TEXT);
     CREATE TABLE IF NOT EXISTS sync_logs (id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL, rows_processed INTEGER DEFAULT 0, error_message TEXT, source TEXT DEFAULT 'sheets');
     CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT);
+    ALTER TABLE "user" ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'Viewer';
+    ALTER TABLE "user" ADD COLUMN IF NOT EXISTS active INTEGER DEFAULT 1;
+    CREATE TABLE IF NOT EXISTS role_permissions (role TEXT NOT NULL, module TEXT NOT NULL, allowed INTEGER DEFAULT 0, updated_at TEXT, PRIMARY KEY (role, module));
+    CREATE TABLE IF NOT EXISTS activity_logs (id TEXT PRIMARY KEY, who TEXT, action TEXT NOT NULL, created_at TEXT NOT NULL);
   `;
 
   if (!isRealPg && mem) {
@@ -84,14 +98,14 @@ export async function initDb() {
     if (c === 0) {
       const now = new Date().toISOString();
       const users = [
-        ['u_rani', 'Rani Admin', 'rani@revota.id'],
-        ['u_budi', 'Budi Santoso', 'budi.cs@revota.id'],
-        ['u_sari', 'Sari Support', 'sari@revota.id'],
-        ['u_fajar', 'Fajar Finance', 'finance@revota.id'],
-        ['u_vina', 'Vina Viewer', 'vina@revota.id'],
+        ['u_rani', 'Rani Admin', 'rani@revota.id', 'Super Admin'],
+        ['u_budi', 'Budi Santoso', 'budi.cs@revota.id', 'Admin CS'],
+        ['u_sari', 'Sari Support', 'sari@revota.id', 'Support'],
+        ['u_fajar', 'Fajar Finance', 'finance@revota.id', 'Finance'],
+        ['u_vina', 'Vina Viewer', 'vina@revota.id', 'Viewer'],
       ];
-      for (const [id, name, email] of users) {
-        await db.execute(`INSERT INTO "user" (id,name,email,email_verified,created_at,updated_at) VALUES ('${id}','${name}','${email}',1,'${now}','${now}') ON CONFLICT (id) DO NOTHING` as any);
+      for (const [id, name, email, role] of users) {
+        await db.execute(`INSERT INTO "user" (id,name,email,email_verified,role,active,created_at,updated_at) VALUES ('${id}','${name}','${email}',1,'${role}',1,'${now}','${now}') ON CONFLICT (id) DO NOTHING` as any);
         // also create account entry with password hash placeholder — real sign-up will overwrite
         const accId = `acc_${id}`;
         await db.execute(`INSERT INTO account (id,account_id,provider_id,user_id,password,created_at,updated_at) VALUES ('${accId}','${email}','credential','${id}','password123','${now}','${now}') ON CONFLICT (id) DO NOTHING` as any);
@@ -100,5 +114,55 @@ export async function initDb() {
     }
   } catch (e) {
     console.warn('[db] seed users skipped', e);
+  }
+
+  // Backfill role/active untuk DB lama + seed role_permissions + activity_logs
+  // ponytail: guard role='Viewer' agar role yang diubah admin tidak tertimpa saat restart
+  try {
+    const q = async (sql: string) => {
+      if (!isRealPg && mem) {
+        mem.public.none(sql);
+        return [];
+      }
+      const res: any = await db.execute(sql as any);
+      return res.rows || res;
+    };
+    const roleSeed: Record<string, string> = {
+      'rani@revota.id': 'Super Admin',
+      'budi.cs@revota.id': 'Admin CS',
+      'sari@revota.id': 'Support',
+      'finance@revota.id': 'Finance',
+      'vina@revota.id': 'Viewer',
+    };
+    for (const [email, role] of Object.entries(roleSeed)) {
+      await q(`UPDATE "user" SET role='${role}' WHERE email='${email}' AND role='Viewer'`);
+    }
+    await q(`UPDATE "user" SET active=1 WHERE active IS NULL`);
+    const pc: any = await q(`SELECT COUNT(*) as c FROM role_permissions`);
+    if (!Number(pc[0]?.c || 0)) {
+      const now = new Date().toISOString();
+      for (const [role, mods] of Object.entries(ROLE_PERMS)) {
+        for (const [mod, allowed] of Object.entries(mods)) {
+          await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','${mod}',${allowed},'${now}')`);
+        }
+      }
+      console.log('[db] seeded role_permissions');
+    }
+    const lc: any = await q(`SELECT COUNT(*) as c FROM activity_logs`);
+    if (!Number(lc[0]?.c || 0)) {
+      const now = new Date().toISOString();
+      const seedLogs = [
+        ['Rani Admin', 'mengubah role Fajar Finance menjadi Finance'],
+        ['Rani Admin', 'menonaktifkan akun Vina Viewer'],
+        ['Budi Santoso', 'menambahkan pengguna baru Sari Support'],
+        ['Rani Admin', 'memperbarui matriks izin modul'],
+      ];
+      for (const [who, act] of seedLogs) {
+        await q(`INSERT INTO activity_logs (id,who,action,created_at) VALUES ('${randomUUID()}','${who}','${act}','${now}')`);
+      }
+      console.log('[db] seeded activity_logs');
+    }
+  } catch (e) {
+    console.warn('[db] seed roles skipped', e);
   }
 }

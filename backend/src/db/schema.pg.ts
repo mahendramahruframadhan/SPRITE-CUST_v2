@@ -47,6 +47,8 @@ export const user = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: integer('email_verified').default(0),
   image: text('image'),
+  role: text('role').default('Viewer'),
+  active: integer('active').default(1),
   createdAt: timestamp('created_at'),
   updatedAt: timestamp('updated_at'),
 });
@@ -115,4 +117,18 @@ export const appConfig = pgTable('app_config', {
   key: text('key').primaryKey(),
   value: text('value'),
   updatedAt: text('updated_at'),
+});
+
+export const rolePermissions = pgTable('role_permissions', {
+  role: text('role').notNull(),
+  module: text('module').notNull(),
+  allowed: integer('allowed').default(0),
+  updatedAt: text('updated_at'),
+});
+
+export const activityLogs = pgTable('activity_logs', {
+  id: text('id').primaryKey(),
+  who: text('who'),
+  action: text('action').notNull(),
+  createdAt: text('created_at').notNull(),
 });

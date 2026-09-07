@@ -56,9 +56,16 @@ PUT  /api/config {config}
 GET  /api/masters → {masters, priceListData} (dibaca dari frontend/src/data/masters.js)
 POST /api/sync/trigger                 → sinkron manual (mock: echo ke sync_logs)
 GET  /api/sync/logs
-POST /api/auth/sign-up/email {email, password, name}
+POST /api/auth/sign-up/email {email, password, name, role?}
 POST /api/auth/sign-in/email {email, password} → {user} atau {error}
 POST /api/auth/sign-out
+GET  /api/users → [{id, name, email, role, active}]
+PATCH /api/users/:id {name?, email?, role?, active?}
+DELETE /api/users/:id (Super Admin dilindungi)
+POST /api/users/:id/password {password}
+GET  /api/roles/permissions → {perms: {role: {module: 0|1}}}
+PUT  /api/roles/permissions {perms}
+GET  /api/roles/logs (30 terakhir) · POST /api/roles/logs {who, action}
 ```
 
 User seed (password `password123`): `rani@revota.id`, `budi.cs@revota.id`,

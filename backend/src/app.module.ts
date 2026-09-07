@@ -12,10 +12,11 @@ import { ConfigController } from './config/config.controller';
 import { MastersController } from './masters/masters.controller';
 import { DrizzleService } from './db/drizzle.service';
 import { AuthController } from './auth/auth.controller';
+import { RolesController } from './roles/roles.controller';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
-  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, MastersController, AuthController],
+  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, MastersController, AuthController, RolesController],
   providers: [DrizzleService, CasesService, SheetsService, SyncService],
 })
 export class AppModule {}
