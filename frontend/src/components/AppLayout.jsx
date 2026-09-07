@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions, menuPerm } from '../hooks/usePermissions.js';
 import { MODULES } from '../config/modules.js';
 import Icon from '../components/Icon.jsx';
+import AiChat from '../components/AiChat.jsx';
 
 // Redirect route lama: /master & /pricelist -> /cfg
 const LEGACY = { master: '/cfg', pricelist: '/cfg' };
@@ -114,6 +115,7 @@ export default function AppLayout() {
           <Outlet />
         </div>
       </main>
+      <AiChat />
     </div>
   );
 }
