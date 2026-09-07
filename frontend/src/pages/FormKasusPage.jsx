@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { masters, priceListData } from '../data/masters.js';
+import { useEffect, useMemo, useState } from 'react';
+import { masters as fallbackMasters, priceListData as fallbackPrices } from '../data/masters.js';
+import { createCase, getMasters } from '../lib/api.js';
 
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -64,6 +65,24 @@ function Select({ value, onChange, items, placeholder = '-- Pilih --' }) {
 
 export default function FormKasusPage() {
   const [form, setForm] = useState(INITIAL);
+  // Master dari backend (GET /api/masters); file lokal sebagai fallback offline
+  const [masters, setMasters] = useState(fallbackMasters);
+  const [priceListData, setPriceListData] = useState(fallbackPrices);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    getMasters()
+      .then((r) => {
+        if (ignore) return;
+        if (r && r.masters) setMasters(r.masters);
+        if (r && r.priceListData) setPriceListData(r.priceListData);
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const subModules = useMemo(() => {
     const mod = form.module;
@@ -100,14 +119,24 @@ export default function FormKasusPage() {
     setForm({ ...INITIAL, recordUuid: uuid() });
   }
 
-  function saveForm() {
+  async function saveForm() {
     for (const k of ['dateIssue', 'client', 'issue']) {
       if (!form[k]) {
         alert('Field wajib belum diisi');
         return;
       }
     }
-    alert('Mockup: data siap ditulis ke Google Sheets.\n\n' + JSON.stringify(preview).substring(0, 400) + '...');
+    setSaving(true);
+    try {
+      // POST /api/cases — backend menulis ke DB (+ Sheets bila SHEETS_MOCK=false)
+      await createCase({ ...form, month: form.monthName });
+      alert('Kasus tersimpan di backend.');
+      resetForm();
+    } catch (e) {
+      alert('Gagal menyimpan: ' + (e.message || e));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -122,12 +151,13 @@ export default function FormKasusPage() {
         </button>
         <button
           onClick={saveForm}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2 rounded-lg shadow-md shadow-brand-600/25 transition"
+          disabled={saving}
+          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2 rounded-lg shadow-md shadow-brand-600/25 transition disabled:opacity-60"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Simpan ke Sheets
+          Simpan ke Backend
         </button>
       </div>
 

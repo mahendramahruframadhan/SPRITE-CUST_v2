@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_CONFIG } from '../data/sheetConfig.js';
+import { getConfig, putConfig } from '../lib/api.js';
 
 const LS_KEY = 'sheetConfig';
 
@@ -40,9 +41,31 @@ export default function SheetConfigPage() {
   const [cfg, setCfg] = useState(loadCfg);
   const [tab, setTab] = useState('pricelist');
   const [toast, setToast] = useState(null);
+  const synced = useRef(false);
+
+  // Ambil config dari backend (DB) sekali saat mount; lokal sebagai fallback instan
+  useEffect(() => {
+    let ignore = false;
+    getConfig()
+      .then((r) => {
+        if (!ignore && r && r.config && Object.keys(r.config).length) setCfg(r.config);
+      })
+      .catch(() => {})
+      .finally(() => {
+        synced.current = true;
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(LS_KEY, JSON.stringify(cfg));
+    if (!synced.current) return;
+    const t = setTimeout(() => {
+      putConfig(cfg).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
   }, [cfg]);
 
   useEffect(() => {
@@ -116,7 +139,7 @@ export default function SheetConfigPage() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
         </svg>
         <p className="text-xs text-brand-800 leading-relaxed">
-          Struktur & isi halaman ini <span className="font-bold">persis mengikuti tab konfigurasi di Google Sheets</span> (gid=0): nama tabel dan nama kolom sama persis, sehingga aman saat dihubungkan ke backend nanti. Semua perubahan <span className="font-semibold">tersimpan otomatis di browser</span> dan bisa dikembalikan ke default kapan saja. Gunakan <span className="font-semibold">Export JSON</span> untuk menyerahkan konfigurasi final ke backend.
+          Struktur & isi halaman ini <span className="font-bold">persis mengikuti tab konfigurasi di Google Sheets</span> (gid=0): nama tabel dan nama kolom sama persis, sehingga aman saat dihubungkan ke backend nanti. Semua perubahan <span className="font-semibold">tersimpan otomatis di browser & backend</span> dan bisa dikembalikan ke default kapan saja. Gunakan <span className="font-semibold">Export JSON</span> untuk menyerahkan konfigurasi final ke backend.
         </p>
       </div>
 
