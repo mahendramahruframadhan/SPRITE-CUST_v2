@@ -1,79 +1,71 @@
 # Pusat Data Bantuan — Frontend (React + Vite)
 
-Porting dari mockup HTML di `.local/` ke React.js dengan best practice.
-Backend (NestJS) **belum** dibuat — auth, data kasus, master, dan konfigurasi
-masih memakai mock/localStorage, siap diganti API NestJS nanti.
+Terintegrasi penuh dengan backend NestJS (`http://localhost:5005/api`).
+Semua halaman baca/tulis via API — file `src/data/*.js` tinggal sebagai
+fallback offline + sumber seed backend.
 
 ## Tech Stack
 
-- **React 18** + **Vite 5**
-- **React Router v6** — route terpisah per modul
-- **Tailwind CSS 3** (konfigurasi terpisah: `tailwind.config.js`, `postcss.config.js`, style kustom di `src/styles/index.css`)
-- **Chart.js 4** via `react-chartjs-2`
+- **React 18** + **Vite 5** + **React Router v6**
+- **Tailwind CSS 3**, **Chart.js 4** via `react-chartjs-2`
+- Tanpa HTTP lib tambahan — `fetch` biasa via `src/lib/api.js`
 
 ## Menjalankan
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
+npm run dev      # http://localhost:5173 — /api di-proxy ke :5005
 npm run build    # produksi ke dist/
+```
+
+Backend di host/port lain? Buat `.env` (lihat `.env.example`):
+
+```
+VITE_API_URL=http://host:5005/api
+```
+
+## Lapisan API
+
+```
+src/lib/api.js       # API_BASE, fetchAllCases (paginasi+cache), masters,
+                     # config, createCase, patchAudit/Invoice, auth, sync
+src/hooks/useCases.js # { cases, loading, error, reload } — dipakai 6 halaman
 ```
 
 ## Struktur
 
 ```
 frontend/
-├── index.html
-├── vite.config.js
-├── tailwind.config.js          # warna brand, font Inter, animasi fade-in
-├── postcss.config.js
+├── vite.config.js                # proxy /api → http://localhost:5005
 └── src/
-    ├── main.jsx
-    ├── App.jsx                 # definisi semua route
-    ├── styles/index.css        # @tailwind + komponen kustom (scrollbar, shell-nav)
-    ├── config/modules.js       # konfigurasi menu/sidebar modul
-    ├── context/AuthContext.jsx # auth mock (ganti API NestJS nanti)
-    ├── hooks/useAuditState.js  # status validasi billing ↔ finance (localStorage)
-    ├── utils/format.js         # fmtDate8, fmtMoney, statusMeta, dll
-    ├── data/
-    │   ├── cases.js            # 2036 data kasus (dulu data-cases.js)
-    │   ├── masters.js          # master data & price list (dulu tertanam di main-support)
-    │   └── sheetConfig.js      # DEFAULT_CONFIG konfigurasi sheet
-    ├── components/
-    │   ├── AppLayout.jsx       # shell: sidebar, header, auth guard, redirect legacy
-    │   └── Icon.jsx            # ikon SVG modul
-    └── pages/                  # satu file per route
-        ├── LoginPage.jsx           # /login
-        ├── DashboardPage.jsx       # /dashboard
-        ├── DataKasusPage.jsx       # /kasus (detail: semua kolom, scroll kiri→kanan)
-        ├── MockupPage.jsx          # /mockup
-        ├── FormKasusPage.jsx       # /form
-        ├── HrReportPage.jsx        # /hrreport
-        ├── SheetConfigPage.jsx     # /cfg (master & pricelist lama diarahkan ke sini)
-        ├── BillingPage.jsx         # /billing
-        ├── FinanceAuditPage.jsx    # /finance
-        └── RolesPage.jsx           # /roles
+    ├── main.jsx / App.jsx        # definisi semua route
+    ├── context/AuthContext.jsx   # login via POST /api/auth/sign-in/email
+    ├── hooks/useAuditState.js    # status validasi → PATCH audit (localStorage = cache)
+    ├── pages/
+    │   ├── LoginPage.jsx             # /login (5 akun demo, password password123)
+    │   ├── DashboardPage.jsx         # /dashboard
+    │   ├── DataKasusPage.jsx         # /kasus (filter, paginasi, CSV, modal detail)
+    │   ├── MockupPage.jsx            # /mockup
+    │   ├── FormKasusPage.jsx         # /form (master API + POST /api/cases)
+    │   ├── HrReportPage.jsx          # /hrreport
+    │   ├── SheetConfigPage.jsx       # /cfg (GET/PUT /api/config, autosave debounce)
+    │   ├── BillingPage.jsx           # /billing (PATCH audit)
+    │   ├── FinanceAuditPage.jsx      # /finance (PATCH invoice)
+    │   └── RolesPage.jsx             # /roles (masih localStorage — tanpa endpoint backend)
+    └── data/                     # fallback offline (cases, masters, sheetConfig)
 ```
 
 ## Route
 
-| Path | Halaman |
-| --- | --- |
-| `/login` | Login (mock, 5 akun demo) |
-| `/dashboard` | Dashboard (Chart.js) |
-| `/kasus` | Data Kasus — filter, paginasi, export CSV, detail semua kolom horizontal |
-| `/mockup` | Dashboard Mockup |
-| `/form` | Form Kasus (dropdown master data + preview JSON) |
-| `/hrreport` | HR Report |
-| `/cfg` | Konfigurasi Sheet (9 tab, tersimpan di localStorage) |
-| `/billing` | Billing & Audit (status validasi) |
-| `/finance` | Finance Audit (status invoice) |
-| `/roles` | Hak Akses & Role |
-| `/master`, `/pricelist` | → redirect ke `/cfg` |
-
-## Catatan untuk integrasi NestJS nanti
-
-- `AuthContext.jsx` → ganti `login()` dengan `POST /auth/login` (JWT).
-- `src/data/*.js` → ganti dengan `fetch` ke endpoint NestJS (kasus, master, config).
-- `useAuditState.js` (billing) & `caseInvoiceStatus` (finance) → pindah ke tabel database.
-- Konfigurasi sheet sudah punya tombol **Export JSON (Backend)** di halaman `/cfg`.
+| Path | Halaman | Sumber data |
+| --- | --- | --- |
+| `/login` | Login | `POST /api/auth/sign-in/email` |
+| `/dashboard` | Dashboard | `GET /api/cases` |
+| `/kasus` | Data Kasus | `GET /api/cases` |
+| `/mockup` | Dashboard Mockup | `GET /api/cases` |
+| `/form` | Form Kasus | `GET /api/masters` + `POST /api/cases` |
+| `/hrreport` | HR Report | `GET /api/cases` |
+| `/cfg` | Konfigurasi Sheet | `GET/PUT /api/config` |
+| `/billing` | Billing & Audit | `GET /api/cases` + `PATCH …/audit` |
+| `/finance` | Finance Audit | `GET /api/cases` + `PATCH …/invoice` |
+| `/roles` | Hak Akses & Role | localStorage |
