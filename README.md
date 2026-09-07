@@ -42,6 +42,16 @@ Koneksi yang dipakai backend:
 postgresql://postgres:postgres@localhost:5433/sprite_cust
 ```
 
+### Lihat DB di DBeaver
+
+1. **Database → New Database Connection → PostgreSQL → Next**
+2. Host `localhost`, Port `5433`, Database `sprite_cust`,
+   Username `postgres`, Password `postgres`
+3. **Test Connection** (driver diunduh otomatis bila pertama kali) → **Finish**
+
+DB `asten` ikut terlihat di server yang sama — ganti nama database saja
+untuk berpindah.
+
 ### 2. Backend
 
 ```powershell
