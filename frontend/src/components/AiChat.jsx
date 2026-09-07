@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
-import { chatAi } from '../lib/api.js';
+import { chatAi, getAiConnections } from '../lib/api.js';
 import { fmtMoney } from '../utils/format.js';
 
 // Asisten AI lokal — menjawab dari data kasus backend (tanpa API AI eksternal).
@@ -61,8 +61,39 @@ export default function AiChat() {
   const [msgs, setMsgs] = useState([
     { from: 'bot', text: 'Halo! Ada yang bisa saya bantu soal data kasus?' },
   ]);
+  // Switcher model sekali klik — daftar dari backend, pilihan tersimpan lokal
+  const [conns, setConns] = useState([]);
+  const [connId, setConnId] = useState(() => {
+    try {
+      return localStorage.getItem('aiConnId') || '';
+    } catch {
+      return '';
+    }
+  });
   const bodyRef = useRef(null);
   const timer = useRef(null);
+
+  useEffect(() => {
+    let ignore = false;
+    getAiConnections()
+      .then((r) => {
+        if (!ignore && Array.isArray(r) && r.length) setConns(r);
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  // Esc menutup panel (skill a11y: keyboard operable)
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight });
@@ -79,6 +110,19 @@ export default function AiChat() {
     }, local ? 350 : 0);
   }
 
+  function pickConn(id) {
+    setConnId(id);
+    try {
+      if (id) localStorage.setItem('aiConnId', id);
+      else localStorage.removeItem('aiConnId');
+    } catch {}
+    const hit = conns.find((c) => c.id === id);
+    setMsgs((m) => [...m, {
+      from: 'bot',
+      text: hit ? `Siap — sekarang saya memakai ${hit.name} (${hit.model}).` : 'Kembali ke AI default yang aktif.',
+    }]);
+  }
+
   function send(text) {
     const q = (text ?? input).trim();
     if (!q || typing) return;
@@ -91,7 +135,7 @@ export default function AiChat() {
       role: m.from === 'user' ? 'user' : 'assistant',
       content: m.text,
     }));
-    chatAi(hist).then(
+    chatAi(hist, connId || undefined).then(
       (r) => {
         if (r && r.ok && r.reply) pushBot(r.reply, false);
         else pushBot(answer(q, cases), true);
@@ -104,14 +148,33 @@ export default function AiChat() {
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {open && (
         <div className="w-[min(92vw,380px)] h-[min(70vh,520px)] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-fade-in-fast">
-          <div className="bg-brand-600 text-white px-4 py-3 flex items-center gap-2.5">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
+          <div className="bg-gradient-to-r from-brand-700 to-brand-600 text-white px-4 py-3 flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0" aria-hidden>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.83 8.83a3.75 3.75 0 015.3 0l1.44 1.44a3.75 3.75 0 010 5.3l-1.44 1.44a3.75 3.75 0 01-5.3 0L8.4 15.57a3.75 3.75 0 010-5.3l1.43-1.44zM15.37 8.83a3.75 3.75 0 015.3 0l1.44 1.44a3.75 3.75 0 010 5.3l-1.7 1.7" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" />
+              </svg>
             </span>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-bold leading-tight">Asisten AI</p>
-              <p className="text-[11px] text-brand-100">Jawab dari data kasus backend</p>
+              {conns.length > 0 ? (
+                <select
+                  value={connId}
+                  onChange={(e) => pickConn(e.target.value)}
+                  aria-label="Pilih model AI"
+                  title="Ganti model AI sekali klik"
+                  className="mt-0.5 max-w-full text-[11px] font-semibold bg-white/15 hover:bg-white/25 rounded-md pl-1.5 pr-6 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-white/70 cursor-pointer [&>option]:text-slate-800"
+                >
+                  <option value="">✦ Otomatis (aktif)</option>
+                  {conns.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.active ? '● ' : ''}{c.name} — {c.model}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-[11px] text-brand-100">Jawab dari data kasus backend</p>
+              )}
             </div>
             <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-white/15 text-white/90" aria-label="Tutup chat">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -133,7 +196,7 @@ export default function AiChat() {
             ))}
             {typing && (
               <div className="flex justify-start">
-                <p className="bg-white border border-slate-200 text-slate-400 text-[13px] px-3 py-2 rounded-2xl rounded-bl-md animate-pulse">mengetik…</p>
+                <p className="bg-white border border-slate-200 text-slate-400 text-[13px] px-3 py-2 rounded-2xl rounded-bl-md motion-safe:animate-pulse">mengetik…</p>
               </div>
             )}
           </div>
@@ -156,7 +219,8 @@ export default function AiChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Tanya soal data kasus…"
-              className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+              aria-label="Tulis pesan untuk asisten AI"
+              className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus-visible:ring-brand-500 bg-white"
             />
             <button className="bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-4 font-bold transition" aria-label="Kirim">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -169,8 +233,9 @@ export default function AiChat() {
 
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label="Buka asisten AI"
-        className="w-14 h-14 rounded-full bg-brand-600 hover:bg-brand-700 text-white shadow-xl shadow-brand-600/30 flex items-center justify-center transition active:scale-95"
+        aria-label={open ? 'Tutup asisten AI' : 'Buka asisten AI'}
+        aria-expanded={open}
+        className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white shadow-xl shadow-brand-600/30 flex items-center justify-center transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
       >
         {open ? (
           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

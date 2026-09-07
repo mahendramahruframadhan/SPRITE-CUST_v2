@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Body, Headers } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 
 const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
@@ -48,6 +48,23 @@ export class AiController {
     }
   }
 
+  // Pilih koneksi: id eksplisit dari switcher chat → active → legacy aiConfig.
+  private async pickConnection(connectionId: any) {
+    const id = String(connectionId || '').trim();
+    if (id) {
+      try {
+        const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConnections'` as any);
+        const row = (r.rows || r)[0];
+        const list = row?.value ? JSON.parse(row.value)?.connections : null;
+        if (Array.isArray(list)) {
+          const hit = list.find((c: any) => c && c.id === id && c.apiKey && !String(c.apiKey).startsWith('••••'));
+          if (hit) return hit;
+        }
+      } catch {}
+    }
+    return this.loadActive();
+  }
+
   // Koneksi aktif: item active di aiConnections; fallback aiConfig lama (migrasi otomatis FE).
   private async loadActive() {
     try {
@@ -65,6 +82,24 @@ export class AiController {
     return null;
   }
 
+  // Daftar koneksi untuk switcher model (tanpa key!) — user login mana pun boleh lihat.
+  @Get('connections')
+  async connections(@Headers('x-user-email') email: string) {
+    const who = String(email || '').toLowerCase().trim();
+    if (!who) return [];
+    try {
+      const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConnections'` as any);
+      const row = (r.rows || r)[0];
+      const list = row?.value ? JSON.parse(row.value)?.connections : null;
+      if (!Array.isArray(list)) return [];
+      return list
+        .filter((c: any) => c && c.id && c.name)
+        .map((c: any) => ({ id: c.id, name: c.name, provider: c.provider || '', model: c.model || '', active: !!c.active, hasKey: !!c.apiKey }));
+    } catch {
+      return [];
+    }
+  }
+
   @Post('chat')
   async chat(@Body() body: any, @Headers('x-user-email') email: string) {
     const who = String(email || '').toLowerCase().trim();
@@ -73,7 +108,7 @@ export class AiController {
     const row = (u.rows || u)[0];
     if (!row || !Number(row.active ?? 1)) return { ok: false, error: 'akun tidak dikenal/dinonaktifkan' };
 
-    const cfg = await this.loadActive();
+    const cfg = await this.pickConnection(body.connectionId);
     const apiKey = String(cfg?.apiKey || '');
     if (!cfg || !apiKey) {
       return { ok: false, error: 'Tidak ada AI aktif — daftarkan & aktifkan di /roles → AI & API Key' };
