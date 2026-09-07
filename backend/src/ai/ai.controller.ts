@@ -4,6 +4,34 @@ import { getDb } from '../db/drizzle.service';
 const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 export const maskKey = (k: string) => (!k ? '' : k.length <= 4 ? '••••' : `••••${k.slice(-4)}`);
 
+// Konfigurasi SPRITE AI — asisten resmi project SPRITE-CUST_v2 (diatur pemilik,
+// abaikan bila sudah diimplementasikan). Aturan: HANYA jawab seputar project
+// (Frontend, Backend, Database, arsitektur, fitur, setup, troubleshooting, code,
+// dokumentasi); di luar itu tolak sopan dengan templat di bawah.
+const SYSTEM_PROMPT = `Nama: SPRITE AI. Peran: Technical Assistant khusus project SPRITE-CUST_v2.
+Bahasa: Indonesia, jelas, profesional, to the point. Sebutkan konteksnya (Frontend/Backend/Database).
+
+ATURAN WAJIB:
+1. HANYA jawab yang berkaitan dengan project ini. Di luar project (berita, cuaca,
+coding umum, teknologi lain, curhat, pertanyaan umum) WAJIB tolak sopan dan arahkan
+kembali, mis: "Maaf, saya hanya bisa membantu hal-hal yang berkaitan dengan project
+SPRITE-CUST_v2. Ada yang ingin ditanyakan seputar Frontend, Backend, atau Database project ini?"
+atau: "Pertanyaan tersebut di luar cakupan saya. Saya fokus membantu seputar project
+SPRITE-CUST_v2 saja. Silakan tanyakan tentang React, NestJS, atau PostgreSQL di project ini."
+2. Jangan bahas/opini topik luar project. Jika ambigu, minta klarifikasi dulu.
+3. Jawab dari knowledge base project di bawah + snapshot data. Jika tak ada di
+dokumentasi: "Saya tidak menemukan informasi tersebut di dokumentasi project saat ini."
+Jangan mengarang.
+4. Beri contoh kode relevan bila perlu (React+Vite, NestJS, PostgreSQL, raw SQL).`;
+
+// Knowledge base ringkas project (sumber kebenaran untuk jawaban AI).
+const PROJECT_KB = `STACK: Frontend React 18 + Vite 5 + Tailwind (port 5173, proxy /api), Backend NestJS 10 + Drizzle ORM (port 5005, prefix /api), DB Postgres 16 Docker (db sprite_cust).
+HALAMAN: /login, /signup, /dashboard, /kasus (data+filter+CSV), /mockup, /form (POST /api/cases), /hrreport, /cfg (GET/PUT /api/config + toggle AI), /billing (PATCH audit), /finance (PATCH invoice), /roles (CRUD user, matriks izin, log).
+ROLE: Super Admin (semua akses, dikunci) | Admin CS | Support | Finance | Viewer. Matriks di tabel role_permissions, diatur di /roles.
+TABEL DB: assistance_records (2034 seed), user/account/session/verification, audit_status, invoice_status, sync_logs, app_config (sheetConfig, agentConfig, aiConfig), role_permissions, activity_logs.
+AKUN: rani/budi/sari/finance/vina/admin @revota.id (password awal password123, admin & finance 12345).
+MODE: SHEETS_MOCK=true (tanpa Google API); sync manual POST /api/sync/trigger.`;
+
 // Proxy chat ke AI eksternal (OpenAI-compatible). Key hanya di server (DB app_config
 // key 'aiConfig') — browser tak pernah pegang key. GET config selalu ter-mask.
 @Controller('ai')
@@ -55,7 +83,7 @@ export class AiController {
         body: JSON.stringify({
           model,
           messages: [
-            { role: 'system', content: `Kamu asisten data bantuan (Bahasa Indonesia, ringkas, maksimal 6 baris). ${snapshot}` },
+            { role: 'system', content: `${SYSTEM_PROMPT}\n\nKNOWLEDGE BASE:\n${PROJECT_KB}\n\nSNAPSHOT DATA:\n${snapshot}` },
             ...msgs.filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string').map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 2000) })),
           ],
         }),

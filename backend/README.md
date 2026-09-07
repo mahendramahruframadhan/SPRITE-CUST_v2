@@ -66,6 +66,7 @@ POST /api/users/:id/password {password}
 GET  /api/roles/permissions → {perms: {role: {module: 0|1}}}
 PUT  /api/roles/permissions {perms}
 GET  /api/roles/logs (30 terakhir) · POST /api/roles/logs {who, action}
+POST /api/ai/chat {messages} → {ok, reply} (proxy AI eksternal + system prompt SPRITE AI + snapshot data; key di app_config `aiConfig`)
 ```
 
 User seed: `rani@revota.id`, `budi.cs@revota.id`, `sari@revota.id`,
