@@ -138,6 +138,11 @@ export default function RolesPage() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Toast global halaman ini: showToast(pesan) netral, 'ok' hijau, 'err' merah
+  function showToast(msg, kind) {
+    setToast({ msg, kind: kind || 'info' });
+  }
+
   function addLog(act) {
     const who = user?.name || 'Admin';
     setLogs((prev) => [{ who, act, time: 'Baru saja' }, ...prev].slice(0, 30));
@@ -278,18 +283,19 @@ export default function RolesPage() {
           setHasKey(true);
           setAiKeyInput('');
         }
-        showToast('Koneksi AI tersimpan');
+        showToast('Koneksi AI tersimpan', 'ok');
       })
-      .catch(() => showToast('Gagal menyimpan — backend tidak terjangkau'));
+      .catch(() => showToast('Gagal menyimpan — backend tidak terjangkau', 'err'));
   }
 
   async function testAi() {
     setTestingAi(true);
     try {
       const r = await chatAi([{ role: 'user', content: 'Balas persis: OK' }]);
-      showToast(r && r.ok ? 'Tes koneksi OK — AI menjawab' : 'Tes gagal: ' + (r?.error || 'unknown'));
+      if (r && r.ok) showToast('Tes koneksi OK — AI menjawab', 'ok');
+      else showToast('Tes gagal: ' + (r?.error || 'unknown'), 'err');
     } catch (e) {
-      showToast('Tes gagal: ' + (e.message || e));
+      showToast('Tes gagal: ' + (e.message || e), 'err');
     } finally {
       setTestingAi(false);
     }
@@ -705,8 +711,10 @@ export default function RolesPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-xl animate-fade-in-fast">
-          {toast}
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-xl animate-fade-in-fast ${
+          toast.kind === 'ok' ? 'bg-emerald-600' : toast.kind === 'err' ? 'bg-rose-600' : 'bg-slate-800'
+        }`}>
+          {toast.kind === 'ok' ? '✓ ' : toast.kind === 'err' ? '✕ ' : ''}{toast.msg}
         </div>
       )}
     </div>
