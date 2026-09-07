@@ -37,9 +37,16 @@ function answer(q, cases) {
     return `Top 5 client:\n${top.map(([k, v], i) => `${i + 1}. ${k} — ${num(v)} kasus`).join('\n')}`;
   }
   if (/tagihan|charges|rupiah|nilai/.test(t)) {
-    const sum = cases.reduce((s, c) => s + (+c.charges || 0), 0);
-    const paid = cases.filter((c) => +c.charges > 0).length;
-    return `Total tagihan ${fmtMoney(sum)} dari ${num(paid)} kasus berbayar.`;
+    const now = new Date();
+    const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+    if (/bulan/.test(t)) {
+      const m = cases.filter((c) => String(c.dateIssue || '').slice(0, 6) === ym);
+      const ms = m.reduce((s, c) => s + (+c.charges || 0), 0);
+      return `Total tagihan bulan ini adalah ${fmtMoney(ms)} (dari ${num(m.length)} kasus).`;
+    }
+    const done = cases.filter((c) => (c.status || '').toUpperCase() === 'DONE');
+    const doneSum = done.reduce((s, c) => s + (+c.charges || 0), 0);
+    return `Total tagihan Anda saat ini adalah ${fmtMoney(doneSum)} (dari ${num(done.length)} kasus yang berstatus DONE).\nMau saya hitungkan total bulan ini atau breakdown-nya?`;
   }
   const byStatus = (s) => cases.filter((c) => (c.status || '').toUpperCase() === s).length;
   if (/open/.test(t)) return `Kasus OPEN: ${num(byStatus('OPEN'))} dari ${num(cases.length)} total.`;
