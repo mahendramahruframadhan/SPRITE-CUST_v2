@@ -20,6 +20,14 @@ export class ConfigController {
         const cfg = JSON.parse(row.value);
         // ponytail: key AI tak pernah utuh ke browser (hemat endpoint khusus)
         if (k === 'aiConfig' && cfg.apiKey) cfg.apiKey = maskKey(cfg.apiKey);
+        if (k === 'aiConnections' && Array.isArray(cfg.connections)) {
+          for (const c of cfg.connections) {
+            if (c && c.apiKey) {
+              c.hasKey = true;
+              c.apiKey = maskKey(c.apiKey);
+            }
+          }
+        }
         return { source: 'db', key: k, config: cfg };
       }
     } catch {}
@@ -46,6 +54,20 @@ export class ConfigController {
         const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConfig'` as any);
         const old = JSON.parse((r.rows || r)[0]?.value || '{}');
         if (old.apiKey) incoming.apiKey = old.apiKey;
+      } catch {}
+    }
+    // daftar koneksi: preservasi key per item (by id) bila kosong/mask
+    if (k === 'aiConnections' && Array.isArray(incoming.connections)) {
+      try {
+        const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConnections'` as any);
+        const oldList = JSON.parse((r.rows || r)[0]?.value || '{}')?.connections || [];
+        const oldById: any = {};
+        for (const o of oldList) if (o && o.id) oldById[o.id] = o;
+        for (const c of incoming.connections) {
+          if (c && c.id && oldById[c.id]?.apiKey && (!c.apiKey || String(c.apiKey).startsWith('••••'))) {
+            c.apiKey = oldById[c.id].apiKey;
+          }
+        }
       } catch {}
     }
     const val = JSON.stringify(incoming).replace(/'/g,"''");

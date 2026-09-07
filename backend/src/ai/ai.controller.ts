@@ -48,6 +48,23 @@ export class AiController {
     }
   }
 
+  // Koneksi aktif: item active di aiConnections; fallback aiConfig lama (migrasi otomatis FE).
+  private async loadActive() {
+    try {
+      const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConnections'` as any);
+      const row = (r.rows || r)[0];
+      const list = row?.value ? JSON.parse(row.value)?.connections : null;
+      if (Array.isArray(list)) {
+        const hit = list.find((c: any) => c && c.active && c.apiKey && !String(c.apiKey).startsWith('••••'));
+        if (hit) return hit;
+      }
+    } catch {}
+    const legacy = await this.loadConfig();
+    const apiKey = String(legacy.apiKey || '');
+    if (apiKey && !apiKey.startsWith('••••')) return legacy;
+    return null;
+  }
+
   @Post('chat')
   async chat(@Body() body: any, @Headers('x-user-email') email: string) {
     const who = String(email || '').toLowerCase().trim();
@@ -56,10 +73,10 @@ export class AiController {
     const row = (u.rows || u)[0];
     if (!row || !Number(row.active ?? 1)) return { ok: false, error: 'akun tidak dikenal/dinonaktifkan' };
 
-    const cfg = await this.loadConfig();
-    const apiKey = String(cfg.apiKey || '');
-    if (!apiKey || apiKey.startsWith('••••')) {
-      return { ok: false, error: 'AI belum dikonfigurasi — atur API key di /cfg → AI Assistant' };
+    const cfg = await this.loadActive();
+    const apiKey = String(cfg?.apiKey || '');
+    if (!cfg || !apiKey) {
+      return { ok: false, error: 'Tidak ada AI aktif — daftarkan & aktifkan di /roles → AI & API Key' };
     }
     const baseURL = String(cfg.baseURL || 'https://api.openai.com/v1').replace(/\/$/, '');
     const model = String(cfg.model || 'gpt-4o-mini');
