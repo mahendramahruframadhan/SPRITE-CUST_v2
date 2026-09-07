@@ -6,5 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    proxy: {
+      // ponytail: same-origin /api → bebas CORS, tanpa .env saat dev
+      '/api': { target: 'http://localhost:5005', changeOrigin: true },
+    },
   },
 });
