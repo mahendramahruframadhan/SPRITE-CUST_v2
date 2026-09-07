@@ -1,5 +1,6 @@
-import { Controller, Get, Put, Body } from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
+import { Perm, PermGuard } from '../auth/perm.guard';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -24,6 +25,8 @@ export class ConfigController {
     return { source:'empty', config:{} };
   }
   @Put()
+  @UseGuards(PermGuard)
+  @Perm('cfg')
   async put(@Body() body:any){
     const val = JSON.stringify(body.config||body).replace(/'/g,"''");
     await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('sheetConfig','${val}','${new Date().toISOString()}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);

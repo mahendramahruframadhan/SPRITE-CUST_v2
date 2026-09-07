@@ -1,5 +1,6 @@
-import { Controller, Patch, Param, Body, Get } from '@nestjs/common';
+import { Controller, Patch, Param, Body, Get, UseGuards } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
+import { Perm, PermGuard } from '../auth/perm.guard';
 
 @Controller()
 export class BillingController {
@@ -12,6 +13,8 @@ export class BillingController {
     return { auditCounts: a.rows||a, invoiceCounts: inv.rows||inv, totalCharges: (tot.rows||tot)[0]?.s || 0 };
   }
   @Patch('cases/:uuid/audit')
+  @UseGuards(PermGuard)
+  @Perm('billing')
   async audit(@Param('uuid') uuid: string, @Body() body: any) {
     const action = body.action || body.status;
     if (!action) return { ok:false, error:'action required' };
@@ -19,6 +22,8 @@ export class BillingController {
     return { ok:true, recordUuid: uuid, action };
   }
   @Patch('cases/:uuid/invoice')
+  @UseGuards(PermGuard)
+  @Perm('finance')
   async invoice(@Param('uuid') uuid: string, @Body() body: any) {
     const status = body.status;
     await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${uuid.replace(/'/g,"''")}','${status.replace(/'/g,"''")}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);

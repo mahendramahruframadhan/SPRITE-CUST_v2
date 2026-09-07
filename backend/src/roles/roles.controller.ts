@@ -1,11 +1,15 @@
-import { Controller, Get, Put, Post, Patch, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Put, Post, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
+import { Perm, PermGuard } from '../auth/perm.guard';
 import * as crypto from 'crypto';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
+const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'finance', 'mockup', 'roles'];
 const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 
 // CRUD pengguna + matriks izin + log aktivitas untuk halaman /roles — semua di Postgres.
+@UseGuards(PermGuard)
+@Perm('roles')
 @Controller()
 export class RolesController {
   private db: any = getDb();
@@ -70,6 +74,10 @@ export class RolesController {
       for (const mod of Object.keys(perms[role])) {
         await this.db.execute(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','${esc(mod)}',${perms[role][mod] ? 1 : 0},'${now}')` as any);
       }
+    }
+    // Kunci anti-lockout: Super Admin selalu penuh meski request direkayasa
+    for (const mod of MODULES) {
+      await this.db.execute(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('Super Admin','${mod}',1,'${now}') ON CONFLICT (role,module) DO UPDATE SET allowed=1, updated_at='${now}'` as any);
     }
     return { ok: true };
   }

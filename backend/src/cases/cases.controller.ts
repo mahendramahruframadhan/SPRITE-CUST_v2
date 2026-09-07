@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Query, Param, Body, HttpException } from '@nestjs/common';
+import { Controller, Get, Post, Query, Param, Body, HttpException, UseGuards } from '@nestjs/common';
 import { CasesService } from './cases.service';
+import { Perm, PermGuard } from '../auth/perm.guard';
 
 @Controller('cases')
 export class CasesController {
@@ -23,6 +24,8 @@ export class CasesController {
   }
 
   @Post()
+  @UseGuards(PermGuard)
+  @Perm('form')
   async create(@Body() body: any) {
     try {
       const row = await this.cases.create(body);

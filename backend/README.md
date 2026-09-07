@@ -71,6 +71,22 @@ GET  /api/roles/logs (30 terakhir) · POST /api/roles/logs {who, action}
 User seed (password `password123`): `rani@revota.id`, `budi.cs@revota.id`,
 `sari@revota.id`, `finance@revota.id`, `vina@revota.id`.
 
+## Hak akses (PermGuard)
+
+Endpoint **tulis** dijaga matriks `role_permissions` via header
+`x-user-email` (dikirim otomatis oleh frontend). Tanpa izin → `403`.
+Super Admin selalu lolos dan barisnya dikunci penuh di `PUT /roles/permissions`.
+
+| Endpoint tulis | Butuh modul |
+| --- | --- |
+| `POST /api/cases` | `form` |
+| `PATCH …/audit` / `PATCH …/invoice` | `billing` / `finance` |
+| `PUT /api/config` | `cfg` |
+| `/api/users*`, `/api/roles/*` | `roles` |
+
+`GET` (baca) sengaja terbuka; menu + route frontend difilter oleh
+`usePermissions` + `RequirePerm` dari matriks yang sama.
+
 ## Google Sheets live (bila mau)
 
 1. GCP → Service Account → Keys → JSON → `base64` → `GOOGLE_SERVICE_ACCOUNT_JSON`
