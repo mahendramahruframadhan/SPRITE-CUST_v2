@@ -69,4 +69,4 @@ frontend/
 | `/cfg` | Konfigurasi Sheet | `GET/PUT /api/config` |
 | `/billing` | Billing & Audit | `GET /api/cases` + `PATCH …/audit` |
 | `/finance` | Finance Audit | `GET /api/cases` + `PATCH …/invoice` |
-| `/roles` | Hak Akses & Role | localStorage + `POST /api/auth/sign-up/email` (password user baru) |
+| `/roles` | Hak Akses & Role | `GET/PATCH/DELETE /users`, `POST /users/:id/password`, `GET/PUT /roles/permissions`, `GET/POST /roles/logs` |

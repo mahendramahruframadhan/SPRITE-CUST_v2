@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { signUp } from '../lib/api.js';
+import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog } from '../lib/api.js';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 const ROLE_STYLE = {
@@ -61,6 +61,13 @@ function loadLS(key, fallback) {
 const initials = (name) =>
   name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
+// Waktu log dari backend ISO → tampil ringkas; string lama ditampilkan apa adanya
+const fmtLogTime = (t) => {
+  const d = new Date(t);
+  if (isNaN(d)) return t;
+  return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+};
+
 export default function RolesPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState(() => loadLS('appUsers', SEED_USERS));
@@ -80,6 +87,31 @@ export default function RolesPage() {
     localStorage.setItem('appLogs', JSON.stringify(logs));
   }, [users, perms, logs]);
 
+  // Muat dari backend sekali saat mount; lokal sebagai fallback offline
+  useEffect(() => {
+    let ignore = false;
+    getUsers()
+      .then((r) => {
+        if (!ignore && Array.isArray(r) && r.length) {
+          setUsers(r.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role || 'Viewer', active: !!u.active, lastLogin: '—' })));
+        }
+      })
+      .catch(() => {});
+    getPerms()
+      .then((r) => {
+        if (!ignore && r && r.perms && Object.keys(r.perms).length) setPerms(r.perms);
+      })
+      .catch(() => {});
+    getLogs()
+      .then((r) => {
+        if (!ignore && Array.isArray(r) && r.length) setLogs(r);
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 2600);
@@ -87,7 +119,9 @@ export default function RolesPage() {
   }, [toast]);
 
   function addLog(act) {
-    setLogs((prev) => [{ who: user?.name || 'Admin', act, time: 'Baru saja' }, ...prev].slice(0, 30));
+    const who = user?.name || 'Admin';
+    setLogs((prev) => [{ who, act, time: 'Baru saja' }, ...prev].slice(0, 30));
+    postLog(who, act).catch(() => {});
   }
 
   /* ---- Pengguna ---- */
@@ -102,18 +136,19 @@ export default function RolesPage() {
     [users, q, fRole, fStatus]
   );
 
-  function toggleUser(id) {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id !== id) return u;
-        addLog(`${u.active ? 'menonaktifkan' : 'mengaktifkan'} akun ${u.name}`);
-        showToast(`Akun ${u.name} ${u.active ? 'dinonaktifkan' : 'diaktifkan'}`);
-        return { ...u, active: !u.active };
-      })
-    );
+  async function toggleUser(id) {
+    const u = users.find((x) => x.id === id);
+    if (!u) return;
+    const next = !u.active;
+    setUsers((prev) => prev.map((x) => (x.id === id ? { ...x, active: next } : x)));
+    addLog(`${next ? 'mengaktifkan' : 'menonaktifkan'} akun ${u.name}`);
+    showToast(`Akun ${u.name} ${next ? 'diaktifkan' : 'dinonaktifkan'}`);
+    try {
+      await patchUser(id, { active: next });
+    } catch {}
   }
 
-  function deleteUser(id) {
+  async function deleteUser(id) {
     const u = users.find((x) => x.id === id);
     if (!u) return;
     if (u.role === 'Super Admin') {
@@ -121,6 +156,16 @@ export default function RolesPage() {
       return;
     }
     if (!confirm(`Hapus pengguna "${u.name}"?`)) return;
+    try {
+      const r = await deleteUserApi(id);
+      if (r && r.ok === false) {
+        showToast('Gagal: ' + (r.error || 'backend menolak'));
+        return;
+      }
+    } catch {
+      showToast('Backend tidak terjangkau — hapus lokal saja?');
+      return;
+    }
     setUsers((prev) => prev.filter((x) => x.id !== id));
     addLog(`menghapus pengguna ${u.name}`);
     showToast('Pengguna dihapus');
@@ -142,6 +187,19 @@ export default function RolesPage() {
       return;
     }
     if (id) {
+      setSaving(true);
+      try {
+        await patchUser(id, { name: name.trim(), email: email.trim(), role, active });
+        if (password && password.length > 0) {
+          if (password.length < 6) throw new Error('Password baru min. 6 karakter');
+          await setUserPassword(id, password);
+        }
+      } catch (e) {
+        setSaving(false);
+        showToast('Gagal: ' + (e.message || 'backend tidak terjangkau'));
+        return;
+      }
+      setSaving(false);
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, name, email, role, active } : u)));
       addLog(`mengubah data pengguna ${name}`);
       setModal(null);
@@ -155,9 +213,9 @@ export default function RolesPage() {
     setSaving(true);
     try {
       // Buat kredensial login di backend; role disimpan lokal (appUsers)
-      const r = await signUp(email.trim().toLowerCase(), password, name.trim());
+      const r = await signUp(email.trim().toLowerCase(), password, name.trim(), role);
       if (!r || r.error || !r.user) throw new Error('Email sudah terdaftar?');
-      setUsers((prev) => [...prev, { id: Date.now(), name: name.trim(), email: email.trim().toLowerCase(), role, active, lastLogin: 'Belum pernah login' }]);
+      setUsers((prev) => [...prev, { id: r.user.id, name: name.trim(), email: email.trim().toLowerCase(), role, active, lastLogin: 'Belum pernah login' }]);
       addLog(`menambahkan pengguna baru ${name} (${role})`);
       setModal(null);
       showToast('Pengguna + password tersimpan');
@@ -182,7 +240,13 @@ export default function RolesPage() {
     }));
   }
 
-  function savePerms() {
+  async function savePerms() {
+    try {
+      await putPerms(perms);
+    } catch {
+      showToast('Backend tidak terjangkau — tersimpan lokal saja');
+      return;
+    }
     addLog('memperbarui matriks izin modul');
     showToast('Matriks izin berhasil disimpan');
   }
@@ -435,7 +499,7 @@ export default function RolesPage() {
                   <p className="text-sm text-slate-700">
                     <span className="font-bold">{l.who}</span> {l.act}
                   </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">{l.time}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{fmtLogTime(l.time)}</p>
                 </li>
               ))}
             </ol>
@@ -497,6 +561,18 @@ export default function RolesPage() {
                     value={modal.password || ''}
                     onChange={(e) => setModal({ ...modal, password: e.target.value })}
                     placeholder="Min. 6 karakter — tersimpan di backend"
+                    className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                  />
+                </div>
+              )}
+              {modal.id && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-500">Password baru (opsional)</label>
+                  <input
+                    type="password"
+                    value={modal.password || ''}
+                    onChange={(e) => setModal({ ...modal, password: e.target.value })}
+                    placeholder="Kosongkan bila tidak diubah"
                     className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
                   />
                 </div>
