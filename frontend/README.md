@@ -61,7 +61,7 @@ frontend/
 | --- | --- | --- |
 | `/login` | Login | `POST /api/auth/sign-in/email` |
 | `/signup` | Daftar akun (role Viewer) | `POST /api/auth/sign-up/email` |
-| `/dashboard` | Dashboard | `GET /api/cases` |
+| `/dashboard` | Dashboard + notif update Sheets | `GET /api/cases`, `POST /api/sync/trigger`, `GET /api/sync/logs` |
 | `/kasus` | Data Kasus | `GET /api/cases` |
 | `/mockup` | Dashboard Mockup | `GET /api/cases` |
 | `/form` | Form Kasus | `GET /api/masters` + `POST /api/cases` |

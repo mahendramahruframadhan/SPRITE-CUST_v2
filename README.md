@@ -114,6 +114,8 @@ VITE_API_URL=http://host:5005/api
 - Form kasus (`/form`) → master dari `GET /api/masters`, simpan via `POST /api/cases`.
 - Konfigurasi (`/cfg`) → `GET/PUT /api/config` (DB, fallback file lokal).
 - `SHEETS_MOCK=true` = tanpa Google API (sinkron manual: `POST /api/sync/trigger`).
+- Dashboard menampilkan notif highlight tiap ada update Sheet: jumlah baris + jam/tanggal
+  (tombol **Muat Terbaru** memicu sync lalu memuat ulang).
 
 ## Troubleshooting
 
