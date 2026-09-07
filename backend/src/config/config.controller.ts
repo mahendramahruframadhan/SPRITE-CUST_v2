@@ -1,19 +1,23 @@
-import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Body, Query, UseGuards } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const cleanKey = (k: any) => String(k || 'sheetConfig').replace(/[^a-zA-Z0-9_]/g, '') || 'sheetConfig';
+
 @Controller('config')
 export class ConfigController {
   private db: any = getDb();
   @Get()
-  async get() {
+  async get(@Query('key') key?: string) {
+    const k = cleanKey(key);
     try {
-      const res: any = await this.db.execute(`SELECT value FROM app_config WHERE key='sheetConfig'` as any);
-      const row = (res.rows||res)[0];
-      if (row?.value) return { source:'db', config: JSON.parse(row.value) };
+      const res: any = await this.db.execute(`SELECT value FROM app_config WHERE key='${k}'` as any);
+      const row = (res.rows || res)[0];
+      if (row?.value) return { source: 'db', key: k, config: JSON.parse(row.value) };
     } catch {}
+    if (k !== 'sheetConfig') return { source: 'empty', key: k, config: {} };
     try {
       const p = path.resolve(__dirname, '..','..','..','frontend','src','data','sheetConfig.js');
       if (fs.existsSync(p)) {
@@ -28,8 +32,9 @@ export class ConfigController {
   @UseGuards(PermGuard)
   @Perm('cfg')
   async put(@Body() body:any){
+    const k = cleanKey(body.key);
     const val = JSON.stringify(body.config||body).replace(/'/g,"''");
-    await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('sheetConfig','${val}','${new Date().toISOString()}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
-    return { ok:true };
+    await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${new Date().toISOString()}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
+    return { ok:true, key: k };
   }
 }

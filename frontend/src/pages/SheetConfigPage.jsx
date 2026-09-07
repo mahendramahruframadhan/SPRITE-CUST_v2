@@ -32,6 +32,14 @@ const TABS = [
   { id: 'channel', label: 'Channel & Team' },
   { id: 'calendar', label: 'Kalender' },
   { id: 'headers', label: 'Header Mapping (Backend)' },
+  { id: 'ai', label: 'AI Assistant' },
+];
+
+// Default sakelar fitur AI — status aktif tersimpan di backend (app_config key 'agentConfig')
+const DEFAULT_AGENTS = [
+  { id: 'chatbot-cs', name: 'Chatbot CS', desc: 'Asisten chat otomatis untuk pertanyaan pelanggan', enabled: false },
+  { id: 'auto-reply', name: 'Auto-Reply Tiket', desc: 'Balasan awal otomatis saat tiket masuk', enabled: false },
+  { id: 'auto-summary', name: 'Ringkasan Kasus Otomatis', desc: 'Ringkas issue + completion notes per kasus', enabled: false },
 ];
 
 const CFG_INPUT =
@@ -39,9 +47,11 @@ const CFG_INPUT =
 
 export default function SheetConfigPage() {
   const [cfg, setCfg] = useState(loadCfg);
+  const [agents, setAgents] = useState(DEFAULT_AGENTS);
   const [tab, setTab] = useState('pricelist');
   const [toast, setToast] = useState(null);
   const synced = useRef(false);
+  const syncedAgents = useRef(false);
 
   // Ambil config dari backend (DB) sekali saat mount; lokal sebagai fallback instan
   useEffect(() => {
@@ -67,6 +77,41 @@ export default function SheetConfigPage() {
     }, 1500);
     return () => clearTimeout(t);
   }, [cfg]);
+
+  // Sakelar AI: ambil dari backend sekali, simpan debounce (pola sama seperti cfg)
+  useEffect(() => {
+    let ignore = false;
+    getConfig('agentConfig')
+      .then((r) => {
+        if (!ignore && r && Array.isArray(r.config?.agents) && r.config.agents.length) {
+          setAgents(r.config.agents);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        syncedAgents.current = true;
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!syncedAgents.current) return;
+    const t = setTimeout(() => {
+      putConfig({ agents }, 'agentConfig').catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [agents]);
+
+  function toggleAgent(id) {
+    setAgents((prev) => {
+      const next = prev.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a));
+      const hit = next.find((a) => a.id === id);
+      setToast(`${hit.name} ${hit.enabled ? 'diaktifkan' : 'dinonaktifkan'}`);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!toast) return;
@@ -214,6 +259,7 @@ export default function SheetConfigPage() {
         )}
         {tab === 'calendar' && <TabCalendar cfg={cfg} />}
         {tab === 'headers' && <TabHeaders cfg={cfg} />}
+        {tab === 'ai' && <TabAi agents={agents} onToggle={toggleAgent} />}
       </div>
 
       {/* Toast */}
@@ -585,6 +631,38 @@ function TabHeaders({ cfg }) {
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ===== Tab AI Assistant (toggle fitur, tersimpan di backend) ===== */
+function TabAi({ agents, onToggle }) {
+  const onCount = agents.filter((a) => a.enabled).length;
+  return (
+    <div className="space-y-4">
+      <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 text-[11px] text-brand-800 animate-fade-in-fast">
+        <span className="font-bold">{onCount}/{agents.length} agent aktif.</span> Perubahan tersimpan otomatis ke backend.
+      </div>
+      {agents.map((a) => (
+        <div key={a.id} className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 animate-fade-in-fast">
+          <button
+            onClick={() => onToggle(a.id)}
+            title={a.enabled ? 'Nonaktifkan' : 'Aktifkan'}
+            className={`relative w-12 h-7 rounded-full transition shrink-0 ${a.enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
+          >
+            <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${a.enabled ? 'left-6' : 'left-1'}`} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 text-sm">{a.name}</h3>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${a.enabled ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                {a.enabled ? 'AKTIF' : 'NONAKTIF'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">{a.desc}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
