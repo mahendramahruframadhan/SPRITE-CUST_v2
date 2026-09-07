@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Chart as ChartJS,
@@ -13,7 +13,6 @@ import {
 } from 'chart.js';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
-import { triggerSync, getSyncLogs } from '../lib/api.js';
 
 ChartJS.register(
   CategoryScale,
@@ -53,13 +52,6 @@ const countBy = (arr, fn) => {
   arr.forEach((c) => { const k = fn(c); if (k) m[k] = (m[k] || 0) + 1; });
   return m;
 };
-// ISO (UTC) → "7 Sep 2026, 10.14" waktu lokal browser
-const fmtSyncTime = (iso) => {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (isNaN(d)) return iso;
-  return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-};
 const topEntries = (obj, n) =>
   Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n || Infinity);
 
@@ -71,49 +63,9 @@ const BILL_BADGE = {
   MONTHLY: 'bg-sky-50 text-sky-600 border-sky-200',
 };
 
-/* ============ Notif update Sheets ============ */
-function SyncBanner({ last }) {
-  const rows = Number(last.rows_processed) || 0;
-  const when = fmtSyncTime(last.finished_at || last.started_at);
-  const via = last.source === 'cron' ? 'otomatis' : 'manual';
-  if (last.status === 'success' && rows > 0) {
-    return (
-      <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2 animate-fade-in-fast">
-        <span className="relative flex h-2 w-2 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-        </span>
-        <p className="text-[11px] text-emerald-800 leading-snug">
-          <span className="font-bold">Ada update Sheets: {rows.toLocaleString('id-ID')} baris</span>
-          {' · '}{when} (cek {via})
-        </p>
-      </div>
-    );
-  }
-  if (last.status === 'success') {
-    return (
-      <div className="bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 flex items-center gap-2 animate-fade-in-fast">
-        <svg className="w-3.5 h-3.5 text-sky-500 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="text-[11px] text-sky-800 leading-snug">
-          Sheets dicek {when} — <span className="font-semibold">tidak ada tambahan</span>
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-[11px] text-rose-700 animate-fade-in-fast">
-      <span className="font-bold">Sync gagal</span> ({when})
-      {last.error_message ? `: ${last.error_message}` : '.'}
-    </div>
-  );
-}
-
 /* ================= Page ================= */
 export default function DashboardPage() {
   const { cases: allCases, loading, error, reload } = useCases();
-  const [sync, setSync] = useState({ checking: true, last: null });
   const [spinning, setSpinning] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(() => stampNow());
 
@@ -126,39 +78,11 @@ export default function DashboardPage() {
   }
   function refresh() {
     setSpinning(true);
-    // Picu sync Sheet dulu (diabaikan bila gagal), baru muat ulang data + status sync
-    triggerSync()
-      .catch(() => {})
-      .then(() => reload())
-      .then(() => reloadSync())
-      .finally(() => {
-        setSpinning(false);
-        setLastUpdated(stampNow());
-      });
+    reload().finally(() => {
+      setSpinning(false);
+      setLastUpdated(stampNow());
+    });
   }
-
-  function reloadSync() {
-    setSync((s) => ({ ...s, checking: true }));
-    return getSyncLogs().then(
-      (rows) => setSync({ checking: false, last: (rows || [])[0] || null }),
-      () => setSync((s) => ({ ...s, checking: false }))
-    );
-  }
-
-  useEffect(() => {
-    let ignore = false;
-    getSyncLogs().then(
-      (rows) => {
-        if (!ignore) setSync({ checking: false, last: (rows || [])[0] || null });
-      },
-      () => {
-        if (!ignore) setSync({ checking: false, last: null });
-      }
-    );
-    return () => {
-      ignore = true;
-    };
-  }, []);
 
   const stats = useMemo(() => {
     const CASES = allCases.map((c) => ({ ...c, charges: +c.charges || 0, _dt: parseDate(c.dateIssue) }));
@@ -305,16 +229,6 @@ export default function DashboardPage() {
         </button>
       </div>
       {loading && <p className="text-xs text-slate-400">Memuat data dari backend…</p>}
-      {/* Notif highlight update Google Sheets */}
-      {sync.checking ? (
-        <p className="text-xs text-slate-400">Memeriksa update Google Sheets…</p>
-      ) : sync.last ? (
-        <SyncBanner last={sync.last} />
-      ) : (
-        <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] text-slate-500">
-          Belum ada riwayat sinkron — klik <span className="font-bold">Muat Terbaru</span>.
-        </div>
-      )}
       {error && (
         <div className="bg-rose-50 border border-rose-200 rounded-2xl px-5 py-3 text-xs text-rose-700 flex items-center justify-between">
           <span>Backend tidak terjangkau ({error}).</span>
