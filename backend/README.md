@@ -68,8 +68,9 @@ PUT  /api/roles/permissions {perms}
 GET  /api/roles/logs (30 terakhir) · POST /api/roles/logs {who, action}
 ```
 
-User seed (password `password123`): `rani@revota.id`, `budi.cs@revota.id`,
-`sari@revota.id`, `finance@revota.id`, `vina@revota.id`.
+User seed: `rani@revota.id`, `budi.cs@revota.id`, `sari@revota.id`,
+`finance@revota.id`, `vina@revota.id` (password awal `password123`) plus
+`admin@revota.id` / `12345` (Super Admin). Password min. 5 karakter.
 
 ## Hak akses (PermGuard)
 

@@ -48,7 +48,7 @@ export class RolesController {
   @Post('users/:id/password')
   async password(@Param('id') id: string, @Body() b: any) {
     const p = String(b.password || '');
-    if (p.length < 6) return { ok: false, error: 'password min. 6 karakter' };
+    if (p.length < 5) return { ok: false, error: 'password min. 5 karakter' };
     const e = esc(id);
     await this.db.execute(`UPDATE account SET password='${esc(p)}', updated_at='${new Date().toISOString()}' WHERE user_id='${e}'` as any);
     return { ok: true };

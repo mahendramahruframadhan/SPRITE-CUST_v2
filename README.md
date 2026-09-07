@@ -90,10 +90,11 @@ VITE_API_URL=http://host:5005/api
 
 | Email | Role | Password |
 | --- | --- | --- |
+| `admin@revota.id` | Super Admin | `12345` |
 | `rani@revota.id` | Super Admin | `password123` |
 | `budi.cs@revota.id` | Admin CS | `password123` |
 | `sari@revota.id` | Support | `password123` |
-| `finance@revota.id` | Finance | `password123` |
+| `finance@revota.id` | Finance | `12345` |
 | `vina@revota.id` | Viewer | `password123` |
 
 ## Hak akses per role

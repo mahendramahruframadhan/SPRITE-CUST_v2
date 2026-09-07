@@ -185,7 +185,7 @@ export default function RolesPage() {
       try {
         await patchUser(id, { name: name.trim(), email: email.trim(), role, active });
         if (password && password.length > 0) {
-          if (password.length < 6) throw new Error('Password baru min. 6 karakter');
+          if (password.length < 5) throw new Error('Password baru min. 5 karakter');
           await setUserPassword(id, password);
         }
       } catch (e) {
@@ -200,8 +200,8 @@ export default function RolesPage() {
       showToast('Data pengguna disimpan');
       return;
     }
-    if (!password || password.length < 6) {
-      showToast('Password baru min. 6 karakter');
+    if (!password || password.length < 5) {
+      showToast('Password baru min. 5 karakter');
       return;
     }
     setSaving(true);
@@ -554,7 +554,7 @@ export default function RolesPage() {
                     type="password"
                     value={modal.password || ''}
                     onChange={(e) => setModal({ ...modal, password: e.target.value })}
-                    placeholder="Min. 6 karakter — tersimpan di backend"
+                    placeholder="Min. 5 karakter — tersimpan di backend"
                     className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
                   />
                 </div>

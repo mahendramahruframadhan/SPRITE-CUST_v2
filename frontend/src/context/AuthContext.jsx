@@ -36,8 +36,8 @@ export function AuthProvider({ children }) {
       user,
       async login(email, password) {
         const key = email.trim().toLowerCase();
-        if (!key || !password || password.length < 6) {
-          throw new Error('Email atau password salah (min. 6 karakter).');
+        if (!key || !password || password.length < 5) {
+          throw new Error('Email atau password salah (min. 5 karakter).');
         }
         // POST /api/auth/sign-in/email — user & password 'password123' sudah di-seed backend
         let r;

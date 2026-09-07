@@ -13,7 +13,7 @@ export class AuthController {
     const password = String(body.password || '');
     const name = body.name || email.split('@')[0];
     const role = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'].includes(body.role) ? body.role : 'Viewer';
-    if (!email || password.length < 6) return { error: 'email/password invalid' };
+    if (!email || password.length < 5) return { error: 'email/password invalid' };
     const id = `u_${crypto.randomUUID().slice(0,8)}`;
     const now = new Date().toISOString();
     try {

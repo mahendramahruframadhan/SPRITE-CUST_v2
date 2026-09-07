@@ -18,7 +18,7 @@ export default function SignUpPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return setError('Nama dan email wajib diisi.');
-    if (password.length < 6) return setError('Password min. 6 karakter.');
+    if (password.length < 5) return setError('Password min. 5 karakter.');
     if (password !== confirm) return setError('Konfirmasi password tidak sama.');
     setError('');
     setSaving(true);
@@ -67,7 +67,7 @@ export default function SignUpPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 6 karakter" className={inputCls} />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 5 karakter" className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Konfirmasi Password</label>
