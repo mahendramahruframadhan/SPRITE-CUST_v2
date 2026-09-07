@@ -85,6 +85,7 @@ export default function RolesPage() {
   const [aiKeyInput, setAiKeyInput] = useState('');
   const [hasKey, setHasKey] = useState(false);
   const [testingAi, setTestingAi] = useState(false);
+  const [aiTest, setAiTest] = useState(null); // {ok, msg} — notif kecil di bawah tombol
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -290,12 +291,13 @@ export default function RolesPage() {
 
   async function testAi() {
     setTestingAi(true);
+    setAiTest(null);
     try {
       const r = await chatAi([{ role: 'user', content: 'Balas persis: OK' }]);
-      if (r && r.ok) showToast('Tes koneksi OK — AI menjawab', 'ok');
-      else showToast('Tes gagal: ' + (r?.error || 'unknown'), 'err');
+      if (r && r.ok) setAiTest({ ok: true, msg: 'Koneksi berhasil — AI menjawab.' });
+      else setAiTest({ ok: false, msg: 'Tidak berhasil: ' + (r?.error || 'unknown') });
     } catch (e) {
-      showToast('Tes gagal: ' + (e.message || e), 'err');
+      setAiTest({ ok: false, msg: 'Tidak berhasil: ' + (e.message || e) });
     } finally {
       setTestingAi(false);
     }
@@ -587,6 +589,11 @@ export default function RolesPage() {
                 {testingAi ? 'Mengetes…' : 'Tes Koneksi'}
               </button>
             </div>
+            {aiTest && (
+              <p className={`mt-2 text-xs font-semibold ${aiTest.ok ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {aiTest.ok ? '✓ ' : '✕ '}{aiTest.msg}
+              </p>
+            )}
           </div>
         </section>
       )}
