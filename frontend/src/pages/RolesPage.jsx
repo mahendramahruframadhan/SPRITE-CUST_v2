@@ -4,8 +4,9 @@ import { DEFAULT_PERMS } from '../hooks/usePermissions.js';
 import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog, getConfig, putConfig, chatAi } from '../lib/api.js';
 
 // Koneksi AI eksternal (OpenAI-compatible) — key di backend, browser terima versi mask
-const DEFAULT_AI = { provider: 'openai', baseURL: 'https://api.openai.com/v1', model: 'gpt-4o-mini', apiKey: '' };
+const DEFAULT_AI = { provider: 'gemini', baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.0-flash', apiKey: '' };
 const AI_PRESETS = {
+  gemini: { baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.0-flash' },
   openai: { baseURL: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
   custom: { baseURL: '', model: '' },
 };
@@ -548,13 +549,14 @@ export default function RolesPage() {
                   }}
                   className={`${inputCls} mt-1 w-full`}
                 >
+                  <option value="gemini">Google Gemini</option>
                   <option value="openai">OpenAI</option>
                   <option value="custom">Custom (OpenAI-compatible)</option>
                 </select>
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-500">Model</label>
-                <input value={aiCfg.model} onChange={(e) => setAiCfg({ ...aiCfg, model: e.target.value })} placeholder="gpt-4o-mini" className={`${inputCls} mt-1 w-full`} />
+                <input value={aiCfg.model} onChange={(e) => setAiCfg({ ...aiCfg, model: e.target.value })} placeholder="gemini-2.0-flash" className={`${inputCls} mt-1 w-full`} />
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs font-semibold text-slate-500">Base URL</label>
