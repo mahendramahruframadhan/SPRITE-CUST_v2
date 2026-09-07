@@ -660,8 +660,10 @@ export default function RolesPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   {c.active && (
-                    <button onClick={testAi} disabled={testingAi} title="Tes koneksi yang dipakai" className="text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-lg px-3 py-2 transition disabled:opacity-60">
-                      {testingAi ? '…' : 'Tes'}
+                    <button onClick={testAi} disabled={testingAi} title="Tes koneksi yang dipakai" className="p-2 rounded-lg hover:bg-brand-50 text-slate-400 hover:text-brand-600 transition disabled:opacity-60">
+                      <svg className={`w-4 h-4 ${testingAi ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                      </svg>
                     </button>
                   )}
                   <button onClick={() => startEditConn(c.id)} title="Edit (termasuk ganti API key)" className="p-2 rounded-lg hover:bg-brand-50 text-slate-400 hover:text-brand-600 transition">
