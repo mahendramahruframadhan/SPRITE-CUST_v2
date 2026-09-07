@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { allCases } from '../data/cases.js';
+import { useCases } from '../hooks/useCases.js';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 
 const FILTER_DEFS = [
@@ -27,6 +27,7 @@ const emptyFilters = () => ({
 });
 
 export default function DataKasusPage() {
+  const { cases: allCases, loading, error, reload } = useCases();
   const [filters, setFilters] = useState(emptyFilters);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -39,7 +40,7 @@ export default function DataKasusPage() {
       o[d.id] = [...new Set(allCases.map((c) => c[d.key]).filter(Boolean))].sort();
     });
     return o;
-  }, []);
+  }, [allCases]);
 
   const filtered = useMemo(() => {
     const f = filters;
@@ -61,7 +62,7 @@ export default function DataKasusPage() {
         (!to || d <= to)
       );
     });
-  }, [filters]);
+  }, [filters, allCases]);
 
   useEffect(() => setPage(1), [filters, pageSize]);
 
@@ -70,7 +71,7 @@ export default function DataKasusPage() {
 
   function refresh() {
     setSpinning(true);
-    setTimeout(() => setSpinning(false), 800);
+    reload().finally(() => setSpinning(false));
   }
 
   function exportCSV() {
@@ -137,6 +138,12 @@ export default function DataKasusPage() {
       </div>
 
       {/* Filters */}
+      {error && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl px-5 py-3 text-xs text-rose-700 flex items-center justify-between">
+          <span>Backend tidak terjangkau ({error}). Pastikan backend jalan di port 5005.</span>
+          <button onClick={refresh} className="font-bold hover:underline">Coba lagi</button>
+        </div>
+      )}
       <div className="bg-white rounded-2xl border border-slate-200 p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
         {FILTER_DEFS.map((d) =>
           d.type === 'text' ? (
@@ -187,7 +194,7 @@ export default function DataKasusPage() {
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-bold text-slate-900">Daftar Kasus</h3>
           <span className="text-xs text-slate-400">
-            {filtered.length.toLocaleString('id-ID')} kasus ditemukan
+            {loading ? 'Memuat dari backend…' : `${filtered.length.toLocaleString('id-ID')} kasus ditemukan`}
           </span>
         </div>
         <div className="overflow-x-auto">

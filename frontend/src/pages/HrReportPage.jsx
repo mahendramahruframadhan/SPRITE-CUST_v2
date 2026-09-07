@@ -1,12 +1,10 @@
-import { useMemo, useState } from 'react';
-import { allCases } from '../data/cases.js';
+import { useEffect, useMemo, useState } from 'react';
+import { useCases } from '../hooks/useCases.js';
 import { fmtDate8 } from '../utils/format.js';
 
 const normKpi = (k) => (k || '').trim() || 'TANPA KATEGORI';
 
 const MAIN_KPIS = ['• AUDIT', '• GENERAL REQUEST', '• SPECIAL REQUEST'];
-const extraKpis = [...new Set(allCases.map((c) => normKpi(c.groupKpi)).filter((k) => k && !MAIN_KPIS.includes(k)))].sort();
-const KPI_COLS = [...MAIN_KPIS, ...extraKpis];
 
 const KPI_BADGE = {
   '• AUDIT': 'bg-violet-50 text-violet-600 border-violet-200',
@@ -27,8 +25,8 @@ function KpiBadge({ k }) {
   );
 }
 
-function defaultDates() {
-  const valid = allCases.map((c) => String(c.dateIssue)).filter((d) => /^\d{8}$/.test(d)).sort();
+function defaultDates(cases) {
+  const valid = cases.map((c) => String(c.dateIssue)).filter((d) => /^\d{8}$/.test(d)).sort();
   if (!valid.length) return { from: '', to: '' };
   const max = valid[valid.length - 1];
   const maxDt = new Date(`${max.slice(0, 4)}-${max.slice(4, 6)}-${max.slice(6, 8)}`);
@@ -39,14 +37,29 @@ function defaultDates() {
 }
 
 export default function HrReportPage() {
-  const init = useMemo(defaultDates, []);
-  const [from, setFrom] = useState(init.from);
-  const [to, setTo] = useState(init.to);
+  const { cases: allCases, loading } = useCases();
+  const extraKpis = useMemo(
+    () => [...new Set(allCases.map((c) => normKpi(c.groupKpi)).filter((k) => k && !MAIN_KPIS.includes(k)))].sort(),
+    [allCases]
+  );
+  const KPI_COLS = [...MAIN_KPIS, ...extraKpis];
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [pic, setPic] = useState('');
+
+  // Set rentang default (7 hari terakhir data) begitu data backend tiba
+  useEffect(() => {
+    if (allCases.length && !from && !to) {
+      const d = defaultDates(allCases);
+      setFrom(d.from);
+      setTo(d.to);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allCases]);
 
   const pics = useMemo(
     () => [...new Set(allCases.map((c) => (c.assignTo || '').trim()).filter(Boolean))].sort(),
-    []
+    [allCases]
   );
 
   const filtered = useMemo(() => {
@@ -56,7 +69,7 @@ export default function HrReportPage() {
       const d = String(c.dateIssue);
       return (!f || d >= f) && (!t || d <= t) && (!pic || (c.assignTo || '').trim() === pic);
     });
-  }, [from, to, pic]);
+  }, [from, to, pic, allCases]);
 
   const generatedAt = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',

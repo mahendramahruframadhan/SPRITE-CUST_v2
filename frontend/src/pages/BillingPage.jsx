@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
-import { allCases } from '../data/cases.js';
+import { useCases } from '../hooks/useCases.js';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 
@@ -12,6 +12,7 @@ const BILL_BADGE = {
 
 export default function BillingPage() {
   const { auditActions, caseAuditStatus, updateAudit, addAction, removeAction } = useAuditState();
+  const { cases: allCases, loading } = useCases();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [brand, setBrand] = useState('');
@@ -22,7 +23,7 @@ export default function BillingPage() {
 
   const brands = useMemo(
     () => [...new Set(allCases.map((c) => c.client).filter(Boolean))].sort(),
-    []
+    [allCases]
   );
 
   const filtered = useMemo(() => {
@@ -35,7 +36,7 @@ export default function BillingPage() {
         (!brand || c.client === brand) &&
         (!status || c.billingStatus === status)
     );
-  }, [from, to, brand, status]);
+  }, [from, to, brand, status, allCases]);
 
   const stats = useMemo(() => {
     const free = filtered.filter((c) => c.billingStatus === 'FREE');

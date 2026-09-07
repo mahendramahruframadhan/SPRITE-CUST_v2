@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Pie, Bar } from 'react-chartjs-2';
-import { allCases } from '../data/cases.js';
+import { useCases } from '../hooks/useCases.js';
+import { patchInvoice } from '../lib/api.js';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -16,6 +17,7 @@ function loadInvoiceStatus() {
 export default function FinanceAuditPage() {
   const { user } = useAuth();
   const { caseAuditStatus } = useAuditState();
+  const { cases: allCases, loading } = useCases();
   const [invoiceStatus, setInvoiceStatus] = useState(loadInvoiceStatus);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -45,7 +47,7 @@ export default function FinanceAuditPage() {
 
   const brands = useMemo(
     () => [...new Set(allCases.map((c) => c.client).filter(Boolean))].sort(),
-    []
+    [allCases]
   );
 
   // Pool kasus yang boleh diproses finance
@@ -56,7 +58,7 @@ export default function FinanceAuditPage() {
           (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY') &&
           caseAuditStatus[c.recordUuid] === VALID_TAG
       ),
-    [caseAuditStatus]
+    [allCases, caseAuditStatus]
   );
 
   const stats = useMemo(() => {
@@ -134,6 +136,7 @@ export default function FinanceAuditPage() {
 
   function setInvoice(uuid, action) {
     setInvoiceStatus((prev) => ({ ...prev, [uuid]: action }));
+    patchInvoice(uuid, action).catch(() => {});
   }
 
   function exportData() {
@@ -295,7 +298,7 @@ export default function FinanceAuditPage() {
       <div className="bg-white rounded-2xl border border-slate-200">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-bold text-slate-900">Kasus Tervalidasi — Siap Invoice</h3>
-          <span className="text-xs text-slate-400">Menampilkan {filtered.length} kasus tervalidasi</span>
+          <span className="text-xs text-slate-400">{loading ? 'Memuat dari backend…' : `Menampilkan ${filtered.length} kasus tervalidasi`}</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

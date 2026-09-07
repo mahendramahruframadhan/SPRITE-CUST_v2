@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Line, Doughnut, Pie, Bar } from 'react-chartjs-2';
-import { allCases as cases } from '../data/cases.js';
+import { useCases } from '../hooks/useCases.js';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 
 const iso8now = () => {
@@ -9,6 +9,7 @@ const iso8now = () => {
 };
 
 export default function MockupPage() {
+  const { cases, loading, reload } = useCases();
   const [filters, setFilters] = useState({ kw: '', module: '', status: '', assign: '', date: '' });
   const [detail, setDetail] = useState(null);
   const [spinning, setSpinning] = useState(false);
@@ -24,10 +25,10 @@ export default function MockupPage() {
   }
   function refresh() {
     setSpinning(true);
-    setTimeout(() => {
+    reload().finally(() => {
       setSpinning(false);
       setLastUpdated(stampNow());
-    }, 1200);
+    });
   }
 
   const { modules, assignees, statuses, kpi } = useMemo(() => {
@@ -58,7 +59,7 @@ export default function MockupPage() {
       { t: 'Total Tagihan', v: fmtMoney(totalCharge), sub: `${todayCases} kasus masuk hari ini`, color: 'brand' },
     ];
     return { modules, assignees, statuses, kpi };
-  }, []);
+  }, [cases]);
 
   const charts = useMemo(() => {
     const weekCounts = {};
@@ -110,7 +111,7 @@ export default function MockupPage() {
       datasets: [{ label: 'Kasus', data: picLabels.map((l) => picCounts[l]), backgroundColor: '#4a4fe9', borderRadius: 6 }],
     };
     return { trend, module, billing, pic };
-  }, []);
+  }, [cases]);
 
   const filtered = useMemo(() => {
     const kw = filters.kw.toLowerCase();
@@ -125,7 +126,7 @@ export default function MockupPage() {
         (!dt || c.dateIssue === dt)
       );
     });
-  }, [filters]);
+  }, [filters, cases]);
 
   const axisOpt = {
     responsive: true,

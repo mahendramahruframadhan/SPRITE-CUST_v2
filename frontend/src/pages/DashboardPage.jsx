@@ -12,7 +12,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
-import { allCases } from '../data/cases.js';
+import { useCases } from '../hooks/useCases.js';
 
 ChartJS.register(
   CategoryScale,
@@ -65,6 +65,7 @@ const BILL_BADGE = {
 
 /* ================= Page ================= */
 export default function DashboardPage() {
+  const { cases: allCases, loading, error, reload } = useCases();
   const [spinning, setSpinning] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(() => stampNow());
 
@@ -77,10 +78,10 @@ export default function DashboardPage() {
   }
   function refresh() {
     setSpinning(true);
-    setTimeout(() => {
+    reload().finally(() => {
       setSpinning(false);
       setLastUpdated(stampNow());
-    }, 500);
+    });
   }
 
   const stats = useMemo(() => {
@@ -127,7 +128,7 @@ export default function DashboardPage() {
       CASES, TOTAL, ymMap, ymKeys, ymLabels, latestYM, billMap, moduleMap, chanMap,
       clientMap, teamMap, priceRefs, paidCases, totalCharge, uniqueClients, recent, teamPerf,
     };
-  }, []);
+  }, [allCases]);
 
   const {
     TOTAL, ymMap, ymKeys, ymLabels, latestYM, billMap, moduleMap, chanMap,
@@ -227,6 +228,13 @@ export default function DashboardPage() {
           Muat Terbaru
         </button>
       </div>
+      {loading && <p className="text-xs text-slate-400">Memuat data dari backend…</p>}
+      {error && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl px-5 py-3 text-xs text-rose-700 flex items-center justify-between">
+          <span>Backend tidak terjangkau ({error}).</span>
+          <button onClick={refresh} className="font-bold hover:underline">Coba lagi</button>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
