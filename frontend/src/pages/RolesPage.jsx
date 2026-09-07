@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { DEFAULT_PERMS } from '../hooks/usePermissions.js';
-import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog } from '../lib/api.js';
+import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog, getConfig, putConfig, chatAi } from '../lib/api.js';
+
+// Koneksi AI eksternal (OpenAI-compatible) — key di backend, browser terima versi mask
+const DEFAULT_AI = { provider: 'openai', baseURL: 'https://api.openai.com/v1', model: 'gpt-4o-mini', apiKey: '' };
+const AI_PRESETS = {
+  openai: { baseURL: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  custom: { baseURL: '', model: '' },
+};
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 const ROLE_STYLE = {
@@ -73,6 +80,10 @@ export default function RolesPage() {
   const [fStatus, setFStatus] = useState('');
   const [modal, setModal] = useState(null); // {id?, name, email, role, active, password?}
   const [saving, setSaving] = useState(false);
+  const [aiCfg, setAiCfg] = useState(DEFAULT_AI);
+  const [aiKeyInput, setAiKeyInput] = useState('');
+  const [hasKey, setHasKey] = useState(false);
+  const [testingAi, setTestingAi] = useState(false);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -99,6 +110,20 @@ export default function RolesPage() {
     getLogs()
       .then((r) => {
         if (!ignore && Array.isArray(r) && r.length) setLogs(r);
+      })
+      .catch(() => {});
+    // Koneksi AI: ambil sekali (key ter-mask)
+    getConfig('aiConfig')
+      .then((r) => {
+        if (ignore || !r || typeof r.config !== 'object') return;
+        const c = r.config;
+        setAiCfg({
+          provider: c.provider || 'openai',
+          baseURL: c.baseURL || AI_PRESETS[c.provider || 'openai']?.baseURL || '',
+          model: c.model || AI_PRESETS[c.provider || 'openai']?.model || '',
+          apiKey: '',
+        });
+        setHasKey(!!c.apiKey);
       })
       .catch(() => {});
     return () => {
@@ -245,6 +270,30 @@ export default function RolesPage() {
     showToast('Matriks izin berhasil disimpan');
   }
 
+  function saveAi() {
+    putConfig({ ...aiCfg, apiKey: aiKeyInput || '' }, 'aiConfig')
+      .then(() => {
+        if (aiKeyInput) {
+          setHasKey(true);
+          setAiKeyInput('');
+        }
+        showToast('Koneksi AI tersimpan');
+      })
+      .catch(() => showToast('Gagal menyimpan — backend tidak terjangkau'));
+  }
+
+  async function testAi() {
+    setTestingAi(true);
+    try {
+      const r = await chatAi([{ role: 'user', content: 'Balas persis: OK' }]);
+      showToast(r && r.ok ? 'Tes koneksi OK — AI menjawab' : 'Tes gagal: ' + (r?.error || 'unknown'));
+    } catch (e) {
+      showToast('Tes gagal: ' + (e.message || e));
+    } finally {
+      setTestingAi(false);
+    }
+  }
+
   const stats = {
     users: users.length,
     active: users.filter((u) => u.active).length,
@@ -288,6 +337,7 @@ export default function RolesPage() {
         {[
           { id: 'pengguna', label: 'Pengguna' },
           { id: 'role', label: 'Role & Izin Modul' },
+          { id: 'ai', label: 'AI & API Key' },
           { id: 'log', label: 'Log Aktivitas' },
         ].map((t) => (
           <button
@@ -477,6 +527,58 @@ export default function RolesPage() {
             <p className="px-6 py-3 text-[11px] text-slate-400 border-t border-slate-100 bg-slate-50/60">
               * Super Admin selalu memiliki akses penuh dan tidak dapat diubah.
             </p>
+          </div>
+        </section>
+      )}
+
+      {/* TAB: AI & API Key */}
+      {tab === 'ai' && (
+        <section className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 animate-fade-in-fast">
+            <h3 className="font-bold text-slate-900 text-sm">Koneksi AI Eksternal</h3>
+            <p className="text-[11px] text-slate-400 mb-4">OpenAI atau server OpenAI-compatible. Key disimpan di backend, tak pernah utuh ke browser.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-500">Provider</label>
+                <select
+                  value={aiCfg.provider}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setAiCfg(AI_PRESETS[v] ? { provider: v, baseURL: AI_PRESETS[v].baseURL, model: AI_PRESETS[v].model, apiKey: '' } : { ...aiCfg, provider: v });
+                  }}
+                  className={`${inputCls} mt-1 w-full`}
+                >
+                  <option value="openai">OpenAI</option>
+                  <option value="custom">Custom (OpenAI-compatible)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500">Model</label>
+                <input value={aiCfg.model} onChange={(e) => setAiCfg({ ...aiCfg, model: e.target.value })} placeholder="gpt-4o-mini" className={`${inputCls} mt-1 w-full`} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold text-slate-500">Base URL</label>
+                <input value={aiCfg.baseURL} onChange={(e) => setAiCfg({ ...aiCfg, baseURL: e.target.value })} placeholder="https://api.openai.com/v1" className={`${inputCls} mt-1 w-full font-mono`} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold text-slate-500">API Key {hasKey && <span className="text-emerald-600 font-bold">● tersimpan</span>}</label>
+                <input
+                  type="password"
+                  value={aiKeyInput}
+                  onChange={(e) => setAiKeyInput(e.target.value)}
+                  placeholder={hasKey ? 'Kosongkan bila tidak diganti' : 'sk-…'}
+                  className={`${inputCls} mt-1 w-full font-mono`}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={saveAi} className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition">
+                Simpan Koneksi
+              </button>
+              <button onClick={testAi} disabled={testingAi} className="text-sm font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-lg px-5 py-2.5 transition disabled:opacity-60">
+                {testingAi ? 'Mengetes…' : 'Tes Koneksi'}
+              </button>
+            </div>
           </div>
         </section>
       )}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_CONFIG } from '../data/sheetConfig.js';
-import { getConfig, putConfig, chatAi } from '../lib/api.js';
+import { getConfig, putConfig } from '../lib/api.js';
 
 const LS_KEY = 'sheetConfig';
 
@@ -35,13 +35,6 @@ const TABS = [
   { id: 'ai', label: 'AI Assistant' },
 ];
 
-// Default koneksi AI eksternal (OpenAI-compatible) — key disimpan di backend, tak pernah utuh ke browser
-const DEFAULT_AI = { provider: 'openai', baseURL: 'https://api.openai.com/v1', model: 'gpt-4o-mini', apiKey: '' };
-const AI_PRESETS = {
-  openai: { baseURL: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-  custom: { baseURL: '', model: '' },
-};
-
 // Default sakelar fitur AI — status aktif tersimpan di backend (app_config key 'agentConfig')
 const DEFAULT_AGENTS = [
   { id: 'chatbot-cs', name: 'Chatbot CS', desc: 'Asisten chat otomatis untuk pertanyaan pelanggan', enabled: false },
@@ -55,10 +48,6 @@ const CFG_INPUT =
 export default function SheetConfigPage() {
   const [cfg, setCfg] = useState(loadCfg);
   const [agents, setAgents] = useState(DEFAULT_AGENTS);
-  const [aiCfg, setAiCfg] = useState(DEFAULT_AI);
-  const [aiKeyInput, setAiKeyInput] = useState('');
-  const [hasKey, setHasKey] = useState(false);
-  const [testingAi, setTestingAi] = useState(false);
   const [tab, setTab] = useState('pricelist');
   const [toast, setToast] = useState(null);
   const synced = useRef(false);
@@ -114,51 +103,6 @@ export default function SheetConfigPage() {
     }, 1500);
     return () => clearTimeout(t);
   }, [agents]);
-
-  // Koneksi AI: ambil sekali (key ter-mask), simpan eksplisit via tombol
-  useEffect(() => {
-    let ignore = false;
-    getConfig('aiConfig')
-      .then((r) => {
-        if (ignore || !r || typeof r.config !== 'object') return;
-        const c = r.config;
-        setAiCfg({
-          provider: c.provider || 'openai',
-          baseURL: c.baseURL || AI_PRESETS[c.provider || 'openai']?.baseURL || '',
-          model: c.model || AI_PRESETS[c.provider || 'openai']?.model || '',
-          apiKey: '',
-        });
-        setHasKey(!!c.apiKey);
-      })
-      .catch(() => {});
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  function saveAi() {
-    putConfig({ ...aiCfg, apiKey: aiKeyInput || '' }, 'aiConfig')
-      .then(() => {
-        if (aiKeyInput) {
-          setHasKey(true);
-          setAiKeyInput('');
-        }
-        setToast('Koneksi AI tersimpan');
-      })
-      .catch(() => setToast('Gagal menyimpan — backend tidak terjangkau'));
-  }
-
-  async function testAi() {
-    setTestingAi(true);
-    try {
-      const r = await chatAi([{ role: 'user', content: 'Balas persis: OK' }]);
-      setToast(r && r.ok ? 'Tes koneksi OK — AI menjawab' : 'Tes gagal: ' + (r?.error || 'unknown'));
-    } catch (e) {
-      setToast('Tes gagal: ' + (e.message || e));
-    } finally {
-      setTestingAi(false);
-    }
-  }
 
   function toggleAgent(id) {
     setAgents((prev) => {
@@ -315,20 +259,7 @@ export default function SheetConfigPage() {
         )}
         {tab === 'calendar' && <TabCalendar cfg={cfg} />}
         {tab === 'headers' && <TabHeaders cfg={cfg} />}
-        {tab === 'ai' && (
-          <TabAi
-            agents={agents}
-            onToggle={toggleAgent}
-            aiCfg={aiCfg}
-            setAiCfg={setAiCfg}
-            aiKeyInput={aiKeyInput}
-            setAiKeyInput={setAiKeyInput}
-            hasKey={hasKey}
-            onSaveAi={saveAi}
-            onTestAi={testAi}
-            testingAi={testingAi}
-          />
-        )}
+        {tab === 'ai' && <TabAi agents={agents} onToggle={toggleAgent} />}
       </div>
 
       {/* Toast */}
@@ -704,61 +635,14 @@ function TabHeaders({ cfg }) {
   );
 }
 
-/* ===== Tab AI Assistant (toggle fitur + koneksi AI eksternal) ===== */
-function TabAi({ agents, onToggle, aiCfg, setAiCfg, aiKeyInput, setAiKeyInput, hasKey, onSaveAi, onTestAi, testingAi }) {
+/* ===== Tab AI Assistant (toggle fitur; koneksi API key ada di /roles) ===== */
+function TabAi({ agents, onToggle }) {
   const onCount = agents.filter((a) => a.enabled).length;
-  const setAi = (k) => (e) => {
-    const v = e.target.value;
-    if (k === 'provider' && AI_PRESETS[v]) {
-      setAiCfg({ provider: v, baseURL: AI_PRESETS[v].baseURL, model: AI_PRESETS[v].model, apiKey: '' });
-    } else {
-      setAiCfg({ ...aiCfg, [k]: v });
-    }
-  };
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 animate-fade-in-fast">
-        <h3 className="font-bold text-slate-900 text-sm">Koneksi AI Eksternal</h3>
-        <p className="text-[11px] text-slate-400 mb-4">OpenAI atau server OpenAI-compatible. Key disimpan di backend, tak pernah utuh ke browser.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-slate-500">Provider</label>
-            <select value={aiCfg.provider} onChange={setAi('provider')} className={`${CFG_INPUT} mt-1`}>
-              <option value="openai">OpenAI</option>
-              <option value="custom">Custom (OpenAI-compatible)</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-500">Model</label>
-            <input value={aiCfg.model} onChange={setAi('model')} placeholder="gpt-4o-mini" className={`${CFG_INPUT} mt-1`} />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs font-semibold text-slate-500">Base URL</label>
-            <input value={aiCfg.baseURL} onChange={setAi('baseURL')} placeholder="https://api.openai.com/v1" className={`${CFG_INPUT} mt-1 font-mono`} />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-xs font-semibold text-slate-500">API Key {hasKey && <span className="text-emerald-600 font-bold">● tersimpan</span>}</label>
-            <input
-              type="password"
-              value={aiKeyInput}
-              onChange={(e) => setAiKeyInput(e.target.value)}
-              placeholder={hasKey ? 'Kosongkan bila tidak diganti' : 'sk-…'}
-              className={`${CFG_INPUT} mt-1 font-mono`}
-            />
-          </div>
-        </div>
-        <div className="flex gap-2 mt-4">
-          <button onClick={onSaveAi} className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition">
-            Simpan Koneksi
-          </button>
-          <button onClick={onTestAi} disabled={testingAi} className="text-xs font-bold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-lg px-4 py-2 transition disabled:opacity-60">
-            {testingAi ? 'Mengetes…' : 'Tes Koneksi'}
-          </button>
-        </div>
-      </div>
-
       <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 text-[11px] text-brand-800 animate-fade-in-fast">
         <span className="font-bold">{onCount}/{agents.length} agent aktif.</span> Toggle tersimpan otomatis ke backend.
+        Koneksi API key diatur di <span className="font-bold">Hak Akses → AI & API Key</span>.
       </div>
       {agents.map((a) => (
         <div key={a.id} className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 animate-fade-in-fast">
