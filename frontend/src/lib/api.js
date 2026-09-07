@@ -64,3 +64,4 @@ export const getPerms = () => get('/roles/permissions');
 export const putPerms = (perms) => put('/roles/permissions', { perms });
 export const getLogs = () => get('/roles/logs');
 export const postLog = (who, action) => post('/roles/logs', { who, action });
+export const chatAi = (messages) => post('/ai/chat', { messages });

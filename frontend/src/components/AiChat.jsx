@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
+import { chatAi } from '../lib/api.js';
 import { fmtMoney } from '../utils/format.js';
 
 // Asisten AI lokal — menjawab dari data kasus backend (tanpa API AI eksternal).
@@ -69,16 +70,34 @@ export default function AiChat() {
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
+  function pushBot(text, local) {
+    clearTimeout(timer.current);
+    // Jeda kecil agar fallback lokal tetap terasa natural
+    timer.current = setTimeout(() => {
+      setMsgs((m) => [...m, { from: 'bot', text, local }]);
+      setTyping(false);
+    }, local ? 350 : 0);
+  }
+
   function send(text) {
     const q = (text ?? input).trim();
     if (!q || typing) return;
-    setMsgs((m) => [...m, { from: 'user', text: q }]);
+    const next = [...msgs, { from: 'user', text: q }];
+    setMsgs(next);
     setInput('');
     setTyping(true);
-    timer.current = setTimeout(() => {
-      setMsgs((m) => [...m, { from: 'bot', text: answer(q, cases) }]);
-      setTyping(false);
-    }, 450);
+    // Coba AI eksternal dulu (riwayat 7 pesan terakhir); gagal/belum setting → otak lokal
+    const hist = next.slice(-7).map((m) => ({
+      role: m.from === 'user' ? 'user' : 'assistant',
+      content: m.text,
+    }));
+    chatAi(hist).then(
+      (r) => {
+        if (r && r.ok && r.reply) pushBot(r.reply, false);
+        else pushBot(answer(q, cases), true);
+      },
+      () => pushBot(answer(q, cases), true)
+    );
   }
 
   return (
@@ -108,6 +127,7 @@ export default function AiChat() {
                   m.from === 'user' ? 'bg-brand-600 text-white rounded-br-md' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-md'
                 }`}>
                   {m.text}
+                  {m.local && <span className="block mt-1 text-[10px] text-slate-400">· mode lokal (AI eksternal belum aktif)</span>}
                 </p>
               </div>
             ))}
