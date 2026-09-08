@@ -1,8 +1,8 @@
 # SPRITE-CUST Backend — NestJS + Drizzle + Postgres (Docker)
 
 API untuk frontend di `http://localhost:5005/api`. Database Postgres
-berjalan di container Docker `asten-pg` (port host `5433`, database
-`sprite_cust`) — berbagi server dengan DB lain tanpa mengganggu.
+berjalan di container Docker `sprite-pg` (port host `5433`, database
+`sprite_cust`) — volume `sprite-pgdata` agar data tidak hilang.
 
 ## Stack
 
@@ -24,7 +24,7 @@ npm run dev            # → http://localhost:5005/api/health
 
 `src/main.ts` memanggil `initDb()` saat boot: buat tabel bila belum ada
 (`IF NOT EXISTS`), lalu seed **2034 kasus** dari
-`frontend/src/data/cases.js` + **5 user** bila tabel masih kosong.
+`frontend/src/data/cases.js` + **6 user** bila tabel masih kosong.
 
 ## Env
 
@@ -70,9 +70,9 @@ POST /api/ai/chat {messages, connectionId?} → {ok, reply} (proxy AI eksternal 
 GET  /api/ai/connections → [{id, name, provider, model, active}] (tanpa key, untuk switcher model)
 ```
 
-User seed: `rani@revota.id`, `budi.cs@revota.id`, `sari@revota.id`,
-`finance@revota.id`, `vina@revota.id` (password awal `password123`) plus
-`admin@revota.id` / `12345` (Super Admin). Password min. 5 karakter.
+User seed: `admin@revota.id` (`12345`, Super Admin), `rani@revota.id`,
+`budi.cs@revota.id`, `sari@revota.id`, `finance@revota.id`,
+`vina@revota.id` (password awal `password123`). Password min. 5 karakter.
 
 ## Hak akses (PermGuard)
 
