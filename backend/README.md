@@ -57,6 +57,15 @@ GET  /api/masters → {masters, priceListData} (dibaca dari frontend/src/data/ma
 POST /api/sync/trigger                 → sinkron manual (mock: echo ke sync_logs)
 GET  /api/sync/logs
 POST /api/auth/sign-up/email {email, password, name, role?}
+       → 201 {user} · 400 VALIDATION_ERROR · 409 EMAIL_TAKEN.
+       Role awal Viewer; body.role hanya dihormati bila peminta (header
+       x-user-email) adalah Super Admin — dipakai form tambah pengguna /roles.
+       Daftar HANYA menyimpan ke DB; frontend mengarahkan ke /login (tanpa auto-login).
+GET  /api/setup/status → {firstRun, userCount} (Cache-Control: no-store, publik)
+POST /api/setup/first-admin {name, email, password}
+       → 201 {user Super Admin} — HANYA saat DB kosong, role dikunci server.
+       409 ALREADY_INITIALIZED bila sudah ada user · 409 EMAIL_TAKEN ·
+       400 VALIDATION_ERROR · throttle 10 req/menit/IP.
 POST /api/auth/sign-in/email {email, password} → {user} atau {error}
 POST /api/auth/sign-out
 GET  /api/users → [{id, name, email, role, active}]
