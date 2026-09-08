@@ -3,6 +3,7 @@ import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
+import { recordActivity } from '../lib/activity.js';
 
 const BILL_BADGE = {
   FREE: 'bg-emerald-50 text-emerald-600 border-emerald-200',
@@ -152,6 +153,13 @@ export default function BillingPage() {
     for (let i = start; i <= end; i++) arr.push(i);
     return arr;
   })();
+
+  function handleAudit(uuid, action) {
+    const c = allCases.find((x) => x.recordUuid === uuid);
+    updateAudit(uuid, action);
+    const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
+    recordActivity(`mengubah status validasi ${label}`, `menjadi ${action}`);
+  }
 
   function exportData() {
     const headers = ['NO', 'DATE ISSUE', 'CLIENT', 'PIC NAME', 'MODULE', 'BILLING STATUS', 'BILLING CATEGORY', 'SUPPORT TYPE', 'CHARGES', 'STATUS VALIDASI', 'COMPLETION NOTES', 'RECORD_UUID'];
@@ -394,7 +402,7 @@ export default function BillingPage() {
                     {c.billingStatus !== 'FREE' ? (
                       <select
                         value={caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI'}
-                        onChange={(e) => updateAudit(c.recordUuid, e.target.value)}
+                        onChange={(e) => handleAudit(c.recordUuid, e.target.value)}
                         className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white max-w-[180px]"
                       >
                         {auditActions.map((a) => (
@@ -485,7 +493,10 @@ export default function BillingPage() {
                     {i >= 3 ? (
                       <button
                         onClick={() => {
-                          if (confirm('Yakin hapus action ini? Kasus yang menggunakan action ini akan kembali ke default.')) removeAction(a);
+                          if (confirm('Yakin hapus action ini? Kasus yang menggunakan action ini akan kembali ke default.')) {
+                            removeAction(a);
+                            recordActivity(`menghapus status validasi "${a}"`, 'kasus terkait kembali ke BELUM DIVALIDASI');
+                          }
                         }}
                         className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
                       >
@@ -508,6 +519,7 @@ export default function BillingPage() {
                     return;
                   }
                   addAction(val);
+                  recordActivity(`menambah status validasi baru "${val}"`);
                   setNewAction('');
                 }}
               >

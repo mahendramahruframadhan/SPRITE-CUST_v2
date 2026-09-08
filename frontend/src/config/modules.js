@@ -14,6 +14,7 @@ export const MODULES = [
   { path: '/finance', id: 'finance', title: 'Finance Audit', sub: 'Penerbitan invoice kasus tervalidasi' },
   { group: 'Administrasi' },
   { path: '/roles', id: 'roles', title: 'Hak Akses', sub: 'Kelola pengguna, role & izin modul' },
+  { path: '/logs', id: 'logs', title: 'Logs Aktivitas', sub: 'Riwayat perubahan status & penambahan data' },
 ];
 
 // Redirect lama: /master & /pricelist (dulu config.html & pricelist.html)

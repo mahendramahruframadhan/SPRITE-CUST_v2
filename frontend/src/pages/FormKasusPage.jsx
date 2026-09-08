@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { masters as fallbackMasters, priceListData as fallbackPrices } from '../data/masters.js';
 import { createCase, getMasters } from '../lib/api.js';
+import { recordActivity } from '../lib/activity.js';
 
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -130,6 +131,7 @@ export default function FormKasusPage() {
     try {
       // POST /api/cases — backend menulis ke DB (+ Sheets bila SHEETS_MOCK=false)
       await createCase({ ...form, month: form.monthName });
+      recordActivity(`menambah kasus baru (${form.client})`, String(form.issue || '').slice(0, 80));
       alert('Kasus tersimpan di backend.');
       resetForm();
     } catch (e) {

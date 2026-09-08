@@ -13,6 +13,7 @@ import SheetConfigPage from './pages/SheetConfigPage.jsx';
 import BillingPage from './pages/BillingPage.jsx';
 import FinanceAuditPage from './pages/FinanceAuditPage.jsx';
 import RolesPage from './pages/RolesPage.jsx';
+import LogsPage from './pages/LogsPage.jsx';
 
 // Penjaga route per modul izin (matriks diatur di /roles, Super Admin selalu lolos).
 // Akses langsung via URL ke modul terlarang → kembali ke dashboard.
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="/billing" element={<RequirePerm module="billing"><BillingPage /></RequirePerm>} />
             <Route path="/finance" element={<RequirePerm module="finance"><FinanceAuditPage /></RequirePerm>} />
             <Route path="/roles" element={<RequirePerm module="roles"><RolesPage /></RequirePerm>} />
+            <Route path="/logs" element={<RequirePerm module="logs"><LogsPage /></RequirePerm>} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>

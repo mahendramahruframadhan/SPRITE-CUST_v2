@@ -1,0 +1,270 @@
+import { useEffect, useMemo, useState } from 'react';
+import { getLogs } from '../lib/api.js';
+import { readLocalActivity } from '../lib/activity.js';
+
+const CATS = ['Semua', 'Penambahan', 'Validasi', 'Invoice', 'Pengguna', 'Sinkron', 'Lainnya'];
+
+const CAT_BADGE = {
+  Penambahan: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+  Validasi: 'bg-amber-50 text-amber-600 border-amber-200',
+  Invoice: 'bg-violet-50 text-violet-600 border-violet-200',
+  Pengguna: 'bg-sky-50 text-sky-600 border-sky-200',
+  Sinkron: 'bg-slate-100 text-slate-600 border-slate-200',
+  Lainnya: 'bg-slate-100 text-slate-500 border-slate-200',
+};
+
+function categorize(text) {
+  const t = String(text || '').toLowerCase();
+  if (/pengguna|role|izin|akun|password/.test(t)) return 'Pengguna';
+  if (/invoice|paid/.test(t)) return 'Invoice';
+  if (/validasi|audit|dicek/.test(t)) return 'Validasi';
+  if (/menambah|baru|membuat/.test(t)) return 'Penambahan';
+  if (/sync|cron|sheet|unggah|impor/.test(t)) return 'Sinkron';
+  return 'Lainnya';
+}
+
+function fmtTime(t) {
+  const d = new Date(t);
+  if (isNaN(d)) return String(t || '—');
+  return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+const initials = (name) =>
+  String(name || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+
+export default function LogsPage() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState('');
+  const [cat, setCat] = useState('Semua');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+
+  useEffect(() => {
+    let ignore = false;
+    const local = readLocalActivity().map((e) => ({
+      id: `local-${e.id}`,
+      time: e.time,
+      who: e.who,
+      text: e.detail ? `${e.action} — ${e.detail}` : e.action,
+    }));
+    getLogs()
+      .then((r) => {
+        if (ignore) return;
+        const remote = Array.isArray(r)
+          ? r.map((e, i) => ({
+              id: `srv-${e.id || i}`,
+              time: e.created_at || e.time,
+              who: e.who,
+              text: e.action || e.act,
+            }))
+          : [];
+        const merged = [...local, ...remote]
+          .filter((e) => e.text)
+          .sort((a, b) => new Date(b.time) - new Date(a.time));
+        setLogs(merged.length ? merged : local);
+      })
+      .catch(() => {
+        if (!ignore) setLogs(local);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, cat, perPage]);
+
+  const counts = useMemo(() => {
+    const m = { Semua: logs.length };
+    logs.forEach((e) => {
+      const c = categorize(e.text);
+      m[c] = (m[c] || 0) + 1;
+    });
+    return m;
+  }, [logs]);
+
+  const items = useMemo(
+    () =>
+      logs.filter(
+        (e) =>
+          (cat === 'Semua' || categorize(e.text) === cat) &&
+          `${e.who} ${e.text}`.toLowerCase().includes(q.toLowerCase())
+      ),
+    [logs, q, cat]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(items.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const paged = items.slice((safePage - 1) * perPage, safePage * perPage);
+  const pageNums = (() => {
+    const start = Math.max(1, Math.min(safePage - 2, totalPages - 4));
+    const end = Math.min(totalPages, start + 4);
+    const arr = [];
+    for (let i = start; i <= end; i++) arr.push(i);
+    return arr;
+  })();
+
+  function exportData() {
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [
+      ['WAKTU', 'PELAKU', 'KATEGORI', 'AKTIVITAS'].join(','),
+      ...items.map((e) => [fmtTime(e.time), e.who, categorize(e.text), e.text].map(esc).join(',')),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'logs-aktivitas.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="px-8 py-6 space-y-5">
+      {/* Toolbar */}
+      <div className="flex items-center justify-end gap-2 -mt-1">
+        <button
+          onClick={exportData}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          Export
+        </button>
+      </div>
+
+      {/* Filter kategori */}
+      <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Kategori:</span>
+        {CATS.map((c) => (
+          <button
+            key={c}
+            onClick={() => setCat(c)}
+            className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition ${
+              cat === c
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            {c}
+            <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${cat === c ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
+              {counts[c] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Daftar log */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
+          <h3 className="font-bold text-slate-900">Riwayat Aktivitas</h3>
+          <span className="text-xs text-slate-400">{loading ? 'Memuat…' : `${items.length} aktivitas`}</span>
+          <div className="ml-auto relative">
+            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Cari pelaku / aktivitas..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <th className="px-6 py-3 font-semibold">Waktu</th>
+                <th className="px-4 py-3 font-semibold">Pelaku</th>
+                <th className="px-4 py-3 font-semibold">Kategori</th>
+                <th className="px-6 py-3 font-semibold">Aktivitas</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {paged.map((e) => {
+                const c = categorize(e.text);
+                return (
+                  <tr key={e.id} className="hover:bg-slate-50 transition">
+                    <td className="px-6 py-3.5 text-slate-500 whitespace-nowrap text-xs">{fmtTime(e.time)}</td>
+                    <td className="px-4 py-3.5">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-[10px] font-bold">
+                          {initials(e.who)}
+                        </span>
+                        <span className="font-semibold text-slate-800">{e.who}</span>
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 ${CAT_BADGE[c]}`}>
+                        {c}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5 text-slate-600">{e.text}</td>
+                  </tr>
+                );
+              })}
+              {!loading && paged.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-sm">
+                    Belum ada aktivitas tercatat — ubah status di Billing / Finance, atau tambah kasus baru.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+          <span>
+            Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} aktivitas
+          </span>
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+            >
+              ‹
+            </button>
+            {pageNums.map((n) => (
+              <button
+                key={n}
+                onClick={() => setPage(n)}
+                className={`min-w-[32px] px-2 py-1.5 rounded-lg border font-bold transition ${
+                  n === safePage ? 'bg-brand-600 border-brand-600 text-white' : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+            >
+              ›
+            </button>
+          </div>
+          <select
+            value={perPage}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white font-semibold text-slate-600"
+          >
+            <option value={10}>10 / halaman</option>
+            <option value={50}>50 / halaman</option>
+            <option value={100}>100 / halaman</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
