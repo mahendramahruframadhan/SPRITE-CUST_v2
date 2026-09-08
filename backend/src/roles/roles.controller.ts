@@ -8,8 +8,9 @@ const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'fi
 const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 
 // CRUD pengguna + matriks izin + log aktivitas untuk halaman /roles — semua di Postgres.
-@UseGuards(PermGuard)
-@Perm('roles')
+// GET (baca) sengaja terbuka; hanya method tulis yang dijaga PermGuard.
+// (class-level guard dihapus: dulu GET roles/permissions ikut 403 untuk
+// role tanpa izin 'roles', merusak alur login frontend.)
 @Controller()
 export class RolesController {
   private db: any = getDb();
@@ -21,6 +22,8 @@ export class RolesController {
   }
 
   @Patch('users/:id')
+  @UseGuards(PermGuard)
+  @Perm('roles')
   async updateUser(@Param('id') id: string, @Body() b: any) {
     const sets: string[] = [];
     if (b.name) sets.push(`name='${esc(b.name)}'`);
@@ -34,6 +37,8 @@ export class RolesController {
   }
 
   @Delete('users/:id')
+  @UseGuards(PermGuard)
+  @Perm('roles')
   async remove(@Param('id') id: string) {
     const e = esc(id);
     const r: any = await this.db.execute(`SELECT role FROM "user" WHERE id='${e}'` as any);
@@ -46,6 +51,8 @@ export class RolesController {
   }
 
   @Post('users/:id/password')
+  @UseGuards(PermGuard)
+  @Perm('roles')
   async password(@Param('id') id: string, @Body() b: any) {
     const p = String(b.password || '');
     if (p.length < 5) return { ok: false, error: 'password min. 5 karakter' };
@@ -65,6 +72,8 @@ export class RolesController {
   }
 
   @Put('roles/permissions')
+  @UseGuards(PermGuard)
+  @Perm('roles')
   async putPerms(@Body() b: any) {
     const perms = b.perms || b;
     const now = new Date().toISOString();
@@ -89,6 +98,8 @@ export class RolesController {
   }
 
   @Post('roles/logs')
+  @UseGuards(PermGuard)
+  @Perm('roles')
   async addLog(@Body() b: any) {
     if (!b.action) return { ok: false, error: 'action required' };
     await this.db.execute(`INSERT INTO activity_logs (id,who,action,created_at) VALUES ('${crypto.randomUUID()}','${esc(b.who || 'Admin')}','${esc(b.action)}','${new Date().toISOString()}')` as any);
