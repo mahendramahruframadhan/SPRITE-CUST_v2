@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pie, Bar } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState, DEFAULT_INVOICE, DEFAULT_INVOICE_STATUS } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
@@ -9,7 +9,6 @@ import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const VALID_TAG = 'VALID - SIAP INVOICE';
-const PIE_COLORS = ['#f59e0b', '#8b5cf6', '#10b981', '#f43f5e', '#06b6d4', '#f97316'];
 
 const shortInvoice = (a) => (a === 'INVOICE TERBIT' ? 'Terbit Invoice' : a === 'PAID' ? 'Paid' : a);
 
@@ -63,11 +62,11 @@ export default function FinanceAuditPage() {
   }, [validatedPool, invoiceStatus]);
 
   const kpi = [
-    { t: 'Siap Invoice', v: stats.total.toLocaleString('id-ID'), sub: fmtMoney(stats.totalAmount) + ' tervalidasi', color: 'text-brand-600' },
-    { t: 'Menunggu Invoice', v: stats.menunggu.toLocaleString('id-ID'), sub: 'kasus', color: 'text-amber-600' },
-    { t: 'Invoice Terbit', v: stats.terbit.toLocaleString('id-ID'), sub: 'kasus', color: 'text-violet-600' },
-    { t: 'Paid', v: stats.paid.toLocaleString('id-ID'), sub: `dari ${stats.total} kasus tervalidasi`, color: 'text-emerald-600' },
-    { t: 'Total Outstanding', v: fmtMoney(stats.outstandingAmount), sub: `${stats.outstandingCount} kasus belum PAID`, color: 'text-rose-600' },
+    { t: 'Siap Invoice', v: stats.total.toLocaleString('id-ID'), sub: fmtMoney(stats.totalAmount) + ' tervalidasi', color: 'text-brand-600', accent: 'from-brand-500 to-brand-300' },
+    { t: 'Menunggu Invoice', v: stats.menunggu.toLocaleString('id-ID'), sub: 'kasus', color: 'text-amber-600', accent: 'from-amber-500 to-amber-300' },
+    { t: 'Invoice Terbit', v: stats.terbit.toLocaleString('id-ID'), sub: 'kasus', color: 'text-violet-600', accent: 'from-violet-500 to-violet-300' },
+    { t: 'Paid', v: stats.paid.toLocaleString('id-ID'), sub: `dari ${stats.total} kasus tervalidasi`, color: 'text-emerald-600', accent: 'from-emerald-500 to-emerald-300' },
+    { t: 'Total Outstanding', v: fmtMoney(stats.outstandingAmount), sub: `${stats.outstandingCount} kasus belum PAID`, color: 'text-rose-600', accent: 'from-rose-500 to-rose-300' },
   ];
 
   const filtered = useMemo(() => {
@@ -86,25 +85,6 @@ export default function FinanceAuditPage() {
     });
   }, [validatedPool, invoiceStatus, from, to, brand, billStatus, invFilter]);
 
-  const invCounts = useMemo(() => {
-    const m = {};
-    invoiceActions.forEach((a) => (m[a] = 0));
-    validatedPool.forEach((c) => {
-      const a = invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE';
-      m[a] = (m[a] || 0) + 1;
-    });
-    return m;
-  }, [validatedPool, invoiceStatus, invoiceActions]);
-
-  const distData = {
-    labels: invoiceActions,
-    datasets: [{
-      data: invoiceActions.map((a) => invCounts[a] || 0),
-      backgroundColor: invoiceActions.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]),
-      borderWidth: 0,
-    }],
-  };
-
   const outstandingData = useMemo(() => {
     const clientOut = {};
     validatedPool
@@ -121,22 +101,17 @@ export default function FinanceAuditPage() {
 
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
-  const todayISO = () => new Date().toISOString().slice(0, 10);
-
   function handleInvoice(uuid, action) {
     const c = allCases.find((x) => x.recordUuid === uuid);
     updateInvoice(uuid, action);
-    // Auto-isi tanggal: terbit saat INVOICE TERBIT, paid saat PAID (bila masih kosong)
     const meta = invoiceMeta[uuid] || {};
-    if (action === 'INVOICE TERBIT' && !meta.issued) updateInvoiceMeta(uuid, { issued: todayISO() });
-    if (action === 'PAID' && !meta.paid) updateInvoiceMeta(uuid, { paid: todayISO() });
     const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
     const invNo = (meta.no || '').trim();
     recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}${invNo ? ` • no. invoice ${invNo}` : ''}`);
   }
 
   function exportData() {
-    const headers = ['NO', 'DATE ISSUE', 'CLIENT', 'PIC NAME', 'ISSUE', 'MODULE', 'BILLING STATUS', 'BILLING CATEGORY', 'SUPPORT TYPE', 'CHARGES', 'STATUS VALIDASI', 'STATUS INVOICE', 'NOMOR INVOICE', 'TGL TERBIT', 'TGL PAID', 'KETERANGAN', 'COMPLETION NOTES', 'RECORD_UUID'];
+    const headers = ['NO', 'DATE ISSUE', 'CLIENT', 'PIC NAME', 'ISSUE', 'MODULE', 'BILLING STATUS', 'BILLING CATEGORY', 'SUPPORT TYPE', 'CHARGES', 'STATUS VALIDASI', 'STATUS INVOICE', 'NOMOR INVOICE', 'KETERANGAN', 'COMPLETION NOTES', 'RECORD_UUID'];
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csv = [
       headers.join(','),
@@ -145,7 +120,7 @@ export default function FinanceAuditPage() {
         return [
           c.no, c.dateIssue, c.client, c.picName, c.issue, c.module, c.billingStatus, c.billingCategory,
           c.supportType, c.charges, caseAuditStatus[c.recordUuid] || '', invoiceStatus[c.recordUuid] || '',
-          m.no || '', m.issued || '', m.paid || '', m.note || '',
+          m.no || '', m.note || '',
           c.completionNotes, c.recordUuid,
         ]
           .map(esc)
@@ -206,7 +181,8 @@ export default function FinanceAuditPage() {
       {/* KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
         {kpi.map((d, i) => (
-          <div key={d.t} className="bg-white rounded-2xl border border-slate-200 p-5 animate-fade-in-fast" style={{ animationDelay: `${i * 0.05}s` }}>
+          <div key={d.t} className="bg-white rounded-2xl border border-slate-200 p-5 pt-0 overflow-hidden animate-fade-in-fast" style={{ animationDelay: `${i * 0.05}s` }}>
+            <div className={`h-1.5 -mx-5 mb-4 bg-gradient-to-r ${d.accent}`} />
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{d.t}</p>
             <p className={`mt-2 text-2xl font-extrabold ${d.color}`}>{d.v}</p>
             <p className="mt-1 text-xs text-slate-400 font-medium">{d.sub}</p>
@@ -214,40 +190,24 @@ export default function FinanceAuditPage() {
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <h3 className="font-bold text-slate-900 mb-1">Distribusi Status Invoice</h3>
-          <p className="text-xs text-slate-400 mb-4">Status penerbitan invoice kasus tervalidasi</p>
-          <div className="h-64">
-            <Pie
-              data={distData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } } },
-              }}
-            />
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <h3 className="font-bold text-slate-900 mb-1">Outstanding per Brand</h3>
-          <p className="text-xs text-slate-400 mb-4">Brand dengan invoice belum PAID terbesar</p>
-          <div className="h-64">
-            <Bar
-              data={outstandingData}
-              options={{
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                  x: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-                  y: { grid: { display: false }, ticks: { font: { size: 10 } } },
-                },
-              }}
-            />
-          </div>
+      {/* Chart */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6">
+        <h3 className="font-bold text-slate-900 mb-1">Outstanding per Brand</h3>
+        <p className="text-xs text-slate-400 mb-4">Brand dengan invoice belum PAID terbesar</p>
+        <div className="h-72">
+          <Bar
+            data={outstandingData}
+            options={{
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                y: { grid: { display: false }, ticks: { font: { size: 11 } } },
+              },
+            }}
+          />
         </div>
       </div>
 
@@ -322,8 +282,6 @@ export default function FinanceAuditPage() {
                 <th className="px-4 py-3 font-semibold text-right">Charges</th>
                 <th className="px-4 py-3 font-semibold">Status Invoice</th>
                 <th className="px-4 py-3 font-semibold">No. Invoice</th>
-                <th className="px-4 py-3 font-semibold">Tgl Terbit</th>
-                <th className="px-4 py-3 font-semibold">Tgl Paid</th>
                 <th className="px-4 py-3 font-semibold">Keterangan</th>
                 <th className="px-6 py-3 font-semibold text-center">Aksi Cepat</th>
               </tr>
@@ -366,22 +324,6 @@ export default function FinanceAuditPage() {
                   </td>
                   <td className="px-4 py-3.5">
                     <input
-                      type="date"
-                      value={meta.issued || ''}
-                      onChange={(e) => updateInvoiceMeta(c.recordUuid, { issued: e.target.value })}
-                      className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white"
-                    />
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <input
-                      type="date"
-                      value={meta.paid || ''}
-                      onChange={(e) => updateInvoiceMeta(c.recordUuid, { paid: e.target.value })}
-                      className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white"
-                    />
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <input
                       type="text"
                       placeholder="Keterangan..."
                       title={meta.note || ''}
@@ -415,7 +357,7 @@ export default function FinanceAuditPage() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={15} className="px-6 py-12 text-center text-slate-400 text-sm">
+                  <td colSpan={13} className="px-6 py-12 text-center text-slate-400 text-sm">
                     Belum ada kasus tervalidasi — validasi dulu kasus di menu{' '}
                     <Link to="/billing" className="font-semibold text-emerald-600 hover:underline">
                       Billing &amp; Audit
