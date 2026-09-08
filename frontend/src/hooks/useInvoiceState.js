@@ -23,9 +23,20 @@ function loadCaseStatus() {
   }
 }
 
+// Meta per-invoice yang diisi tim finance: nomor invoice, tanggal terbit,
+// tanggal paid, dan keterangan. Key: recordUuid (localStorage `caseInvoiceMeta`).
+function loadMeta() {
+  try {
+    return JSON.parse(localStorage.getItem('caseInvoiceMeta')) || {};
+  } catch {
+    return {};
+  }
+}
+
 export function useInvoiceState() {
   const [invoiceActions, setInvoiceActions] = useState(loadActions);
   const [invoiceStatus, setInvoiceStatus] = useState(loadCaseStatus);
+  const [invoiceMeta, setInvoiceMeta] = useState(loadMeta);
 
   useEffect(() => {
     localStorage.setItem('invoiceActions', JSON.stringify(invoiceActions));
@@ -34,6 +45,10 @@ export function useInvoiceState() {
   useEffect(() => {
     localStorage.setItem('caseInvoiceStatus', JSON.stringify(invoiceStatus));
   }, [invoiceStatus]);
+
+  useEffect(() => {
+    localStorage.setItem('caseInvoiceMeta', JSON.stringify(invoiceMeta));
+  }, [invoiceMeta]);
 
   const updateInvoice = useCallback((uuid, status) => {
     setInvoiceStatus((prev) => ({ ...prev, [uuid]: status }));
@@ -70,5 +85,9 @@ export function useInvoiceState() {
     });
   }, []);
 
-  return { invoiceActions, invoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, ensureDefaults };
+  const updateInvoiceMeta = useCallback((uuid, patch) => {
+    setInvoiceMeta((prev) => ({ ...prev, [uuid]: { ...(prev[uuid] || {}), ...patch } }));
+  }, []);
+
+  return { invoiceActions, invoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta };
 }

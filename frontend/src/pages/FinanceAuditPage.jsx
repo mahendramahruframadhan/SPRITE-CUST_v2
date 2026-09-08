@@ -17,7 +17,7 @@ export default function FinanceAuditPage() {
   const { user } = useAuth();
   const { caseAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
-  const { invoiceActions, invoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, ensureDefaults } = useInvoiceState();
+  const { invoiceActions, invoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [brand, setBrand] = useState('');
@@ -121,27 +121,36 @@ export default function FinanceAuditPage() {
 
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
+  const todayISO = () => new Date().toISOString().slice(0, 10);
+
   function handleInvoice(uuid, action) {
     const c = allCases.find((x) => x.recordUuid === uuid);
     updateInvoice(uuid, action);
+    // Auto-isi tanggal: terbit saat INVOICE TERBIT, paid saat PAID (bila masih kosong)
+    const meta = invoiceMeta[uuid] || {};
+    if (action === 'INVOICE TERBIT' && !meta.issued) updateInvoiceMeta(uuid, { issued: todayISO() });
+    if (action === 'PAID' && !meta.paid) updateInvoiceMeta(uuid, { paid: todayISO() });
     const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
-    recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}`);
+    const invNo = (meta.no || '').trim();
+    recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}${invNo ? ` • no. invoice ${invNo}` : ''}`);
   }
 
   function exportData() {
-    const headers = ['NO', 'DATE ISSUE', 'CLIENT', 'PIC NAME', 'ISSUE', 'MODULE', 'BILLING STATUS', 'BILLING CATEGORY', 'SUPPORT TYPE', 'CHARGES', 'STATUS VALIDASI', 'STATUS INVOICE', 'COMPLETION NOTES', 'RECORD_UUID'];
+    const headers = ['NO', 'DATE ISSUE', 'CLIENT', 'PIC NAME', 'ISSUE', 'MODULE', 'BILLING STATUS', 'BILLING CATEGORY', 'SUPPORT TYPE', 'CHARGES', 'STATUS VALIDASI', 'STATUS INVOICE', 'NOMOR INVOICE', 'TGL TERBIT', 'TGL PAID', 'KETERANGAN', 'COMPLETION NOTES', 'RECORD_UUID'];
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csv = [
       headers.join(','),
-      ...filtered.map((c) =>
-        [
+      ...filtered.map((c) => {
+        const m = invoiceMeta[c.recordUuid] || {};
+        return [
           c.no, c.dateIssue, c.client, c.picName, c.issue, c.module, c.billingStatus, c.billingCategory,
           c.supportType, c.charges, caseAuditStatus[c.recordUuid] || '', invoiceStatus[c.recordUuid] || '',
+          m.no || '', m.issued || '', m.paid || '', m.note || '',
           c.completionNotes, c.recordUuid,
         ]
           .map(esc)
-          .join(',')
-      ),
+          .join(',');
+      }),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -312,11 +321,17 @@ export default function FinanceAuditPage() {
                 <th className="px-4 py-3 font-semibold">Billing Category</th>
                 <th className="px-4 py-3 font-semibold text-right">Charges</th>
                 <th className="px-4 py-3 font-semibold">Status Invoice</th>
+                <th className="px-4 py-3 font-semibold">No. Invoice</th>
+                <th className="px-4 py-3 font-semibold">Tgl Terbit</th>
+                <th className="px-4 py-3 font-semibold">Tgl Paid</th>
+                <th className="px-4 py-3 font-semibold">Keterangan</th>
                 <th className="px-6 py-3 font-semibold text-center">Aksi Cepat</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((c) => (
+              {filtered.map((c) => {
+                const meta = invoiceMeta[c.recordUuid] || {};
+                return (
                 <tr key={c.recordUuid} className="hover:bg-emerald-50/40 transition">
                   <td className="px-6 py-3.5 text-slate-400">{c.no}</td>
                   <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{fmtDate8(c.dateIssue)}</td>
@@ -340,6 +355,41 @@ export default function FinanceAuditPage() {
                       ))}
                     </select>
                   </td>
+                  <td className="px-4 py-3.5">
+                    <input
+                      type="text"
+                      placeholder="No. invoice"
+                      value={meta.no || ''}
+                      onChange={(e) => updateInvoiceMeta(c.recordUuid, { no: e.target.value })}
+                      className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white w-[130px]"
+                    />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <input
+                      type="date"
+                      value={meta.issued || ''}
+                      onChange={(e) => updateInvoiceMeta(c.recordUuid, { issued: e.target.value })}
+                      className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white"
+                    />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <input
+                      type="date"
+                      value={meta.paid || ''}
+                      onChange={(e) => updateInvoiceMeta(c.recordUuid, { paid: e.target.value })}
+                      className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white"
+                    />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <input
+                      type="text"
+                      placeholder="Keterangan..."
+                      title={meta.note || ''}
+                      value={meta.note || ''}
+                      onChange={(e) => updateInvoiceMeta(c.recordUuid, { note: e.target.value })}
+                      className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white w-[160px]"
+                    />
+                  </td>
                   <td className="px-6 py-3.5 text-center">
                     <div className="flex items-center justify-center gap-1 flex-wrap">
                       {invoiceActions
@@ -361,10 +411,11 @@ export default function FinanceAuditPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-slate-400 text-sm">
+                  <td colSpan={15} className="px-6 py-12 text-center text-slate-400 text-sm">
                     Belum ada kasus tervalidasi — validasi dulu kasus di menu{' '}
                     <Link to="/billing" className="font-semibold text-emerald-600 hover:underline">
                       Billing &amp; Audit
