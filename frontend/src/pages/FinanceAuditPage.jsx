@@ -12,6 +12,13 @@ const VALID_TAG = 'VALID - SIAP INVOICE';
 
 const shortInvoice = (a) => (a === 'INVOICE TERBIT' ? 'Terbit Invoice' : a === 'PAID' ? 'Paid' : a);
 
+// Warna select status invoice (status kustom → netral)
+const INV_TONE = {
+  'MENUNGGU INVOICE': 'border-amber-200 bg-amber-50 text-amber-700',
+  'INVOICE TERBIT': 'border-violet-200 bg-violet-50 text-violet-700',
+  PAID: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+};
+
 export default function FinanceAuditPage() {
   const { user } = useAuth();
   const { caseAuditStatus } = useAuditState();
@@ -92,7 +99,7 @@ export default function FinanceAuditPage() {
       .forEach((c) => {
         clientOut[c.client] = (clientOut[c.client] || 0) + (+c.charges || 0);
       });
-    const top = Object.entries(clientOut).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const top = Object.entries(clientOut).sort((a, b) => b[1] - a[1]).slice(0, 5);
     return {
       labels: top.map((t) => t[0]),
       datasets: [{ label: 'Outstanding (Rp)', data: top.map((t) => t[1]), backgroundColor: '#10b981', borderRadius: 6 }],
@@ -190,11 +197,19 @@ export default function FinanceAuditPage() {
         ))}
       </div>
 
-      {/* Chart */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <h3 className="font-bold text-slate-900 mb-1">Outstanding per Brand</h3>
-        <p className="text-xs text-slate-400 mb-4">Brand dengan invoice belum PAID terbesar</p>
-        <div className="h-72">
+      {/* Chart ringkas */}
+      <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+          <div>
+            <h3 className="font-bold text-slate-900 text-sm">Outstanding per Brand <span className="font-medium text-slate-400">• Top 5</span></h3>
+            <p className="text-[11px] text-slate-400">Brand dengan invoice belum PAID terbesar</p>
+          </div>
+          <p className="text-xs text-slate-400">
+            Total <span className="font-bold text-rose-600">{fmtMoney(stats.outstandingAmount)}</span>
+            {' '}• {stats.outstandingCount.toLocaleString('id-ID')} kasus
+          </p>
+        </div>
+        <div className="h-40">
           <Bar
             data={outstandingData}
             options={{
@@ -203,7 +218,7 @@ export default function FinanceAuditPage() {
               maintainAspectRatio: false,
               plugins: { legend: { display: false } },
               scales: {
-                x: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
                 y: { grid: { display: false }, ticks: { font: { size: 11 } } },
               },
             }}
@@ -270,20 +285,20 @@ export default function FinanceAuditPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                <th className="px-6 py-3 font-semibold">No</th>
-                <th className="px-4 py-3 font-semibold">Tanggal</th>
-                <th className="px-4 py-3 font-semibold">Brand</th>
-                <th className="px-4 py-3 font-semibold">PIC</th>
-                <th className="px-4 py-3 font-semibold">Issue</th>
-                <th className="px-4 py-3 font-semibold">Module</th>
-                <th className="px-4 py-3 font-semibold">Billing Status</th>
-                <th className="px-4 py-3 font-semibold">Billing Category</th>
-                <th className="px-4 py-3 font-semibold text-right">Charges</th>
-                <th className="px-4 py-3 font-semibold">Status Invoice</th>
-                <th className="px-4 py-3 font-semibold">No. Invoice</th>
-                <th className="px-4 py-3 font-semibold">Keterangan</th>
-                <th className="px-6 py-3 font-semibold text-center">Aksi Cepat</th>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50/80">
+                <th className="px-6 py-3 font-bold">No</th>
+                <th className="px-4 py-3 font-bold">Tanggal</th>
+                <th className="px-4 py-3 font-bold">Brand</th>
+                <th className="px-4 py-3 font-bold">PIC</th>
+                <th className="px-4 py-3 font-bold">Issue</th>
+                <th className="px-4 py-3 font-bold">Module</th>
+                <th className="px-4 py-3 font-bold">Billing Status</th>
+                <th className="px-4 py-3 font-bold">Billing Category</th>
+                <th className="px-4 py-3 font-bold text-right">Charges</th>
+                <th className="px-4 py-3 font-bold">Status Invoice</th>
+                <th className="px-4 py-3 font-bold">No. Invoice</th>
+                <th className="px-4 py-3 font-bold">Keterangan</th>
+                <th className="px-6 py-3 font-bold text-center">Aksi Cepat</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -291,8 +306,8 @@ export default function FinanceAuditPage() {
                 const meta = invoiceMeta[c.recordUuid] || {};
                 return (
                 <tr key={c.recordUuid} className="hover:bg-emerald-50/40 transition">
-                  <td className="px-6 py-3.5 text-slate-400">{c.no}</td>
-                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{fmtDate8(c.dateIssue)}</td>
+                  <td className="px-6 py-3.5 text-slate-400 tabular-nums">{c.no}</td>
+                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
                   <td className="px-4 py-3.5 font-semibold text-slate-800">{c.client}</td>
                   <td className="px-4 py-3.5 text-slate-500">{c.picName || '-'}</td>
                   <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[260px] truncate" title={c.issue}>{c.issue || '-'}</td>
@@ -301,12 +316,12 @@ export default function FinanceAuditPage() {
                   </td>
                   <td className="px-4 py-3.5 text-slate-500">{c.billingStatus}</td>
                   <td className="px-4 py-3.5 text-slate-600">{c.billingCategory || '-'}</td>
-                  <td className="px-4 py-3.5 text-right font-medium text-slate-700">{fmtMoney(c.charges)}</td>
+                  <td className="px-4 py-3.5 text-right font-semibold text-slate-800 tabular-nums whitespace-nowrap">{fmtMoney(c.charges)}</td>
                   <td className="px-4 py-3.5">
                     <select
                       value={invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE'}
                       onChange={(e) => handleInvoice(c.recordUuid, e.target.value)}
-                      className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white max-w-[180px]"
+                      className={`text-xs font-semibold border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white max-w-[180px] ${INV_TONE[invoiceStatus[c.recordUuid]] || 'border-slate-200 text-slate-600'}`}
                     >
                       {invoiceActions.map((a) => (
                         <option key={a} value={a}>{a}</option>
@@ -319,7 +334,7 @@ export default function FinanceAuditPage() {
                       placeholder="No. invoice"
                       value={meta.no || ''}
                       onChange={(e) => updateInvoiceMeta(c.recordUuid, { no: e.target.value })}
-                      className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white w-[130px]"
+                      className="text-xs font-mono border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white w-[130px]"
                     />
                   </td>
                   <td className="px-4 py-3.5">
