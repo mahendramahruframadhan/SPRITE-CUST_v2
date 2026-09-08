@@ -98,19 +98,20 @@ export async function initDb() {
     if (c === 0) {
       const now = new Date().toISOString();
       const users = [
-        ['u_rani', 'Rani Admin', 'rani@revota.id', 'Super Admin'],
-        ['u_budi', 'Budi Santoso', 'budi.cs@revota.id', 'Admin CS'],
-        ['u_sari', 'Sari Support', 'sari@revota.id', 'Support'],
-        ['u_fajar', 'Fajar Finance', 'finance@revota.id', 'Finance'],
-        ['u_vina', 'Vina Viewer', 'vina@revota.id', 'Viewer'],
+        ['u_admin', 'Admin Utama', 'admin@revota.id', 'Super Admin', '12345'],
+        ['u_rani', 'Rani Admin', 'rani@revota.id', 'Super Admin', 'password123'],
+        ['u_budi', 'Budi Santoso', 'budi.cs@revota.id', 'Admin CS', 'password123'],
+        ['u_sari', 'Sari Support', 'sari@revota.id', 'Support', 'password123'],
+        ['u_fajar', 'Fajar Finance', 'finance@revota.id', 'Finance', 'password123'],
+        ['u_vina', 'Vina Viewer', 'vina@revota.id', 'Viewer', 'password123'],
       ];
-      for (const [id, name, email, role] of users) {
+      for (const [id, name, email, role, pwd] of users) {
         await db.execute(`INSERT INTO "user" (id,name,email,email_verified,role,active,created_at,updated_at) VALUES ('${id}','${name}','${email}',1,'${role}',1,'${now}','${now}') ON CONFLICT (id) DO NOTHING` as any);
         // also create account entry with password hash placeholder — real sign-up will overwrite
         const accId = `acc_${id}`;
-        await db.execute(`INSERT INTO account (id,account_id,provider_id,user_id,password,created_at,updated_at) VALUES ('${accId}','${email}','credential','${id}','password123','${now}','${now}') ON CONFLICT (id) DO NOTHING` as any);
+        await db.execute(`INSERT INTO account (id,account_id,provider_id,user_id,password,created_at,updated_at) VALUES ('${accId}','${email}','credential','${id}','${pwd}','${now}','${now}') ON CONFLICT (id) DO NOTHING` as any);
       }
-      console.log(`[db] seeded 5 users`);
+      console.log(`[db] seeded 6 users`);
     }
   } catch (e) {
     console.warn('[db] seed users skipped', e);
@@ -128,6 +129,7 @@ export async function initDb() {
       return res.rows || res;
     };
     const roleSeed: Record<string, string> = {
+      'admin@revota.id': 'Super Admin',
       'rani@revota.id': 'Super Admin',
       'budi.cs@revota.id': 'Admin CS',
       'sari@revota.id': 'Support',
