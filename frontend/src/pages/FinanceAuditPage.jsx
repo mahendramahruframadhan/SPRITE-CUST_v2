@@ -2,48 +2,35 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Pie, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
-import { patchInvoice } from '../lib/api.js';
+import { useInvoiceState, DEFAULT_INVOICE, DEFAULT_INVOICE_STATUS } from '../hooks/useInvoiceState.js';
+import { recordActivity } from '../lib/activity.js';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const VALID_TAG = 'VALID - SIAP INVOICE';
-const INVOICE_ACTIONS = ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'PAID'];
+const PIE_COLORS = ['#f59e0b', '#8b5cf6', '#10b981', '#f43f5e', '#06b6d4', '#f97316'];
 
-function loadInvoiceStatus() {
-  return JSON.parse(localStorage.getItem('caseInvoiceStatus')) || {};
-}
+const shortInvoice = (a) => (a === 'INVOICE TERBIT' ? 'Terbit Invoice' : a === 'PAID' ? 'Paid' : a);
 
 export default function FinanceAuditPage() {
   const { user } = useAuth();
   const { caseAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
-  const [invoiceStatus, setInvoiceStatus] = useState(loadInvoiceStatus);
+  const { invoiceActions, invoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, ensureDefaults } = useInvoiceState();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [brand, setBrand] = useState('');
   const [billStatus, setBillStatus] = useState('');
   const [invFilter, setInvFilter] = useState('');
+  const [masterOpen, setMasterOpen] = useState(false);
+  const [newAction, setNewAction] = useState('');
 
   // Pastikan kasus tervalidasi punya status invoice default
   useEffect(() => {
-    setInvoiceStatus((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      validatedPool.forEach((c) => {
-        if (!next[c.recordUuid]) {
-          next[c.recordUuid] = 'MENUNGGU INVOICE';
-          changed = true;
-        }
-      });
-      return changed ? next : prev;
-    });
+    ensureDefaults(validatedPool.map((c) => c.recordUuid));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseAuditStatus]);
-
-  useEffect(() => {
-    localStorage.setItem('caseInvoiceStatus', JSON.stringify(invoiceStatus));
-  }, [invoiceStatus]);
 
   const brands = useMemo(
     () => [...new Set(allCases.map((c) => c.client).filter(Boolean))].sort(),
@@ -101,19 +88,19 @@ export default function FinanceAuditPage() {
 
   const invCounts = useMemo(() => {
     const m = {};
-    INVOICE_ACTIONS.forEach((a) => (m[a] = 0));
+    invoiceActions.forEach((a) => (m[a] = 0));
     validatedPool.forEach((c) => {
       const a = invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE';
       m[a] = (m[a] || 0) + 1;
     });
     return m;
-  }, [validatedPool, invoiceStatus]);
+  }, [validatedPool, invoiceStatus, invoiceActions]);
 
   const distData = {
-    labels: INVOICE_ACTIONS,
+    labels: invoiceActions,
     datasets: [{
-      data: INVOICE_ACTIONS.map((a) => invCounts[a] || 0),
-      backgroundColor: ['#f59e0b', '#8b5cf6', '#10b981'],
+      data: invoiceActions.map((a) => invCounts[a] || 0),
+      backgroundColor: invoiceActions.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]),
       borderWidth: 0,
     }],
   };
@@ -134,9 +121,11 @@ export default function FinanceAuditPage() {
 
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
-  function setInvoice(uuid, action) {
-    setInvoiceStatus((prev) => ({ ...prev, [uuid]: action }));
-    patchInvoice(uuid, action).catch(() => {});
+  function handleInvoice(uuid, action) {
+    const c = allCases.find((x) => x.recordUuid === uuid);
+    updateInvoice(uuid, action);
+    const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
+    recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}`);
   }
 
   function exportData() {
@@ -171,6 +160,15 @@ export default function FinanceAuditPage() {
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2 -mt-1">
         <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">{user?.name || 'Finance User'}</span>
+        <button
+          onClick={() => setMasterOpen(true)}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-lg transition"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Master Status Invoice
+        </button>
         <button
           onClick={exportData}
           className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition"
@@ -275,7 +273,7 @@ export default function FinanceAuditPage() {
           <label className="text-xs font-semibold text-slate-500">Status Invoice</label>
           <select value={invFilter} onChange={(e) => setInvFilter(e.target.value)} className={`${filterCls} min-w-[180px]`}>
             <option value="">Semua</option>
-            {INVOICE_ACTIONS.map((a) => (
+            {invoiceActions.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
@@ -334,28 +332,32 @@ export default function FinanceAuditPage() {
                   <td className="px-4 py-3.5">
                     <select
                       value={invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE'}
-                      onChange={(e) => setInvoice(c.recordUuid, e.target.value)}
+                      onChange={(e) => handleInvoice(c.recordUuid, e.target.value)}
                       className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white max-w-[180px]"
                     >
-                      {INVOICE_ACTIONS.map((a) => (
+                      {invoiceActions.map((a) => (
                         <option key={a} value={a}>{a}</option>
                       ))}
                     </select>
                   </td>
                   <td className="px-6 py-3.5 text-center">
                     <div className="flex items-center justify-center gap-1 flex-wrap">
-                      <button
-                        onClick={() => setInvoice(c.recordUuid, 'INVOICE TERBIT')}
-                        className="text-[10px] font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 px-2 py-1 rounded transition"
-                      >
-                        Terbit Invoice
-                      </button>
-                      <button
-                        onClick={() => setInvoice(c.recordUuid, 'PAID')}
-                        className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded transition"
-                      >
-                        Paid
-                      </button>
+                      {invoiceActions
+                        .filter((a) => a !== (invoiceStatus[c.recordUuid] || DEFAULT_INVOICE_STATUS))
+                        .slice(0, 2)
+                        .map((a, i) => (
+                          <button
+                            key={a}
+                            onClick={() => handleInvoice(c.recordUuid, a)}
+                            className={`text-[10px] font-semibold px-2 py-1 rounded transition ${
+                              i === 0
+                                ? 'text-violet-600 bg-violet-50 hover:bg-violet-100'
+                                : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
+                            }`}
+                          >
+                            {shortInvoice(a)}
+                          </button>
+                        ))}
                     </div>
                   </td>
                 </tr>
@@ -380,6 +382,71 @@ export default function FinanceAuditPage() {
           <span className="font-bold text-slate-700">Total: {fmtMoney(total)}</span>
         </div>
       </div>
+
+      {/* Modal Master Status Invoice */}
+      {masterOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setMasterOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in-fast">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900">Master Status Invoice</h3>
+              <button onClick={() => setMasterOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-6 py-4">
+              <ul className="divide-y divide-slate-100">
+                {invoiceActions.map((a) => (
+                  <li key={a} className="py-3 flex items-center justify-between gap-2">
+                    <span className="text-sm text-slate-700 font-medium">{a}</span>
+                    {DEFAULT_INVOICE.includes(a) ? (
+                      <span className="text-[10px] text-slate-400">Default</span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (confirm('Yakin hapus status ini? Kasus yang menggunakannya akan kembali ke default.')) {
+                            removeInvoiceAction(a);
+                            recordActivity(`menghapus status invoice "${a}"`, 'kasus terkait kembali ke MENUNGGU INVOICE');
+                          }
+                        }}
+                        className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <form
+                className="mt-4 flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const val = newAction.trim().toUpperCase();
+                  if (!val) return;
+                  if (invoiceActions.includes(val)) {
+                    alert('Status sudah ada');
+                    return;
+                  }
+                  addInvoiceAction(val);
+                  recordActivity(`menambah status invoice baru "${val}"`);
+                  setNewAction('');
+                }}
+              >
+                <input
+                  type="text"
+                  placeholder="Status invoice baru..."
+                  value={newAction}
+                  onChange={(e) => setNewAction(e.target.value)}
+                  className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white"
+                />
+                <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 rounded-lg transition">Tambah</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
