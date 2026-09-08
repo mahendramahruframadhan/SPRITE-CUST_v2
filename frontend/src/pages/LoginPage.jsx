@@ -1,14 +1,29 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, MOCK_USERS } from '../context/AuthContext.jsx';
 import Icon from '../components/Icon.jsx';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('finance@revota.id');
-  const [password, setPassword] = useState('password123');
+  const location = useLocation();
+  // Alur daftar → login: /signup mengarahkan ke sini dengan state
+  // { justRegistered, email, firstRun, compat }. Email terisi otomatis,
+  // password SELALU dikosongkan dan fokus dipindah ke kolom password.
+  const regState = location.state?.justRegistered ? location.state : null;
+  const [email, setEmail] = useState(regState?.email || 'finance@revota.id');
+  const [password, setPassword] = useState(regState ? '' : 'password123');
   const [error, setError] = useState('');
+  const passwordRef = useRef(null);
+
+  useEffect(() => {
+    if (regState) {
+      passwordRef.current?.focus();
+      // Hapus state dari history agar banner tidak muncul lagi saat refresh.
+      window.history.replaceState({}, '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -41,6 +56,17 @@ export default function LoginPage() {
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
+            {regState && (
+              <div role="status" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold px-4 py-3 rounded-lg">
+                Pendaftaran berhasil{regState.firstRun ? ' — akun Super Admin pertama' : ''}.
+                Silakan login dengan email &amp; password Anda.
+              </div>
+            )}
+            {regState?.compat && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-lg">
+                Catatan: backend dalam mode kompatibilitas — role final dikunci saat kontrak setup aktif.
+              </div>
+            )}
             {error && (
               <div className="bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold px-4 py-3 rounded-lg">
                 {error}
@@ -59,6 +85,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Password</label>
               <input
+                ref={passwordRef}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

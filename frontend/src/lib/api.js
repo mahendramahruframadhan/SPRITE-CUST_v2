@@ -10,7 +10,22 @@ async function req(path, opts = {}) {
     ...opts,
     ...(opts.body && typeof opts.body !== 'string' ? { body: JSON.stringify(opts.body) } : {}),
   });
-  if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+  if (!res.ok) {
+    // Teruskan pesan backend (mis. { code: 'EMAIL_TAKEN', message }) agar
+    // halaman (registrasi, roles) bisa menampilkan alasan yang tepat.
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+    const err = new Error(data?.message || `API ${res.status}: ${path}`);
+    err.status = res.status;
+    err.code = data?.code;
+    err.fields = data?.fields;
+    err.data = data;
+    throw err;
+  }
   return res.json();
 }
 
