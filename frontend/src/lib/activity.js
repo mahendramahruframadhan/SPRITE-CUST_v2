@@ -14,19 +14,20 @@ export function currentWho() {
   }
 }
 
-export function recordActivity(action, detail = '') {
+export function recordActivity(action, detail = '', category = '') {
   const entry = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     time: new Date().toISOString(),
     who: currentWho(),
     action,
     detail,
+    category,
   };
   try {
     const prev = JSON.parse(localStorage.getItem(KEY)) || [];
     localStorage.setItem(KEY, JSON.stringify([entry, ...prev].slice(0, MAX)));
   } catch {}
-  postLog(entry.who, detail ? `${action} — ${detail}` : action).catch(() => {});
+  postLog(entry.who, action, { detail: detail || undefined, category: category || undefined }).catch(() => {});
   return entry;
 }
 

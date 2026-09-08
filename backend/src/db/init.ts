@@ -5,11 +5,11 @@ import { getDb, getMemDb } from './drizzle.service';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
 const ROLE_PERMS: Record<string, Record<string, number>> = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0 },
-  Support: { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0 },
-  Finance: { dashboard: 1, cases: 0, form: 0, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0 },
+  'Super Admin': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1, logs: 1 },
+  'Admin CS': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0, logs: 1 },
+  Support: { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0 },
+  Finance: { dashboard: 1, cases: 0, form: 0, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0, logs: 1 },
+  Viewer: { dashboard: 1, cases: 1, form: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0 },
 };
 
 export async function initDb() {
@@ -41,7 +41,7 @@ export async function initDb() {
     ALTER TABLE "user" ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'Viewer';
     ALTER TABLE "user" ADD COLUMN IF NOT EXISTS active INTEGER DEFAULT 1;
     CREATE TABLE IF NOT EXISTS role_permissions (role TEXT NOT NULL, module TEXT NOT NULL, allowed INTEGER DEFAULT 0, updated_at TEXT, PRIMARY KEY (role, module));
-    CREATE TABLE IF NOT EXISTS activity_logs (id TEXT PRIMARY KEY, who TEXT, action TEXT NOT NULL, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS activity_logs (id TEXT PRIMARY KEY, who TEXT, action TEXT NOT NULL, category TEXT, detail TEXT, record_uuid TEXT, created_at TEXT NOT NULL);
   `;
 
   if (!isRealPg && mem) {
@@ -140,6 +140,20 @@ export async function initDb() {
       await q(`UPDATE "user" SET role='${role}' WHERE email='${email}' AND role='Viewer'`);
     }
     await q(`UPDATE "user" SET active=1 WHERE active IS NULL`);
+    // Migrasi ringan: kolom baru activity_logs untuk DB lama (aman bila sudah ada)
+    for (const col of ['category TEXT', 'detail TEXT', 'record_uuid TEXT']) {
+      try {
+        await q(`ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS ${col}`);
+      } catch {}
+    }
+    // Backfill izin modul 'logs' untuk DB yang di-seed sebelum modul ini ada
+    try {
+      const now = new Date().toISOString();
+      const logsSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 1, Support: 0, Finance: 1, Viewer: 0 };
+      for (const [role, allowed] of Object.entries(logsSeed)) {
+        await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','logs',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
+      }
+    } catch {}
     const pc: any = await q(`SELECT COUNT(*) as c FROM role_permissions`);
     if (!Number(pc[0]?.c || 0)) {
       const now = new Date().toISOString();

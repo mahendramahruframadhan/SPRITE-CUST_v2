@@ -158,7 +158,7 @@ export default function BillingPage() {
     const c = allCases.find((x) => x.recordUuid === uuid);
     updateAudit(uuid, action);
     const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
-    recordActivity(`mengubah status validasi ${label}`, `menjadi ${action}`);
+    recordActivity(`mengubah status validasi ${label}`, `menjadi ${action}`, 'Validasi');
   }
 
   function exportData() {
@@ -495,7 +495,7 @@ export default function BillingPage() {
                         onClick={() => {
                           if (confirm('Yakin hapus action ini? Kasus yang menggunakan action ini akan kembali ke default.')) {
                             removeAction(a);
-                            recordActivity(`menghapus status validasi "${a}"`, 'kasus terkait kembali ke BELUM DIVALIDASI');
+                            recordActivity(`menghapus status validasi "${a}"`, 'kasus terkait kembali ke BELUM DIVALIDASI', 'Konfigurasi');
                           }
                         }}
                         className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
@@ -519,7 +519,7 @@ export default function BillingPage() {
                     return;
                   }
                   addAction(val);
-                  recordActivity(`menambah status validasi baru "${val}"`);
+                  recordActivity(`menambah status validasi baru "${val}"`, '', 'Konfigurasi');
                   setNewAction('');
                 }}
               >

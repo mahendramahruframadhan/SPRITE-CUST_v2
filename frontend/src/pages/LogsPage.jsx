@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { getLogs } from '../lib/api.js';
 import { readLocalActivity } from '../lib/activity.js';
 
-const CATS = ['Semua', 'Penambahan', 'Validasi', 'Invoice', 'Pengguna', 'Sinkron', 'Lainnya'];
+const CATS = ['Semua', 'Penambahan', 'Validasi', 'Invoice', 'Pengguna', 'Konfigurasi', 'Sinkron', 'Lainnya'];
 
 const CAT_BADGE = {
   Penambahan: 'bg-emerald-50 text-emerald-600 border-emerald-200',
   Validasi: 'bg-amber-50 text-amber-600 border-amber-200',
   Invoice: 'bg-violet-50 text-violet-600 border-violet-200',
   Pengguna: 'bg-sky-50 text-sky-600 border-sky-200',
+  Konfigurasi: 'bg-cyan-50 text-cyan-600 border-cyan-200',
   Sinkron: 'bg-slate-100 text-slate-600 border-slate-200',
   Lainnya: 'bg-slate-100 text-slate-500 border-slate-200',
 };
@@ -18,9 +19,21 @@ function categorize(text) {
   if (/pengguna|role|izin|akun|password/.test(t)) return 'Pengguna';
   if (/invoice|paid/.test(t)) return 'Invoice';
   if (/validasi|audit|dicek/.test(t)) return 'Validasi';
+  if (/status validasi baru|status invoice baru|master|konfigurasi/.test(t)) return 'Konfigurasi';
   if (/menambah|baru|membuat/.test(t)) return 'Penambahan';
   if (/sync|cron|sheet|unggah|impor/.test(t)) return 'Sinkron';
   return 'Lainnya';
+}
+
+// Kategori terstruktur dari backend diutamakan; fallback tebak dari teks
+const entryCat = (e) => (e.category && CATS.includes(e.category) ? e.category : categorize(e.text));
+
+// Entri lokal yang sudah tersimpan di server (tulisan ganda frontend+backend)
+// disembunyikan: cocok who+teks dalam selisih 5 menit
+function dedupe(local, remote) {
+  return local.filter(
+    (l) => !remote.some((r) => r.who === l.who && r.text === l.text && Math.abs(new Date(r.time) - new Date(l.time)) < 5 * 60 * 1000)
+  );
 }
 
 function fmtTime(t) {
@@ -46,6 +59,9 @@ export default function LogsPage() {
       id: `local-${e.id}`,
       time: e.time,
       who: e.who,
+      action: e.action,
+      detail: e.detail || null,
+      category: e.category || null,
       text: e.detail ? `${e.action} — ${e.detail}` : e.action,
     }));
     getLogs()
@@ -56,10 +72,13 @@ export default function LogsPage() {
               id: `srv-${e.id || i}`,
               time: e.created_at || e.time,
               who: e.who,
-              text: e.action || e.act,
+              action: e.action || e.act,
+              detail: e.detail || null,
+              category: e.category || null,
+              text: e.detail ? `${e.action || e.act} — ${e.detail}` : (e.action || e.act),
             }))
           : [];
-        const merged = [...local, ...remote]
+        const merged = [...dedupe(local, remote), ...remote]
           .filter((e) => e.text)
           .sort((a, b) => new Date(b.time) - new Date(a.time));
         setLogs(merged.length ? merged : local);
@@ -82,7 +101,7 @@ export default function LogsPage() {
   const counts = useMemo(() => {
     const m = { Semua: logs.length };
     logs.forEach((e) => {
-      const c = categorize(e.text);
+      const c = entryCat(e);
       m[c] = (m[c] || 0) + 1;
     });
     return m;
@@ -92,7 +111,7 @@ export default function LogsPage() {
     () =>
       logs.filter(
         (e) =>
-          (cat === 'Semua' || categorize(e.text) === cat) &&
+          (cat === 'Semua' || entryCat(e) === cat) &&
           `${e.who} ${e.text}`.toLowerCase().includes(q.toLowerCase())
       ),
     [logs, q, cat]
@@ -191,7 +210,7 @@ export default function LogsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paged.map((e) => {
-                const c = categorize(e.text);
+                const c = entryCat(e);
                 return (
                   <tr key={e.id} className="hover:bg-slate-50 transition">
                     <td className="px-6 py-3.5 text-slate-500 whitespace-nowrap text-xs">{fmtTime(e.time)}</td>

@@ -131,7 +131,7 @@ export default function FormKasusPage() {
     try {
       // POST /api/cases — backend menulis ke DB (+ Sheets bila SHEETS_MOCK=false)
       await createCase({ ...form, month: form.monthName });
-      recordActivity(`menambah kasus baru (${form.client})`, String(form.issue || '').slice(0, 80));
+      recordActivity(`menambah kasus baru (${form.client})`, String(form.issue || '').slice(0, 80), 'Penambahan');
       alert('Kasus tersimpan di backend.');
       resetForm();
     } catch (e) {

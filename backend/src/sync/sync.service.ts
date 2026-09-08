@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { getDb } from '../db/drizzle.service';
 import { SheetsService } from '../sheets/sheets.service';
+import { logActivity } from '../logs/activity';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -28,6 +29,7 @@ export class SyncService {
         n++;
       }
       await this.db.execute(`UPDATE sync_logs SET finished_at='${new Date().toISOString()}', status='success', rows_processed=${n} WHERE id='${id}'` as any);
+      await logActivity(this.db, { who: 'Sistem', action: 'sinkronisasi Google Sheets selesai', category: 'Sinkron', detail: `${n} baris diproses (sumber: ${source})` });
       return { ok: true, rows: n };
     } catch (e: any) {
       await this.db.execute(`UPDATE sync_logs SET finished_at='${new Date().toISOString()}', status='failed', error_message='${String(e.message||e).replace(/'/g,"''")}' WHERE id='${id}'` as any);

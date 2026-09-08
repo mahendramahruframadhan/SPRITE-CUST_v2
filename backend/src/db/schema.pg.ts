@@ -130,5 +130,8 @@ export const activityLogs = pgTable('activity_logs', {
   id: text('id').primaryKey(),
   who: text('who'),
   action: text('action').notNull(),
+  category: text('category'),
+  detail: text('detail'),
+  recordUuid: text('record_uuid'),
   createdAt: text('created_at').notNull(),
 });

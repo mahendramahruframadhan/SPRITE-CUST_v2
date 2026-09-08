@@ -114,7 +114,7 @@ export default function FinanceAuditPage() {
     const meta = invoiceMeta[uuid] || {};
     const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
     const invNo = (meta.no || '').trim();
-    recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}${invNo ? ` • no. invoice ${invNo}` : ''}`);
+    recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}${invNo ? ` • no. invoice ${invNo}` : ''}`, 'Invoice');
   }
 
   function exportData() {
@@ -416,7 +416,7 @@ export default function FinanceAuditPage() {
                         onClick={() => {
                           if (confirm('Yakin hapus status ini? Kasus yang menggunakannya akan kembali ke default.')) {
                             removeInvoiceAction(a);
-                            recordActivity(`menghapus status invoice "${a}"`, 'kasus terkait kembali ke MENUNGGU INVOICE');
+                            recordActivity(`menghapus status invoice "${a}"`, 'kasus terkait kembali ke MENUNGGU INVOICE', 'Konfigurasi');
                           }
                         }}
                         className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
@@ -438,7 +438,7 @@ export default function FinanceAuditPage() {
                     return;
                   }
                   addInvoiceAction(val);
-                  recordActivity(`menambah status invoice baru "${val}"`);
+                  recordActivity(`menambah status invoice baru "${val}"`, '', 'Konfigurasi');
                   setNewAction('');
                 }}
               >

@@ -1,7 +1,7 @@
-import { Controller, Get, Put, Post, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Post, Patch, Delete, Param, Body, Req, UseGuards } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
-import * as crypto from 'crypto';
+import { logActivity, resolveWho } from '../logs/activity';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'finance', 'mockup', 'roles'];
@@ -93,16 +93,18 @@ export class RolesController {
 
   @Get('roles/logs')
   async logs() {
-    const r: any = await this.db.execute(`SELECT who,action,created_at as time FROM activity_logs ORDER BY created_at DESC LIMIT 30` as any);
-    return (r.rows || r).map((l: any) => ({ who: l.who, act: l.action, time: l.time }));
+    const r: any = await this.db.execute(`SELECT id,who,action,category,detail,record_uuid,created_at as time FROM activity_logs ORDER BY created_at DESC LIMIT 200` as any);
+    return (r.rows || r).map((l: any) => ({ id: l.id, who: l.who, act: l.action, action: l.action, category: l.category || null, detail: l.detail || null, recordUuid: l.record_uuid || null, time: l.time }));
   }
 
+  // POST terbuka untuk semua role: setiap pengguna boleh mencatat aktivitasnya
+  // sendiri (who dari body, fallback header x-user-email). Tanpa ini, role
+  // Finance/Support selalu 403 dan aktivitasnya hilang dari Logs.
   @Post('roles/logs')
-  @UseGuards(PermGuard)
-  @Perm('roles')
-  async addLog(@Body() b: any) {
+  async addLog(@Body() b: any, @Req() req: any) {
     if (!b.action) return { ok: false, error: 'action required' };
-    await this.db.execute(`INSERT INTO activity_logs (id,who,action,created_at) VALUES ('${crypto.randomUUID()}','${esc(b.who || 'Admin')}','${esc(b.action)}','${new Date().toISOString()}')` as any);
+    const who = b.who || (await resolveWho(this.db, req, ''));
+    await logActivity(this.db, { who, action: b.action, category: b.category, detail: b.detail, recordUuid: b.recordUuid || b.record_uuid });
     return { ok: true };
   }
 }
