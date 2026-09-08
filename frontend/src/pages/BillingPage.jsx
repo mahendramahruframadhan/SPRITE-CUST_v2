@@ -16,8 +16,10 @@ export default function BillingPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [brand, setBrand] = useState('');
-  const [status, setStatus] = useState('');
+  const [cat, setCat] = useState('ON-CALL');
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
   const [masterOpen, setMasterOpen] = useState(false);
   const [newAction, setNewAction] = useState('');
 
@@ -33,10 +35,32 @@ export default function BillingPage() {
       (c) =>
         (!f || c.dateIssue >= f) &&
         (!t || c.dateIssue <= t) &&
-        (!brand || c.client === brand) &&
-        (!status || c.billingStatus === status)
+        (!brand || c.client === brand)
     );
-  }, [from, to, brand, status, allCases]);
+  }, [from, to, brand, allCases]);
+
+  const CATS = ['ON-CALL', 'MONTHLY', 'FREE'];
+
+  const catStats = useMemo(() => {
+    const m = {
+      'ON-CALL': { count: 0, amount: 0 },
+      MONTHLY: { count: 0, amount: 0 },
+      FREE: { count: 0, amount: 0 },
+    };
+    filtered.forEach((c) => {
+      const s = m[c.billingStatus];
+      if (s) {
+        s.count += 1;
+        s.amount += +c.charges || 0;
+      }
+    });
+    return m;
+  }, [filtered]);
+
+  const catItems = useMemo(
+    () => filtered.filter((c) => c.billingStatus === cat),
+    [filtered, cat]
+  );
 
   const stats = useMemo(() => {
     const free = filtered.filter((c) => c.billingStatus === 'FREE');
@@ -109,25 +133,32 @@ export default function BillingPage() {
     plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } } },
   };
 
-  const items = filtered.filter((c) =>
+  const items = catItems.filter((c) =>
     `${c.client} ${c.issue} ${c.billingCategory} ${c.picName}`.toLowerCase().includes(q.toLowerCase())
   );
   const grandTotal = items.reduce((a, c) => a + (+c.charges || 0), 0);
 
-  const paidSummary = useMemo(() => {
-    const amount = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
-    const done = filtered.filter((c) => caseAuditStatus[c.recordUuid] === 'VALID - SIAP INVOICE').length;
-    const follow = filtered.filter((c) => caseAuditStatus[c.recordUuid] === 'PERLU DICEK ULANG').length;
-    const belum = filtered.filter((c) => (caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI') === 'BELUM DIVALIDASI').length;
-    return { amount, done, follow, belum };
-  }, [filtered, caseAuditStatus]);
+  useEffect(() => {
+    setPage(1);
+  }, [cat, q, from, to, brand, perPage]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const paged = items.slice((safePage - 1) * perPage, safePage * perPage);
+  const pageNums = (() => {
+    const start = Math.max(1, Math.min(safePage - 2, totalPages - 4));
+    const end = Math.min(totalPages, start + 4);
+    const arr = [];
+    for (let i = start; i <= end; i++) arr.push(i);
+    return arr;
+  })();
 
   function exportData() {
     const headers = ['NO', 'DATE ISSUE', 'CLIENT', 'PIC NAME', 'MODULE', 'BILLING STATUS', 'BILLING CATEGORY', 'SUPPORT TYPE', 'CHARGES', 'STATUS VALIDASI', 'COMPLETION NOTES', 'RECORD_UUID'];
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csv = [
       headers.join(','),
-      ...filtered.map((c) =>
+      ...catItems.map((c) =>
         [
           c.no, c.dateIssue, c.client, c.picName, c.module, c.billingStatus, c.billingCategory,
           c.supportType, c.charges, caseAuditStatus[c.recordUuid] || '', c.completionNotes, c.recordUuid,
@@ -140,10 +171,28 @@ export default function BillingPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'billing-audit.csv';
+    a.download = `billing-audit-${cat.toLowerCase()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  const CAT_META = {
+    'ON-CALL': {
+      gradient: 'from-amber-500 to-orange-500',
+      softIcon: 'bg-amber-100 text-amber-600',
+      icon: <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />,
+    },
+    MONTHLY: {
+      gradient: 'from-sky-500 to-blue-600',
+      softIcon: 'bg-sky-100 text-sky-600',
+      icon: <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />,
+    },
+    FREE: {
+      gradient: 'from-emerald-500 to-teal-600',
+      softIcon: 'bg-emerald-100 text-emerald-600',
+      icon: <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />,
+    },
+  };
 
   const filterCls =
     'mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white';
@@ -204,16 +253,55 @@ export default function BillingPage() {
         </ChartPanel>
       </div>
 
+      {/* Tab Kategori Billing */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori Billing</p>
+          <p className="text-xs text-slate-400">
+            Total <span className="font-bold text-slate-700">{fmtMoney((catStats[cat] || {}).amount || 0)}</span>
+            {' '}• {((catStats[cat] || {}).count || 0).toLocaleString('id-ID')} kasus {cat}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-100 rounded-xl p-1.5">
+          {CATS.map((c) => {
+            const active = cat === c;
+            const meta = CAT_META[c];
+            const s = catStats[c] || { count: 0, amount: 0 };
+            return (
+              <button
+                key={c}
+                onClick={() => setCat(c)}
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200 ${
+                  active
+                    ? `bg-gradient-to-r ${meta.gradient} text-white shadow-md`
+                    : 'text-slate-500 hover:bg-white hover:shadow-sm'
+                }`}
+              >
+                <span className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${active ? 'bg-white/20' : meta.softIcon}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                    {meta.icon}
+                  </svg>
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-extrabold tracking-wide">{c}</span>
+                  <span className={`block text-[11px] font-medium truncate ${active ? 'text-white/85' : 'text-slate-400'}`}>
+                    {s.count.toLocaleString('id-ID')} kasus • {fmtMoney(s.amount)}
+                  </span>
+                </span>
+                {active && (
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Detail Kasus */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
-            <SummaryBox label="Total Kasus" value={filtered.length.toLocaleString('id-ID')} cls="text-slate-800" />
-            <SummaryBox label="Total Tagihan" value={fmtMoney(paidSummary.amount)} cls="text-emerald-600" />
-            <SummaryBox label="Valid — Siap Invoice" value={paidSummary.done.toLocaleString('id-ID')} cls="text-brand-600" />
-            <SummaryBox label="Perlu Dicek Ulang" value={paidSummary.follow.toLocaleString('id-ID')} cls="text-rose-600" />
-            <SummaryBox label="Belum Divalidasi" value={paidSummary.belum.toLocaleString('id-ID')} cls="text-amber-600" />
-          </div>
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <label className="text-xs font-semibold text-slate-500">Date From</label>
@@ -232,21 +320,11 @@ export default function BillingPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-500">Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${filterCls} min-w-[150px]`}>
-                <option value="">Semua Status</option>
-                <option value="ON-CALL">ON-CALL</option>
-                <option value="MONTHLY">MONTHLY</option>
-                <option value="FREE">FREE</option>
-              </select>
-            </div>
             <button
               onClick={() => {
                 setFrom('');
                 setTo('');
                 setBrand('');
-                setStatus('');
               }}
               className="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition"
             >
@@ -262,7 +340,7 @@ export default function BillingPage() {
         </div>
 
         <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
-          <h3 className="font-bold text-slate-900">Detail Kasus</h3>
+          <h3 className="font-bold text-slate-900">Detail Kasus — {cat}</h3>
           <div className="ml-auto relative">
             <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -295,7 +373,7 @@ export default function BillingPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {items.map((c) => (
+              {paged.map((c) => (
                 <tr key={c.recordUuid} className="hover:bg-slate-50 transition">
                   <td className="px-6 py-3.5 text-slate-400">{c.no}</td>
                   <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{fmtDate8(c.dateIssue)}</td>
@@ -333,15 +411,55 @@ export default function BillingPage() {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={11} className="px-6 py-12 text-center text-slate-400 text-sm">
-                    Tidak ada data yang cocok dengan filter
+                    Tidak ada data {cat} yang cocok dengan filter
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-          <span>Menampilkan {items.length} data</span>
+        <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+          <span>
+            Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} data
+          </span>
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+            >
+              ‹
+            </button>
+            {pageNums.map((n) => (
+              <button
+                key={n}
+                onClick={() => setPage(n)}
+                className={`min-w-[32px] px-2 py-1.5 rounded-lg border font-bold transition ${
+                  n === safePage
+                    ? 'bg-brand-600 border-brand-600 text-white'
+                    : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+            >
+              ›
+            </button>
+          </div>
+          <select
+            value={perPage}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white font-semibold text-slate-600"
+          >
+            <option value={10}>10 / halaman</option>
+            <option value={50}>50 / halaman</option>
+            <option value={100}>100 / halaman</option>
+          </select>
           <span className="font-bold text-slate-700">Total: {fmtMoney(grandTotal)}</span>
         </div>
       </div>
