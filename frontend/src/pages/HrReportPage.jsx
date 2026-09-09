@@ -110,7 +110,9 @@ export default function HrReportPage() {
   });
 
   const periodLabel = from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal';
-  const reportPeriod = `${fmtDate8(from.replace(/-/g, ''))} — ${fmtDate8(to.replace(/-/g, ''))}` + (pic ? ` · PIC: ${pic}` : '');
+  const reportPeriod = (from || to
+    ? `${from ? fmtDate8(from.replace(/-/g, '')) : 'Awal'} — ${to ? fmtDate8(to.replace(/-/g, '')) : 'Akhir'}`
+    : 'Semua tanggal') + (pic ? ` · PIC: ${pic}` : '');
 
   /* Rekapitulasi */
   const { byPic, picList, grand, grandTotal } = useMemo(() => {
@@ -195,7 +197,7 @@ export default function HrReportPage() {
           </div>
         </div>
         <button
-          onClick={() => setPic('')}
+          onClick={() => { setPic(''); setFrom(''); setTo(''); }}
           className="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition"
         >
           Reset
@@ -330,7 +332,7 @@ export default function HrReportPage() {
             </table>
           </div>
           <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between text-xs text-slate-400">
-            <span>Menampilkan {detailRows.length} ticket</span>
+            <span>Menampilkan {detailRows.length} dari {allCases.length} ticket{pic ? ` · PIC: ${pic}` : ''}</span>
             <span>Sumber: Google Sheets (sinkron)</span>
           </div>
         </div>
