@@ -94,20 +94,6 @@ export default function FinanceAuditPage() {
     });
   }, [validatedPool, invoiceStatus, from, to, brand, billStatus, invFilter]);
 
-  const outstandingData = useMemo(() => {
-    const clientOut = {};
-    validatedPool
-      .filter((c) => (invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE') !== 'PAID')
-      .forEach((c) => {
-        clientOut[c.client] = (clientOut[c.client] || 0) + (+c.charges || 0);
-      });
-    const top = Object.entries(clientOut).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    return {
-      labels: top.map((t) => t[0]),
-      datasets: [{ label: 'Outstanding (Rp)', data: top.map((t) => t[1]), backgroundColor: '#10b981', borderRadius: 6 }],
-    };
-  }, [validatedPool, invoiceStatus]);
-
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
   function handleInvoice(uuid, action) {
@@ -197,35 +183,6 @@ export default function FinanceAuditPage() {
             <p className="mt-1 text-xs text-slate-400 font-medium">{d.sub}</p>
           </div>
         ))}
-      </div>
-
-      {/* Chart ringkas */}
-      <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm">Outstanding per Brand <span className="font-medium text-slate-400">• Top 5</span></h3>
-            <p className="text-[11px] text-slate-400">Brand dengan invoice belum PAID terbesar</p>
-          </div>
-          <p className="text-xs text-slate-400">
-            Total <span className="font-bold text-rose-600">{fmtMoney(stats.outstandingAmount)}</span>
-            {' '}• {stats.outstandingCount.toLocaleString('id-ID')} kasus
-          </p>
-        </div>
-        <div className="h-40">
-          <Bar
-            data={outstandingData}
-            options={{
-              indexAxis: 'y',
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: {
-                x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
-                y: { grid: { display: false }, ticks: { font: { size: 11 } } },
-              },
-            }}
-          />
-        </div>
       </div>
 
       {/* Filters */}

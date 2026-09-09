@@ -13,6 +13,8 @@ import {
 } from 'chart.js';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
+import { useAuditState } from '../hooks/useAuditState.js';
+import { useInvoiceState } from '../hooks/useInvoiceState.js';
 
 ChartJS.register(
   CategoryScale,
@@ -66,6 +68,8 @@ const BILL_BADGE = {
 /* ================= Page ================= */
 export default function DashboardPage() {
   const { cases: allCases, loading, error, reload } = useCases();
+  const { caseAuditStatus } = useAuditState();
+  const { invoiceStatus } = useInvoiceState();
   const [spinning, setSpinning] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(() => stampNow());
 
@@ -188,6 +192,28 @@ export default function DashboardPage() {
     datasets: [{ data: clientEntries.map((e) => e[1]), backgroundColor: '#3d3ece', borderRadius: 6, maxBarThickness: 30 }],
   };
 
+  // Outstanding: kasus tervalidasi (ON-CALL/MONTHLY) yang invoicenya belum PAID — sama seperti halaman Finance
+  const outstanding = useMemo(() => {
+    const pool = allCases.filter(
+      (c) =>
+        (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY') &&
+        caseAuditStatus[c.recordUuid] === 'VALID - SIAP INVOICE' &&
+        (invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE') !== 'PAID'
+    );
+    const byBrand = {};
+    pool.forEach((c) => {
+      const b = (c.client || '').trim() || '-';
+      byBrand[b] = (byBrand[b] || 0) + (+c.charges || 0);
+    });
+    const top = topEntries(byBrand, 5);
+    const amount = pool.reduce((s, c) => s + (+c.charges || 0), 0);
+    return { count: pool.length, amount, top, max: top.length ? top[0][1] : 1 };
+  }, [allCases, caseAuditStatus, invoiceStatus]);
+  const outstandingData = {
+    labels: outstanding.top.map((t) => t[0]),
+    datasets: [{ label: 'Outstanding (Rp)', data: outstanding.top.map((t) => t[1]), backgroundColor: '#f43f5e', borderRadius: 6, maxBarThickness: 22 }],
+  };
+
   const noLegend = { plugins: { legend: { display: false } } };
   const doughnutOpt = {
     responsive: true,
@@ -237,11 +263,12 @@ export default function DashboardPage() {
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
         <StatCard title="Total Kasus" value={fmtNum(TOTAL)} sub={`${uniqueClients} klien · ${Object.keys(moduleMap).length} modul`} icon="cases" box="bg-brand-50 text-brand-600" delay=".02s" />
         <StatCard title="Kasus Bulan Terakhir" value={fmtNum(latestYM ? ymMap[latestYM].count : 0)} sub={latestYM ? 'periode ' + ymLabels[ymLabels.length - 1] : '—'} icon="mockup" box="bg-sky-50 text-sky-500" delay=".06s" />
         <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} valueCls="text-amber-600" subCls="text-amber-600" sub={`${((paidCases.length / TOTAL) * 100).toFixed(1)}% dari total kasus`} icon="billing" box="bg-amber-50 text-amber-500" delay=".1s" />
         <StatCard title="Total Nilai Billing" value={fmtRpShort(totalCharge)} valueCls="text-emerald-600" subCls="text-emerald-600" sub={'dari ' + fmtNum(paidCases.length) + ' kasus berbayar'} icon="finance" box="bg-emerald-50 text-emerald-500" delay=".14s" />
+        <StatCard title="Total Outstanding" value={fmtRpShort(outstanding.amount)} valueCls="text-rose-600" subCls="text-rose-600" sub={`${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" box="bg-rose-50 text-rose-500" delay=".18s" />
       </div>
 
       {/* Rekap per fitur */}
@@ -328,6 +355,67 @@ export default function DashboardPage() {
                 scales: { y: { beginAtZero: true, grid: gridOpt, ticks: { callback: (v) => fmtRpShort(v) } }, x: { grid: { display: false } } },
               }}
             />
+          </div>
+        </Panel>
+      </div>
+
+      {/* Outstanding per brand */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <Panel className="xl:col-span-2" title="Outstanding per Brand" desc="Top 5 brand dengan invoice belum PAID" delay=".38s">
+          {outstanding.top.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-sm text-slate-400">
+              Tidak ada outstanding — semua invoice sudah PAID
+            </div>
+          ) : (
+            <div className="h-64">
+              <Bar
+                data={outstandingData}
+                options={{
+                  indexAxis: 'y',
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.x) } },
+                  },
+                  scales: {
+                    x: { beginAtZero: true, grid: gridOpt, ticks: { callback: (v) => fmtRpShort(v), font: { size: 10 } } },
+                    y: { grid: { display: false }, ticks: { font: { size: 11, weight: 600 } } },
+                  },
+                }}
+              />
+            </div>
+          )}
+        </Panel>
+        <Panel title="Ringkasan Outstanding" desc="Kasus tervalidasi yang belum PAID" delay=".42s">
+          <div className="space-y-5">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Outstanding</p>
+              <p className="mt-1 text-3xl font-extrabold text-rose-600">{fmtRpShort(outstanding.amount)}</p>
+              <p className="mt-1 text-xs text-slate-400 font-medium">{fmtNum(outstanding.count)} kasus · {fmtRp(outstanding.amount)}</p>
+            </div>
+            <div className="space-y-4">
+              {outstanding.top.slice(0, 3).map(([brand, amount]) => (
+                <div key={brand}>
+                  <div className="flex items-center justify-between text-sm mb-1.5">
+                    <span className="font-bold text-slate-700 truncate">{brand}</span>
+                    <span className="text-xs text-slate-400 font-semibold ml-2 whitespace-nowrap">{fmtRpShort(amount)}</span>
+                  </div>
+                  <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-rose-500 rounded-full transition-all duration-700" style={{ width: `${Math.round((amount / outstanding.max) * 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+              {outstanding.top.length === 0 && (
+                <p className="text-xs text-slate-400">Belum ada data outstanding.</p>
+              )}
+            </div>
+            <Link to="/finance" className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline">
+              Buka Finance Audit
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
           </div>
         </Panel>
       </div>
