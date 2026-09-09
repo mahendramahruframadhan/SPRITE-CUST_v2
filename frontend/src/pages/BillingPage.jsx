@@ -441,8 +441,7 @@ export default function BillingPage() {
                   <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{c.supportType || '-'}</td>
                   <td className="px-4 py-3.5 text-right font-semibold text-slate-700 whitespace-nowrap">{fmtMoney(c.charges)}</td>
                   <td className="px-4 py-3.5">
-                    {c.billingStatus !== 'FREE' ? (
-                      cat === 'ON-CALL' ? (
+                    {c.billingStatus === 'ON-CALL' ? (
                         (() => {
                           const current = caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI';
                           const idx = auditActions.indexOf(current);
@@ -471,18 +470,6 @@ export default function BillingPage() {
                             </div>
                           );
                         })()
-                      ) : (
-                      <select
-                        value={caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI'}
-                        onChange={(e) => handleAudit(c.recordUuid, e.target.value)}
-                        title="Ubah status validasi"
-                        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white max-w-[190px]"
-                      >
-                        {auditActions.map((a) => (
-                          <option key={a} value={a}>{a}</option>
-                        ))}
-                      </select>
-                      )
                     ) : (
                       <span className="text-xs text-slate-400">-</span>
                     )}
