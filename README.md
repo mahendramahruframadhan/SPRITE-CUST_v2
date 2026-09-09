@@ -156,22 +156,73 @@ lalu diatur role-nya di halaman `/roles` oleh Super Admin.
 
 ---
 
-## 7. Google Sheets
+## 7. Google Sheets — mode mock vs live
 
 Sheet sumber (sudah terkonfigurasi, tak perlu diubah):
 
 - Doc: `https://docs.google.com/spreadsheets/d/1dJKS7iJ80iK2rV5Jd9D6ap3yATcaUOlj07IcJg74CuY/edit?gid=1535609154`
 - `SHEET_ID=1dJKS7iJ80iK2rV5Jd9D6ap3yATcaUOlj07IcJg74CuY`, tab Data `GID=1535609154`
-- `SHEETS_MOCK=true` = tanpa Google API (data dari DB/seed,
-  sinkron manual: `POST /api/sync/trigger`).
 
-Live mode (bila mau baca/tulis Sheet asli):
+Secara default backend jalan dalam **mode MOCK** (`SHEETS_MOCK=true`):
+data berasal dari DB/seed dan tombol **Sinkron & Muat Ulang tidak membaca
+Sheet asli** (hasilnya selalu "0 baris tersinkron", dan di Dashboard muncul
+peringatan kuning *"Mode mock"*). Untuk membaca Sheet asli, ikuti tahap live
+di bawah — **gratis**, kuota gratis Sheets API jauh di atas kebutuhan
+(cron 5 menit + klik manual), tanpa kartu kredit.
 
-1. GCP → Service Account → Keys → JSON → `base64` → isi
-   `GOOGLE_SERVICE_ACCOUNT_JSON` di `backend/.env`
-2. Share sheet ke service account sebagai Editor
-3. Set `SHEETS_MOCK=false`, restart backend. Cron tiap 5 menit +
-   `POST /api/sync/trigger` manual.
+### Tahap 1 — Buat Service Account di Google Cloud
+
+1. Buka `console.cloud.google.com` → buat **Project baru** (mis. `sprite-sync`).
+2. **APIs & Services → Library** → cari **Google Sheets API** → **Enable**.
+3. **IAM & Admin → Service Accounts** → **Create Service Account** →
+   isi nama (mis. `sprite-sync`) → Create (role boleh dikosongkan).
+4. Klik service account → tab **Keys** → **Add Key → Create new key → JSON**
+   → file `.json` terdownload.
+
+### Tahap 2 — Share Sheet ke service account
+
+5. Buka file JSON → catat `client_email`
+   (bentuknya `xxx@yyy.iam.gserviceaccount.com`).
+6. Buka Google Sheet → **Share** → paste email itu → akses **Viewer** → Share.
+
+### Tahap 3 — Pasang ke backend
+
+7. Encode JSON ke base64 (PowerShell, sesuaikan path):
+
+   ```powershell
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\path\ke\key.json"))
+   ```
+
+   Hasilnya satu baris panjang — copy semuanya.
+8. Isi `backend/.env`:
+
+   ```
+   GOOGLE_SERVICE_ACCOUNT_JSON=<hasil base64 tadi>
+   SHEETS_MOCK=false
+   ```
+
+9. **Restart backend**, buka Dashboard → klik **Sinkron & Muat Ulang** →
+   notifikasi harusnya "N baris tersinkron" (N > 0) dan peringatan mode
+   mock hilang. Alurnya: Spreadsheet → **upsert** ke DB (baris baru
+   di-insert, baris lama yang sama di-update) → layar dimuat ulang.
+   Sync berjalan **incremental**: hanya baris baru/berubah yang ditulis
+   (deteksi hash), sisanya dilewati — sync kedua dan seterusnya jauh
+   lebih cepat. Tombol menolak halus bila ada sync lain sedang berjalan.
+
+### Syarat baris Sheet (penting)
+
+- Setiap baris **wajib mengisi kolom `recordUuid`** (unik, mis. UUID acak) —
+  baris tanpanya otomatis dilewati backend.
+- Kolom mengikuti urutan header di `backend/src/sheets/sheets.service.ts`
+  (`no, dateIssue, startDate, ...`); kolom tambahan di luar itu diabaikan.
+- Format tanggal `dateIssue`: `yyyyMMdd` (mis. `20250909`).
+
+### Cek cepat bila sync 0 baris
+
+```powershell
+Invoke-RestMethod http://localhost:5005/api/health          # sheetsMock harus false
+Invoke-RestMethod http://localhost:5005/api/sync/logs | Select-Object -First 1  # rows_processed > 0?
+```
 
 ---
 
@@ -198,6 +249,8 @@ Live mode (bila mau baca/tulis Sheet asli):
 | Boot backend lama / tabel kosong | Tunggu seed selesai; cek `docker exec sprite-pg psql -U postgres -d sprite_cust -c "\dt"` (harus 11 tabel) |
 | Port bentrok (`5433`/`5005`/`5173` dipakai) | `netstat -ano \| Select-String "5433"` → `taskkill /PID <id> /F`, atau sesuaikan port |
 | DB rusak / mau mulai dari nol | `docker rm -f sprite-pg; docker volume rm sprite-pgdata` lalu ulangi langkah 3 + restart backend (seed ulang otomatis) |
+| Sync "0 baris tersinkron" terus | Backend masih mode mock → ikuti Tahap 1–3 bagian 7 (`sheetsMock` harus `false`) |
+| Sync gagal / baris baru tak masuk | Pastikan sheet di-share ke service account + tiap baris ada `recordUuid` + format tanggal `yyyyMMdd` |
 
 ## Dokumentasi lanjutan
 
