@@ -13,7 +13,7 @@ import {
 } from 'chart.js';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
-import { triggerSync, getSyncLogs } from '../lib/api.js';
+import { triggerSync, getSyncLogs, getHealth } from '../lib/api.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 
@@ -78,6 +78,7 @@ export default function DashboardPage() {
   const [syncMsg, setSyncMsg] = useState('');
   const [syncErr, setSyncErr] = useState(false);
   const [lastSync, setLastSync] = useState('');
+  const [mockMode, setMockMode] = useState(false);
 
   function stampNow() {
     const now = new Date();
@@ -118,8 +119,17 @@ export default function DashboardPage() {
       const logs = await getSyncLogs().catch(() => null);
       const latest = Array.isArray(logs) ? logs[0] : null;
       if (latest) setLastSync(fmtSyncTime(latest.finished_at || latest.started_at));
-      setSyncMsg(`${(r?.rows ?? 0).toLocaleString('id-ID')} baris tersinkron${secs} • data dimuat ulang`);
-      setTimeout(() => setSyncMsg(''), 8000);
+      if ((r?.rows ?? 0) === 0 && (r?.unchanged ?? 0) > 0) {
+        setSyncMsg(`Sudah sinkron — tidak ada perubahan (${r.readRows} dibaca${secs})`);
+      } else if ((r?.rows ?? 0) === 0 && (r?.readRows ?? 0) > 0) {
+        setSyncMsg(`${r.readRows} baris dibaca, ${r.skippedRows ?? 0} dilewati — cek kolom recordUuid di Sheet`);
+      } else if ((r?.rows ?? 0) === 0) {
+        setSyncMsg('Tab terbaca tapi kosong — cek nama tab & isi Sheet');
+      } else {
+        const same = r?.unchanged ? ` (${r.unchanged} sudah sama, dilewati)` : '';
+        setSyncMsg(`${(r?.rows ?? 0).toLocaleString('id-ID')} baris baru/berubah${secs}${same} • data dimuat ulang`);
+      }
+      setTimeout(() => setSyncMsg(''), 10000);
     } catch (e) {
       setSyncErr(true);
       setSyncMsg(e?.message || 'Gagal sinkron — coba lagi');
@@ -129,9 +139,14 @@ export default function DashboardPage() {
     }
   }
 
-  // Info sinkron terakhir saat halaman dibuka
+  // Info sinkron terakhir + status mode mock saat halaman dibuka
   useEffect(() => {
     let ignore = false;
+    getHealth()
+      .then((h) => {
+        if (!ignore && h) setMockMode(!!h.sheetsMock);
+      })
+      .catch(() => {});
     getSyncLogs()
       .then((logs) => {
         if (ignore || !Array.isArray(logs) || !logs[0]) return;
@@ -301,7 +316,7 @@ export default function DashboardPage() {
         <button
           onClick={syncAndReload}
           disabled={syncing}
-          title={lastSync ? `Sinkron terakhir: ${lastSync}` : 'Sinkron Sheets lalu muat ulang data'}
+          title={mockMode ? 'Backend mode MOCK: sync tidak membaca Google Sheet asli' : lastSync ? `Sinkron terakhir: ${lastSync}` : 'Sinkron Sheets lalu muat ulang data'}
           className="inline-flex items-center gap-2.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-700 hover:to-emerald-600 text-white text-sm font-bold pl-4 pr-5 py-2.5 rounded-xl shadow-lg shadow-brand-600/25 transition active:scale-95 disabled:opacity-70 disabled:cursor-wait"
         >
           <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
@@ -309,6 +324,11 @@ export default function DashboardPage() {
           </svg>
           {!syncing ? 'Sinkron & Muat Ulang' : syncStage === 'sync' ? '1/2 Sinkron Sheets…' : '2/2 Memuat Data…'}
         </button>
+        {mockMode && (
+          <span className="hidden md:inline text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Mode mock: sync tidak membaca Google Sheet asli
+          </span>
+        )}
         {syncMsg && (
           <span className={`hidden md:inline text-xs font-semibold border rounded-lg px-3 py-2 ${syncErr ? 'text-rose-600 bg-rose-50 border-rose-200' : 'text-emerald-600 bg-emerald-50 border-emerald-200'}`}>
             {syncMsg}
