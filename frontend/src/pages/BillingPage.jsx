@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { fmtDate8 } from '../utils/format.js';
@@ -10,6 +10,129 @@ const BILL_BADGE = {
   'ON-CALL': 'bg-amber-50 text-amber-600 border-amber-200',
   MONTHLY: 'bg-sky-50 text-sky-600 border-sky-200',
 };
+
+// Teks panjang (Issue/Notes): 2 baris + tombol "Selengkapnya" untuk buka penuh per baris
+function ExpandableText({ text }) {
+  const [open, setOpen] = useState(false);
+  const value = text || '-';
+  return (
+    <div className="min-w-[220px] max-w-[360px]">
+      <p className={`text-xs text-slate-600 ${open ? 'whitespace-normal break-words' : 'line-clamp-2'}`}>
+        {value}
+      </p>
+      {value.length > 120 && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="mt-1 text-[11px] font-bold text-brand-600 hover:text-brand-700 hover:underline"
+        >
+          {open ? 'Tutup' : 'Selengkapnya'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Popup detail kasus: dibuka dari kolom Issue — menampilkan seluruh isi + info kasus
+function CaseDetailModal({ c, auditStatus, onClose }) {
+  const closeRef = useRef(null);
+
+  useEffect(() => {
+    if (!c) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [c, onClose]);
+
+  if (!c) return null;
+
+  const rows = [
+    ['Tgl Issue', fmtDate8(c.dateIssue)],
+    ['Brand', c.client || '-'],
+    ['PIC Name', c.picName || c.assignTo || '-'],
+    ['Module', c.module || '-'],
+    ['Sub-Module', c.subModule || '-'],
+    ['Lokasi', c.location || '-'],
+    ['Status Billing', c.billingStatus || '-'],
+    ['Kategori Billing', c.billingCategory || '-'],
+    ['Tipe Support', c.supportType || '-'],
+    ['Charges', fmtMoney(c.charges)],
+    ['Status Validasi', auditStatus || '-'],
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="case-detail-title">
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in-fast">
+        {/* Header */}
+        <div className="bg-brand-700 text-white px-6 py-5 shrink-0">
+          <div className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-brand-200">
+                Detail Kasus #{c.no || '-'}
+              </p>
+              <h3 id="case-detail-title" className="mt-1 text-xl font-extrabold truncate">
+                {c.client || '-'}
+              </h3>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <span className="text-[10px] font-bold bg-white/15 border border-white/20 rounded-full px-2.5 py-1">
+                  {c.module || '-'}
+                </span>
+                <span className={`text-[10px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[c.billingStatus] || 'bg-white/15 border-white/20'}`}>
+                  {c.billingStatus || '-'}
+                </span>
+                {c.billingStatus !== 'FREE' && (
+                  <span className="text-[10px] font-bold bg-amber-300/90 text-amber-900 rounded-full px-2.5 py-1">
+                    {auditStatus || 'BELUM DIVALIDASI'}
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={onClose}
+              aria-label="Tutup detail kasus"
+              className="shrink-0 rounded-lg p-2 text-brand-100 hover:bg-white/15 hover:text-white transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        {/* Isi */}
+        <div className="px-6 py-5 space-y-5 overflow-y-auto scrollbar-thin">
+          <div className="bg-brand-50/60 border border-brand-100 rounded-xl p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-brand-600 mb-1.5">Issue</p>
+            <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words">{c.issue || '-'}</p>
+          </div>
+          <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
+            {rows.map(([k, v]) => (
+              <div key={k} className="border-b border-slate-100 pb-2.5">
+                <dt className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{k}</dt>
+                <dd className="mt-0.5 text-sm font-semibold text-slate-800 break-words">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Completion Notes</p>
+            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words">{c.completionNotes || '-'}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function BillingPage() {
   const { auditActions, caseAuditStatus, updateAudit, addAction, removeAction } = useAuditState();
@@ -23,6 +146,11 @@ export default function BillingPage() {
   const [perPage, setPerPage] = useState(10);
   const [masterOpen, setMasterOpen] = useState(false);
   const [newAction, setNewAction] = useState('');
+  const [detailUuid, setDetailUuid] = useState(null);
+  const detailCase = allCases.find((x) => x.recordUuid === detailUuid) || null;
+  // Aksi cepat massal: centang baris → pilih status → terapkan sekaligus
+  const [selected, setSelected] = useState([]);
+  const [bulkAction, setBulkAction] = useState('');
 
   const brands = useMemo(
     () => [...new Set(allCases.map((c) => c.client).filter(Boolean))].sort(),
@@ -154,6 +282,44 @@ export default function BillingPage() {
     return arr;
   })();
 
+  // Seleksi hangus bila filter berubah (data di bawahnya ikut berubah)
+  useEffect(() => {
+    setSelected([]);
+    setBulkAction('');
+  }, [cat, q, from, to, brand]);
+
+  // Aksi cepat massal HANYA untuk kategori ON-CALL
+  const quickBulk = cat === 'ON-CALL';
+  const colCount = quickBulk ? 13 : 12;
+  // Hanya kasus berbayar yang punya status validasi
+  const pagedEligible = paged.filter((c) => c.billingStatus !== 'FREE');
+  const allPagedChecked = pagedEligible.length > 0 && pagedEligible.every((c) => selected.includes(c.recordUuid));
+
+  function toggleOne(uuid) {
+    setSelected((prev) => (prev.includes(uuid) ? prev.filter((u) => u !== uuid) : [...prev, uuid]));
+  }
+
+  function togglePage() {
+    setSelected((prev) => {
+      const ids = pagedEligible.map((c) => c.recordUuid);
+      const allIn = ids.length > 0 && ids.every((id) => prev.includes(id));
+      return allIn ? prev.filter((u) => !ids.includes(u)) : [...new Set([...prev, ...ids])];
+    });
+  }
+
+  function handleBulk() {
+    if (!bulkAction || selected.length === 0) return;
+    const targets = items.filter((c) => selected.includes(c.recordUuid) && c.billingStatus !== 'FREE');
+    targets.forEach((c) => updateAudit(c.recordUuid, bulkAction));
+    recordActivity(
+      `mengubah status validasi ${targets.length} kasus sekaligus`,
+      `menjadi ${bulkAction} (aksi massal ${cat})`,
+      'Validasi'
+    );
+    setSelected([]);
+    setBulkAction('');
+  }
+
   function handleAudit(uuid, action) {
     const c = allCases.find((x) => x.recordUuid === uuid);
     updateAudit(uuid, action);
@@ -162,13 +328,13 @@ export default function BillingPage() {
   }
 
   function exportData() {
-    const headers = ['NO', 'DATE ISSUE', 'CLIENT', 'PIC NAME', 'MODULE', 'BILLING STATUS', 'BILLING CATEGORY', 'SUPPORT TYPE', 'CHARGES', 'STATUS VALIDASI', 'COMPLETION NOTES', 'RECORD_UUID'];
+    const headers = ['NO', 'DATE ISSUE', 'CLIENT', 'ISSUE', 'PIC NAME', 'MODULE', 'BILLING STATUS', 'BILLING CATEGORY', 'SUPPORT TYPE', 'CHARGES', 'STATUS VALIDASI', 'COMPLETION NOTES', 'RECORD_UUID'];
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csv = [
       headers.join(','),
       ...catItems.map((c) =>
         [
-          c.no, c.dateIssue, c.client, c.picName, c.module, c.billingStatus, c.billingCategory,
+          c.no, c.dateIssue, c.client, c.issue, c.picName, c.module, c.billingStatus, c.billingCategory,
           c.supportType, c.charges, caseAuditStatus[c.recordUuid] || '', c.completionNotes, c.recordUuid,
         ]
           .map(esc)
@@ -363,47 +529,128 @@ export default function BillingPage() {
           </div>
         </div>
 
+        {quickBulk && selected.length > 0 && (
+          <div className="px-6 py-3 border-b border-brand-100 bg-brand-50/70 flex flex-wrap items-center gap-2.5 animate-fade-in-fast">
+            <span className="text-xs font-bold text-brand-700 whitespace-nowrap">
+              {selected.length} kasus dipilih
+            </span>
+            <select
+              value={bulkAction}
+              onChange={(e) => setBulkAction(e.target.value)}
+              aria-label="Status validasi untuk aksi massal"
+              className="text-xs border border-brand-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white font-semibold text-slate-700"
+            >
+              <option value="">Pilih status…</option>
+              {auditActions.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleBulk}
+              disabled={!bulkAction}
+              className="text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-1.5 rounded-lg transition"
+            >
+              Terapkan ke {selected.length} kasus
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSelected([]); setBulkAction(''); }}
+              className="text-xs font-semibold text-slate-500 hover:bg-white px-3 py-1.5 rounded-lg transition"
+            >
+              Batal
+            </button>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                <th className="px-6 py-3 font-semibold">No</th>
-                <th className="px-4 py-3 font-semibold">Tanggal</th>
-                <th className="px-4 py-3 font-semibold">Brand</th>
-                <th className="px-4 py-3 font-semibold">PIC</th>
-                <th className="px-4 py-3 font-semibold">Module</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 font-semibold">Billing Category</th>
-                <th className="px-4 py-3 font-semibold">Support Type</th>
-                <th className="px-4 py-3 font-semibold text-right">Charges</th>
-                <th className="px-4 py-3 font-semibold">Status Validasi</th>
-                <th className="px-6 py-3 font-semibold">Completion Notes</th>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
+                {quickBulk && (
+                <th className="pl-6 pr-1 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allPagedChecked}
+                    disabled={pagedEligible.length === 0}
+                    ref={(el) => { if (el) el.indeterminate = !allPagedChecked && pagedEligible.some((c) => selected.includes(c.recordUuid)); }}
+                    onChange={togglePage}
+                    aria-label="Pilih semua kasus berbayar di halaman ini"
+                    title="Pilih semua kasus berbayar di halaman ini"
+                    className="w-4 h-4 accent-brand-600 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                </th>
+                )}
+                <th className={`${quickBulk ? 'px-2' : 'px-6'} py-3 font-bold`} title="Nomor kasus">No</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap" title="Tanggal issue (tahun-bulan-tanggal)">Tgl Issue</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap" title="Nama brand / client">Brand</th>
+                <th className="px-4 py-3 font-bold min-w-[220px]" title="Uraian masalah">Issue</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap" title="Nama PIC penanggung jawab">PIC Name</th>
+                <th className="px-4 py-3 font-bold" title="Modul aplikasi">Module</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap" title="Status billing: ON-CALL / MONTHLY / FREE">Status Billing</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap" title="Kategori billing">Billing Category</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap" title="Jenis support">Support Type</th>
+                <th className="px-4 py-3 font-bold text-right whitespace-nowrap" title="Biaya (Rupiah)">Charges</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap" title="Status validasi oleh tim billing">Status Validasi</th>
+                <th className="px-6 py-3 font-bold" title="Catatan penyelesaian">Completion Notes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paged.map((c) => (
-                <tr key={c.recordUuid} className="hover:bg-slate-50 transition">
-                  <td className="px-6 py-3.5 text-slate-400">{c.no}</td>
-                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{fmtDate8(c.dateIssue)}</td>
-                  <td className="px-4 py-3.5 font-semibold text-slate-800">{c.client}</td>
-                  <td className="px-4 py-3.5 text-slate-500">{c.picName || '-'}</td>
+              {paged.map((c) => {
+                const checkable = c.billingStatus !== 'FREE';
+                const checked = selected.includes(c.recordUuid);
+                return (
+                <tr key={c.recordUuid} className={`odd:bg-white even:bg-slate-50/60 hover:bg-brand-50/50 transition ${checked ? '!bg-brand-50' : ''}`}>
+                  {quickBulk && (
+                  <td className="pl-6 pr-1 py-3.5">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={!checkable}
+                      onChange={() => toggleOne(c.recordUuid)}
+                      aria-label={checkable ? `Pilih kasus #${c.no} (${c.client})` : `Kasus FREE tanpa status validasi`}
+                      title={checkable ? 'Pilih untuk aksi massal' : 'Kasus FREE tidak punya status validasi'}
+                      className="w-4 h-4 accent-brand-600 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                  </td>
+                  )}
+                  <td className={`${quickBulk ? 'px-2' : 'px-6'} py-3.5 text-slate-400 font-mono text-xs whitespace-nowrap`}>{c.no || '-'}</td>
+                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap text-xs">{fmtDate8(c.dateIssue)}</td>
+                  <td className="px-4 py-3.5 font-bold text-slate-800 whitespace-nowrap">{c.client || '-'}</td>
                   <td className="px-4 py-3.5">
-                    <span className="text-xs bg-slate-100 text-slate-600 font-medium px-2 py-1 rounded-full">{c.module}</span>
+                    <div className="min-w-[220px] max-w-[320px]">
+                      <p className="text-xs text-slate-600 line-clamp-2">{c.issue || '-'}</p>
+                      <button
+                        type="button"
+                        onClick={() => setDetailUuid(c.recordUuid)}
+                        className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-lg px-2.5 py-1 transition"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                        </svg>
+                        Lihat Detail
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{c.picName || c.assignTo || '-'}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-[11px] bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">{c.module || '-'}</span>
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[c.billingStatus] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                    <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${BILL_BADGE[c.billingStatus] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
                       {c.billingStatus || '-'}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-slate-600">{c.billingCategory || '-'}</td>
-                  <td className="px-4 py-3.5 text-slate-500">{c.supportType || '-'}</td>
-                  <td className="px-4 py-3.5 text-right font-medium text-slate-700">{fmtMoney(c.charges)}</td>
+                  <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">{c.billingCategory || '-'}</td>
+                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{c.supportType || '-'}</td>
+                  <td className="px-4 py-3.5 text-right font-semibold text-slate-700 whitespace-nowrap">{fmtMoney(c.charges)}</td>
                   <td className="px-4 py-3.5">
                     {c.billingStatus !== 'FREE' ? (
                       <select
                         value={caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI'}
                         onChange={(e) => handleAudit(c.recordUuid, e.target.value)}
-                        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white max-w-[180px]"
+                        title="Ubah status validasi"
+                        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white max-w-[190px]"
                       >
                         {auditActions.map((a) => (
                           <option key={a} value={a}>{a}</option>
@@ -413,12 +660,13 @@ export default function BillingPage() {
                       <span className="text-xs text-slate-400">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-3.5 text-slate-500 max-w-xs truncate" title={c.completionNotes}>{c.completionNotes || '-'}</td>
+                  <td className="px-6 py-3.5"><ExpandableText text={c.completionNotes} /></td>
                 </tr>
-              ))}
+                );
+              })}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-slate-400 text-sm">
+                  <td colSpan={colCount} className="px-6 py-12 text-center text-slate-400 text-sm">
                     Tidak ada data {cat} yang cocok dengan filter
                   </td>
                 </tr>
@@ -536,6 +784,13 @@ export default function BillingPage() {
           </div>
         </div>
       )}
+
+      {/* Popup detail kasus dari kolom Issue */}
+      <CaseDetailModal
+        c={detailCase}
+        auditStatus={detailCase ? caseAuditStatus[detailCase.recordUuid] : null}
+        onClose={() => setDetailUuid(null)}
+      />
     </div>
   );
 }
