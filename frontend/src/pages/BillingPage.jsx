@@ -148,9 +148,6 @@ export default function BillingPage() {
   const [newAction, setNewAction] = useState('');
   const [detailUuid, setDetailUuid] = useState(null);
   const detailCase = allCases.find((x) => x.recordUuid === detailUuid) || null;
-  // Aksi cepat massal: centang baris → pilih status → terapkan sekaligus
-  const [selected, setSelected] = useState([]);
-  const [bulkAction, setBulkAction] = useState('');
 
   const brands = useMemo(
     () => [...new Set(allCases.map((c) => c.client).filter(Boolean))].sort(),
@@ -281,44 +278,6 @@ export default function BillingPage() {
     for (let i = start; i <= end; i++) arr.push(i);
     return arr;
   })();
-
-  // Seleksi hangus bila filter berubah (data di bawahnya ikut berubah)
-  useEffect(() => {
-    setSelected([]);
-    setBulkAction('');
-  }, [cat, q, from, to, brand]);
-
-  // Aksi cepat massal HANYA untuk kategori ON-CALL
-  const quickBulk = cat === 'ON-CALL';
-  const colCount = quickBulk ? 13 : 12;
-  // Hanya kasus berbayar yang punya status validasi
-  const pagedEligible = paged.filter((c) => c.billingStatus !== 'FREE');
-  const allPagedChecked = pagedEligible.length > 0 && pagedEligible.every((c) => selected.includes(c.recordUuid));
-
-  function toggleOne(uuid) {
-    setSelected((prev) => (prev.includes(uuid) ? prev.filter((u) => u !== uuid) : [...prev, uuid]));
-  }
-
-  function togglePage() {
-    setSelected((prev) => {
-      const ids = pagedEligible.map((c) => c.recordUuid);
-      const allIn = ids.length > 0 && ids.every((id) => prev.includes(id));
-      return allIn ? prev.filter((u) => !ids.includes(u)) : [...new Set([...prev, ...ids])];
-    });
-  }
-
-  function handleBulk() {
-    if (!bulkAction || selected.length === 0) return;
-    const targets = items.filter((c) => selected.includes(c.recordUuid) && c.billingStatus !== 'FREE');
-    targets.forEach((c) => updateAudit(c.recordUuid, bulkAction));
-    recordActivity(
-      `mengubah status validasi ${targets.length} kasus sekaligus`,
-      `menjadi ${bulkAction} (aksi massal ${cat})`,
-      'Validasi'
-    );
-    setSelected([]);
-    setBulkAction('');
-  }
 
   function handleAudit(uuid, action) {
     const c = allCases.find((x) => x.recordUuid === uuid);
@@ -529,59 +488,11 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {quickBulk && selected.length > 0 && (
-          <div className="px-6 py-3 border-b border-brand-100 bg-brand-50/70 flex flex-wrap items-center gap-2.5 animate-fade-in-fast">
-            <span className="text-xs font-bold text-brand-700 whitespace-nowrap">
-              {selected.length} kasus dipilih
-            </span>
-            <select
-              value={bulkAction}
-              onChange={(e) => setBulkAction(e.target.value)}
-              aria-label="Status validasi untuk aksi massal"
-              className="text-xs border border-brand-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white font-semibold text-slate-700"
-            >
-              <option value="">Pilih status…</option>
-              {auditActions.map((a) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={handleBulk}
-              disabled={!bulkAction}
-              className="text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-1.5 rounded-lg transition"
-            >
-              Terapkan ke {selected.length} kasus
-            </button>
-            <button
-              type="button"
-              onClick={() => { setSelected([]); setBulkAction(''); }}
-              className="text-xs font-semibold text-slate-500 hover:bg-white px-3 py-1.5 rounded-lg transition"
-            >
-              Batal
-            </button>
-          </div>
-        )}
-
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
-                {quickBulk && (
-                <th className="pl-6 pr-1 py-3">
-                  <input
-                    type="checkbox"
-                    checked={allPagedChecked}
-                    disabled={pagedEligible.length === 0}
-                    ref={(el) => { if (el) el.indeterminate = !allPagedChecked && pagedEligible.some((c) => selected.includes(c.recordUuid)); }}
-                    onChange={togglePage}
-                    aria-label="Pilih semua kasus berbayar di halaman ini"
-                    title="Pilih semua kasus berbayar di halaman ini"
-                    className="w-4 h-4 accent-brand-600 cursor-pointer disabled:cursor-not-allowed"
-                  />
-                </th>
-                )}
-                <th className={`${quickBulk ? 'px-2' : 'px-6'} py-3 font-bold`} title="Nomor kasus">No</th>
+                <th className="px-6 py-3 font-bold" title="Nomor kasus">No</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap" title="Tanggal issue (tahun-bulan-tanggal)">Tgl Issue</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap" title="Nama brand / client">Brand</th>
                 <th className="px-4 py-3 font-bold min-w-[220px]" title="Uraian masalah">Issue</th>
@@ -596,25 +507,9 @@ export default function BillingPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paged.map((c) => {
-                const checkable = c.billingStatus !== 'FREE';
-                const checked = selected.includes(c.recordUuid);
-                return (
-                <tr key={c.recordUuid} className={`odd:bg-white even:bg-slate-50/60 hover:bg-brand-50/50 transition ${checked ? '!bg-brand-50' : ''}`}>
-                  {quickBulk && (
-                  <td className="pl-6 pr-1 py-3.5">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={!checkable}
-                      onChange={() => toggleOne(c.recordUuid)}
-                      aria-label={checkable ? `Pilih kasus #${c.no} (${c.client})` : `Kasus FREE tanpa status validasi`}
-                      title={checkable ? 'Pilih untuk aksi massal' : 'Kasus FREE tidak punya status validasi'}
-                      className="w-4 h-4 accent-brand-600 cursor-pointer disabled:cursor-not-allowed"
-                    />
-                  </td>
-                  )}
-                  <td className={`${quickBulk ? 'px-2' : 'px-6'} py-3.5 text-slate-400 font-mono text-xs whitespace-nowrap`}>{c.no || '-'}</td>
+              {paged.map((c) => (
+                <tr key={c.recordUuid} className="odd:bg-white even:bg-slate-50/60 hover:bg-brand-50/50 transition">
+                  <td className="px-6 py-3.5 text-slate-400 font-mono text-xs whitespace-nowrap">{c.no || '-'}</td>
                   <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap text-xs">{fmtDate8(c.dateIssue)}</td>
                   <td className="px-4 py-3.5 font-bold text-slate-800 whitespace-nowrap">{c.client || '-'}</td>
                   <td className="px-4 py-3.5">
@@ -646,6 +541,36 @@ export default function BillingPage() {
                   <td className="px-4 py-3.5 text-right font-semibold text-slate-700 whitespace-nowrap">{fmtMoney(c.charges)}</td>
                   <td className="px-4 py-3.5">
                     {c.billingStatus !== 'FREE' ? (
+                      cat === 'ON-CALL' ? (
+                        (() => {
+                          const current = caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI';
+                          const idx = auditActions.indexOf(current);
+                          const next = auditActions[(idx + 1) % auditActions.length] || current;
+                          const isDefault = idx <= 0;
+                          return (
+                            <div className="flex flex-col items-start gap-1.5 min-w-[150px]">
+                              <span
+                                title={`Status saat ini: ${current}`}
+                                className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${isDefault ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
+                              >
+                                {current}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleAudit(c.recordUuid, next)}
+                                title={`Sekali klik: ubah menjadi ${next}`}
+                                aria-label={`Ubah status kasus #${c.no} menjadi ${next}`}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 hover:text-white bg-brand-50 hover:bg-brand-600 border border-brand-200 hover:border-brand-600 rounded-lg px-2 py-1 transition max-w-full"
+                              >
+                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12l-7.5 7.5M21 12H3" />
+                                </svg>
+                                <span className="truncate">{next}</span>
+                              </button>
+                            </div>
+                          );
+                        })()
+                      ) : (
                       <select
                         value={caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI'}
                         onChange={(e) => handleAudit(c.recordUuid, e.target.value)}
@@ -656,17 +581,17 @@ export default function BillingPage() {
                           <option key={a} value={a}>{a}</option>
                         ))}
                       </select>
+                      )
                     ) : (
                       <span className="text-xs text-slate-400">-</span>
                     )}
                   </td>
                   <td className="px-6 py-3.5"><ExpandableText text={c.completionNotes} /></td>
                 </tr>
-                );
-              })}
+              ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={colCount} className="px-6 py-12 text-center text-slate-400 text-sm">
+                  <td colSpan={12} className="px-6 py-12 text-center text-slate-400 text-sm">
                     Tidak ada data {cat} yang cocok dengan filter
                   </td>
                 </tr>
