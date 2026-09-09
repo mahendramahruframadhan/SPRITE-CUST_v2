@@ -306,8 +306,8 @@ export default function HrReportPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {detailRows.map((c) => (
-                  <tr key={c.recordUuid} className="hover:bg-brand-50/40 transition">
+                {detailRows.map((c, idx) => (
+                  <tr key={`${c.recordUuid || 'noid'}-${idx}`} className="hover:bg-brand-50/40 transition">
                     <td className="px-4 py-2.5 font-bold text-slate-800 whitespace-nowrap">{(c.assignTo || '').trim() || '-'}</td>
                     <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap text-xs">{fmtDate8(c.dateIssue)}</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-700 whitespace-nowrap">{c.client || '-'}</td>
