@@ -36,6 +36,7 @@ const MODULES = [
   { id: 'finance', name: 'Finance Audit', desc: 'Penerbitan invoice kasus tervalidasi' },
   { id: 'mockup', name: 'Dashboard Mockup', desc: 'Mockup data Google Sheets' },
   { id: 'roles', name: 'Hak Akses', desc: 'Kelola pengguna & izin' },
+  { id: 'settings', name: 'Pengaturan', desc: 'Pengaturan akun & preferensi saya' },
 ];
 const SEED_USERS = [
   { id: 1, name: 'Rani Admin', email: 'rani@revota.id', role: 'Super Admin', active: true, lastLogin: 'Hari ini 09:12' },

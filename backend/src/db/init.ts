@@ -5,11 +5,11 @@ import { getDb, getMemDb } from './drizzle.service';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
 const ROLE_PERMS: Record<string, Record<string, number>> = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1, logs: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0, logs: 1 },
-  Support: { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0 },
-  Finance: { dashboard: 1, cases: 0, form: 0, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0, logs: 1 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0 },
+  'Super Admin': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
+  'Admin CS': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
+  Support: { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  Finance: { dashboard: 1, cases: 0, form: 0, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
+  Viewer: { dashboard: 1, cases: 1, form: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
 };
 
 export async function initDb() {
@@ -152,6 +152,14 @@ export async function initDb() {
       const logsSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 1, Support: 0, Finance: 1, Viewer: 0 };
       for (const [role, allowed] of Object.entries(logsSeed)) {
         await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','logs',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
+      }
+    } catch {}
+    // Backfill izin modul 'settings' untuk DB yang di-seed sebelum modul ini ada
+    try {
+      const now = new Date().toISOString();
+      const settingsSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 1, Support: 1, Finance: 1, Viewer: 1 };
+      for (const [role, allowed] of Object.entries(settingsSeed)) {
+        await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','settings',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
       }
     } catch {}
     const pc: any = await q(`SELECT COUNT(*) as c FROM role_permissions`);

@@ -72,6 +72,16 @@ export default function AppLayout() {
                 {user.role} · {user.email}
               </p>
             </div>
+            {can('settings') && (
+              <NavLink
+                to="/settings"
+                title="Pengaturan"
+                aria-label="Pengaturan akun"
+                className="shrink-0 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg p-2 transition"
+              >
+                <Icon name="settings" className="w-5 h-5" strokeWidth={1.8} />
+              </NavLink>
+            )}
           </div>
           <button
             onClick={logout}

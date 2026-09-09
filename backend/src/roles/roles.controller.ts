@@ -4,7 +4,7 @@ import { Perm, PermGuard } from '../auth/perm.guard';
 import { logActivity, resolveWho } from '../logs/activity';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
-const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'finance', 'mockup', 'roles'];
+const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'finance', 'mockup', 'roles', 'logs', 'settings'];
 const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 
 // CRUD pengguna + matriks izin + log aktivitas untuk halaman /roles — semua di Postgres.

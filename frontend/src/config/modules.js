@@ -15,6 +15,8 @@ export const MODULES = [
   { group: 'Administrasi' },
   { path: '/roles', id: 'roles', title: 'Hak Akses', sub: 'Kelola pengguna, role & izin modul' },
   { path: '/logs', id: 'logs', title: 'Logs Aktivitas', sub: 'Riwayat perubahan status & penambahan data' },
+  { group: 'Akun' },
+  { path: '/settings', id: 'settings', title: 'Pengaturan', sub: 'Pengaturan akun, keamanan & akses saya' },
 ];
 
 // Redirect lama: /master & /pricelist (dulu config.html & pricelist.html)
