@@ -4,6 +4,25 @@ import { fmtDate8 } from '../utils/format.js';
 
 const normKpi = (k) => (k || '').trim() || 'TANPA KATEGORI';
 
+// Normalisasi nama PIC: abaikan spasi & kapital ("Rama", "RAMA", " rama " -> "rama")
+const normPic = (v) => (v || '').trim().toLowerCase();
+
+// Normalisasi tanggal ke yyyyMMdd untuk perbandingan string.
+// Menerima: yyyyMMdd, yyyy-MM-dd (+ ISO datetime), dd/MM/yyyy, dd-MM-yyyy.
+function normDate8(v) {
+  if (v === null || v === undefined) return '';
+  const s = String(v).trim();
+  if (!s) return '';
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}${iso[2]}${iso[3]}`;
+  if (/^\d{8}$/.test(s)) return s;
+  const dmy = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/);
+  if (dmy) return `${dmy[3]}${dmy[2].padStart(2, '0')}${dmy[1].padStart(2, '0')}`;
+  const digits = s.replace(/\D/g, '');
+  if (digits.length === 8) return digits;
+  return s.replace(/-/g, '');
+}
+
 const MAIN_KPIS = ['• AUDIT', '• GENERAL REQUEST', '• SPECIAL REQUEST'];
 
 const KPI_BADGE = {
@@ -26,7 +45,7 @@ function KpiBadge({ k }) {
 }
 
 function defaultDates(cases) {
-  const valid = cases.map((c) => String(c.dateIssue)).filter((d) => /^\d{8}$/.test(d)).sort();
+  const valid = cases.map((c) => normDate8(c.dateIssue)).filter((d) => /^\d{8}$/.test(d)).sort();
   if (!valid.length) return { from: '', to: '' };
   const max = valid[valid.length - 1];
   const maxDt = new Date(`${max.slice(0, 4)}-${max.slice(4, 6)}-${max.slice(6, 8)}`);
@@ -57,17 +76,30 @@ export default function HrReportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allCases]);
 
+  // Daftar PIC unik (dedup case-insensitive: "Rama"/"RAMA"/" rama " jadi satu opsi)
+  const picDisplay = useMemo(() => {
+    const m = new Map();
+    allCases.forEach((c) => {
+      const raw = (c.assignTo || '').trim();
+      if (!raw) return;
+      const k = raw.toLowerCase();
+      if (!m.has(k)) m.set(k, raw);
+    });
+    return m;
+  }, [allCases]);
+
   const pics = useMemo(
-    () => [...new Set(allCases.map((c) => (c.assignTo || '').trim()).filter(Boolean))].sort(),
-    [allCases]
+    () => [...picDisplay.values()].sort((a, b) => a.localeCompare(b)),
+    [picDisplay]
   );
 
   const filtered = useMemo(() => {
     const f = from.replace(/-/g, '');
     const t = to.replace(/-/g, '');
+    const q = normPic(pic);
     return allCases.filter((c) => {
-      const d = String(c.dateIssue);
-      return (!f || d >= f) && (!t || d <= t) && (!pic || (c.assignTo || '').trim() === pic);
+      const d = normDate8(c.dateIssue);
+      return (!f || d >= f) && (!t || d <= t) && (!q || normPic(c.assignTo) === q);
     });
   }, [from, to, pic, allCases]);
 
@@ -84,7 +116,9 @@ export default function HrReportPage() {
   const { byPic, picList, grand, grandTotal } = useMemo(() => {
     const byPic = {};
     filtered.forEach((c) => {
-      const p = (c.assignTo || '').trim() || 'UNKNOWN';
+      // Kelompokkan varian kapital yang sama ("Rama"/"RAMA") ke satu baris rekap
+      const raw = (c.assignTo || '').trim();
+      const p = picDisplay.get(normPic(raw)) || raw || 'UNKNOWN';
       if (!byPic[p]) byPic[p] = {};
       const k = normKpi(c.groupKpi);
       byPic[p][k] = (byPic[p][k] || 0) + 1;
@@ -97,14 +131,14 @@ export default function HrReportPage() {
       grandTotal += grand[k];
     });
     return { byPic, picList, grand, grandTotal };
-  }, [filtered]);
+  }, [filtered, picDisplay]);
 
   const detailRows = useMemo(
     () =>
       [...filtered].sort((a, b) => {
-        const pa = (a.assignTo || '').trim();
-        const pb = (b.assignTo || '').trim();
-        return pa.localeCompare(pb) || String(a.dateIssue).localeCompare(String(b.dateIssue)) || ((+a.no || 0) - (+b.no || 0));
+        const pa = normPic(a.assignTo);
+        const pb = normPic(b.assignTo);
+        return pa.localeCompare(pb) || normDate8(a.dateIssue).localeCompare(normDate8(b.dateIssue)) || ((+a.no || 0) - (+b.no || 0));
       }),
     [filtered]
   );
