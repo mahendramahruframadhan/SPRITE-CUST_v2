@@ -62,6 +62,8 @@ export function reloadAllCases() {
 export const getMasters = () => get('/masters');
 export const getConfig = (key) => get(key ? `/config?key=${encodeURIComponent(key)}` : '/config');
 export const putConfig = (config, key) => put('/config', key ? { key, config } : { config });
+export const getStatusOptions = () => get('/config/status-options');
+export const putStatusOptions = (body) => put('/config/status-options', body);
 export const createCase = (body) => post('/cases', body);
 export const patchAudit = (uuid, action) => patch(`/cases/${uuid}/audit`, { action });
 export const patchInvoice = (uuid, status) => patch(`/cases/${uuid}/invoice`, { status });

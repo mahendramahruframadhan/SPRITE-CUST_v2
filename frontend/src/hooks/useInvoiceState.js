@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { patchInvoice } from '../lib/api.js';
+import { patchInvoice, getStatusOptions, putStatusOptions } from '../lib/api.js';
 
 // Status invoice Finance Audit — cermin useAuditState.js (billing).
 // Daftar aksi bisa dikonfigurasi user (localStorage `invoiceActions`);
@@ -50,6 +50,21 @@ export function useInvoiceState() {
     localStorage.setItem('caseInvoiceMeta', JSON.stringify(invoiceMeta));
   }, [invoiceMeta]);
 
+  // Daftar master dari backend (DB, disharing semua user); localStorage tetap cache/fallback
+  useEffect(() => {
+    let ignore = false;
+    getStatusOptions()
+      .then((r) => {
+        if (ignore || !r || !Array.isArray(r.invoiceActions) || !r.invoiceActions.length) return;
+        // Backend sumber kebenaran (disharing); timpa cache lokal
+        setInvoiceActions([...new Set(r.invoiceActions)]);
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   const updateInvoice = useCallback((uuid, status) => {
     setInvoiceStatus((prev) => ({ ...prev, [uuid]: status }));
     patchInvoice(uuid, status).catch(() => {}); // backend sumber kebenaran; localStorage tetap cache instan
@@ -71,11 +86,23 @@ export function useInvoiceState() {
   }, []);
 
   const addInvoiceAction = useCallback((val) => {
-    setInvoiceActions((prev) => (prev.includes(val) ? prev : [...prev, val]));
+    const v = String(val || '').trim().replace(/\s+/g, ' ').slice(0, 40).toUpperCase();
+    if (!v) return;
+    setInvoiceActions((prev) => {
+      if (prev.some((a) => a.toLowerCase() === v.toLowerCase())) return prev;
+      const next = [...prev, v];
+      putStatusOptions({ invoiceActions: next }).catch(() => {}); // sinkron ke DB (best-effort)
+      return next;
+    });
   }, []);
 
   const removeInvoiceAction = useCallback((status) => {
-    setInvoiceActions((prev) => prev.filter((a) => a !== status));
+    setInvoiceActions((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((a) => a !== status);
+      putStatusOptions({ invoiceActions: next }).catch(() => {}); // sinkron ke DB (best-effort)
+      return next;
+    });
     setInvoiceStatus((prev) => {
       const next = { ...prev };
       Object.keys(next).forEach((uuid) => {

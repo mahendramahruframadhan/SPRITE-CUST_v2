@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { patchAudit } from '../lib/api.js';
+import { patchAudit, getStatusOptions, putStatusOptions } from '../lib/api.js';
 
 // Status validasi Billing & Audit — dibagikan ke Finance Audit via localStorage
 export const DEFAULT_ACTIONS = ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'];
@@ -36,17 +36,44 @@ export function useAuditState() {
     localStorage.setItem('caseAuditStatus', JSON.stringify(caseAuditStatus));
   }, [caseAuditStatus]);
 
+  // Daftar master dari backend (DB, disharing semua user); localStorage tetap cache/fallback
+  useEffect(() => {
+    let ignore = false;
+    getStatusOptions()
+      .then((r) => {
+        if (ignore || !r || !Array.isArray(r.auditActions) || !r.auditActions.length) return;
+        // Backend sumber kebenaran (disharing); timpa cache lokal
+        setAuditActions([...new Set(r.auditActions.map((a) => MIGRATE_ACTION[a] || a))]);
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   const updateAudit = useCallback((uuid, action) => {
     setCaseAuditStatus((prev) => ({ ...prev, [uuid]: action }));
     patchAudit(uuid, action).catch(() => {}); // backend sumber kebenaran; localStorage tetap cache instan
   }, []);
 
   const addAction = useCallback((val) => {
-    setAuditActions((prev) => (prev.includes(val) ? prev : [...prev, val]));
+    const v = String(val || '').trim().replace(/\s+/g, ' ').slice(0, 40).toUpperCase();
+    if (!v) return;
+    setAuditActions((prev) => {
+      if (prev.some((a) => a.toLowerCase() === v.toLowerCase())) return prev;
+      const next = [...prev, v];
+      putStatusOptions({ auditActions: next }).catch(() => {}); // sinkron ke DB (best-effort)
+      return next;
+    });
   }, []);
 
   const removeAction = useCallback((action) => {
-    setAuditActions((prev) => prev.filter((a) => a !== action));
+    setAuditActions((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((a) => a !== action);
+      putStatusOptions({ auditActions: next }).catch(() => {}); // sinkron ke DB (best-effort)
+      return next;
+    });
     setCaseAuditStatus((prev) => {
       const next = { ...prev };
       Object.keys(next).forEach((uuid) => {
