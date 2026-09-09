@@ -7,6 +7,7 @@ import { recordActivity } from '../lib/activity.js';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 const VALID_TAG = 'VALID - SIAP INVOICE';
 
@@ -31,6 +32,7 @@ export default function FinanceAuditPage() {
   const [invFilter, setInvFilter] = useState('');
   const [masterOpen, setMasterOpen] = useState(false);
   const [newAction, setNewAction] = useState('');
+  const [detailUuid, setDetailUuid] = useState(null);
 
   // Pastikan kasus tervalidasi punya status invoice default
   useEffect(() => {
@@ -310,7 +312,21 @@ export default function FinanceAuditPage() {
                   <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
                   <td className="px-4 py-3.5 font-semibold text-slate-800">{c.client}</td>
                   <td className="px-4 py-3.5 text-slate-500">{c.picName || '-'}</td>
-                  <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[260px] truncate" title={c.issue}>{c.issue || '-'}</td>
+                  <td className="px-4 py-3.5">
+                    <div className="min-w-[200px] max-w-[300px]">
+                      <p className="text-slate-500 text-xs line-clamp-2">{c.issue || '-'}</p>
+                      <button
+                        type="button"
+                        onClick={() => setDetailUuid(c.recordUuid)}
+                        className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-lg px-2.5 py-1 transition"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                        </svg>
+                        Lihat Detail
+                      </button>
+                    </div>
+                  </td>
                   <td className="px-4 py-3.5">
                     <span className="text-xs bg-slate-100 text-slate-600 font-medium px-2 py-1 rounded-full">{c.module}</span>
                   </td>
@@ -455,6 +471,42 @@ export default function FinanceAuditPage() {
           </div>
         </div>
       )}
+
+      {/* Popup detail kasus dari kolom Issue */}
+      {(() => {
+        const d = allCases.find((x) => x.recordUuid === detailUuid) || null;
+        const meta = d ? invoiceMeta[d.recordUuid] || {} : {};
+        const invStatus = d ? invoiceStatus[d.recordUuid] || 'MENUNGGU INVOICE' : null;
+        return (
+          <CaseDetailModal
+            c={d}
+            kicker={`Detail Kasus #${d?.no || '-'}`}
+            title={d?.client || '-'}
+            chips={d ? [
+              { text: d.module || '-', className: 'bg-white/15 border-white/20' },
+              { text: d.billingStatus || '-', className: 'bg-white/15 border-white/20' },
+              { text: invStatus, className: 'bg-amber-300/90 text-amber-900 border-transparent' },
+            ] : []}
+            rows={d ? [
+              ['Tgl Issue', fmtDate8(d.dateIssue)],
+              ['Brand', d.client || '-'],
+              ['PIC Name', d.picName || d.assignTo || '-'],
+              ['Module', d.module || '-'],
+              ['Sub-Module', d.subModule || '-'],
+              ['Lokasi', d.location || '-'],
+              ['Status Billing', d.billingStatus || '-'],
+              ['Kategori Billing', d.billingCategory || '-'],
+              ['Tipe Support', d.supportType || '-'],
+              ['Charges', fmtMoney(d.charges)],
+              ['Status Invoice', invStatus],
+              ['No. Invoice', meta.no || '-'],
+              ['Keterangan', meta.note || '-'],
+            ] : []}
+            notes={{ label: 'Completion Notes', text: d?.completionNotes }}
+            onClose={() => setDetailUuid(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
