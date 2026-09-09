@@ -162,6 +162,19 @@ export async function initDb() {
         await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','settings',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
       }
     } catch {}
+    // Seed master status Billing/Finance (dikelola dari Pengaturan) —
+    // DO NOTHING agar perubahan admin tidak tertimpa saat restart
+    try {
+      const now = new Date().toISOString();
+      const statusSeeds: Record<string, string[]> = {
+        auditActions: ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'],
+        invoiceActions: ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'PAID'],
+      };
+      for (const [k, arr] of Object.entries(statusSeeds)) {
+        const val = JSON.stringify(arr).replace(/'/g, "''");
+        await q(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${now}') ON CONFLICT (key) DO NOTHING`);
+      }
+    } catch {}
     const pc: any = await q(`SELECT COUNT(*) as c FROM role_permissions`);
     if (!Number(pc[0]?.c || 0)) {
       const now = new Date().toISOString();

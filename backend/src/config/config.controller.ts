@@ -7,6 +7,27 @@ import * as path from 'path';
 
 const cleanKey = (k: any) => String(k || 'sheetConfig').replace(/[^a-zA-Z0-9_]/g, '') || 'sheetConfig';
 
+// Master status Billing/Finance yang dikelola dari halaman Pengaturan.
+// Disimpan di app_config agar disharing semua browser (localStorage hanya cache).
+const DEFAULT_STATUS_OPTIONS: Record<string, string[]> = {
+  auditActions: ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'],
+  invoiceActions: ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'PAID'],
+};
+
+const cleanStatusList = (arr: any, fallback: string[]) => {
+  if (!Array.isArray(arr)) return [...fallback];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of arr) {
+    const s = String(v ?? '').trim().replace(/\s+/g, ' ').slice(0, 40).toUpperCase();
+    if (!s || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+    if (out.length >= 50) break;
+  }
+  return out.length ? out : [...fallback];
+};
+
 @Controller('config')
 export class ConfigController {
   private db: any = getDb();
@@ -73,5 +94,43 @@ export class ConfigController {
     const val = JSON.stringify(incoming).replace(/'/g,"''");
     await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${new Date().toISOString()}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
     return { ok:true, key: k };
+  }
+
+  // Daftar master status (CRUD dari halaman Pengaturan). GET terbuka;
+  // PUT dijaga modul 'billing' (dimiliki role Admin CS & Finance).
+  @Get('status-options')
+  async statusOptions() {
+    const read = async (k: string, fallback: string[]) => {
+      try {
+        const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='${k}'` as any);
+        const raw = (r.rows || r)[0]?.value;
+        if (!raw) return { list: [...fallback], fromDb: false };
+        return { list: cleanStatusList(JSON.parse(raw), fallback), fromDb: true };
+      } catch {
+        return { list: [...fallback], fromDb: false };
+      }
+    };
+    const audit = await read('auditActions', DEFAULT_STATUS_OPTIONS.auditActions);
+    const invoice = await read('invoiceActions', DEFAULT_STATUS_OPTIONS.invoiceActions);
+    return {
+      source: audit.fromDb && invoice.fromDb ? 'db' : 'default',
+      auditActions: audit.list,
+      invoiceActions: invoice.list,
+    };
+  }
+
+  @Put('status-options')
+  @UseGuards(PermGuard)
+  @Perm('billing')
+  async saveStatusOptions(@Body() body: any) {
+    const out: any = { ok: true };
+    for (const k of ['auditActions', 'invoiceActions'] as const) {
+      if (body?.[k] === undefined) continue;
+      const list = cleanStatusList(body[k], DEFAULT_STATUS_OPTIONS[k]);
+      const val = JSON.stringify(list).replace(/'/g, "''");
+      await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${new Date().toISOString()}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
+      out[k] = list;
+    }
+    return out;
   }
 }
