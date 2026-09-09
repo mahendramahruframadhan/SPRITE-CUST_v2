@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { NAV_MODULES } from '../config/modules.js';
 import Icon from '../components/Icon.jsx';
+import RolesPage from './RolesPage.jsx';
+import LogsPage from './LogsPage.jsx';
 import { getUsers, patchUser, setUserPassword, postLog, getStatusOptions, putStatusOptions } from '../lib/api.js';
 
 const ROLE_BADGE = {
@@ -12,6 +15,15 @@ const ROLE_BADGE = {
   Finance: 'bg-amber-50 text-amber-600 border-amber-200',
   Viewer: 'bg-slate-100 text-slate-500 border-slate-200',
 };
+
+const TABS = [
+  { id: 'akun', label: 'Akun', desc: 'Profil, keamanan & sesi', icon: 'user' },
+  { id: 'master', label: 'Master Status', desc: 'Status Billing & Finance', icon: 'billing' },
+  { id: 'akses', label: 'Akses Saya', desc: 'Modul yang dapat diakses', icon: 'dashboard' },
+  { id: 'roles', label: 'Hak Akses', desc: 'Kelola pengguna & izin', icon: 'roles', perm: 'roles' },
+  { id: 'logs', label: 'Logs', desc: 'Riwayat aktivitas', icon: 'logs', perm: 'logs' },
+  { id: 'sesi', label: 'Sesi', desc: 'Perangkat & keluar', icon: 'logout' },
+];
 
 const initials = (name) =>
   (name || '')
@@ -124,7 +136,9 @@ function StatusListManager({ label, hint, items, newVal, onNewVal, onAdd, onDele
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { can, perms, role } = usePermissions();
+  const location = useLocation();
   const [myId, setMyId] = useState('');
+  const [tab, setTab] = useState(() => new URLSearchParams(location.search).get('tab') || 'akun');
 
   // Profil
   const [name, setName] = useState(user?.name || '');
@@ -147,6 +161,9 @@ export default function SettingsPage() {
   const canManage = can('roles');
   // Kelola master status butuh izin tulis modul 'billing' (cermin backend)
   const canEditMaster = can('billing');
+
+  const visibleTabs = useMemo(() => TABS.filter((t) => !t.perm || can(t.perm)), [perms, role]);
+  const safeTab = visibleTabs.some((t) => t.id === tab) ? tab : 'akun';
 
   // Cari id user sendiri (untuk PATCH nama & password) — GET /users terbuka
   useEffect(() => {
@@ -308,7 +325,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="px-8 py-6 space-y-5 max-w-4xl">
+    <div className="px-8 py-6 space-y-5">
       {/* Kartu identitas */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 animate-fade-in-fast">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-lg font-bold shrink-0">
@@ -325,176 +342,217 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Profil */}
-      <form
-        onSubmit={saveProfile}
-        className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 animate-fade-in-fast"
-        style={{ animationDelay: '.05s' }}
-      >
-        <SectionHead icon="roles" title="Profil Saya" desc="Nama tampil, email & role akun" />
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field
-            label="Nama tampil"
-            hint={canManage ? 'Nama ini tampil di sidebar & log aktivitas.' : 'Hanya admin yang dapat mengubah nama.'}
-          >
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={!canManage}
-              className={inputCls}
-              autoComplete="name"
-            />
-          </Field>
-          <Field label="Email" hint="Email tidak dapat diubah.">
-            <input value={user?.email || ''} disabled className={inputCls} autoComplete="email" />
-          </Field>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={!canManage || savingProfile}
-            className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 rounded-lg transition"
-          >
-            {savingProfile ? 'Menyimpan…' : 'Simpan Profil'}
-          </button>
-          <Notice kind={profileMsg?.kind}>{profileMsg?.text}</Notice>
-        </div>
-      </form>
-
-      {/* Keamanan */}
-      <form
-        onSubmit={savePassword}
-        className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 animate-fade-in-fast"
-        style={{ animationDelay: '.1s' }}
-      >
-        <SectionHead icon="lock" title="Keamanan" desc="Ubah password akun" />
-        {!canManage && (
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-            Role Anda tidak memiliki izin mengubah password — hubungi admin.
-          </p>
-        )}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Password baru" hint="Minimal 5 karakter.">
-            <input
-              type="password"
-              value={pw1}
-              onChange={(e) => setPw1(e.target.value)}
-              disabled={!canManage}
-              className={inputCls}
-              autoComplete="new-password"
-            />
-          </Field>
-          <Field label="Konfirmasi password baru">
-            <input
-              type="password"
-              value={pw2}
-              onChange={(e) => setPw2(e.target.value)}
-              disabled={!canManage}
-              className={inputCls}
-              autoComplete="new-password"
-            />
-          </Field>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={!canManage || savingPw}
-            className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 rounded-lg transition"
-          >
-            {savingPw ? 'Menyimpan…' : 'Ubah Password'}
-          </button>
-          <Notice kind={pwMsg?.kind}>{pwMsg?.text}</Notice>
-        </div>
-      </form>
-
-      {/* Master status */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 animate-fade-in-fast" style={{ animationDelay: '.12s' }}>
-        <SectionHead icon="billing" title="Master Status" desc="Daftar status Billing & Finance — disharing semua user, tersimpan di database" />
-        {!canEditMaster && (
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-            Role Anda tidak memiliki akses Billing — daftar hanya bisa dilihat, hubungi admin untuk mengubah.
-          </p>
-        )}
-        {mastersLoading ? (
-          <p className="text-xs text-slate-400 py-4 text-center">Memuat master status…</p>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-4">
-            <StatusListManager
-              label="Status Validasi"
-              hint="Dipakai di halaman Billing & Audit."
-              items={masters.auditActions}
-              newVal={newAudit}
-              onNewVal={setNewAudit}
-              onAdd={() => addMaster('auditActions', newAudit, setNewAudit)}
-              onDelete={(v) => delMaster('auditActions', v)}
-              disabled={!canEditMaster}
-              busy={masterBusy}
-            />
-            <StatusListManager
-              label="Status Invoice"
-              hint="Dipakai di halaman Finance Audit."
-              items={masters.invoiceActions}
-              newVal={newInvoice}
-              onNewVal={setNewInvoice}
-              onAdd={() => addMaster('invoiceActions', newInvoice, setNewInvoice)}
-              onDelete={(v) => delMaster('invoiceActions', v)}
-              disabled={!canEditMaster}
-              busy={masterBusy}
-            />
-          </div>
-        )}
-        <Notice kind={masterMsg?.kind}>{masterMsg?.text}</Notice>
-      </div>
-
-      {/* Akses saya */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 animate-fade-in-fast" style={{ animationDelay: '.15s' }}>
-        <SectionHead icon="dashboard" title="Akses Saya" desc={`${accessCount} dari ${myAccess.length} modul dapat diakses role ${role}`} />
-        <ul className="grid sm:grid-cols-2 gap-2">
-          {myAccess.map((m) => (
-            <li
-              key={m.id}
-              className={`flex items-center gap-3 border rounded-xl px-3 py-2.5 ${m.allowed ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50/60'}`}
-            >
-              <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${m.allowed ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-300'}`}>
-                {m.allowed ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
-                )}
-              </span>
-              <div className="min-w-0">
-                <p className={`text-sm font-semibold truncate ${m.allowed ? 'text-slate-800' : 'text-slate-400'}`}>{m.title}</p>
-                <p className="text-[11px] text-slate-400 truncate">{m.sub}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Sesi */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
-        <SectionHead icon="logout" title="Sesi" desc="Perangkat yang sedang login & keluar akun" />
-        <div className="flex items-center gap-3 text-sm">
-          <span className="relative flex h-2 w-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          <p className="text-slate-600">
-            Login sebagai <span className="font-semibold text-slate-800">{user?.email}</span> di perangkat ini
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={logout}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-5 py-2 rounded-lg transition"
+      <div className="flex flex-col lg:flex-row gap-5 items-start">
+        {/* Sub-navigasi pengaturan */}
+        <nav
+          aria-label="Navigasi pengaturan"
+          className="w-full lg:w-60 shrink-0 bg-white rounded-2xl border border-slate-200 p-3 flex lg:flex-col flex-row gap-1 overflow-x-auto scrollbar-thin lg:sticky lg:top-20 animate-fade-in-fast"
         >
-          <Icon name="logout" className="w-4 h-4" strokeWidth={2} />
-          Keluar dari Akun
-        </button>
+          {visibleTabs.map((t) => {
+            const active = safeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition shrink-0 lg:shrink ${
+                  active
+                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Icon name={t.icon} className="w-5 h-5 shrink-0" strokeWidth={1.8} />
+                <span className="min-w-0">
+                  <span className={`block text-sm font-bold whitespace-nowrap ${active ? 'text-white' : 'text-slate-800'}`}>
+                    {t.label}
+                  </span>
+                  <span className={`hidden lg:block text-[11px] truncate ${active ? 'text-brand-100' : 'text-slate-400'}`}>
+                    {t.desc}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Panel konten */}
+        <div key={safeTab} className="flex-1 min-w-0 w-full space-y-5 animate-fade-in-fast">
+          {safeTab === 'akun' && (
+            <div className="max-w-3xl space-y-5">
+              {/* Profil */}
+              <form onSubmit={saveProfile} className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+                <SectionHead icon="roles" title="Profil Saya" desc="Nama tampil, email & role akun" />
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Field
+                    label="Nama tampil"
+                    hint={canManage ? 'Nama ini tampil di sidebar & log aktivitas.' : 'Hanya admin yang dapat mengubah nama.'}
+                  >
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      disabled={!canManage}
+                      className={inputCls}
+                      autoComplete="name"
+                    />
+                  </Field>
+                  <Field label="Email" hint="Email tidak dapat diubah.">
+                    <input value={user?.email || ''} disabled className={inputCls} autoComplete="email" />
+                  </Field>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={!canManage || savingProfile}
+                    className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 rounded-lg transition"
+                  >
+                    {savingProfile ? 'Menyimpan…' : 'Simpan Profil'}
+                  </button>
+                  <Notice kind={profileMsg?.kind}>{profileMsg?.text}</Notice>
+                </div>
+              </form>
+
+              {/* Keamanan */}
+              <form onSubmit={savePassword} className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+                <SectionHead icon="lock" title="Keamanan" desc="Ubah password akun" />
+                {!canManage && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                    Role Anda tidak memiliki izin mengubah password — hubungi admin.
+                  </p>
+                )}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Field label="Password baru" hint="Minimal 5 karakter.">
+                    <input
+                      type="password"
+                      value={pw1}
+                      onChange={(e) => setPw1(e.target.value)}
+                      disabled={!canManage}
+                      className={inputCls}
+                      autoComplete="new-password"
+                    />
+                  </Field>
+                  <Field label="Konfirmasi password baru">
+                    <input
+                      type="password"
+                      value={pw2}
+                      onChange={(e) => setPw2(e.target.value)}
+                      disabled={!canManage}
+                      className={inputCls}
+                      autoComplete="new-password"
+                    />
+                  </Field>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={!canManage || savingPw}
+                    className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 rounded-lg transition"
+                  >
+                    {savingPw ? 'Menyimpan…' : 'Ubah Password'}
+                  </button>
+                  <Notice kind={pwMsg?.kind}>{pwMsg?.text}</Notice>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {safeTab === 'master' && (
+            <div className="max-w-3xl bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+              <SectionHead icon="billing" title="Master Status" desc="Daftar status Billing & Finance — disharing semua user, tersimpan di database" />
+              {!canEditMaster && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                  Role Anda tidak memiliki akses Billing — daftar hanya bisa dilihat, hubungi admin untuk mengubah.
+                </p>
+              )}
+              {mastersLoading ? (
+                <p className="text-xs text-slate-400 py-4 text-center">Memuat master status…</p>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <StatusListManager
+                    label="Status Validasi"
+                    hint="Dipakai di halaman Billing & Audit."
+                    items={masters.auditActions}
+                    newVal={newAudit}
+                    onNewVal={setNewAudit}
+                    onAdd={() => addMaster('auditActions', newAudit, setNewAudit)}
+                    onDelete={(v) => delMaster('auditActions', v)}
+                    disabled={!canEditMaster}
+                    busy={masterBusy}
+                  />
+                  <StatusListManager
+                    label="Status Invoice"
+                    hint="Dipakai di halaman Finance Audit."
+                    items={masters.invoiceActions}
+                    newVal={newInvoice}
+                    onNewVal={setNewInvoice}
+                    onAdd={() => addMaster('invoiceActions', newInvoice, setNewInvoice)}
+                    onDelete={(v) => delMaster('invoiceActions', v)}
+                    disabled={!canEditMaster}
+                    busy={masterBusy}
+                  />
+                </div>
+              )}
+              <Notice kind={masterMsg?.kind}>{masterMsg?.text}</Notice>
+            </div>
+          )}
+
+          {safeTab === 'akses' && (
+            <div className="max-w-3xl bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+              <SectionHead icon="dashboard" title="Akses Saya" desc={`${accessCount} dari ${myAccess.length} modul dapat diakses role ${role}`} />
+              <ul className="grid sm:grid-cols-2 gap-2">
+                {myAccess.map((m) => (
+                  <li
+                    key={m.id}
+                    className={`flex items-center gap-3 border rounded-xl px-3 py-2.5 ${m.allowed ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50/60'}`}
+                  >
+                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${m.allowed ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-300'}`}>
+                      {m.allowed ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                        </svg>
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <p className={`text-sm font-semibold truncate ${m.allowed ? 'text-slate-800' : 'text-slate-400'}`}>{m.title}</p>
+                      <p className="text-[11px] text-slate-400 truncate">{m.sub}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {safeTab === 'roles' && <RolesPage bare />}
+
+          {safeTab === 'logs' && <LogsPage bare />}
+
+          {safeTab === 'sesi' && (
+            <div className="max-w-3xl bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+              <SectionHead icon="logout" title="Sesi" desc="Perangkat yang sedang login & keluar akun" />
+              <div className="flex items-center gap-3 text-sm">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <p className="text-slate-600">
+                  Login sebagai <span className="font-semibold text-slate-800">{user?.email}</span> di perangkat ini
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-5 py-2 rounded-lg transition"
+              >
+                <Icon name="logout" className="w-4 h-4" strokeWidth={2} />
+                Keluar dari Akun
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

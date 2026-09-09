@@ -45,7 +45,8 @@ function fmtTime(t) {
 const initials = (name) =>
   String(name || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
-export default function LogsPage() {
+// bare=true: ditempel sebagai tab di Pengaturan (tanpa padding halaman sendiri)
+export default function LogsPage({ bare = false }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
@@ -144,7 +145,7 @@ export default function LogsPage() {
   }
 
   return (
-    <div className="px-8 py-6 space-y-5">
+    <div className={bare ? 'space-y-5' : 'px-8 py-6 space-y-5'}>
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2 -mt-1">
         <button

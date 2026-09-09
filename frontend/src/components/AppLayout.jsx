@@ -22,6 +22,16 @@ export default function AppLayout() {
     MODULES.find((m) => m.path === location.pathname) ||
     MODULES.find((m) => m.id === 'dashboard');
 
+  const isNavVisible = (m) => !m.group && can(menuPerm(m.id)) && !m.hide;
+  // Judul grup hanya tampil bila ada item terlihat di bawahnya (sebelum grup berikut)
+  const isGroupVisible = (i) => {
+    for (let j = i + 1; j < MODULES.length; j++) {
+      if (MODULES[j].group) break;
+      if (isNavVisible(MODULES[j])) return true;
+    }
+    return false;
+  };
+
   const initials = user.name
     .split(' ')
     .map((w) => w[0])
@@ -44,21 +54,26 @@ export default function AppLayout() {
         </div>
 
         <nav className="flex-1 py-4 text-sm overflow-y-auto scrollbar-thin">
-          {MODULES.map((m, i) =>
-            m.group ? (
-              <p
-                key={`g-${i}`}
-                className={`px-5 ${m.group === 'Menu Utama' ? '' : 'pt-5'} pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400`}
-              >
-                {m.group}
-              </p>
-            ) : can(menuPerm(m.id)) ? (
+          {MODULES.map((m, i) => {
+            if (m.group) {
+              if (!isGroupVisible(i)) return null;
+              return (
+                <p
+                  key={`g-${i}`}
+                  className={`px-5 ${m.group === 'Menu Utama' ? '' : 'pt-5'} pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400`}
+                >
+                  {m.group}
+                </p>
+              );
+            }
+            if (!isNavVisible(m)) return null;
+            return (
               <NavLink key={m.id} to={m.path} className="shell-nav">
                 <Icon name={m.id === 'kasus' ? 'cases' : m.id} />
                 {m.title}
               </NavLink>
-            ) : null
-          )}
+            );
+          })}
         </nav>
 
         <div className="p-4 border-t border-slate-100">

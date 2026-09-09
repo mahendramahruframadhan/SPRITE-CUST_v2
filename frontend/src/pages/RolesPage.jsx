@@ -71,7 +71,8 @@ const fmtLogTime = (t) => {
   return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
 
-export default function RolesPage() {
+// bare=true: ditempel sebagai tab di Pengaturan (tanpa padding halaman sendiri)
+export default function RolesPage({ bare = false }) {
   const { user } = useAuth();
   const [users, setUsers] = useState(() => loadLS('appUsers', SEED_USERS));
   const [perms, setPerms] = useState(() => loadLS('appPerms', DEFAULT_PERMS));
@@ -397,7 +398,7 @@ export default function RolesPage() {
     'text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white';
 
   return (
-    <div className="px-8 py-6 space-y-6">
+    <div className={bare ? 'space-y-6' : 'px-8 py-6 space-y-6'}>
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-3 -mt-1">
         <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
