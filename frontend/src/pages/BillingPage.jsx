@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { recordActivity } from '../lib/activity.js';
+import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 const BILL_BADGE = {
   FREE: 'bg-emerald-50 text-emerald-600 border-emerald-200',
@@ -30,106 +31,6 @@ function ExpandableText({ text }) {
           {open ? 'Tutup' : 'Selengkapnya'}
         </button>
       )}
-    </div>
-  );
-}
-
-// Popup detail kasus: dibuka dari kolom Issue — menampilkan seluruh isi + info kasus
-function CaseDetailModal({ c, auditStatus, onClose }) {
-  const closeRef = useRef(null);
-
-  useEffect(() => {
-    if (!c) return;
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    closeRef.current?.focus();
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [c, onClose]);
-
-  if (!c) return null;
-
-  const rows = [
-    ['Tgl Issue', fmtDate8(c.dateIssue)],
-    ['Brand', c.client || '-'],
-    ['PIC Name', c.picName || c.assignTo || '-'],
-    ['Module', c.module || '-'],
-    ['Sub-Module', c.subModule || '-'],
-    ['Lokasi', c.location || '-'],
-    ['Status Billing', c.billingStatus || '-'],
-    ['Kategori Billing', c.billingCategory || '-'],
-    ['Tipe Support', c.supportType || '-'],
-    ['Charges', fmtMoney(c.charges)],
-    ['Status Validasi', auditStatus || '-'],
-  ];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="case-detail-title">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in-fast">
-        {/* Header */}
-        <div className="bg-brand-700 text-white px-6 py-5 shrink-0">
-          <div className="flex items-start gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-brand-200">
-                Detail Kasus #{c.no || '-'}
-              </p>
-              <h3 id="case-detail-title" className="mt-1 text-xl font-extrabold truncate">
-                {c.client || '-'}
-              </h3>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                <span className="text-[10px] font-bold bg-white/15 border border-white/20 rounded-full px-2.5 py-1">
-                  {c.module || '-'}
-                </span>
-                <span className={`text-[10px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[c.billingStatus] || 'bg-white/15 border-white/20'}`}>
-                  {c.billingStatus || '-'}
-                </span>
-                {c.billingStatus !== 'FREE' && (
-                  <span className="text-[10px] font-bold bg-amber-300/90 text-amber-900 rounded-full px-2.5 py-1">
-                    {auditStatus || 'BELUM DIVALIDASI'}
-                  </span>
-                )}
-              </div>
-            </div>
-            <button
-              ref={closeRef}
-              type="button"
-              onClick={onClose}
-              aria-label="Tutup detail kasus"
-              className="shrink-0 rounded-lg p-2 text-brand-100 hover:bg-white/15 hover:text-white transition"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        {/* Isi */}
-        <div className="px-6 py-5 space-y-5 overflow-y-auto scrollbar-thin">
-          <div className="bg-brand-50/60 border border-brand-100 rounded-xl p-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-brand-600 mb-1.5">Issue</p>
-            <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words">{c.issue || '-'}</p>
-          </div>
-          <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
-            {rows.map(([k, v]) => (
-              <div key={k} className="border-b border-slate-100 pb-2.5">
-                <dt className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{k}</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-slate-800 break-words">{v}</dd>
-              </div>
-            ))}
-          </dl>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Completion Notes</p>
-            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words">{c.completionNotes || '-'}</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -713,7 +614,29 @@ export default function BillingPage() {
       {/* Popup detail kasus dari kolom Issue */}
       <CaseDetailModal
         c={detailCase}
-        auditStatus={detailCase ? caseAuditStatus[detailCase.recordUuid] : null}
+        kicker={`Detail Kasus #${detailCase?.no || '-'}`}
+        title={detailCase?.client || '-'}
+        chips={detailCase ? [
+          { text: detailCase.module || '-', className: 'bg-white/15 border-white/20' },
+          { text: detailCase.billingStatus || '-', className: BILL_BADGE[detailCase.billingStatus] || 'bg-white/15 border-white/20' },
+          ...(detailCase.billingStatus !== 'FREE'
+            ? [{ text: caseAuditStatus[detailCase.recordUuid] || 'BELUM DIVALIDASI', className: 'bg-amber-300/90 text-amber-900 border-transparent' }]
+            : []),
+        ] : []}
+        rows={detailCase ? [
+          ['Tgl Issue', fmtDate8(detailCase.dateIssue)],
+          ['Brand', detailCase.client || '-'],
+          ['PIC Name', detailCase.picName || detailCase.assignTo || '-'],
+          ['Module', detailCase.module || '-'],
+          ['Sub-Module', detailCase.subModule || '-'],
+          ['Lokasi', detailCase.location || '-'],
+          ['Status Billing', detailCase.billingStatus || '-'],
+          ['Kategori Billing', detailCase.billingCategory || '-'],
+          ['Tipe Support', detailCase.supportType || '-'],
+          ['Charges', fmtMoney(detailCase.charges)],
+          ['Status Validasi', caseAuditStatus[detailCase.recordUuid] || '-'],
+        ] : []}
+        notes={{ label: 'Completion Notes', text: detailCase?.completionNotes }}
         onClose={() => setDetailUuid(null)}
       />
     </div>
