@@ -17,6 +17,7 @@ import { useCases } from '../hooks/useCases.js';
 import { triggerSync, getSyncLogs, getHealth } from '../lib/api.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
+import { useTheme } from '../context/ThemeContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 ChartJS.register(
@@ -62,12 +63,10 @@ const countBy = (arr, fn) => {
 const topEntries = (obj, n) =>
   Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n || Infinity);
 
-const gridOpt = { color: '#eef2f7' };
-
 const BILL_BADGE = {
-  FREE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'ON-CALL': 'bg-amber-50 text-amber-700 border-amber-200',
-  MONTHLY: 'bg-sky-50 text-sky-700 border-sky-200',
+  FREE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+  'ON-CALL': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+  MONTHLY: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20',
 };
 
 function greeting() {
@@ -92,6 +91,14 @@ export default function DashboardPage() {
   const [lastSync, setLastSync] = useState('');
   const [mockMode, setMockMode] = useState(false);
   const [detailUuid, setDetailUuid] = useState(null);
+
+  // Palet chart mengikuti tema (terang/gelap)
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
+  const gridOpt = { color: dark ? '#1e293b' : '#eef2f7' };
+  const sliceBorder = dark ? '#0f172a' : '#ffffff';
+  const legendColor = dark ? '#94a3b8' : '#64748b';
+  const axisLabelColor = dark ? '#94a3b8' : '#334155';
 
   function stampNow() {
     const now = new Date();
@@ -249,7 +256,7 @@ export default function DashboardPage() {
       pointRadius: 0,
       pointHoverRadius: 5,
       pointBackgroundColor: '#4a4fe9',
-      pointBorderColor: '#fff',
+      pointBorderColor: sliceBorder,
       pointBorderWidth: 2,
       borderWidth: 2.5,
     }],
@@ -264,7 +271,7 @@ export default function DashboardPage() {
       backgroundColor: billEntries.map((e) => BILL_COLORS[e[0]] || '#cbd5e1'),
       hoverOffset: 8,
       borderWidth: 3,
-      borderColor: '#fff',
+      borderColor: sliceBorder,
       spacing: 2,
     }],
   };
@@ -290,7 +297,7 @@ export default function DashboardPage() {
   const chanEntries = topEntries(chanMap);
   const channelData = {
     labels: chanEntries.map((e) => e[0]),
-    datasets: [{ data: chanEntries.map((e) => e[1]), backgroundColor: CHAN_COLORS, hoverOffset: 8, borderWidth: 3, borderColor: '#fff', spacing: 2 }],
+    datasets: [{ data: chanEntries.map((e) => e[1]), backgroundColor: CHAN_COLORS, hoverOffset: 8, borderWidth: 3, borderColor: sliceBorder, spacing: 2 }],
   };
   const chargesData = {
     labels: ymLabels,
@@ -374,7 +381,7 @@ export default function DashboardPage() {
     maintainAspectRatio: false,
     cutout: '68%',
     plugins: {
-      legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, borderRadius: 99, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { weight: 600, size: 11 }, color: '#64748b' } },
+      legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, borderRadius: 99, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { weight: 600, size: 11 }, color: legendColor } },
       tooltip: baseTooltip,
     },
   };
@@ -504,21 +511,21 @@ export default function DashboardPage() {
       </div>
 
       {/* ===== NAVIGASI CEPAT (strip ramping) ===== */}
-      <nav aria-label="Navigasi cepat" className="bg-white rounded-2xl border border-slate-200/70 shadow-sm animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
+      <nav aria-label="Navigasi cepat" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
         <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-thin px-2 py-2">
           {FEATURES.map((f) => (
             <Link
               key={f.title}
               to={f.to}
               title={`${f.title} — ${f.desc}`}
-              className="group flex min-w-[178px] flex-1 items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="group flex min-w-[178px] flex-1 items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <span className={`w-9 h-9 shrink-0 rounded-lg ${f.soft} flex items-center justify-center`}>
                 <FeatureIcon name={f.icon} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{f.title}</span>
-                <span className="block text-[13px] font-extrabold text-slate-900 truncate">{f.metric}</span>
+                <span className="block text-[13px] font-extrabold text-slate-900 dark:text-white truncate">{f.metric}</span>
               </span>
               <svg className="w-3.5 h-3.5 shrink-0 text-slate-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -569,7 +576,7 @@ export default function DashboardPage() {
                 responsive: true,
                 maintainAspectRatio: false,
                 ...noLegend,
-                scales: { x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: '#334155' } } },
+                scales: { x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: axisLabelColor } } },
               }}
             />
           </div>
@@ -622,7 +629,7 @@ export default function DashboardPage() {
                   },
                   scales: {
                     x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), font: { size: 10 }, color: '#94a3b8', maxTicksLimit: 5 } },
-                    y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: '#334155' } },
+                    y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: axisLabelColor } },
                   },
                 }}
               />
@@ -639,10 +646,10 @@ export default function DashboardPage() {
             {outstanding.top.slice(0, 3).map(([brand, amount]) => (
               <div key={brand}>
                 <div className="flex items-center justify-between text-sm mb-1.5">
-                  <span className="font-bold text-slate-700 truncate">{brand}</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-200 truncate">{brand}</span>
                     <span className="text-xs text-slate-600 font-bold ml-2 whitespace-nowrap tabular-nums">{fmtRp(amount)}</span>
                 </div>
-                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-700" style={{ width: `${Math.round((amount / outstanding.max) * 100)}%` }} />
                 </div>
               </div>
@@ -688,12 +695,12 @@ export default function DashboardPage() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-slate-700 text-[13px] truncate">{t.name}</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200 text-[13px] truncate">{t.name}</span>
                       <span className="text-[11px] text-slate-400 font-bold whitespace-nowrap">
                         {fmtNum(t.count)} · {fmtRp(t.charge)}
                       </span>
                     </div>
-                    <div className="mt-1.5 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="mt-1.5 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className={`h-full bg-gradient-to-r ${TEAM_COLORS[i % TEAM_COLORS.length]} rounded-full transition-all duration-700`}
                         style={{ width: `${t.pct}%` }}
@@ -709,14 +716,14 @@ export default function DashboardPage() {
       </div>
 
       {/* ===== KASUS TERBARU ===== */}
-      <div className="bg-white rounded-3xl border border-slate-200/70 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast" style={{ animationDelay: '.48s' }}>
-        <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast" style={{ animationDelay: '.48s' }}>
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d={MINI_PATHS.cases} /></svg>
             </span>
             <div>
-              <h3 className="font-extrabold text-slate-900 tracking-tight">Kasus Terbaru</h3>
+              <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Kasus Terbaru</h3>
               <p className="text-xs text-slate-400">10 kasus terakhir dari Google Sheets</p>
             </div>
           </div>
@@ -730,7 +737,7 @@ export default function DashboardPage() {
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-sm min-w-[960px]">
             <thead>
-              <tr className="bg-slate-50/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+              <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <th className="pl-6 pr-2 py-3 w-12">No</th>
                 <th className="px-3 py-3">Tanggal</th>
                 <th className="px-3 py-3">Klien</th>
@@ -741,7 +748,7 @@ export default function DashboardPage() {
                 <th className="px-3 pr-6 py-3 text-right">Biaya</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {recent.map((c) => {
                 const bs = (c.billingStatus || '').trim() || '-';
                 const audit = caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI';
@@ -753,22 +760,22 @@ export default function DashboardPage() {
                     key={c.recordUuid}
                     onClick={() => setDetailUuid(c.recordUuid)}
                     title="Klik untuk lihat detail kasus"
-                    className="even:bg-slate-50/60 hover:bg-brand-50/50 transition cursor-pointer"
+                    className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-brand-50/50 dark:hover:bg-slate-800 transition cursor-pointer"
                   >
                     <td className="pl-6 pr-2 py-3.5 text-xs text-slate-400 tabular-nums">{c.no || '-'}</td>
-                    <td className="px-3 py-3.5 text-xs font-semibold text-slate-600 whitespace-nowrap tabular-nums">{fmtDate(c.dateIssue)}</td>
+                    <td className="px-3 py-3.5 text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap tabular-nums">{fmtDate(c.dateIssue)}</td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
                       <span className="flex items-center gap-2.5">
-                        <span className="w-8 h-8 rounded-lg bg-brand-600/10 text-brand-700 border border-brand-100 text-[10px] font-extrabold flex items-center justify-center shrink-0">{clientInitials}</span>
+                        <span className="w-8 h-8 rounded-lg bg-brand-600/10 text-brand-700 dark:text-brand-300 border border-brand-100 dark:border-brand-500/20 text-[10px] font-extrabold flex items-center justify-center shrink-0">{clientInitials}</span>
                         <span className="min-w-0">
-                          <span className="block font-bold text-slate-800 truncate">{c.client || '-'}</span>
+                          <span className="block font-bold text-slate-800 dark:text-slate-100 truncate">{c.client || '-'}</span>
                           {c.channelTicket && <span className="block text-[10px] text-slate-400 font-medium">via {c.channelTicket}</span>}
                         </span>
                       </span>
                     </td>
                     <td className="px-3 py-3.5">
                       <div className="min-w-[220px] max-w-[320px]">
-                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-2" title={c.issue}>{c.issue || '-'}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2" title={c.issue}>{c.issue || '-'}</p>
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setDetailUuid(c.recordUuid); }}
@@ -782,13 +789,13 @@ export default function DashboardPage() {
                       </div>
                     </td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
-                      <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1">{c.module || '-'}</span>
+                      <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-full px-2.5 py-1">{c.module || '-'}</span>
                       {c.subModule && <span className="mt-1 block text-[10px] text-slate-400 font-medium">{c.subModule}</span>}
                     </td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
                       <span className="flex items-center gap-2">
                         <span className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white text-[9px] font-extrabold flex items-center justify-center shrink-0">{staffInitials}</span>
-                        <span className="text-xs font-semibold text-slate-700">{c.assignTo || '-'}</span>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{c.assignTo || '-'}</span>
                       </span>
                     </td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
@@ -800,7 +807,7 @@ export default function DashboardPage() {
                         {isValid ? '● Tervalidasi' : '○ Belum validasi'}
                       </span>
                     </td>
-                    <td className={`px-3 pr-6 py-3.5 text-right whitespace-nowrap tabular-nums ${c.charges > 0 ? 'text-sm font-extrabold text-amber-700' : 'text-xs font-bold text-slate-300'}`}>
+                    <td className={`px-3 pr-6 py-3.5 text-right whitespace-nowrap tabular-nums ${c.charges > 0 ? 'text-sm font-extrabold text-amber-700 dark:text-amber-400' : 'text-xs font-bold text-slate-300 dark:text-slate-600'}`}>
                       {c.charges > 0 ? fmtRp(c.charges) : '—'}
                     </td>
                   </tr>
@@ -859,12 +866,12 @@ function Dot() {
 
 function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', valueSize = 'text-[28px]', delay }) {
   return (
-    <div className={`group relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`} style={{ animationDelay: delay }}>
+    <div className={`group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`} style={{ animationDelay: delay }}>
       <div aria-hidden="true" className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${grad} opacity-[.08] rounded-full blur-2xl group-hover:opacity-[.18] transition`} />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{title}</p>
-          <p className={`mt-2 ${valueSize} leading-tight font-extrabold tracking-tight tabular-nums text-slate-900 ${valueCls}`}>{value}</p>
+          <p className={`mt-2 ${valueSize} leading-tight font-extrabold tracking-tight tabular-nums text-slate-900 dark:text-white ${valueCls}`}>{value}</p>
           <p className="mt-2 text-[12px] font-medium text-slate-400 truncate">{sub}</p>
         </div>
         <div className={`w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br ${grad} text-white flex items-center justify-center shadow-lg`}>
@@ -882,7 +889,7 @@ function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, value
 
 function Panel({ title, desc, children, className = '', delay, accent = 'from-brand-500 to-violet-500', badge }) {
   return (
-    <div className={`relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast ${className}`} style={{ animationDelay: delay }}>
+    <div className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast ${className}`} style={{ animationDelay: delay }}>
       <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
       <div className="p-6">
         <div className="mb-5 flex items-start justify-between gap-3">
@@ -891,12 +898,12 @@ function Panel({ title, desc, children, className = '', delay, accent = 'from-br
               <span className="w-full h-full block bg-white/20" />
             </span>
             <div className="min-w-0">
-              <h3 className="font-extrabold text-slate-900 tracking-tight leading-tight">{title}</h3>
+              <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">{title}</h3>
               <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
             </div>
           </div>
           {badge && (
-            <span className="shrink-0 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1 whitespace-nowrap">{badge}</span>
+            <span className="shrink-0 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-full px-2.5 py-1 whitespace-nowrap">{badge}</span>
           )}
         </div>
         {children}
