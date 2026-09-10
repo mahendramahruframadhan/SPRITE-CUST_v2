@@ -328,7 +328,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="px-8 py-6 space-y-5">
+    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
       {/* Kartu identitas */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 flex items-center gap-4 animate-fade-in-fast">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-lg font-bold shrink-0">
