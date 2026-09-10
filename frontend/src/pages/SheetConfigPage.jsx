@@ -304,23 +304,25 @@ export default function SheetConfigPage() {
 /* ===== Panel daftar generik (chip + tambah/hapus) ===== */
 function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 border-slate-200', onAdd, onDel }) {
   const [val, setVal] = useState('');
+  const [err, setErr] = useState('');
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 animate-fade-in-fast">
+    <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-5 animate-fade-in-fast">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="font-bold text-slate-900 text-sm">{title}</h3>
-        <span className="text-[11px] font-bold text-slate-400 bg-slate-100 rounded-full px-2.5 py-0.5">{arr.length} item</span>
+        <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">{title}</h3>
+        <span className="text-[11px] font-bold text-slate-500 bg-slate-100 rounded-full px-2.5 py-0.5 tabular-nums">{arr.length} item</span>
       </div>
       <p className="text-[11px] text-slate-400 mb-4">{desc}</p>
       <form
-        className="flex gap-2 mb-4"
+        className="flex gap-2 mb-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           const v = val.trim().toUpperCase();
           if (!v) return;
           if (arr.includes(v)) {
-            alert('Item sudah ada');
+            setErr(`"${v}" sudah ada di daftar.`);
             return;
           }
+          setErr('');
           onAdd(v);
           setVal('');
         }}
@@ -330,11 +332,12 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
           required
           placeholder={`Tambah ${title.toLowerCase()} baru...`}
           value={val}
-          onChange={(e) => setVal(e.target.value)}
-          className={`${CFG_INPUT} flex-1`}
+          onChange={(e) => { setVal(e.target.value); setErr(''); }}
+          className={`${CFG_INPUT} flex-1 !rounded-xl !py-2.5`}
         />
-        <button className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 rounded-lg transition">Tambah</button>
+        <button className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 rounded-xl transition shrink-0">Tambah</button>
       </form>
+      {err && <p className="mb-2 text-[11px] font-semibold text-rose-600">{err}</p>}
       <div className="flex flex-wrap gap-1.5 max-h-72 overflow-y-auto scrollbar-thin">
         {arr.map((v, i) => (
           <span key={`${v}-${i}`} className={`group inline-flex items-center gap-1.5 text-[11px] font-semibold border rounded-full pl-3 pr-1.5 py-1 ${badge}`}>
@@ -387,19 +390,19 @@ function TabPricelist({ cfg, patch }) {
         const rows = cfg.pricelist.map((p, i) => ({ ...p, _i: i })).filter((p) => p.version === v);
         const maxT = Math.max(...rows.map((r) => r.tariff), 1);
         return (
-          <div key={v} className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-fade-in-fast">
-            <div className="px-6 py-4 bg-slate-800 text-white flex items-center justify-between">
+          <div key={v} className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] overflow-hidden animate-fade-in-fast">
+            <div className="px-6 py-4 bg-slate-800 text-white flex flex-wrap items-center gap-3 justify-between">
               <div>
-                <h3 className="font-bold text-sm">{v}</h3>
-                <p className="text-[11px] text-slate-300">{rows.length} billing category</p>
+                <h3 className="font-extrabold text-sm tracking-tight">{v}</h3>
+                <p className="text-[11px] text-slate-300 tabular-nums">{rows.length} billing category</p>
               </div>
-              <button onClick={() => addPriceRow(v)} className="text-xs font-bold bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">
+              <button onClick={() => addPriceRow(v)} className="text-xs font-bold bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition">
                 + Tambah Baris
               </button>
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                <tr className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <th className="px-6 py-2.5 text-left">Billing Category</th>
                   <th className="px-4 py-2.5 text-right">Tariff (Rp)</th>
                   <th className="px-4 py-2.5 text-left">Support Type</th>
@@ -409,7 +412,7 @@ function TabPricelist({ cfg, patch }) {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rows.map((p) => (
-                  <tr key={p._i} className="hover:bg-slate-50/60 transition">
+                  <tr key={p._i} className="even:bg-slate-50/60 hover:bg-brand-50/50 transition">
                     <td className="px-6 py-2.5 font-semibold text-slate-700">{p.billingCategory}</td>
                     <td className="px-4 py-2.5 text-right">
                       <input
@@ -479,19 +482,19 @@ function TabBcMap({ cfg, patch }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-fade-in-fast">
-      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] overflow-hidden animate-fade-in-fast">
+      <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white">
         <div>
-          <h3 className="font-bold text-slate-900 text-sm">Mapping BILLING CATEGORY → SUPPORT TYPE</h3>
+          <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">Mapping BILLING CATEGORY → SUPPORT TYPE</h3>
           <p className="text-[11px] text-slate-400">Sesuai 2 kolom pertama di sheet — menentukan tipe support otomatis dari kategori billing</p>
         </div>
-        <button onClick={addBcRow} className="text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg px-3 py-1.5 transition">
+        <button onClick={addBcRow} className="text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl px-3 py-2 transition">
           + Tambah Mapping
         </button>
       </div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+          <tr className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
             <th className="px-6 py-2.5 text-left">Billing Category</th>
             <th className="px-4 py-2.5 text-left">Support Type</th>
             <th className="px-4 py-2.5 text-center w-16">Aksi</th>
@@ -499,7 +502,7 @@ function TabBcMap({ cfg, patch }) {
         </thead>
         <tbody className="divide-y divide-slate-100">
           {cfg.billingCategoryMap.map((b, i) => (
-            <tr key={i} className="hover:bg-slate-50/60 transition">
+            <tr key={i} className="even:bg-slate-50/60 hover:bg-brand-50/50 transition">
               <td className="px-6 py-2.5 font-semibold text-slate-700">{b.billingCategory}</td>
               <td className="px-4 py-2.5">
                 <select
@@ -538,14 +541,14 @@ function TabBcMap({ cfg, patch }) {
 /* ===== Tab Kalender (read-only) ===== */
 function RoTable({ title, desc, head, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] overflow-hidden">
       <div className="px-5 py-3.5 border-b border-slate-100">
-        <h3 className="font-bold text-slate-900 text-sm">{title}</h3>
+        <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">{title}</h3>
         <p className="text-[11px] text-slate-400">{desc}</p>
       </div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+          <tr className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
             {head.map((h) => (
               <th key={h} className="px-5 py-2 text-left">{h}</th>
             ))}
@@ -593,8 +596,8 @@ function TabCalendar({ cfg }) {
             </tr>
           ))}
         </RoTable>
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 className="font-bold text-slate-900 text-sm">WEEKNUM & YEAR</h3>
+        <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-5">
+          <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">WEEKNUM & YEAR</h3>
           <p className="text-[11px] text-slate-400 mb-3">Nomor minggu dan tahun yang dikenali sheet</p>
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Weeknum (1–{cfg.weeknums.length})</p>
           <div className="flex flex-wrap gap-1 max-h-36 overflow-y-auto scrollbar-thin mb-4">
@@ -626,10 +629,10 @@ function TabHeaders({ cfg }) {
           <span className="font-bold">KRITIS UNTUK BACKEND — TERKUNCI.</span> Tabel ini adalah mapping kolom sheet master (HEADER NAME → COL NO → DEF_HEADERS_NAME). Jangan diubah tanpa koordinasi dengan backend agar sinkronisasi tidak rusak.
         </span>
       </div>
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-fade-in-fast">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] overflow-hidden animate-fade-in-fast">
+        <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white">
           <div>
-            <h3 className="font-bold text-slate-900 text-sm">Mapping Kolom Sheet Master ({cfg.headerMapping.length} kolom)</h3>
+            <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">Mapping Kolom Sheet Master ({cfg.headerMapping.length} kolom)</h3>
             <p className="text-[11px] text-slate-400">HEADER NAME (nama internal) · COL NO (posisi kolom) · DEF_HEADERS_NAME (judul tampilan)</p>
           </div>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-100 rounded-full px-3 py-1">
@@ -674,7 +677,7 @@ function TabAi({ agents, onToggle }) {
         Koneksi API key diatur di <span className="font-bold">Hak Akses → AI & API Key</span>.
       </div>
       {agents.map((a) => (
-        <div key={a.id} className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 animate-fade-in-fast">
+        <div key={a.id} className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-5 flex items-center gap-4 animate-fade-in-fast">
           <button
             onClick={() => onToggle(a.id)}
             title={a.enabled ? 'Nonaktifkan' : 'Aktifkan'}
