@@ -23,8 +23,8 @@ export function fmtMoney(n) {
 
 export function statusMeta(s) {
   return (s || '').toUpperCase() === 'DONE'
-    ? { label: 'Selesai', cls: 'bg-emerald-50 text-emerald-600 border border-emerald-200' }
-    : { label: 'Dalam Proses', cls: 'bg-amber-50 text-amber-600 border border-amber-200' };
+    ? { label: 'Selesai', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' }
+    : { label: 'Dalam Proses', cls: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' };
 }
 
 // "recordUuid" -> "Record Uuid"

@@ -114,12 +114,12 @@ export default function DataKasusPage() {
   }
 
   return (
-    <div className="px-8 py-6 space-y-5">
+    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-2 -mt-1">
         <button
           onClick={exportCSV}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-4 py-2 rounded-lg transition"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -144,7 +144,7 @@ export default function DataKasusPage() {
           <button onClick={refresh} className="font-bold hover:underline">Coba lagi</button>
         </div>
       )}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
         {FILTER_DEFS.map((d) =>
           d.type === 'text' ? (
             <div key={d.id} className="relative">
@@ -156,7 +156,7 @@ export default function DataKasusPage() {
                 placeholder={d.placeholder}
                 value={filters[d.id]}
                 onChange={(e) => setFilters({ ...filters, [d.id]: e.target.value })}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
               />
             </div>
           ) : d.type === 'select' ? (
@@ -164,7 +164,7 @@ export default function DataKasusPage() {
               key={d.id}
               value={filters[d.id]}
               onChange={(e) => setFilters({ ...filters, [d.id]: e.target.value })}
-              className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             >
               <option value="">{d.label}</option>
               {options[d.id].map((v) => (
@@ -177,22 +177,22 @@ export default function DataKasusPage() {
               type="date"
               value={filters[d.id]}
               onChange={(e) => setFilters({ ...filters, [d.id]: e.target.value })}
-              className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             />
           )
         )}
         <button
           onClick={() => setFilters(emptyFilters())}
-          className="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition"
+          className="text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
           Reset Filter
         </button>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-bold text-slate-900">Daftar Kasus</h3>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <h3 className="font-bold text-slate-900 dark:text-white">Daftar Kasus</h3>
           <span className="text-xs text-slate-400">
             {loading ? 'Memuat dari backend…' : `${filtered.length.toLocaleString('id-ID')} kasus ditemukan`}
           </span>
@@ -200,7 +200,7 @@ export default function DataKasusPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
                 <th className="px-6 py-3 font-semibold">No</th>
                 <th className="px-4 py-3 font-semibold">Tanggal</th>
                 <th className="px-4 py-3 font-semibold">Client</th>
@@ -216,31 +216,31 @@ export default function DataKasusPage() {
                 <th className="px-6 py-3 font-semibold text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {pageItems.map((c) => {
                 const s = statusMeta(c.status);
                 return (
-                  <tr key={c.recordUuid} className="hover:bg-brand-50/40 transition">
-                    <td className="px-6 py-3.5 text-slate-500">{c.no}</td>
-                    <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{fmtDate8(c.dateIssue)}</td>
-                    <td className="px-4 py-3.5 font-semibold text-slate-800">{c.client}</td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.picName || '-'}</td>
+                  <tr key={c.recordUuid} className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-brand-50/50 dark:hover:bg-slate-800 transition">
+                    <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100">{c.client}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.picName || '-'}</td>
                     <td className="px-4 py-3.5">
-                      <span className="text-xs bg-slate-100 text-slate-600 font-medium px-2 py-1 rounded-full">{c.module}</span>
+                      <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium px-2 py-1 rounded-full">{c.module}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.subModule || '-'}</td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.location || '-'}</td>
-                    <td className="px-4 py-3.5 text-slate-600 max-w-xs truncate" title={c.issue}>{c.issue}</td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.assignTo || '-'}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.subModule || '-'}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.location || '-'}</td>
+                    <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 max-w-xs truncate" title={c.issue}>{c.issue}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.assignTo || '-'}</td>
                     <td className="px-4 py-3.5">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${s.cls}`}>{s.label}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.billingStatus || '-'}</td>
-                    <td className="px-4 py-3.5 text-right font-medium text-slate-700">{fmtMoney(c.charges)}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.billingStatus || '-'}</td>
+                    <td className="px-4 py-3.5 text-right font-medium text-slate-700 dark:text-slate-200 tabular-nums">{fmtMoney(c.charges)}</td>
                     <td className="px-6 py-3.5 text-center">
                       <button
                         onClick={() => setDetail(c)}
-                        className="text-xs font-semibold text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition"
+                        className="text-xs font-semibold text-brand-600 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-1.5 rounded-lg transition"
                       >
                         Detail
                       </button>
@@ -258,13 +258,13 @@ export default function DataKasusPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <span>Tampilkan</span>
             <select
               value={pageSize}
               onChange={(e) => setPageSize(parseInt(e.target.value))}
-              className="text-xs border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+              className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 dark:text-slate-100"
             >
               <option value={25}>25</option>
               <option value={50}>50</option>
@@ -276,7 +276,7 @@ export default function DataKasusPage() {
             <button
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               ‹
             </button>
@@ -290,7 +290,7 @@ export default function DataKasusPage() {
                   className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
                     n === page
                       ? 'bg-brand-600 text-white'
-                      : 'border border-slate-200 text-slate-500 hover:bg-slate-50'
+                      : 'border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   {n}
@@ -300,7 +300,7 @@ export default function DataKasusPage() {
             <button
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               ›
             </button>
@@ -327,16 +327,16 @@ function CaseDetailModal({ item, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col animate-fade-in-fast">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col animate-fade-in-fast">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-lg text-slate-900">{item.client}</h3>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">{item.client}</h3>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${s.cls}`}>{s.label}</span>
             </div>
-            <p className="text-sm text-slate-500 mt-0.5">{item.issue}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{item.issue}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -351,7 +351,7 @@ function CaseDetailModal({ item, onClose }) {
                   {keys.map((k) => (
                     <th
                       key={k}
-                      className="px-4 py-2 text-left align-top text-[11px] font-semibold uppercase tracking-wider text-slate-400 border border-slate-100 bg-slate-50/80 min-w-[140px]"
+                      className="px-4 py-2 text-left align-top text-[11px] font-semibold uppercase tracking-wider text-slate-400 border border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 min-w-[140px]"
                     >
                       {prettyKey(k)}
                     </th>
@@ -365,8 +365,8 @@ function CaseDetailModal({ item, onClose }) {
                     return (
                       <td
                         key={k}
-                        className={`px-4 py-3 align-top border border-slate-100 whitespace-pre-wrap break-words min-w-[140px] ${
-                          k === 'charges' ? 'text-right font-semibold text-slate-800' : 'text-slate-700'
+                        className={`px-4 py-3 align-top border border-slate-100 dark:border-slate-800 whitespace-pre-wrap break-words min-w-[140px] ${
+                          k === 'charges' ? 'text-right font-semibold text-slate-800 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'
                         } ${k === 'completionNotes' ? 'max-w-[320px]' : ''}`}
                       >
                         {v}
@@ -379,9 +379,9 @@ function CaseDetailModal({ item, onClose }) {
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl">
           <p className="text-[11px] text-slate-400">
-            RECORD_UUID: <span className="font-mono text-slate-600">{item.recordUuid}</span>
+            RECORD_UUID: <span className="font-mono text-slate-600 dark:text-slate-300">{item.recordUuid}</span>
           </p>
         </div>
       </div>
