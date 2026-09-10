@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
-import { useInvoiceState, DEFAULT_INVOICE, DEFAULT_INVOICE_STATUS } from '../hooks/useInvoiceState.js';
+import { useInvoiceState, DEFAULT_INVOICE } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
@@ -31,7 +31,7 @@ export default function FinanceAuditPage() {
   const { user } = useAuth();
   const { caseAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
-  const { invoiceActions, invoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
+  const { invoiceActions, invoiceStatus, defaultInvoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [brand, setBrand] = useState('');
@@ -40,6 +40,10 @@ export default function FinanceAuditPage() {
   const [masterOpen, setMasterOpen] = useState(false);
   const [newAction, setNewAction] = useState('');
   const [detailUuid, setDetailUuid] = useState(null);
+  const [editingAction, setEditingAction] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [editBusy, setEditBusy] = useState(false);
+  const [editErr, setEditErr] = useState('');
 
   // Pastikan kasus tervalidasi punya status invoice default
   useEffect(() => {
@@ -64,8 +68,8 @@ export default function FinanceAuditPage() {
   );
 
   const stats = useMemo(() => {
-    const byStatus = (a) => validatedPool.filter((c) => (invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE') === a);
-    const outstanding = validatedPool.filter((c) => (invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE') !== 'PAID');
+    const byStatus = (a) => validatedPool.filter((c) => (invoiceStatus[c.recordUuid] || defaultInvoiceStatus) === a);
+    const outstanding = validatedPool.filter((c) => (invoiceStatus[c.recordUuid] || defaultInvoiceStatus) !== 'PAID');
     return {
       total: validatedPool.length,
       totalAmount: validatedPool.reduce((a, c) => a + (+c.charges || 0), 0),
@@ -75,7 +79,7 @@ export default function FinanceAuditPage() {
       outstandingCount: outstanding.length,
       outstandingAmount: outstanding.reduce((a, c) => a + (+c.charges || 0), 0),
     };
-  }, [validatedPool, invoiceStatus]);
+  }, [validatedPool, invoiceStatus, defaultInvoiceStatus]);
 
   const kpi = [
     { t: 'Siap Invoice', v: stats.total.toLocaleString('id-ID'), sub: fmtMoney(stats.totalAmount) + ' tervalidasi', color: 'text-brand-600', accent: 'from-brand-500 to-brand-300' },
@@ -90,7 +94,7 @@ export default function FinanceAuditPage() {
     const t = to.replace(/-/g, '');
     return validatedPool.filter((c) => {
       const d = c.dateIssue;
-      const s = invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE';
+      const s = invoiceStatus[c.recordUuid] || defaultInvoiceStatus;
       return (
         (!f || d >= f) &&
         (!t || d <= t) &&
@@ -99,7 +103,7 @@ export default function FinanceAuditPage() {
         (!invFilter || s === invFilter)
       );
     });
-  }, [validatedPool, invoiceStatus, from, to, brand, billStatus, invFilter]);
+  }, [validatedPool, invoiceStatus, defaultInvoiceStatus, from, to, brand, billStatus, invFilter]);
 
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
@@ -360,7 +364,7 @@ export default function FinanceAuditPage() {
                   <td className={`px-4 py-3.5 text-right tabular-nums whitespace-nowrap ${+c.charges > 0 ? 'font-extrabold text-amber-700' : 'font-semibold text-slate-300'}`}>{fmtMoney(c.charges)}</td>
                   <td className="px-4 py-3.5">
                     <select
-                      value={invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE'}
+                      value={invoiceStatus[c.recordUuid] || defaultInvoiceStatus}
                       onChange={(e) => handleInvoice(c.recordUuid, e.target.value)}
                       className={`text-xs font-semibold border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white max-w-[180px] ${INV_TONE[invoiceStatus[c.recordUuid]] || 'border-slate-200 text-slate-600'}`}
                     >
@@ -391,7 +395,7 @@ export default function FinanceAuditPage() {
                   <td className="px-6 py-3.5 text-center">
                     <div className="flex items-center justify-center gap-1 flex-wrap">
                       {invoiceActions
-                        .filter((a) => a !== (invoiceStatus[c.recordUuid] || DEFAULT_INVOICE_STATUS))
+                        .filter((a) => a !== (invoiceStatus[c.recordUuid] || defaultInvoiceStatus))
                         .slice(0, 2)
                         .map((a, i) => (
                           <button
@@ -452,27 +456,97 @@ export default function FinanceAuditPage() {
             </div>
             <div className="px-6 py-4">
               <ul className="divide-y divide-slate-100">
-                {invoiceActions.map((a) => (
-                  <li key={a} className="py-3 flex items-center justify-between gap-2">
-                    <span className="text-sm text-slate-700 font-medium">{a}</span>
-                    {DEFAULT_INVOICE.includes(a) ? (
-                      <span className="text-[10px] text-slate-400">Default</span>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          if (confirm('Yakin hapus status ini? Kasus yang menggunakannya akan kembali ke default.')) {
-                            removeInvoiceAction(a);
-                            recordActivity(`menghapus status invoice "${a}"`, 'kasus terkait kembali ke MENUNGGU INVOICE', 'Konfigurasi');
-                          }
-                        }}
-                        className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
-                      >
-                        Hapus
-                      </button>
-                    )}
-                  </li>
-                ))}
+                {invoiceActions.map((a) => {
+                  const used = Object.values(invoiceStatus).filter((s) => s === a).length;
+                  const isEditing = editingAction === a;
+                  return (
+                    <li key={a} className="py-3 flex items-center justify-between gap-2">
+                      {isEditing ? (
+                        <form
+                          className="flex-1 flex items-center gap-2"
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (editBusy) return;
+                            setEditErr('');
+                            setEditBusy(true);
+                            try {
+                              const r = await renameInvoiceAction(a, editValue);
+                              const finalName = r?.to || String(editValue).trim().toUpperCase();
+                              recordActivity(
+                                `mengubah nama status invoice "${a}" menjadi "${finalName}"`,
+                                `${r?.migrated ?? 0} kasus dimigrasi`,
+                                'Konfigurasi'
+                              );
+                              setEditingAction(null);
+                              setEditValue('');
+                            } catch (err) {
+                              setEditErr(err?.message || 'Gagal menyimpan.');
+                            } finally {
+                              setEditBusy(false);
+                            }
+                          }}
+                        >
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editValue}
+                            maxLength={40}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="flex-1 min-w-0 text-sm font-bold border-2 border-emerald-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white uppercase"
+                          />
+                          <button
+                            type="submit"
+                            disabled={editBusy}
+                            className="shrink-0 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 px-3 py-1.5 rounded-lg transition"
+                          >
+                            {editBusy ? '…' : 'Simpan'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={editBusy}
+                            onClick={() => { setEditingAction(null); setEditValue(''); setEditErr(''); }}
+                            className="shrink-0 text-xs font-semibold text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition"
+                          >
+                            Batal
+                          </button>
+                        </form>
+                      ) : (
+                        <>
+                          <span className="min-w-0">
+                            <span className="block text-sm text-slate-700 font-bold truncate">{a}</span>
+                            <span className="block text-[10px] text-slate-400 font-medium">
+                              {DEFAULT_INVOICE.includes(a) ? 'Default' : 'Kustom'} · dipakai {used} kasus
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => { setEditingAction(a); setEditValue(a); setEditErr(''); }}
+                              title={`Ubah nama "${a}"`}
+                              className="text-xs font-semibold text-brand-600 hover:bg-brand-50 px-2 py-1 rounded transition"
+                            >
+                              Edit
+                            </button>
+                            {DEFAULT_INVOICE.includes(a) ? null : (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Yakin hapus status "${a}"? ${used} kasus yang menggunakannya akan kembali ke status default.`)) {
+                                    removeInvoiceAction(a);
+                                    recordActivity(`menghapus status invoice "${a}"`, 'kasus terkait kembali ke status default', 'Konfigurasi');
+                                  }
+                                }}
+                                className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
+                              >
+                                Hapus
+                              </button>
+                            )}
+                          </span>
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
+              {editErr && <p className="mt-1 text-xs font-semibold text-rose-600">{editErr}</p>}
               <form
                 className="mt-4 flex gap-2"
                 onSubmit={(e) => {
@@ -506,7 +580,7 @@ export default function FinanceAuditPage() {
       {(() => {
         const d = allCases.find((x) => x.recordUuid === detailUuid) || null;
         const meta = d ? invoiceMeta[d.recordUuid] || {} : {};
-        const invStatus = d ? invoiceStatus[d.recordUuid] || 'MENUNGGU INVOICE' : null;
+        const invStatus = d ? invoiceStatus[d.recordUuid] || defaultInvoiceStatus : null;
         return (
           <CaseDetailModal
             c={d}
