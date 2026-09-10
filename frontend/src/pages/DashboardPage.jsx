@@ -17,6 +17,7 @@ import { useCases } from '../hooks/useCases.js';
 import { triggerSync, getSyncLogs, getHealth } from '../lib/api.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
+import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 ChartJS.register(
   CategoryScale,
@@ -90,6 +91,7 @@ export default function DashboardPage() {
   const [syncErr, setSyncErr] = useState(false);
   const [lastSync, setLastSync] = useState('');
   const [mockMode, setMockMode] = useState(false);
+  const [detailUuid, setDetailUuid] = useState(null);
 
   function stampNow() {
     const now = new Date();
@@ -387,6 +389,7 @@ export default function DashboardPage() {
   ];
 
   const paidPct = TOTAL > 0 ? ((paidCases.length / TOTAL) * 100).toFixed(1) : '0.0';
+  const detailCase = allCases.find((x) => x.recordUuid === detailUuid) || null;
   const TEAM_COLORS = ['from-indigo-500 to-violet-500', 'from-emerald-400 to-teal-500', 'from-amber-400 to-orange-500', 'from-sky-400 to-blue-500', 'from-fuchsia-400 to-purple-500'];
 
   return (
@@ -500,32 +503,30 @@ export default function DashboardPage() {
         <StatCard title="Outstanding" value={fmtRpShort(outstanding.amount)} valueCls="text-slate-900" sub={`${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" delay=".18s" />
       </div>
 
-      {/* ===== REKAP FITUR ===== */}
-      <div className="animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
-        <SectionHead eyebrow="Navigasi cepat" title="Rekap per Fitur" desc="Loncat ke modul dengan konteks angka terkini" />
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {/* ===== NAVIGASI CEPAT (strip ramping) ===== */}
+      <nav aria-label="Navigasi cepat" className="bg-white rounded-2xl border border-slate-200/70 shadow-sm animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
+        <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-thin px-2 py-2">
           {FEATURES.map((f) => (
             <Link
               key={f.title}
               to={f.to}
-              className="group relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 p-5 flex items-start gap-4 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-[0_16px_40px_-16px_rgba(74,79,233,.3)] hover:border-brand-200 hover:-translate-y-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              title={`${f.title} — ${f.desc}`}
+              className="group flex min-w-[178px] flex-1 items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
-              <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${f.grad} opacity-0 group-hover:opacity-100 transition`} />
-              <div className={`w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br ${f.grad} text-white flex items-center justify-center shadow-lg`}>
+              <span className={`w-9 h-9 shrink-0 rounded-lg ${f.soft} flex items-center justify-center`}>
                 <FeatureIcon name={f.icon} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em]">{f.title}</p>
-                <p className="mt-1 text-lg font-extrabold text-slate-900 tracking-tight">{f.metric}</p>
-                <p className="text-[12px] text-slate-400 truncate">{f.desc}</p>
-              </div>
-              <span className="w-8 h-8 shrink-0 mt-1 rounded-full border border-slate-200 text-slate-300 flex items-center justify-center group-hover:bg-brand-600 group-hover:border-brand-600 group-hover:text-white group-hover:translate-x-0.5 transition-all">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{f.title}</span>
+                <span className="block text-[13px] font-extrabold text-slate-900 truncate">{f.metric}</span>
+              </span>
+              <svg className="w-3.5 h-3.5 shrink-0 text-slate-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
             </Link>
           ))}
         </div>
-      </div>
+      </nav>
 
       {/* ===== TREN + BILLING ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -784,18 +785,6 @@ export default function DashboardPage() {
 /* ===== Sub-komponen ===== */
 function Dot() {
   return <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block" />;
-}
-
-function SectionHead({ eyebrow, title, desc }) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-2">
-      <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-600">{eyebrow}</p>
-        <h3 className="mt-1 text-lg font-extrabold text-slate-900 tracking-tight">{title}</h3>
-        <p className="text-xs text-slate-400">{desc}</p>
-      </div>
-    </div>
-  );
 }
 
 function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', delay }) {
