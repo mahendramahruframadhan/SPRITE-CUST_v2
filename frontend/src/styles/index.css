@@ -5,7 +5,10 @@
 /* ===== Base ===== */
 @layer base {
   body {
-    @apply bg-slate-100 text-slate-800 antialiased font-sans;
+    @apply bg-slate-100 text-slate-800 antialiased font-sans dark:bg-slate-950 dark:text-slate-200;
+  }
+  ::selection {
+    @apply bg-brand-600/90 text-white;
   }
 }
 
@@ -16,7 +19,7 @@
     height: 6px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full;
+    @apply bg-slate-300 rounded-full dark:bg-slate-700;
   }
   .scrollbar-thin::-webkit-scrollbar-track {
     @apply bg-transparent;
@@ -24,13 +27,13 @@
 
   /* Item navigasi sidebar shell */
   .shell-nav {
-    @apply flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-slate-600 transition;
+    @apply flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-slate-600 transition dark:text-slate-300;
   }
   .shell-nav:hover {
-    @apply bg-slate-50;
+    @apply bg-slate-50 dark:bg-slate-800;
   }
   .shell-nav.active {
-    @apply bg-brand-50 text-brand-700 border-r-[3px] border-brand-600;
+    @apply bg-brand-50 text-brand-700 border-r-[3px] border-brand-600 dark:bg-brand-500/10 dark:text-brand-300;
   }
 
   /* Sub-nav horizontal internal (sebelumnya diubah jadi tab bar oleh app.js) */
@@ -38,9 +41,8 @@
     @apply px-3.5 py-2 rounded-lg whitespace-nowrap transition text-sm font-semibold;
   }
   .subnav-tab-active {
-    @apply bg-brand-50 text-brand-700;
+    @apply bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300;
   }
   .subnav-tab-inactive {
-    @apply text-slate-500 hover:bg-slate-100;
+    @apply text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800;
   }
-}

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
 import { usePermissions } from './hooks/usePermissions.js';
 import AppLayout from './components/AppLayout.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -37,7 +38,8 @@ function RequirePerm({ module, children }) {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
@@ -60,7 +62,8 @@ export default function App() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ThemeProvider>
     </AuthProvider>
   );
 }
