@@ -7,9 +7,17 @@ import { recordActivity } from '../lib/activity.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 const BILL_BADGE = {
-  FREE: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  'ON-CALL': 'bg-amber-50 text-amber-600 border-amber-200',
-  MONTHLY: 'bg-sky-50 text-sky-600 border-sky-200',
+  FREE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'ON-CALL': 'bg-amber-50 text-amber-700 border-amber-200',
+  MONTHLY: 'bg-sky-50 text-sky-700 border-sky-200',
+};
+
+// Ukuran angka menyesuaikan panjang nominal penuh (22px normal, mengecil bila miliaran)
+const moneySize = (v) => {
+  const len = String(v ?? '').length;
+  if (len > 16) return 'text-[17px]';
+  if (len > 13) return 'text-[20px]';
+  return 'text-[22px]';
 };
 
 // Teks panjang (Issue/Notes): 2 baris + tombol "Selengkapnya" untuk buka penuh per baris
@@ -111,15 +119,17 @@ export default function BillingPage() {
   }, [filtered, auditActions, caseAuditStatus]);
 
   const kpi = [
-    { t: 'Total Kasus', v: filtered.length.toLocaleString('id-ID'), sub: 'dalam periode', color: 'text-brand-600' },
-    { t: 'Total Tagihan', v: fmtMoney(stats.totalAmount), sub: 'ON-CALL + MONTHLY', color: 'text-emerald-600' },
-    { t: 'ON-CALL', v: fmtMoney(stats.oncall.amount), sub: `${stats.oncall.count} kasus`, color: 'text-amber-600' },
-    { t: 'MONTHLY', v: fmtMoney(stats.monthly.amount), sub: `${stats.monthly.count} kasus`, color: 'text-violet-600' },
+    { t: 'Total Kasus', v: filtered.length.toLocaleString('id-ID'), sub: 'dalam periode', color: 'text-brand-600', accent: 'from-brand-500 to-violet-500', icon: 'cases' },
+    { t: 'Total Tagihan', v: fmtMoney(stats.totalAmount), sub: 'ON-CALL + MONTHLY', color: 'text-emerald-600', accent: 'from-emerald-400 to-teal-600', icon: 'money', money: true },
+    { t: 'ON-CALL', v: fmtMoney(stats.oncall.amount), sub: `${stats.oncall.count} kasus`, color: 'text-amber-600', accent: 'from-amber-400 to-orange-500', icon: 'phone', money: true },
+    { t: 'MONTHLY', v: fmtMoney(stats.monthly.amount), sub: `${stats.monthly.count} kasus`, color: 'text-sky-600', accent: 'from-sky-400 to-blue-600', icon: 'cal', money: true },
     {
       t: 'Valid — Siap Invoice',
       v: (stats.auditCounts['VALID - SIAP INVOICE'] || 0).toLocaleString('id-ID'),
       sub: `${stats.auditCounts['PERLU DICEK ULANG'] || 0} kasus perlu dicek ulang`,
-      color: 'text-rose-600',
+      color: 'text-emerald-600',
+      accent: 'from-emerald-400 to-teal-600',
+      icon: 'check',
     },
   ];
 
@@ -232,36 +242,69 @@ export default function BillingPage() {
     'mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white';
 
   return (
-    <div className="px-8 py-6 space-y-5">
-      {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 -mt-1">
-        <button
-          onClick={() => setMasterOpen(true)}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-4 py-2 rounded-lg transition"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Master Status Validasi
-        </button>
-        <button
-          onClick={exportData}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          Export
-        </button>
-      </div>
+    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#92400e] via-[#f59e0b] to-[#fbbf24] text-white shadow-2xl shadow-amber-600/25 animate-fade-in-fast">
+        <div aria-hidden="true" className="absolute inset-0 opacity-[.14]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '22px 22px' }} />
+        <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
+        <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-orange-900/20 rounded-full blur-3xl" />
+        <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center gap-6">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 backdrop-blur rounded-full px-3 py-1">
+                [ BILLING /// VALIDASI ]
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white/10 border border-white/15 rounded-full px-3 py-1">
+                {filtered.length} kasus dalam periode
+              </span>
+            </div>
+            <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
+              Billing & Audit
+            </h1>
+            <p className="mt-2 text-sm text-white/80 max-w-xl leading-relaxed">
+              Total tagihan <span className="font-bold text-white tabular-nums">{fmtMoney(stats.totalAmount)}</span> ·{' '}
+              {stats.auditCounts['VALID - SIAP INVOICE'] || 0} valid siap invoice ·{' '}
+              {stats.auditCounts['PERLU DICEK ULANG'] || 0} perlu dicek ulang.
+            </p>
+          </div>
+          <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
+            <button
+              onClick={() => setMasterOpen(true)}
+              className="inline-flex items-center justify-center gap-2 bg-white text-amber-700 text-sm font-extrabold px-4 py-3 rounded-2xl shadow-lg hover:bg-amber-50 transition active:scale-[.98]"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Master Status Validasi
+            </button>
+            <button
+              onClick={exportData}
+              className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 rounded-2xl transition active:scale-[.98]"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {kpi.map((d, i) => (
-          <div key={d.t} className="bg-white rounded-2xl border border-slate-200 p-5 animate-fade-in-fast" style={{ animationDelay: `${i * 0.05}s` }}>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{d.t}</p>
-            <p className={`mt-2 text-2xl font-extrabold ${d.color}`}>{d.v}</p>
-            <p className="mt-1 text-xs text-slate-400 font-medium">{d.sub}</p>
+          <div key={d.t} className="group relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast" style={{ animationDelay: `${0.06 + i * 0.04}s` }}>
+            <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${d.accent}`} />
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{d.t}</p>
+                <p className={`mt-2 ${d.money ? moneySize(d.v) : 'text-[28px]'} leading-tight font-extrabold tracking-tight tabular-nums ${d.color}`}>{d.v}</p>
+                <p className="mt-1.5 text-xs font-medium text-slate-400 truncate">{d.sub}</p>
+              </div>
+              <span className={`w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br ${d.accent} text-white flex items-center justify-center shadow-lg`}>
+                <KpiIcon name={d.icon} />
+              </span>
+            </div>
           </div>
         ))}
       </div>
@@ -634,8 +677,23 @@ function fmtMoney(n) {
   return 'Rp ' + (n || 0).toLocaleString('id-ID');
 }
 
-function ChartPanel({ title, desc, children }) {
+const KPI_PATHS = {
+  cases: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155',
+  money: 'M2.25 18.75a60.07 60.07 0 0115.365-2.105c.993.392 1.397 1.44 1.397 2.105v.001M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z',
+  phone: 'M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z',
+  cal: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5',
+  check: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+};
+
+function KpiIcon({ name }) {
   return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d={KPI_PATHS[name] || ''} />
+    </svg>
+  );
+}
+
+function ChartPanel({ title, desc, children }) {  return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6">
       <h3 className="font-bold text-slate-900 mb-1">{title}</h3>
       <p className="text-xs text-slate-400 mb-4">{desc}</p>
