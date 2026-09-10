@@ -268,13 +268,46 @@ export default function BillingPage() {
   const filterCls =
     'mt-1 block text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white transition';
 
+  // Tema hero mengikuti tab kategori aktif (crossfade via tumpukan layer).
+  const HERO_THEME = {
+    'ON-CALL': {
+      layers: 'from-[#92400e] via-[#f59e0b] to-[#fbbf24]',
+      shadow: 'shadow-amber-600/25',
+      btnText: 'text-amber-700',
+      btnHover: 'hover:bg-amber-50',
+      iconBg: 'bg-amber-500',
+    },
+    MONTHLY: {
+      layers: 'from-[#0c4a6e] via-[#0284c7] to-[#38bdf8]',
+      shadow: 'shadow-sky-600/25',
+      btnText: 'text-sky-700',
+      btnHover: 'hover:bg-sky-50',
+      iconBg: 'bg-sky-500',
+    },
+    FREE: {
+      layers: 'from-[#064e3b] via-[#059669] to-[#34d399]',
+      shadow: 'shadow-emerald-600/25',
+      btnText: 'text-emerald-700',
+      btnHover: 'hover:bg-emerald-50',
+      iconBg: 'bg-emerald-500',
+    },
+  };
+  const heroTheme = HERO_THEME[cat] || HERO_THEME['ON-CALL'];
+
   return (
     <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
-      {/* ===== HERO ===== */}
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#92400e] via-[#f59e0b] to-[#fbbf24] text-white shadow-2xl shadow-amber-600/25 animate-fade-in-fast">
+      {/* ===== HERO (warna mengikuti kategori aktif) ===== */}
+      <section className={`relative overflow-hidden rounded-[28px] text-white shadow-2xl ${heroTheme.shadow} animate-fade-in-fast`}>
+        {Object.entries(HERO_THEME).map(([key, t]) => (
+          <div
+            key={key}
+            aria-hidden="true"
+            className={`absolute inset-0 bg-gradient-to-br ${t.layers} transition-opacity duration-700 ease-in-out motion-reduce:transition-none ${key === cat ? 'opacity-100' : 'opacity-0'}`}
+          />
+        ))}
         <div aria-hidden="true" className="absolute inset-0 opacity-[.14]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '22px 22px' }} />
         <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
-        <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-orange-900/20 rounded-full blur-3xl" />
+        <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-black/10 rounded-full blur-3xl" />
         <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center gap-6">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -297,7 +330,7 @@ export default function BillingPage() {
           <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
             <button
               onClick={() => setMasterOpen(true)}
-              className="inline-flex items-center justify-center gap-2 bg-white text-amber-700 text-sm font-extrabold px-4 py-3 rounded-2xl shadow-lg hover:bg-amber-50 transition active:scale-[.98]"
+              className={`inline-flex items-center justify-center gap-2 bg-white ${heroTheme.btnText} ${heroTheme.btnHover} text-sm font-extrabold px-4 py-3 rounded-2xl shadow-lg transition-colors duration-500 motion-reduce:transition-none active:scale-[.98]`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -454,7 +487,7 @@ export default function BillingPage() {
 
         <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/25">
+            <span className={`w-10 h-10 rounded-2xl ${heroTheme.iconBg} text-white flex items-center justify-center shadow-lg transition-colors duration-500 motion-reduce:transition-none`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
               </svg>
