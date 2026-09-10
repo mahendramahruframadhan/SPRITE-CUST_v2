@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 
-// Popup detail kasus bersama (dipakai Billing & Finance Audit).
-// c: data kasus | chips: [{ text, className }] | rows: [[label, value]] | notes: { label, text }
-export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [], notes = null, onClose }) {
+// Popup detail kasus bersama (dipakai Billing & Finance Audit & Dashboard).
+// c: data kasus | chips: [{ text, className }] | rows: [[label, value]] flat
+// | sections: [{ title, rows: [[label, value]] }] (opsional, dikelompokkan) | notes: { label, text }
+export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [], sections = null, notes = null, onClose }) {
   const closeRef = useRef(null);
 
   useEffect(() => {
@@ -63,7 +64,27 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
             <p className="text-[10px] font-bold uppercase tracking-widest text-brand-600 mb-1.5">Issue</p>
             <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words">{c.issue || '-'}</p>
           </div>
-          {rows.length > 0 && (
+          {sections ? (
+            <div className="space-y-5">
+              {sections.map((s) => (
+                <section key={s.title}>
+                  <p className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-500">
+                    <span aria-hidden="true" className="inline-block w-4 h-[3px] bg-brand-600" />
+                    {s.title}
+                    <span aria-hidden="true" className="flex-1 h-px bg-slate-100" />
+                  </p>
+                  <dl className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-3">
+                    {s.rows.map(([k, v]) => (
+                      <div key={k} className="border-b border-slate-100 pb-2.5">
+                        <dt className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{k}</dt>
+                        <dd className="mt-0.5 text-sm font-semibold text-slate-800 break-words">{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              ))}
+            </div>
+          ) : rows.length > 0 && (
             <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
               {rows.map(([k, v]) => (
                 <div key={k} className="border-b border-slate-100 pb-2.5">
