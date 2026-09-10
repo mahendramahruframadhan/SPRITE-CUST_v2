@@ -26,7 +26,7 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="case-detail-title">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in-fast">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in-fast">
         {/* Header */}
         <div className="bg-brand-700 text-white px-6 py-5 shrink-0">
           <div className="flex items-start gap-4">
@@ -60,9 +60,9 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
         </div>
         {/* Isi */}
         <div className="px-6 py-5 space-y-5 overflow-y-auto scrollbar-thin">
-          <div className="bg-brand-50/60 border border-brand-100 rounded-xl p-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-brand-600 mb-1.5">Issue</p>
-            <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words">{c.issue || '-'}</p>
+          <div className="bg-brand-50/60 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-xl p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-brand-600 dark:text-brand-300 mb-1.5">Issue</p>
+            <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed whitespace-pre-wrap break-words">{c.issue || '-'}</p>
           </div>
           {sections ? (
             <div className="space-y-5">
@@ -71,13 +71,13 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
                   <p className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-500">
                     <span aria-hidden="true" className="inline-block w-4 h-[3px] bg-brand-600" />
                     {s.title}
-                    <span aria-hidden="true" className="flex-1 h-px bg-slate-100" />
+                    <span aria-hidden="true" className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
                   </p>
                   <dl className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-3">
                     {s.rows.map(([k, v]) => (
-                      <div key={k} className="border-b border-slate-100 pb-2.5">
+                      <div key={k} className="border-b border-slate-100 dark:border-slate-800 pb-2.5">
                         <dt className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{k}</dt>
-                        <dd className="mt-0.5 text-sm font-semibold text-slate-800 break-words">{v}</dd>
+                        <dd className="mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">{v}</dd>
                       </div>
                     ))}
                   </dl>
@@ -87,9 +87,9 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
           ) : rows.length > 0 && (
             <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
               {rows.map(([k, v]) => (
-                <div key={k} className="border-b border-slate-100 pb-2.5">
+                <div key={k} className="border-b border-slate-100 dark:border-slate-800 pb-2.5">
                   <dt className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{k}</dt>
-                  <dd className="mt-0.5 text-sm font-semibold text-slate-800 break-words">{v}</dd>
+                  <dd className="mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">{v}</dd>
                 </div>
               ))}
             </dl>
@@ -97,7 +97,7 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
           {notes && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">{notes.label}</p>
-              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words">{notes.text || '-'}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap break-words">{notes.text || '-'}</p>
             </div>
           )}
         </div>

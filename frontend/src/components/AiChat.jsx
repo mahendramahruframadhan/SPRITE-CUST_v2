@@ -220,7 +220,7 @@ export default function AiChat() {
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {open && (
-        <div className="w-[min(92vw,380px)] h-[min(70vh,520px)] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-fade-in-fast">
+        <div className="w-[min(92vw,380px)] h-[min(70vh,520px)] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden animate-fade-in-fast">
           <div className="bg-gradient-to-r from-brand-700 to-brand-600 text-white px-4 py-3 flex items-center gap-2.5">
             <span className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0" aria-hidden>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -256,11 +256,11 @@ export default function AiChat() {
             </button>
           </div>
 
-          <div ref={bodyRef} className="flex-1 overflow-y-auto px-3.5 py-3 space-y-2.5 bg-slate-50">
+          <div ref={bodyRef} className="flex-1 overflow-y-auto px-3.5 py-3 space-y-2.5 bg-slate-50 dark:bg-slate-950">
             {msgs.map((m, i) => (
               <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <p className={`max-w-[85%] text-[13px] leading-relaxed px-3 py-2 rounded-2xl whitespace-pre-line ${
-                  m.from === 'user' ? 'bg-brand-600 text-white rounded-br-md' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-md'
+                  m.from === 'user' ? 'bg-brand-600 text-white rounded-br-md' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-bl-md'
                 }`}>
                   {m.text}
                   {m.local && <span className="block mt-1 text-[10px] text-slate-400">· mode lokal (AI eksternal belum aktif)</span>}
@@ -269,14 +269,14 @@ export default function AiChat() {
             ))}
             {typing && (
               <div className="flex justify-start">
-                <p className="bg-white border border-slate-200 text-slate-400 text-[13px] px-3 py-2 rounded-2xl rounded-bl-md motion-safe:animate-pulse">mengetik…</p>
+                <p className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 text-[13px] px-3 py-2 rounded-2xl rounded-bl-md motion-safe:animate-pulse">mengetik…</p>
               </div>
             )}
           </div>
 
           <div className="px-3 pt-2 flex flex-wrap gap-1.5">
             {SUGGESTIONS.map((s) => (
-              <button key={s} onClick={() => send(s)} className="text-[11px] font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-full px-2.5 py-1 transition">
+              <button key={s} onClick={() => send(s)} className="text-[11px] font-semibold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-100 dark:border-brand-500/20 rounded-full px-2.5 py-1 transition">
                 {s}
               </button>
             ))}
@@ -293,7 +293,7 @@ export default function AiChat() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Tanya soal data kasus…"
               aria-label="Tulis pesan untuk asisten AI"
-              className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus-visible:ring-brand-500 bg-white"
+              className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus-visible:ring-brand-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
             />
             <button className="bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-4 font-bold transition" aria-label="Kirim">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
