@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { fmtDate8 } from '../utils/format.js';
-import { useAuditState } from '../hooks/useAuditState.js';
+import { useAuditState, DEFAULT_ACTIONS } from '../hooks/useAuditState.js';
 import { recordActivity } from '../lib/activity.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
@@ -44,7 +44,7 @@ function ExpandableText({ text }) {
 }
 
 export default function BillingPage() {
-  const { auditActions, caseAuditStatus, updateAudit, addAction, removeAction } = useAuditState();
+  const { auditActions, caseAuditStatus, defaultAuditStatus, updateAudit, addAction, removeAction, renameAuditAction } = useAuditState();
   const { cases: allCases, loading } = useCases();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -56,6 +56,10 @@ export default function BillingPage() {
   const [masterOpen, setMasterOpen] = useState(false);
   const [newAction, setNewAction] = useState('');
   const [detailUuid, setDetailUuid] = useState(null);
+  const [editingAction, setEditingAction] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [editBusy, setEditBusy] = useState(false);
+  const [editErr, setEditErr] = useState('');
   const detailCase = allCases.find((x) => x.recordUuid === detailUuid) || null;
 
   const brands = useMemo(
@@ -105,7 +109,7 @@ export default function BillingPage() {
     const auditCounts = {};
     auditActions.forEach((a) => (auditCounts[a] = 0));
     paidCases.forEach((c) => {
-      const a = caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI';
+      const a = caseAuditStatus[c.recordUuid] || defaultAuditStatus;
       auditCounts[a] = (auditCounts[a] || 0) + 1;
     });
     return {
@@ -536,7 +540,7 @@ export default function BillingPage() {
                   <td className="px-4 py-3.5">
                     {c.billingStatus === 'ON-CALL' ? (
                         (() => {
-                          const current = caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI';
+                          const current = caseAuditStatus[c.recordUuid] || defaultAuditStatus;
                           const idx = auditActions.indexOf(current);
                           const next = auditActions[(idx + 1) % auditActions.length] || current;
                           const isDefault = idx <= 0;
@@ -644,27 +648,97 @@ export default function BillingPage() {
             </div>
             <div className="px-6 py-4">
               <ul className="divide-y divide-slate-100">
-                {auditActions.map((a, i) => (
-                  <li key={a} className="py-3 flex items-center justify-between gap-2">
-                    <span className="text-sm text-slate-700 font-medium">{a}</span>
-                    {i >= 3 ? (
-                      <button
-                        onClick={() => {
-                          if (confirm('Yakin hapus action ini? Kasus yang menggunakan action ini akan kembali ke default.')) {
-                            removeAction(a);
-                            recordActivity(`menghapus status validasi "${a}"`, 'kasus terkait kembali ke BELUM DIVALIDASI', 'Konfigurasi');
-                          }
-                        }}
-                        className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
-                      >
-                        Hapus
-                      </button>
-                    ) : (
-                      <span className="text-[10px] text-slate-400">Default</span>
-                    )}
-                  </li>
-                ))}
+                {auditActions.map((a) => {
+                  const used = Object.values(caseAuditStatus).filter((s) => s === a).length;
+                  const isEditing = editingAction === a;
+                  return (
+                    <li key={a} className="py-3 flex items-center justify-between gap-2">
+                      {isEditing ? (
+                        <form
+                          className="flex-1 flex items-center gap-2"
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (editBusy) return;
+                            setEditErr('');
+                            setEditBusy(true);
+                            try {
+                              const r = await renameAuditAction(a, editValue);
+                              const finalName = r?.to || String(editValue).trim().toUpperCase();
+                              recordActivity(
+                                `mengubah nama status validasi "${a}" menjadi "${finalName}"`,
+                                `${r?.migrated ?? 0} kasus dimigrasi`,
+                                'Konfigurasi'
+                              );
+                              setEditingAction(null);
+                              setEditValue('');
+                            } catch (err) {
+                              setEditErr(err?.message || 'Gagal menyimpan.');
+                            } finally {
+                              setEditBusy(false);
+                            }
+                          }}
+                        >
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editValue}
+                            maxLength={40}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="flex-1 min-w-0 text-sm font-bold border-2 border-amber-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 bg-white uppercase"
+                          />
+                          <button
+                            type="submit"
+                            disabled={editBusy}
+                            className="shrink-0 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-60 px-3 py-1.5 rounded-lg transition"
+                          >
+                            {editBusy ? '…' : 'Simpan'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={editBusy}
+                            onClick={() => { setEditingAction(null); setEditValue(''); setEditErr(''); }}
+                            className="shrink-0 text-xs font-semibold text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition"
+                          >
+                            Batal
+                          </button>
+                        </form>
+                      ) : (
+                        <>
+                          <span className="min-w-0">
+                            <span className="block text-sm text-slate-700 font-bold truncate">{a}</span>
+                            <span className="block text-[10px] text-slate-400 font-medium">
+                              {DEFAULT_ACTIONS.includes(a) ? 'Default' : 'Kustom'} · dipakai {used} kasus
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => { setEditingAction(a); setEditValue(a); setEditErr(''); }}
+                              title={`Ubah nama "${a}"`}
+                              className="text-xs font-semibold text-brand-600 hover:bg-brand-50 px-2 py-1 rounded transition"
+                            >
+                              Edit
+                            </button>
+                            {DEFAULT_ACTIONS.includes(a) ? null : (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Yakin hapus status "${a}"? ${used} kasus yang menggunakannya akan kembali ke status default.`)) {
+                                    removeAction(a);
+                                    recordActivity(`menghapus status validasi "${a}"`, 'kasus terkait kembali ke status default', 'Konfigurasi');
+                                  }
+                                }}
+                                className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
+                              >
+                                Hapus
+                              </button>
+                            )}
+                          </span>
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
+              {editErr && <p className="mt-1 text-xs font-semibold text-rose-600">{editErr}</p>}
               <form
                 className="mt-4 flex gap-2"
                 onSubmit={(e) => {
@@ -703,7 +777,7 @@ export default function BillingPage() {
           { text: detailCase.module || '-', className: 'bg-white/15 border-white/20' },
           { text: detailCase.billingStatus || '-', className: BILL_BADGE[detailCase.billingStatus] || 'bg-white/15 border-white/20' },
           ...(detailCase.billingStatus !== 'FREE'
-            ? [{ text: caseAuditStatus[detailCase.recordUuid] || 'BELUM DIVALIDASI', className: 'bg-amber-300/90 text-amber-900 border-transparent' }]
+            ? [{ text: caseAuditStatus[detailCase.recordUuid] || defaultAuditStatus, className: 'bg-amber-300/90 text-amber-900 border-transparent' }]
             : []),
         ] : []}
         sections={detailCase ? [
