@@ -36,15 +36,19 @@ export const patch = (p, body) => req(p, { method: 'PATCH', body });
 
 // GET /api/cases (limit max 100) → gabung semua halaman. Cache modul agar
 // semua halaman berbagi 1x fetch; reload() memaksa fetch ulang.
+// Halaman 2..N diambil PARALEL (bukan serial) — 21 halaman: ~16 dtk → ~2 dtk.
 let allCache = null;
 export function fetchAllCases() {
   if (!allCache) {
     allCache = (async () => {
       const first = await get('/cases?page=1&limit=100');
       const out = [...(first.data || [])];
-      for (let p = 2; p <= (first.totalPages || 1); p++) {
-        const r = await get(`/cases?page=${p}&limit=100`);
-        out.push(...(r.data || []));
+      const totalPages = first.totalPages || 1;
+      if (totalPages > 1) {
+        const rest = await Promise.all(
+          Array.from({ length: totalPages - 1 }, (_, i) => get(`/cases?page=${i + 2}&limit=100`))
+        );
+        rest.forEach((r) => out.push(...(r.data || [])));
       }
       return out;
     })().catch((e) => {
