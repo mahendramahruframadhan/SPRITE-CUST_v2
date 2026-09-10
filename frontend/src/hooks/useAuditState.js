@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { patchAudit, getStatusOptions, putStatusOptions } from '../lib/api.js';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { patchAudit, getStatusOptions, putStatusOptions, renameStatusOption } from '../lib/api.js';
 
 // Status validasi Billing & Audit — dibagikan ke Finance Audit via localStorage
 export const DEFAULT_ACTIONS = ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'];
+export const DEFAULT_AUDIT_STATUS = 'BELUM DIVALIDASI';
 const MIGRATE_ACTION = {
   'BELUM DI AUDIT': 'BELUM DIVALIDASI',
   'DONE BLM DI AUDIT': 'VALID - SIAP INVOICE',
@@ -27,6 +28,14 @@ function loadCaseStatus() {
 export function useAuditState() {
   const [auditActions, setAuditActions] = useState(loadActions);
   const [caseAuditStatus, setCaseAuditStatus] = useState(loadCaseStatus);
+
+  // Cermin reaktif daftar aksi agar fallback status default tidak yatim
+  // bila status default di-rename/hapus (pakai aksi pertama sebagai pengganti).
+  const actionsRef = useRef(auditActions);
+  actionsRef.current = auditActions;
+  const defaultAuditStatus = auditActions.includes(DEFAULT_AUDIT_STATUS)
+    ? DEFAULT_AUDIT_STATUS
+    : (auditActions[0] || DEFAULT_AUDIT_STATUS);
 
   useEffect(() => {
     localStorage.setItem('auditActions', JSON.stringify(auditActions));
@@ -74,14 +83,57 @@ export function useAuditState() {
       putStatusOptions({ auditActions: next }).catch(() => {}); // sinkron ke DB (best-effort)
       return next;
     });
+    const fallback = actionsRef.current.includes(DEFAULT_AUDIT_STATUS)
+      ? DEFAULT_AUDIT_STATUS
+      : (actionsRef.current.filter((a) => a !== action)[0] || DEFAULT_AUDIT_STATUS);
     setCaseAuditStatus((prev) => {
       const next = { ...prev };
       Object.keys(next).forEach((uuid) => {
-        if (next[uuid] === action) next[uuid] = 'BELUM DIVALIDASI';
+        if (next[uuid] === action) next[uuid] = fallback;
       });
       return next;
     });
   }, []);
 
-  return { auditActions, caseAuditStatus, updateAudit, addAction, removeAction };
+  // Ubah nama (rename) satu status master: backend mengganti daftar + migrasi
+  // SEMUA kasus yang memakai nama lama; lokal disinkron setelah sukses.
+  // Melempar Error dengan pesan ramah bila validasi backend gagal / 403.
+  const renameAuditAction = useCallback(async (from, to) => {
+    const v = String(to || '').trim().replace(/\s+/g, ' ').slice(0, 40).toUpperCase();
+    if (!v) throw new Error('Nama status tidak boleh kosong.');
+    if (v === from) return { unchanged: true };
+    if (actionsRef.current.some((a) => a !== from && a.toLowerCase() === v.toLowerCase())) {
+      throw new Error(`Status "${v}" sudah ada.`);
+    }
+    let r;
+    try {
+      r = await renameStatusOption({ scope: 'auditActions', from, to: v });
+    } catch (e) {
+      // Sinkron ulang dari sumber kebenaran agar daftar lokal tidak melenceng
+      getStatusOptions()
+        .then((rr) => {
+          if (Array.isArray(rr?.auditActions) && rr.auditActions.length) {
+            setAuditActions([...new Set(rr.auditActions.map((a) => MIGRATE_ACTION[a] || a))]);
+          }
+        })
+        .catch(() => {});
+      throw new Error(e?.status === 403 ? 'Hanya role dengan akses Billing yang dapat mengubah.' : (e?.message || 'Gagal mengubah nama status.'));
+    }
+    if (Array.isArray(r?.auditActions) && r.auditActions.length) {
+      setAuditActions([...new Set(r.auditActions)]);
+    } else {
+      setAuditActions((prev) => prev.map((a) => (a === from ? v : a)));
+    }
+    const finalName = r?.to || v;
+    setCaseAuditStatus((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((uuid) => {
+        if (next[uuid] === from) next[uuid] = finalName;
+      });
+      return next;
+    });
+    return r;
+  }, []);
+
+  return { auditActions, caseAuditStatus, defaultAuditStatus, updateAudit, addAction, removeAction, renameAuditAction };
 }
