@@ -363,21 +363,11 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
 
 /* ===== Tab Pricelist ===== */
 function TabPricelist({ cfg, patch }) {
+  const [addingVersion, setAddingVersion] = useState(null);
   const versions = useMemo(
     () => [...new Set(cfg.pricelist.map((p) => p.version))].sort(),
     [cfg.pricelist]
   );
-
-  function addPriceRow(version) {
-    const cat = prompt(
-      'Billing Category baru untuk ' + version + ':\n(Referensi: ' +
-        cfg.billingCategoryMap.map((b) => b.billingCategory).slice(0, 8).join(', ') + ', ...)'
-    );
-    if (!cat || !cat.trim()) return;
-    patch((c) => {
-      c.pricelist.push({ billingCategory: cat.trim().toUpperCase(), tariff: 0, supportType: 'SUPPORT TYPE - C', version });
-    }, 'Baris ditambahkan ke ' + version);
-  }
 
   return (
     <div className="space-y-5">
@@ -396,7 +386,7 @@ function TabPricelist({ cfg, patch }) {
                 <h3 className="font-extrabold text-sm tracking-tight">{v}</h3>
                 <p className="text-[11px] text-slate-300 tabular-nums">{rows.length} billing category</p>
               </div>
-              <button onClick={() => addPriceRow(v)} className="text-xs font-bold bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition">
+              <button onClick={() => setAddingVersion(v)} className="text-xs font-bold bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition">
                 + Tambah Baris
               </button>
             </div>
@@ -467,19 +457,33 @@ function TabPricelist({ cfg, patch }) {
           </div>
         );
       })}
+      {addingVersion && (
+        <PromptModal
+          title={`Tambah Baris — ${addingVersion}`}
+          desc="Tariff awal 0 dengan support type C — bisa diubah langsung di tabel."
+          placeholder="Nama billing category..."
+          suggestions={cfg.billingCategoryMap.map((b) => b.billingCategory)}
+          onClose={() => setAddingVersion(null)}
+          onSubmit={(cat) => {
+            patch((c) => {
+              c.pricelist.push({ billingCategory: cat, tariff: 0, supportType: 'SUPPORT TYPE - C', version: addingVersion });
+            }, 'Baris ditambahkan ke ' + addingVersion);
+            setAddingVersion(null);
+            return null;
+          }}
+        />
+      )}
     </div>
   );
 }
 
 /* ===== Tab Billing Category Map ===== */
 function TabBcMap({ cfg, patch }) {
-  function addBcRow() {
-    const cat = prompt('Billing Category baru:');
-    if (!cat || !cat.trim()) return;
-    patch((c) => {
-      c.billingCategoryMap.push({ billingCategory: cat.trim().toUpperCase(), supportType: 'SUPPORT TYPE - C' });
-    }, 'Mapping ditambahkan');
-  }
+  const [addingBc, setAddingBc] = useState(false);
+  const suggestions = useMemo(() => {
+    const mapped = new Set(cfg.billingCategoryMap.map((b) => b.billingCategory));
+    return [...new Set(cfg.pricelist.map((p) => p.billingCategory))].filter((x) => !mapped.has(x)).sort();
+  }, [cfg]);
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] overflow-hidden animate-fade-in-fast">
@@ -488,7 +492,7 @@ function TabBcMap({ cfg, patch }) {
           <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">Mapping BILLING CATEGORY → SUPPORT TYPE</h3>
           <p className="text-[11px] text-slate-400">Sesuai 2 kolom pertama di sheet — menentukan tipe support otomatis dari kategori billing</p>
         </div>
-        <button onClick={addBcRow} className="text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl px-3 py-2 transition">
+        <button onClick={() => setAddingBc(true)} className="text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl px-3 py-2 transition">
           + Tambah Mapping
         </button>
       </div>
@@ -534,6 +538,85 @@ function TabBcMap({ cfg, patch }) {
           ))}
         </tbody>
       </table>
+      {addingBc && (
+        <PromptModal
+          title="Tambah Mapping"
+          desc="Pasangan billing category baru dengan support type default C."
+          placeholder="Nama billing category..."
+          suggestions={suggestions}
+          onClose={() => setAddingBc(false)}
+          onSubmit={(cat) => {
+            if (cfg.billingCategoryMap.some((b) => b.billingCategory === cat)) {
+              return `Mapping "${cat}" sudah ada.`;
+            }
+            patch((c) => {
+              c.billingCategoryMap.push({ billingCategory: cat, supportType: 'SUPPORT TYPE - C' });
+            }, 'Mapping ditambahkan');
+            setAddingBc(false);
+            return null;
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ===== Modal tambah generik (pengganti prompt() bawaan browser) ===== */
+function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel = 'Tambah', onClose, onSubmit }) {
+  const [val, setVal] = useState('');
+  const [err, setErr] = useState('');
+  const listId = useMemo(() => `pm-${Math.random().toString(36).slice(2)}`, []);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <form
+        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-fast"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const v = val.trim().toUpperCase();
+          if (!v) {
+            setErr('Nama tidak boleh kosong.');
+            return;
+          }
+          const msg = onSubmit(v);
+          if (msg) setErr(msg);
+        }}
+      >
+        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-violet-50/80 to-white">
+          <h3 className="font-extrabold text-slate-900 tracking-tight">{title}</h3>
+          {desc && <p className="text-xs text-slate-400 mt-0.5">{desc}</p>}
+        </div>
+        <div className="px-6 py-4">
+          <input
+            autoFocus
+            type="text"
+            value={val}
+            maxLength={60}
+            onChange={(e) => { setVal(e.target.value); setErr(''); }}
+            list={suggestions.length ? listId : undefined}
+            placeholder={placeholder}
+            className="w-full border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-300 bg-white"
+          />
+          {suggestions.length > 0 && (
+            <datalist id={listId}>
+              {suggestions.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          )}
+          {err
+            ? <p className="mt-2 text-xs font-semibold text-rose-600">{err}</p>
+            : <p className="mt-2 text-[11px] text-slate-400">Otomatis UPPERCASE.{suggestions.length > 0 ? ' Ketik untuk mencari dari saran.' : ''}</p>}
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-500 hover:bg-slate-100 px-4 py-2.5 rounded-xl transition">
+              Batal
+            </button>
+            <button type="submit" className="text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 px-5 py-2.5 rounded-xl transition">
+              {submitLabel}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
