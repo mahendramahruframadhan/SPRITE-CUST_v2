@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
+import { useTheme } from '../context/ThemeContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState, DEFAULT_ACTIONS } from '../hooks/useAuditState.js';
 import { recordActivity } from '../lib/activity.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 const BILL_BADGE = {
-  FREE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'ON-CALL': 'bg-amber-50 text-amber-700 border-amber-200',
-  MONTHLY: 'bg-sky-50 text-sky-700 border-sky-200',
+  FREE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+  'ON-CALL': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+  MONTHLY: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20',
 };
 
 // Ukuran angka menyesuaikan panjang nominal penuh (22px normal, mengecil bila miliaran)
@@ -26,7 +27,7 @@ function ExpandableText({ text }) {
   const value = text || '-';
   return (
     <div className="min-w-[220px] max-w-[360px]">
-      <p className={`text-xs text-slate-600 ${open ? 'whitespace-normal break-words' : 'line-clamp-2'}`}>
+      <p className={`text-xs text-slate-600 dark:text-slate-300 ${open ? 'whitespace-normal break-words' : 'line-clamp-2'}`}>
         {value}
       </p>
       {value.length > 120 && (
@@ -60,6 +61,15 @@ export default function BillingPage() {
   const [editValue, setEditValue] = useState('');
   const [editBusy, setEditBusy] = useState(false);
   const [editErr, setEditErr] = useState('');
+
+  // Palet chart mengikuti tema (terang/gelap)
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
+  const sliceBorder = dark ? '#0f172a' : '#ffffff';
+  const legendColor = dark ? '#94a3b8' : '#111111';
+  const barGrid = dark ? '#1e293b' : '#f1f5f9';
+  const barTick = '#94a3b8';
+  const axisLine = dark ? '#334155' : '#111111';
   const detailCase = allCases.find((x) => x.recordUuid === detailUuid) || null;
 
   const brands = useMemo(
@@ -144,7 +154,7 @@ export default function BillingPage() {
       backgroundColor: ['#f59e0b', '#0ea5e9', '#10b981'],
       hoverOffset: 6,
       borderWidth: 3,
-      borderColor: '#fff',
+      borderColor: sliceBorder,
       spacing: 2,
     }],
   };
@@ -166,7 +176,7 @@ export default function BillingPage() {
       backgroundColor: ['#94a3b8', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6', '#06b6d4'],
       hoverOffset: 6,
       borderWidth: 3,
-      borderColor: '#fff',
+      borderColor: sliceBorder,
       spacing: 2,
     }],
   };
@@ -184,7 +194,7 @@ export default function BillingPage() {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'rect', boxWidth: 8, boxHeight: 8, padding: 12, font: { size: 11, weight: 600 }, color: '#111111' } },
+      legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'rect', boxWidth: 8, boxHeight: 8, padding: 12, font: { size: 11, weight: 600 }, color: legendColor } },
       tooltip: tooltipDark,
     },
   };
@@ -192,7 +202,7 @@ export default function BillingPage() {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'right', labels: { usePointStyle: true, pointStyle: 'rect', boxWidth: 8, boxHeight: 8, padding: 10, font: { size: 10, weight: 600 }, color: '#111111' } },
+      legend: { position: 'right', labels: { usePointStyle: true, pointStyle: 'rect', boxWidth: 8, boxHeight: 8, padding: 10, font: { size: 10, weight: 600 }, color: legendColor } },
       tooltip: tooltipDark,
     },
   };
@@ -250,23 +260,23 @@ export default function BillingPage() {
   const CAT_META = {
     'ON-CALL': {
       gradient: 'from-amber-500 to-orange-500',
-      softIcon: 'bg-amber-100 text-amber-600',
+      softIcon: 'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />,
     },
     MONTHLY: {
       gradient: 'from-sky-500 to-blue-600',
-      softIcon: 'bg-sky-100 text-sky-600',
+      softIcon: 'bg-sky-100 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />,
     },
     FREE: {
       gradient: 'from-emerald-500 to-teal-600',
-      softIcon: 'bg-emerald-100 text-emerald-600',
+      softIcon: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />,
     },
   };
 
   const filterCls =
-    'mt-1 block text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white transition';
+    'mt-1 block text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
 
   // Tema hero mengikuti tab kategori aktif (crossfade via tumpukan layer).
   const HERO_THEME = {
@@ -353,12 +363,12 @@ export default function BillingPage() {
       {/* KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {kpi.map((d, i) => (
-          <div key={d.t} className="group relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast" style={{ animationDelay: `${0.06 + i * 0.04}s` }}>
+          <div key={d.t} className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast" style={{ animationDelay: `${0.06 + i * 0.04}s` }}>
             <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${d.accent}`} />
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{d.t}</p>
-                <p className={`mt-2 ${d.money ? moneySize(d.v) : 'text-[28px]'} leading-tight font-extrabold tracking-tight tabular-nums ${d.color}`}>{d.v}</p>
+                <p className={`mt-2 ${d.money ? moneySize(d.v) : 'text-[28px]'} leading-tight font-extrabold tracking-tight tabular-nums ${d.color} dark:brightness-125`}>{d.v}</p>
                 <p className="mt-1.5 text-xs font-medium text-slate-400 truncate">{d.sub}</p>
               </div>
               <span className={`w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br ${d.accent} text-white flex items-center justify-center shadow-lg`}>
@@ -385,8 +395,8 @@ export default function BillingPage() {
                 tooltip: { ...tooltipDark, callbacks: { label: (ctx) => ' ' + fmtMoney(ctx.parsed.y) } },
               },
               scales: {
-                x: { grid: { display: false }, border: { display: true, color: '#111111' }, ticks: { color: '#6b6b66', font: { size: 11, weight: 700 } } },
-                y: { beginAtZero: true, grid: { color: '#d8d5cc' }, border: { display: true, color: '#111111' }, ticks: { color: '#6b6b66', font: { size: 10 }, maxTicksLimit: 5, callback: (v) => fmtMoney(v) } },
+                x: { grid: { display: false }, border: { display: true, color: axisLine }, ticks: { color: barTick, font: { size: 11, weight: 700 } } },
+                y: { beginAtZero: true, grid: { color: barGrid }, border: { display: true, color: axisLine }, ticks: { color: barTick, font: { size: 10 }, maxTicksLimit: 5, callback: (v) => fmtMoney(v) } },
               },
             }}
           />
@@ -397,18 +407,18 @@ export default function BillingPage() {
       </div>
 
       {/* Tab Kategori Billing */}
-      <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-4 sm:p-5 animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-4 sm:p-5 animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
-            <h3 className="font-extrabold text-slate-900 tracking-tight">Kategori Billing</h3>
+            <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Kategori Billing</h3>
             <p className="text-xs text-slate-400">Pilih kategori untuk memfilter tabel di bawah</p>
           </div>
           <p className="text-xs text-slate-400 tabular-nums">
-            Total <span className="font-extrabold text-slate-900">{fmtMoney((catStats[cat] || {}).amount || 0)}</span>
+            Total <span className="font-extrabold text-slate-900 dark:text-white">{fmtMoney((catStats[cat] || {}).amount || 0)}</span>
             {' '}• {((catStats[cat] || {}).count || 0).toLocaleString('id-ID')} kasus {cat}
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-100 rounded-xl p-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5">
           {CATS.map((c) => {
             const active = cat === c;
             const meta = CAT_META[c];
@@ -417,11 +427,11 @@ export default function BillingPage() {
               <button
                 key={c}
                 onClick={() => setCat(c)}
-                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200 ${
-                  active
-                    ? `bg-gradient-to-r ${meta.gradient} text-white shadow-md`
-                    : 'text-slate-500 hover:bg-white hover:shadow-sm'
-                }`}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200 ${
+                    active
+                      ? `bg-gradient-to-r ${meta.gradient} text-white shadow-md`
+                      : 'text-slate-500 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm'
+                  }`}
               >
                 <span className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${active ? 'bg-white/20' : meta.softIcon}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
@@ -446,8 +456,8 @@ export default function BillingPage() {
       </div>
 
       {/* Detail Kasus */}
-      <div className="bg-white rounded-3xl border border-slate-200/70 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast" style={{ animationDelay: '.24s' }}>
-        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast" style={{ animationDelay: '.24s' }}>
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Date From</label>
@@ -472,13 +482,13 @@ export default function BillingPage() {
                 setTo('');
                 setBrand('');
               }}
-              className="text-[13px] font-bold text-slate-500 hover:text-rose-600 border border-slate-200 hover:border-rose-200 hover:bg-rose-50 px-4 py-2.5 rounded-xl transition"
+              className="text-[13px] font-bold text-slate-500 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2.5 rounded-xl transition"
             >
               Reset
             </button>
             <div className="ml-auto text-xs text-slate-400">
               Periode:{' '}
-              <span className="font-semibold text-slate-600">
+              <span className="font-semibold text-slate-600 dark:text-slate-300">
                 {from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal'}
               </span>
             </div>
@@ -493,7 +503,7 @@ export default function BillingPage() {
               </svg>
             </span>
             <div>
-              <h3 className="font-extrabold text-slate-900 tracking-tight">Detail Kasus — {cat}</h3>
+              <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Detail Kasus — {cat}</h3>
               <p className="text-xs text-slate-400">{items.length} kasus · total {fmtMoney(grandTotal)}</p>
             </div>
           </div>
@@ -506,7 +516,7 @@ export default function BillingPage() {
               placeholder="Cari kasus..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white transition"
+              className="pl-9 pr-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition"
             />
           </div>
         </div>
@@ -514,7 +524,7 @@ export default function BillingPage() {
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-sm min-w-[1240px]">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50/80">
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
                 <th className="px-6 py-3 font-bold" title="Nomor kasus">No</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap" title="Tanggal issue (tahun-bulan-tanggal)">Tgl Issue</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap" title="Nama brand / client">Brand</th>
@@ -529,26 +539,26 @@ export default function BillingPage() {
                 <th className="px-6 py-3 font-bold" title="Catatan penyelesaian">Completion Notes</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {paged.map((c) => (
-                <tr key={c.recordUuid} className="odd:bg-white even:bg-slate-50/60 hover:bg-amber-50/50 transition">
+                <tr key={c.recordUuid} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-amber-50/50 dark:hover:bg-slate-800 transition">
                   <td className="px-6 py-3.5 text-slate-400 tabular-nums">{c.no || '-'}</td>
-                  <td className="px-4 py-3.5 text-slate-600 font-semibold whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                  <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 font-semibold whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
                     <span className="flex items-center gap-2.5">
-                      <span className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-700 border border-amber-100 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                      <span className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 text-[10px] font-extrabold flex items-center justify-center shrink-0">
                         {String(c.client || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
                       </span>
-                      <span className="font-bold text-slate-800">{c.client || '-'}</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100">{c.client || '-'}</span>
                     </span>
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="min-w-[220px] max-w-[320px]">
-                      <p className="text-xs text-slate-600 line-clamp-2">{c.issue || '-'}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">{c.issue || '-'}</p>
                       <button
                         type="button"
                         onClick={() => setDetailUuid(c.recordUuid)}
-                        className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-lg px-2.5 py-1 transition"
+                        className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-600 dark:text-brand-300 hover:text-brand-700 bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-100 dark:border-brand-500/20 rounded-lg px-2.5 py-1 transition"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
@@ -557,19 +567,19 @@ export default function BillingPage() {
                       </button>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{c.picName || c.assignTo || '-'}</td>
+                  <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{c.picName || c.assignTo || '-'}</td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
-                    <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1">{c.module || '-'}</span>
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-full px-2.5 py-1">{c.module || '-'}</span>
                     {c.subModule && <span className="mt-1 block text-[10px] text-slate-400 font-medium">{c.subModule}</span>}
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${BILL_BADGE[c.billingStatus] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${BILL_BADGE[c.billingStatus] || 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'}`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />{c.billingStatus || '-'}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">{c.billingCategory || '-'}</td>
-                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{c.supportType || '-'}</td>
-                  <td className={`px-4 py-3.5 text-right tabular-nums whitespace-nowrap ${+c.charges > 0 ? 'font-extrabold text-amber-700' : 'font-semibold text-slate-300'}`}>{fmtMoney(c.charges)}</td>
+                  <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{c.billingCategory || '-'}</td>
+                  <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{c.supportType || '-'}</td>
+                  <td className={`px-4 py-3.5 text-right tabular-nums whitespace-nowrap ${+c.charges > 0 ? 'font-extrabold text-amber-700 dark:text-amber-400' : 'font-semibold text-slate-300 dark:text-slate-600'}`}>{fmtMoney(c.charges)}</td>
                   <td className="px-4 py-3.5">
                     {c.billingStatus === 'ON-CALL' ? (
                         (() => {
@@ -581,7 +591,7 @@ export default function BillingPage() {
                             <div className="flex flex-col items-start gap-1.5 min-w-[150px]">
                               <span
                                 title={`Status saat ini: ${current}`}
-                                className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${isDefault ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
+                                 className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${isDefault ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'}`}
                               >
                                 {current}
                               </span>
@@ -590,7 +600,7 @@ export default function BillingPage() {
                                 onClick={() => handleAudit(c.recordUuid, next)}
                                 title={`Sekali klik: ubah menjadi ${next}`}
                                 aria-label={`Ubah status kasus #${c.no} menjadi ${next}`}
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 hover:text-white bg-brand-50 hover:bg-brand-600 border border-brand-200 hover:border-brand-600 rounded-lg px-2 py-1 transition max-w-full"
+                                 className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-300 hover:text-white bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-600 border border-brand-200 dark:border-brand-500/20 hover:border-brand-600 rounded-lg px-2 py-1 transition max-w-full"
                               >
                                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12l-7.5 7.5M21 12H3" />
@@ -617,7 +627,7 @@ export default function BillingPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs text-slate-400 bg-slate-50/60">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
           <span className="tabular-nums">
             Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} data
           </span>
@@ -625,7 +635,7 @@ export default function BillingPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               ‹
             </button>
@@ -636,7 +646,7 @@ export default function BillingPage() {
                 className={`min-w-[32px] px-2 py-1.5 rounded-lg border font-bold transition ${
                   n === safePage
                     ? 'bg-brand-600 border-brand-600 text-white'
-                    : 'border-slate-200 hover:bg-slate-50'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 {n}
@@ -645,7 +655,7 @@ export default function BillingPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               ›
             </button>
@@ -653,13 +663,13 @@ export default function BillingPage() {
           <select
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
-            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white font-semibold text-slate-600"
+            className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-200"
           >
             <option value={10}>10 / halaman</option>
             <option value={50}>50 / halaman</option>
             <option value={100}>100 / halaman</option>
           </select>
-          <span className="tabular-nums">{items.length} kasus · <span className="text-base font-extrabold text-slate-900">Total: {fmtMoney(grandTotal)}</span></span>
+          <span className="tabular-nums">{items.length} kasus · <span className="text-base font-extrabold text-slate-900 dark:text-white">Total: {fmtMoney(grandTotal)}</span></span>
         </div>
       </div>
 
@@ -667,13 +677,13 @@ export default function BillingPage() {
       {masterOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setMasterOpen(false)} />
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md animate-fade-in-fast overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-50/80 to-white">
+          <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md animate-fade-in-fast overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-50/80 to-white dark:from-slate-800 dark:to-slate-900">
               <div>
-                <h3 className="font-extrabold text-slate-900 tracking-tight">Master Status Validasi</h3>
+                <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Master Status Validasi</h3>
                 <p className="text-xs text-slate-400">Kelola opsi status validasi</p>
               </div>
-              <button onClick={() => setMasterOpen(false)} aria-label="Tutup" className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition">
+              <button onClick={() => setMasterOpen(false)} aria-label="Tutup" className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -717,7 +727,7 @@ export default function BillingPage() {
                             value={editValue}
                             maxLength={40}
                             onChange={(e) => setEditValue(e.target.value)}
-                            className="flex-1 min-w-0 text-sm font-bold border-2 border-amber-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 bg-white uppercase"
+                            className="flex-1 min-w-0 text-sm font-bold border-2 border-amber-300 dark:border-amber-500/40 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 uppercase"
                           />
                           <button
                             type="submit"
@@ -738,7 +748,7 @@ export default function BillingPage() {
                       ) : (
                         <>
                           <span className="min-w-0">
-                            <span className="block text-sm text-slate-700 font-bold truncate">{a}</span>
+                            <span className="block text-sm text-slate-700 dark:text-slate-200 font-bold truncate">{a}</span>
                             <span className="block text-[10px] text-slate-400 font-medium">
                               {DEFAULT_ACTIONS.includes(a) ? 'Default' : 'Kustom'} · dipakai {used} kasus
                             </span>
@@ -792,7 +802,7 @@ export default function BillingPage() {
                   placeholder="Status validasi baru..."
                   value={newAction}
                   onChange={(e) => setNewAction(e.target.value)}
-                  className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                  className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                 />
                 <button className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 rounded-lg transition">Tambah</button>
               </form>
@@ -859,16 +869,16 @@ function KpiIcon({ name }) {
 }
 function ChartPanel({ title, desc, children, accent = 'from-brand-500 to-violet-500', badge }) {
   return (
-    <div className="relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast">
+    <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast">
       <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
       <div className="p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="font-extrabold text-slate-900 tracking-tight leading-tight">{title}</h3>
+            <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">{title}</h3>
             <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
           </div>
           {badge && (
-            <span className="shrink-0 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1 whitespace-nowrap tabular-nums">{badge}</span>
+            <span className="shrink-0 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-full px-2.5 py-1 whitespace-nowrap tabular-nums">{badge}</span>
           )}
         </div>
         <div className="h-64">{children}</div>
