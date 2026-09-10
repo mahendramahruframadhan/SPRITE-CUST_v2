@@ -371,7 +371,7 @@ function TabPricelist({ cfg, patch }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-4 py-3 text-[11px] text-amber-800 dark:text-amber-300 animate-fade-in-fast">
+      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-4 py-3 text-[11px] text-amber-800 dark:text-amber-400 animate-fade-in-fast">
         <span className="font-bold">Sesuai sheet:</span> kolom{' '}
         <span className="font-mono">BILLING CATEGORY · TARIFF · SUPPORT TYPE · NOTES (versi)</span>. Tariff dalam Rupiah tanpa
         titik/koma. Versi <span className="font-semibold">PRICELIST - 3 & 4</span> di sheet masih tarif 0 (cadangan kenaikan harga).
@@ -704,7 +704,7 @@ function TabCalendar({ cfg }) {
 function TabHeaders({ cfg }) {
   return (
     <div className="space-y-5">
-      <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3 text-[11px] text-rose-700 dark:text-rose-300 flex items-center gap-2 animate-fade-in-fast">
+      <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3 text-[11px] text-rose-700 dark:text-rose-400 flex items-center gap-2 animate-fade-in-fast">
         <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
@@ -755,7 +755,7 @@ function TabAi({ agents, onToggle }) {
   const onCount = agents.filter((a) => a.enabled).length;
   return (
     <div className="space-y-4">
-      <div className="bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-xl px-4 py-3 text-[11px] text-brand-800 dark:text-brand-200 animate-fade-in-fast">
+      <div className="bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-xl px-4 py-3 text-[11px] text-brand-800 dark:text-brand-300 animate-fade-in-fast">
         <span className="font-bold">{onCount}/{agents.length} agent aktif.</span> Toggle tersimpan otomatis ke backend.
         Koneksi API key diatur di <span className="font-bold">Hak Akses → AI & API Key</span>.
       </div>

@@ -505,7 +505,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <StatCard title="Total Kasus" value={fmtNum(TOTAL)} sub={`${uniqueClients} klien · ${Object.keys(moduleMap).length} modul`} icon="cases" grad="from-indigo-500 to-violet-600" glow="group-hover:shadow-indigo-500/25" delta={`${fmtNum(ymKeys.length)} bulan periode`} tone="text-indigo-600 bg-indigo-50 border-indigo-100" delay=".02s" />
         <StatCard title="Bulan Terakhir" value={fmtNum(latestYM ? ymMap[latestYM].count : 0)} sub={latestYM ? 'periode ' + ymLabels[ymLabels.length - 1] : '—'} icon="mockup" grad="from-sky-400 to-blue-600" glow="group-hover:shadow-sky-500/25" delta={momGrowth == null ? 'data awal' : `${momGrowth >= 0 ? '▲' : '▼'} ${Math.abs(momGrowth)}% MoM`} tone={momGrowth != null && momGrowth < 0 ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'} delay=".06s" />
-        <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} valueCls="text-slate-900" sub={`${paidPct}% dari total kasus`} icon="billing" grad="from-amber-400 to-orange-500" glow="group-hover:shadow-amber-500/25" delta={`${fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0))} tagihan`} tone="text-amber-700 bg-amber-50 border-amber-100" delay=".1s" />
+        <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} sub={`${paidPct}% dari total kasus`} icon="billing" grad="from-amber-400 to-orange-500" glow="group-hover:shadow-amber-500/25" delta={`${fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0))} tagihan`} tone="text-amber-700 bg-amber-50 border-amber-100" delay=".1s" />
         <StatCard title="Nilai Billing" value={fmtRp(totalCharge)} valueSize={moneySize(totalCharge)} sub={`dari ${fmtNum(paidCases.length)} kasus berbayar`} icon="finance" grad="from-emerald-400 to-teal-600" glow="group-hover:shadow-emerald-500/25" delta="tercatat" tone="text-emerald-700 bg-emerald-50 border-emerald-100" delay=".14s" />
         <StatCard title="Outstanding" value={fmtRp(outstanding.amount)} valueSize={moneySize(outstanding.amount)} sub={`${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" delay=".18s" />
       </div>
@@ -558,7 +558,7 @@ export default function DashboardPage() {
           <div className="relative h-64">
             <Doughnut data={billingData} options={doughnutOpt} />
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-10">
-              <p className="text-3xl font-extrabold text-slate-900 tracking-tight">{fmtNum(billTotal)}</p>
+                <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{fmtNum(billTotal)}</p>
               <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">kasus</p>
             </div>
           </div>
@@ -612,7 +612,7 @@ export default function DashboardPage() {
               <span className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </span>
-              <p className="text-sm font-bold text-slate-700">Tidak ada outstanding</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Tidak ada outstanding</p>
               <p className="text-xs text-slate-400">Semua invoice sudah PAID. Kerja bagus!</p>
             </div>
           ) : (
@@ -639,7 +639,7 @@ export default function DashboardPage() {
         <Panel title="Ringkasan Outstanding" desc="Kasus tervalidasi yang belum PAID" delay=".42s" accent="from-rose-400 to-orange-400">
           <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-100 p-5">
             <p className="text-[11px] font-bold text-rose-400 uppercase tracking-[0.14em]">Total Outstanding</p>
-            <p className="mt-1 text-[32px] leading-none font-extrabold text-slate-900 tracking-tight tabular-nums">{fmtRp(outstanding.amount)}</p>
+            <p className="mt-1 text-[32px] leading-none font-extrabold text-slate-900 dark:text-white tracking-tight tabular-nums">{fmtRp(outstanding.amount)}</p>
             <p className="mt-2 text-xs text-slate-500 font-medium">{fmtNum(outstanding.count)} kasus · {fmtRp(outstanding.amount)}</p>
           </div>
           <div className="mt-5 space-y-4">
@@ -647,7 +647,7 @@ export default function DashboardPage() {
               <div key={brand}>
                 <div className="flex items-center justify-between text-sm mb-1.5">
                   <span className="font-bold text-slate-700 dark:text-slate-200 truncate">{brand}</span>
-                    <span className="text-xs text-slate-600 font-bold ml-2 whitespace-nowrap tabular-nums">{fmtRp(amount)}</span>
+                    <span className="text-xs text-slate-600 dark:text-slate-300 font-bold ml-2 whitespace-nowrap tabular-nums">{fmtRp(amount)}</span>
                 </div>
                 <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-700" style={{ width: `${Math.round((amount / outstanding.max) * 100)}%` }} />

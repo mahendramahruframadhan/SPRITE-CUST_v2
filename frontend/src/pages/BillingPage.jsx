@@ -133,15 +133,16 @@ export default function BillingPage() {
   }, [filtered, auditActions, caseAuditStatus]);
 
   const kpi = [
-    { t: 'Total Kasus', v: filtered.length.toLocaleString('id-ID'), sub: 'dalam periode', color: 'text-brand-600', accent: 'from-brand-500 to-violet-500', icon: 'cases' },
-    { t: 'Total Tagihan', v: fmtMoney(stats.totalAmount), sub: 'ON-CALL + MONTHLY', color: 'text-emerald-600', accent: 'from-emerald-400 to-teal-600', icon: 'money', money: true },
-    { t: 'ON-CALL', v: fmtMoney(stats.oncall.amount), sub: `${stats.oncall.count} kasus`, color: 'text-amber-600', accent: 'from-amber-400 to-orange-500', icon: 'phone', money: true },
-    { t: 'MONTHLY', v: fmtMoney(stats.monthly.amount), sub: `${stats.monthly.count} kasus`, color: 'text-sky-600', accent: 'from-sky-400 to-blue-600', icon: 'cal', money: true },
+    { t: 'Total Kasus', v: filtered.length.toLocaleString('id-ID'), sub: 'dalam periode', color: 'text-brand-600', darkColor: 'dark:text-brand-300', accent: 'from-brand-500 to-violet-500', icon: 'cases' },
+    { t: 'Total Tagihan', v: fmtMoney(stats.totalAmount), sub: 'ON-CALL + MONTHLY', color: 'text-emerald-600', darkColor: 'dark:text-emerald-400', accent: 'from-emerald-400 to-teal-600', icon: 'money', money: true },
+    { t: 'ON-CALL', v: fmtMoney(stats.oncall.amount), sub: `${stats.oncall.count} kasus`, color: 'text-amber-600', darkColor: 'dark:text-amber-400', accent: 'from-amber-400 to-orange-500', icon: 'phone', money: true },
+    { t: 'MONTHLY', v: fmtMoney(stats.monthly.amount), sub: `${stats.monthly.count} kasus`, color: 'text-sky-600', darkColor: 'dark:text-sky-400', accent: 'from-sky-400 to-blue-600', icon: 'cal', money: true },
     {
       t: 'Valid — Siap Invoice',
       v: (stats.auditCounts['VALID - SIAP INVOICE'] || 0).toLocaleString('id-ID'),
       sub: `${stats.auditCounts['PERLU DICEK ULANG'] || 0} kasus perlu dicek ulang`,
       color: 'text-emerald-600',
+      darkColor: 'dark:text-emerald-400',
       accent: 'from-emerald-400 to-teal-600',
       icon: 'check',
     },
@@ -368,7 +369,7 @@ export default function BillingPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{d.t}</p>
-                <p className={`mt-2 ${d.money ? moneySize(d.v) : 'text-[28px]'} leading-tight font-extrabold tracking-tight tabular-nums ${d.color} dark:brightness-125`}>{d.v}</p>
+                <p className={`mt-2 ${d.money ? moneySize(d.v) : 'text-[28px]'} leading-tight font-extrabold tracking-tight tabular-nums ${d.color} ${d.darkColor || ''}`}>{d.v}</p>
                 <p className="mt-1.5 text-xs font-medium text-slate-400 truncate">{d.sub}</p>
               </div>
               <span className={`w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br ${d.accent} text-white flex items-center justify-center shadow-lg`}>
@@ -740,7 +741,7 @@ export default function BillingPage() {
                             type="button"
                             disabled={editBusy}
                             onClick={() => { setEditingAction(null); setEditValue(''); setEditErr(''); }}
-                            className="shrink-0 text-xs font-semibold text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition"
+                            className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg transition"
                           >
                             Batal
                           </button>
