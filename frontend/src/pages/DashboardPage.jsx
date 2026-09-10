@@ -34,11 +34,13 @@ ChartJS.register(
 /* ================= Helpers ================= */
 const fmtNum = (n) => (+n || 0).toLocaleString('id-ID');
 const fmtRp = (n) => 'Rp ' + fmtNum(Math.round(+n || 0));
+// Bentuk singkat dengan PEMOTONGAN ke bawah (bukan pembulatan) agar tidak pernah
+// melebihi nominal asli — mis. 18.454.069 → "Rp 18,4 jt", bukan "Rp 18,5 jt".
 const fmtRpShort = (n) => {
   n = +n || 0;
-  if (n >= 1e9) return 'Rp ' + (n / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' M';
-  if (n >= 1e6) return 'Rp ' + (n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt';
-  if (n >= 1e3) return 'Rp ' + (n / 1e3).toLocaleString('id-ID', { maximumFractionDigits: 0 }) + ' rb';
+  if (n >= 1e9) return 'Rp ' + (Math.floor(n / 1e7) / 100).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' M';
+  if (n >= 1e6) return 'Rp ' + (Math.floor(n / 1e5) / 10).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt';
+  if (n >= 1e3) return 'Rp ' + Math.floor(n / 1e3).toLocaleString('id-ID') + ' rb';
   return fmtRp(n);
 };
 const MONTH_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
