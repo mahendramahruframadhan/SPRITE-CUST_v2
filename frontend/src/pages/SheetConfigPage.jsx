@@ -23,16 +23,16 @@ const ST_BADGE = {
 };
 
 const TABS = [
-  { id: 'pricelist', label: 'Pricelist' },
-  { id: 'brands', label: 'Brand Name' },
-  { id: 'bcmap', label: 'Billing Category' },
-  { id: 'module', label: 'Module & Sub-Module' },
-  { id: 'support', label: 'Support Type & Kategori' },
-  { id: 'status', label: 'Billing Status & Group KPI' },
-  { id: 'channel', label: 'Channel & Team' },
-  { id: 'calendar', label: 'Kalender' },
-  { id: 'headers', label: 'Header Mapping (Backend)' },
-  { id: 'ai', label: 'AI Assistant' },
+  { id: 'pricelist', label: 'Pricelist', desc: 'Tarif (Rp) per billing category untuk tiap versi pricelist.', used: 'Form Kasus · Billing · Finance' },
+  { id: 'brands', label: 'Brand Name', desc: 'Daftar semua brand/klien.', used: 'Form Kasus · filter semua halaman' },
+  { id: 'bcmap', label: 'Billing Category', desc: 'Pasangan billing category → support type default (otomatis).', used: 'Form Kasus' },
+  { id: 'module', label: 'Module & Sub-Module', desc: 'Daftar modul dan sub-modul sistem.', used: 'Form Kasus · Dashboard' },
+  { id: 'support', label: 'Support Type & Kategori', desc: 'Tipe dan kategori support yang tersedia.', used: 'Form Kasus · Billing' },
+  { id: 'status', label: 'Billing Status & Group KPI', desc: 'Status penagihan dan kelompok KPI HR Report.', used: 'Billing · HR Report' },
+  { id: 'channel', label: 'Channel & Team', desc: 'Sumber tiket dan anggota tim support.', used: 'Form Kasus · HR Report · Dashboard' },
+  { id: 'calendar', label: 'Kalender', desc: 'Referensi konversi tanggal — read-only dari sheet.', used: 'Sinkronisasi' },
+  { id: 'headers', label: 'Header Mapping (Backend)', desc: 'Mapping kolom sheet master — TERKUNCI untuk backend.', used: 'Backend sync' },
+  { id: 'ai', label: 'AI Assistant', desc: 'Sakelar fitur AI.', used: 'AI Assistant' },
 ];
 
 // Default sakelar fitur AI — status aktif tersimpan di backend (app_config key 'agentConfig')
@@ -129,6 +129,13 @@ export default function SheetConfigPage() {
     save(msg);
   };
 
+  const activeTab = TABS.find((t) => t.id === tab) || TABS[0];
+  const heroStats = useMemo(() => ({
+    brands: (cfg.brands || []).length,
+    modules: (cfg.modules || []).length,
+    prices: (cfg.pricelist || []).length,
+  }), [cfg]);
+
   function exportJSON() {
     const payload = {
       meta: {
@@ -155,52 +162,74 @@ export default function SheetConfigPage() {
   }
 
   return (
-    <div className="px-8 py-6 space-y-5">
-      {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 -mt-1">
-        <button
-          onClick={resetConfig}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-          </svg>
-          Reset ke Default
-        </button>
-        <button
-          onClick={exportJSON}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          Export JSON (Backend)
-        </button>
-      </div>
-
-      {/* Info */}
-      <div className="bg-brand-50 border border-brand-100 rounded-2xl px-5 py-4 flex items-start gap-3 animate-fade-in-fast">
-        <svg className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-        </svg>
-        <p className="text-xs text-brand-800 leading-relaxed">
-          Struktur & isi halaman ini <span className="font-bold">persis mengikuti tab konfigurasi di Google Sheets</span> (gid=0): nama tabel dan nama kolom sama persis, sehingga aman saat dihubungkan ke backend nanti. Semua perubahan <span className="font-semibold">tersimpan otomatis di browser & backend</span> dan bisa dikembalikan ke default kapan saja. Gunakan <span className="font-semibold">Export JSON</span> untuk menyerahkan konfigurasi final ke backend.
-        </p>
-      </div>
+    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#4c1d95] via-[#7c3aed] to-[#a78bfa] text-white shadow-2xl shadow-violet-600/25 animate-fade-in-fast">
+        <div aria-hidden="true" className="absolute inset-0 opacity-[.14]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '22px 22px' }} />
+        <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
+        <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-fuchsia-300/20 rounded-full blur-3xl" />
+        <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center gap-6">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 backdrop-blur rounded-full px-3 py-1">
+                [ KONFIGURASI /// SHEET ]
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white/10 border border-white/15 rounded-full px-3 py-1">
+                Autosave aktif
+              </span>
+            </div>
+            <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
+              Konfigurasi Sheet
+            </h1>
+            <p className="mt-2 text-sm text-white/75 max-w-xl leading-relaxed">
+              {heroStats.brands} brand · {heroStats.modules} modul · {heroStats.prices} baris pricelist. Setiap perubahan tersimpan otomatis ke browser & backend.
+            </p>
+          </div>
+          <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
+            <button
+              onClick={exportJSON}
+              className="inline-flex items-center justify-center gap-2 bg-white text-violet-700 text-sm font-extrabold px-4 py-3 rounded-2xl shadow-lg hover:bg-violet-50 transition active:scale-[.98]"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Export JSON (Backend)
+            </button>
+            <button
+              onClick={resetConfig}
+              className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 rounded-2xl transition active:scale-[.98]"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              Reset ke Default
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1.5 bg-slate-200/60 rounded-xl p-1 text-xs font-semibold overflow-x-auto scrollbar-thin animate-fade-in-fast" style={{ animationDelay: '.05s' }}>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3.5 py-2 rounded-lg whitespace-nowrap transition ${
-              tab === t.id ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm p-2 animate-fade-in-fast" style={{ animationDelay: '.05s' }}>
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin" role="tablist" aria-label="Kategori konfigurasi">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
+                tab === t.id ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 px-2 pb-1 text-[11px]">
+          <span className="font-extrabold text-slate-700">{activeTab.label}</span>
+          <span className="text-slate-400">— {activeTab.desc}</span>
+          <span className="font-semibold text-violet-600">Dipakai di: {activeTab.used}</span>
+        </div>
       </div>
 
       {/* Content */}
