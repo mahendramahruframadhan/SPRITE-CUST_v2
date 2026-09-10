@@ -2,45 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Base ===== */
+/* ===== Base — Swiss Industrial Print substrate ===== */
 @layer base {
   body {
-    @apply bg-slate-100 text-slate-800 antialiased font-sans;
+    @apply bg-paper text-ink antialiased font-sans;
+    background-image: none;
+    background-attachment: scroll;
+  }
+  ::selection {
+    @apply bg-hazard text-white;
   }
 }
 
 /* ===== Komponen kustom (dipakai bersama utility Tailwind) ===== */
 @layer components {
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full;
+    @apply bg-ink rounded-none;
   }
   .scrollbar-thin::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
 
-  /* Item navigasi sidebar shell */
+  /* Item navigasi sidebar shell — rigid, 90° */
   .shell-nav {
-    @apply flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-slate-600 transition;
+    @apply flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-slate-600 transition rounded-none border-r-2 border-transparent font-mono uppercase tracking-wider text-[12px];
   }
   .shell-nav:hover {
-    @apply bg-slate-50;
+    @apply bg-paper text-ink;
   }
   .shell-nav.active {
-    @apply bg-brand-50 text-brand-700 border-r-[3px] border-brand-600;
+    @apply bg-paper text-ink border-r-2 border-hazard;
   }
 
   /* Sub-nav horizontal internal (sebelumnya diubah jadi tab bar oleh app.js) */
   .subnav-tab {
-    @apply px-3.5 py-2 rounded-lg whitespace-nowrap transition text-sm font-semibold;
+    @apply px-3.5 py-2 rounded-none whitespace-nowrap transition text-sm font-semibold font-mono uppercase tracking-wider text-[12px];
   }
   .subnav-tab-active {
-    @apply bg-brand-50 text-brand-700;
+    @apply bg-ink text-paper;
   }
   .subnav-tab-inactive {
-    @apply text-slate-500 hover:bg-slate-100;
+    @apply text-slate-500 hover:bg-paper;
   }
 }

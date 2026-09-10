@@ -5,8 +5,12 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
+        mono: ['"JetBrains Mono"', '"IBM Plex Mono"', '"Space Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       colors: {
+        paper: '#F4F4F0',
+        ink: '#111111',
+        hazard: '#E61919',
         brand: {
           50: '#eef4ff',
           100: '#dfe9ff',
