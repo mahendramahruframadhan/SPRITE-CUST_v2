@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
 import { usePermissions } from './hooks/usePermissions.js';
 import AppLayout from './components/AppLayout.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -39,6 +40,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
+        <ToastProvider>
         <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -63,6 +65,7 @@ export default function App() {
           </Route>
         </Routes>
         </BrowserRouter>
+        </ToastProvider>
       </ThemeProvider>
     </AuthProvider>
   );
