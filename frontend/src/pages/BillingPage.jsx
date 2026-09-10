@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState, DEFAULT_ACTIONS } from '../hooks/useAuditState.js';
 import { recordActivity } from '../lib/activity.js';
+import { useToast } from '../context/ToastContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 const BILL_BADGE = {
@@ -45,6 +46,7 @@ function ExpandableText({ text }) {
 }
 
 export default function BillingPage() {
+  const { notify } = useToast();
   const { auditActions, caseAuditStatus, defaultAuditStatus, updateAudit, addAction, removeAction, renameAuditAction } = useAuditState();
   const { cases: allCases, loading } = useCases();
   const [from, setFrom] = useState('');
@@ -256,6 +258,7 @@ export default function BillingPage() {
     a.download = `billing-audit-${cat.toLowerCase()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    notify(`Export ${catItems.length} kasus ${cat} berhasil diunduh.`, 'success');
   }
 
   const CAT_META = {
@@ -713,6 +716,7 @@ export default function BillingPage() {
                                 `${r?.migrated ?? 0} kasus dimigrasi`,
                                 'Konfigurasi'
                               );
+                              notify(`"${a}" menjadi "${finalName}" (${r?.migrated ?? 0} kasus).`, 'success');
                               setEditingAction(null);
                               setEditValue('');
                             } catch (err) {
@@ -768,6 +772,7 @@ export default function BillingPage() {
                                   if (confirm(`Yakin hapus status "${a}"? ${used} kasus yang menggunakannya akan kembali ke status default.`)) {
                                     removeAction(a);
                                     recordActivity(`menghapus status validasi "${a}"`, 'kasus terkait kembali ke status default', 'Konfigurasi');
+                                    notify(`Status "${a}" dihapus.`, 'success');
                                   }
                                 }}
                                 className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
@@ -790,11 +795,12 @@ export default function BillingPage() {
                   const val = newAction.trim();
                   if (!val) return;
                   if (auditActions.includes(val)) {
-                    alert('Action sudah ada');
+                    notify(`Status "${val}" sudah ada.`, 'error');
                     return;
                   }
                   addAction(val);
                   recordActivity(`menambah status validasi baru "${val}"`, '', 'Konfigurasi');
+                  notify(`Status "${val}" ditambahkan.`, 'success');
                   setNewAction('');
                 }}
               >

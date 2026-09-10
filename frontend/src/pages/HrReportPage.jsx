@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
+import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 
 const normKpi = (k) => (k || '').trim() || 'TANPA KATEGORI';
@@ -56,6 +57,7 @@ function defaultDates(cases) {
 }
 
 export default function HrReportPage() {
+  const { notify } = useToast();
   const { cases: allCases, loading } = useCases();
   const extraKpis = useMemo(
     () => [...new Set(allCases.map((c) => normKpi(c.groupKpi)).filter((k) => k && !MAIN_KPIS.includes(k)))].sort(),
@@ -161,6 +163,7 @@ export default function HrReportPage() {
     a.download = 'hr-report.csv';
     a.click();
     URL.revokeObjectURL(url);
+    notify(`Export ${filtered.length} tiket HR berhasil diunduh.`, 'success');
   }
 
   const dateCls =

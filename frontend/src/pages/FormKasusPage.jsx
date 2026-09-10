@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { masters as fallbackMasters, priceListData as fallbackPrices } from '../data/masters.js';
 import { createCase, getMasters } from '../lib/api.js';
 import { recordActivity } from '../lib/activity.js';
+import { useToast } from '../context/ToastContext.jsx';
 
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -65,6 +66,7 @@ function Select({ value, onChange, items, placeholder = '-- Pilih --' }) {
 }
 
 export default function FormKasusPage() {
+  const { notify } = useToast();
   const [form, setForm] = useState(INITIAL);
   // Master dari backend (GET /api/masters); file lokal sebagai fallback offline
   const [masters, setMasters] = useState(fallbackMasters);
@@ -104,12 +106,12 @@ export default function FormKasusPage() {
 
   function autoFillCharges() {
     if (!form.billingCategory) {
-      alert('Pilih Billing Category terlebih dahulu');
+      notify('Pilih Billing Category terlebih dahulu', 'error');
       return;
     }
     const item = priceListData.find((p) => p.category === form.billingCategory && p.active);
     if (!item) {
-      alert('Kategori tidak ditemukan di price list');
+      notify('Kategori tidak ditemukan di price list', 'error');
       return;
     }
     const price = form.refPriceList.includes('1') ? item.pl1 : item.pl2;
@@ -123,7 +125,7 @@ export default function FormKasusPage() {
   async function saveForm() {
     for (const k of ['dateIssue', 'client', 'issue']) {
       if (!form[k]) {
-        alert('Field wajib belum diisi');
+        notify('Field wajib belum diisi (tanggal, klien, kendala)', 'error');
         return;
       }
     }
@@ -132,10 +134,10 @@ export default function FormKasusPage() {
       // POST /api/cases — backend menulis ke DB (+ Sheets bila SHEETS_MOCK=false)
       await createCase({ ...form, month: form.monthName });
       recordActivity(`menambah kasus baru (${form.client})`, String(form.issue || '').slice(0, 80), 'Penambahan');
-      alert('Kasus tersimpan di backend.');
+      notify(`Kasus ${form.client} tersimpan di backend.`, 'success');
       resetForm();
     } catch (e) {
-      alert('Gagal menyimpan: ' + (e.message || e));
+      notify('Gagal menyimpan: ' + (e.message || e), 'error');
     } finally {
       setSaving(false);
     }

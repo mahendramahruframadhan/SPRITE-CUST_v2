@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
+import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 
 const FILTER_DEFS = [
@@ -27,6 +28,7 @@ const emptyFilters = () => ({
 });
 
 export default function DataKasusPage() {
+  const { notify } = useToast();
   const { cases: allCases, loading, error, reload } = useCases();
   const [filters, setFilters] = useState(emptyFilters);
   const [page, setPage] = useState(1);
@@ -104,6 +106,7 @@ export default function DataKasusPage() {
     a.download = 'data-kasus-support.csv';
     a.click();
     URL.revokeObjectURL(url);
+    notify(`Export ${filtered.length} kasus berhasil diunduh.`, 'success');
   }
 
   // nomor halaman dengan elipsis

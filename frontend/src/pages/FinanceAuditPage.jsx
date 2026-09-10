@@ -4,6 +4,7 @@ import { Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState, DEFAULT_INVOICE } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
+import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -27,6 +28,7 @@ const INV_TONE = {
 };
 
 export default function FinanceAuditPage() {
+  const { notify } = useToast();
   const { user } = useAuth();
   const { caseAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
@@ -139,6 +141,7 @@ export default function FinanceAuditPage() {
     a.download = 'finance-audit.csv';
     a.click();
     URL.revokeObjectURL(url);
+    notify(`Export ${filtered.length} kasus tervalidasi berhasil diunduh.`, 'success');
   }
 
   const filterCls =
@@ -476,6 +479,7 @@ export default function FinanceAuditPage() {
                                 `${r?.migrated ?? 0} kasus dimigrasi`,
                                 'Konfigurasi'
                               );
+                              notify(`"${a}" menjadi "${finalName}" (${r?.migrated ?? 0} kasus).`, 'success');
                               setEditingAction(null);
                               setEditValue('');
                             } catch (err) {
@@ -531,6 +535,7 @@ export default function FinanceAuditPage() {
                                   if (confirm(`Yakin hapus status "${a}"? ${used} kasus yang menggunakannya akan kembali ke status default.`)) {
                                     removeInvoiceAction(a);
                                     recordActivity(`menghapus status invoice "${a}"`, 'kasus terkait kembali ke status default', 'Konfigurasi');
+                                    notify(`Status "${a}" dihapus.`, 'success');
                                   }
                                 }}
                                 className="text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-2 py-1 rounded transition"
@@ -553,11 +558,12 @@ export default function FinanceAuditPage() {
                   const val = newAction.trim().toUpperCase();
                   if (!val) return;
                   if (invoiceActions.includes(val)) {
-                    alert('Status sudah ada');
+                    notify(`Status "${val}" sudah ada.`, 'error');
                     return;
                   }
                   addInvoiceAction(val);
                   recordActivity(`menambah status invoice baru "${val}"`, '', 'Konfigurasi');
+                  notify(`Status "${val}" ditambahkan.`, 'success');
                   setNewAction('');
                 }}
               >

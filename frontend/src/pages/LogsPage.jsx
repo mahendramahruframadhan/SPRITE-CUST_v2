@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getLogs } from '../lib/api.js';
 import { readLocalActivity } from '../lib/activity.js';
+import { useToast } from '../context/ToastContext.jsx';
 
 const CATS = ['Semua', 'Penambahan', 'Validasi', 'Invoice', 'Pengguna', 'Konfigurasi', 'Sinkron', 'Lainnya'];
 
@@ -47,6 +48,7 @@ const initials = (name) =>
 
 // bare=true: ditempel sebagai tab di Pengaturan (tanpa padding halaman sendiri)
 export default function LogsPage({ bare = false }) {
+  const { notify } = useToast();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
@@ -142,6 +144,7 @@ export default function LogsPage({ bare = false }) {
     a.download = 'logs-aktivitas.csv';
     a.click();
     URL.revokeObjectURL(url);
+    notify(`Export ${items.length} aktivitas berhasil diunduh.`, 'success');
   }
 
   return (
