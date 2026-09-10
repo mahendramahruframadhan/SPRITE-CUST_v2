@@ -28,10 +28,10 @@ const STEPS = [
 const STRENGTH_BAR = ['bg-rose-400', 'bg-amber-400', 'bg-yellow-400', 'bg-emerald-400', 'bg-emerald-500'];
 
 const inputCls = (invalid) =>
-  `w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 transition ${
+  `w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 transition bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 ${
     invalid
       ? 'border-rose-300 focus:ring-rose-500/30 focus:border-rose-400'
-      : 'border-slate-200 focus:ring-brand-500/40 focus:border-brand-400'
+      : 'border-slate-200 dark:border-slate-700 focus:ring-brand-500/40 focus:border-brand-400'
   }`;
 
 export default function SignUpPage() {
@@ -132,9 +132,9 @@ export default function SignUpPage() {
   const errorList = [...Object.entries(errors).map(([f, m]) => ({ field: f, message: m }))];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-brand-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-brand-50 dark:from-slate-950 dark:to-slate-900 p-4">
       <div className="w-full max-w-4xl motion-safe:animate-fade-in">
-        <div className="grid md:grid-cols-[320px_1fr] bg-white rounded-2xl shadow-xl shadow-brand-600/10 border border-slate-200 overflow-hidden">
+        <div className="grid md:grid-cols-[320px_1fr] bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-brand-600/10 border border-slate-200 dark:border-slate-800 overflow-hidden">
           {/* Panel kiri — konteks + stepper */}
           <aside className="bg-gradient-to-b from-brand-700 to-brand-950 text-white p-7 flex flex-col gap-6">
             <div className="flex items-center gap-3">
@@ -204,7 +204,7 @@ export default function SignUpPage() {
           {/* Panel kanan — form wizard */}
           <div className="p-6 sm:p-8">
             <div className="mb-6">
-              <h1 className="text-xl font-bold text-slate-900">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">
                 {firstRun ? 'Buat akun Super Admin pertama' : 'Daftar akun baru'}
               </h1>
               <p className="text-xs text-slate-400 mt-1">
@@ -248,7 +248,7 @@ export default function SignUpPage() {
               {step === 0 && (
                 <div className="space-y-5">
                   <div>
-                    <label htmlFor="reg-email" className="block text-xs font-semibold text-slate-500 mb-1">Email kerja</label>
+                    <label htmlFor="reg-email"               className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email kerja</label>
                     <input
                       ref={emailRef}
                       id="reg-email"
@@ -273,7 +273,7 @@ export default function SignUpPage() {
               {step === 1 && (
                 <div className="space-y-5">
                   <div>
-                    <label htmlFor="reg-name" className="block text-xs font-semibold text-slate-500 mb-1">Nama lengkap</label>
+                    <label htmlFor="reg-name"               className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Nama lengkap</label>
                     <input
                       id="reg-name"
                       name="name"
@@ -289,7 +289,7 @@ export default function SignUpPage() {
                     {errors.name && <p id="reg-name-error" className="text-xs text-rose-600 mt-1">{errors.name}</p>}
                   </div>
                   <div>
-                    <label htmlFor="reg-password" className="block text-xs font-semibold text-slate-500 mb-1">Password</label>
+                    <label htmlFor="reg-password"               className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Password</label>
                     <div className="relative">
                       <input
                         id="reg-password"
@@ -324,15 +324,15 @@ export default function SignUpPage() {
                       <div id="reg-password-strength" className="mt-2" aria-live="polite">
                         <div className="flex gap-1" aria-hidden="true">
                           {[0, 1, 2, 3].map((i) => (
-                            <span key={i} className={`h-1.5 flex-1 rounded-full ${i < strength ? STRENGTH_BAR[strength] : 'bg-slate-200'}`} />
+                            <span key={i} className={`h-1.5 flex-1 rounded-full ${i < strength ? STRENGTH_BAR[strength] : 'bg-slate-200 dark:bg-slate-700'}`} />
                           ))}
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-1">Kekuatan: <span className="font-semibold text-slate-600">{PASSWORD_STRENGTH_LABEL[strength]}</span></p>
+                        <p className="text-[11px] text-slate-400 mt-1">Kekuatan: <span className="font-semibold text-slate-600 dark:text-slate-300">{PASSWORD_STRENGTH_LABEL[strength]}</span></p>
                       </div>
                     )}
                   </div>
                   <div>
-                    <label htmlFor="reg-confirm" className="block text-xs font-semibold text-slate-500 mb-1">Konfirmasi password</label>
+                    <label htmlFor="reg-confirm"               className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Konfirmasi password</label>
                     <div className="relative">
                       <input
                         id="reg-confirm"
@@ -366,19 +366,19 @@ export default function SignUpPage() {
 
               {step === 2 && (
                 <div className="space-y-4">
-                  <dl className="border border-slate-200 rounded-xl divide-y divide-slate-100 text-sm overflow-hidden">
+                  <dl className="border border-slate-200 dark:border-slate-700 rounded-xl divide-y divide-slate-100 dark:divide-slate-800 text-sm overflow-hidden">
                     <div className="flex items-center justify-between gap-4 px-4 py-3">
                       <dt className="text-xs font-semibold text-slate-400">Nama</dt>
-                      <dd className="text-sm font-semibold text-slate-800 text-right truncate">{values.name}</dd>
+                      <dd className="text-sm font-semibold text-slate-800 dark:text-slate-100 text-right truncate">{values.name}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-4 px-4 py-3">
                       <dt className="text-xs font-semibold text-slate-400">Email</dt>
-                      <dd className="text-sm font-semibold text-slate-800 text-right truncate">{normalizeEmail(values.email)}</dd>
+                      <dd className="text-sm font-semibold text-slate-800 dark:text-slate-100 text-right truncate">{normalizeEmail(values.email)}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-4 px-4 py-3">
                       <dt className="text-xs font-semibold text-slate-400">Role awal</dt>
                       <dd>
-                        <span className={`inline-flex items-center text-[11px] font-bold rounded-full px-2.5 py-1 ${firstRun ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-brand-700 bg-brand-50 border border-brand-100'}`}>
+                        <span className={`inline-flex items-center text-[11px] font-bold rounded-full px-2.5 py-1 ${firstRun ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'text-brand-700 bg-brand-50 border border-brand-100 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/20'}`}>
                           {firstRun ? 'Super Admin (akun pertama)' : 'Viewer'}
                         </span>
                       </dd>
@@ -397,7 +397,7 @@ export default function SignUpPage() {
                     type="button"
                     onClick={back}
                     disabled={saving}
-                    className="px-5 py-3 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition disabled:opacity-60 min-h-[44px]"
+                    className="px-5 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition disabled:opacity-60 min-h-[44px]"
                   >
                     Kembali
                   </button>
@@ -424,7 +424,7 @@ export default function SignUpPage() {
 
             <p className="text-center text-xs text-slate-400 mt-6">
               Sudah punya akun?{' '}
-              <Link to="/login" className="font-semibold text-brand-600 hover:underline">
+              <Link to="/login" className="font-semibold text-brand-600 dark:text-brand-300 hover:underline">
                 Login
               </Link>
             </p>
