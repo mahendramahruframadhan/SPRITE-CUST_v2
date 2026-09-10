@@ -10,6 +10,7 @@ import {
   ArcElement,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
@@ -25,13 +26,15 @@ ChartJS.register(
   BarElement,
   ArcElement,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 /* ================= Helpers ================= */
-const fmtNum = (n) => n.toLocaleString('id-ID');
-const fmtRp = (n) => 'Rp ' + fmtNum(Math.round(n));
+const fmtNum = (n) => (+n || 0).toLocaleString('id-ID');
+const fmtRp = (n) => 'Rp ' + fmtNum(Math.round(+n || 0));
 const fmtRpShort = (n) => {
+  n = +n || 0;
   if (n >= 1e9) return 'Rp ' + (n / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' M';
   if (n >= 1e6) return 'Rp ' + (n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt';
   if (n >= 1e3) return 'Rp ' + (n / 1e3).toLocaleString('id-ID', { maximumFractionDigits: 0 }) + ' rb';
@@ -58,13 +61,21 @@ const countBy = (arr, fn) => {
 const topEntries = (obj, n) =>
   Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n || Infinity);
 
-const gridOpt = { color: '#f1f5f9' };
+const gridOpt = { color: '#eef2f7' };
 
 const BILL_BADGE = {
-  FREE: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  'ON-CALL': 'bg-amber-50 text-amber-600 border-amber-200',
-  MONTHLY: 'bg-sky-50 text-sky-600 border-sky-200',
+  FREE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'ON-CALL': 'bg-amber-50 text-amber-700 border-amber-200',
+  MONTHLY: 'bg-sky-50 text-sky-700 border-sky-200',
 };
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 11) return 'Selamat pagi';
+  if (h < 15) return 'Selamat siang';
+  if (h < 19) return 'Selamat sore';
+  return 'Selamat malam';
+}
 
 /* ================= Page ================= */
 export default function DashboardPage() {
@@ -158,7 +169,8 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const stats = useMemo(() => {    const CASES = allCases.map((c) => ({ ...c, charges: +c.charges || 0, _dt: parseDate(c.dateIssue) }));
+  const stats = useMemo(() => {
+    const CASES = allCases.map((c) => ({ ...c, charges: +c.charges || 0, _dt: parseDate(c.dateIssue) }));
     const TOTAL = CASES.length;
 
     const ymMap = {};
@@ -172,6 +184,11 @@ export default function DashboardPage() {
     const ymKeys = Object.keys(ymMap).sort();
     const ymLabels = ymKeys.map((k) => MONTH_ID[+k.split('-')[1] - 1] + ' ' + k.split('-')[0].slice(2));
     const latestYM = ymKeys[ymKeys.length - 1];
+    const prevYM = ymKeys[ymKeys.length - 2];
+    const momGrowth =
+      latestYM && prevYM && ymMap[prevYM].count > 0
+        ? Math.round(((ymMap[latestYM].count - ymMap[prevYM].count) / ymMap[prevYM].count) * 100)
+        : null;
 
     const billMap = countBy(CASES, (c) => (c.billingStatus || '').trim() || 'LAINNYA');
     const moduleMap = countBy(CASES, (c) => (c.module || '').trim());
@@ -198,13 +215,13 @@ export default function DashboardPage() {
     }));
 
     return {
-      CASES, TOTAL, ymMap, ymKeys, ymLabels, latestYM, billMap, moduleMap, chanMap,
+      CASES, TOTAL, ymMap, ymKeys, ymLabels, latestYM, prevYM, momGrowth, billMap, moduleMap, chanMap,
       clientMap, teamMap, priceRefs, paidCases, totalCharge, uniqueClients, recent, teamPerf,
     };
   }, [allCases]);
 
   const {
-    TOTAL, ymMap, ymKeys, ymLabels, latestYM, billMap, moduleMap, chanMap,
+    TOTAL, ymMap, ymKeys, ymLabels, latestYM, momGrowth, billMap, moduleMap, chanMap,
     clientMap, priceRefs, paidCases, totalCharge, uniqueClients, recent, teamPerf,
   } = stats;
 
@@ -215,50 +232,93 @@ export default function DashboardPage() {
       label: 'Kasus',
       data: ymKeys.map((k) => ymMap[k].count),
       borderColor: '#4a4fe9',
-      backgroundColor: 'rgba(74,79,233,.12)',
+      backgroundColor: (ctx) => {
+        const { chart } = ctx;
+        const { ctx: c, chartArea } = chart;
+        if (!chartArea) return 'rgba(74,79,233,.12)';
+        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        g.addColorStop(0, 'rgba(74,79,233,.28)');
+        g.addColorStop(.6, 'rgba(74,79,233,.08)');
+        g.addColorStop(1, 'rgba(74,79,233,0)');
+        return g;
+      },
       fill: true,
-      tension: 0.35,
-      pointRadius: 4,
+      tension: 0.45,
+      pointRadius: 0,
+      pointHoverRadius: 5,
       pointBackgroundColor: '#4a4fe9',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
       borderWidth: 2.5,
     }],
   };
   const BILL_COLORS = { FREE: '#10b981', 'ON-CALL': '#f59e0b', MONTHLY: '#0ea5e9', LAINNYA: '#cbd5e1' };
   const billEntries = topEntries(billMap);
+  const billTotal = billEntries.reduce((s, e) => s + e[1], 0) || 1;
   const billingData = {
     labels: billEntries.map((e) => e[0]),
     datasets: [{
       data: billEntries.map((e) => e[1]),
       backgroundColor: billEntries.map((e) => BILL_COLORS[e[0]] || '#cbd5e1'),
+      hoverOffset: 8,
       borderWidth: 3,
       borderColor: '#fff',
+      spacing: 2,
     }],
   };
   const modEntries = topEntries(moduleMap, 6);
   const moduleData = {
     labels: modEntries.map((e) => e[0]),
-    datasets: [{ data: modEntries.map((e) => e[1]), backgroundColor: '#5f72f5', borderRadius: 6, maxBarThickness: 22 }],
+    datasets: [{
+      data: modEntries.map((e) => e[1]),
+      backgroundColor: (ctx) => {
+        const { chart } = ctx;
+        const { ctx: c, chartArea } = chart;
+        if (!chartArea) return '#5f72f5';
+        const g = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+        g.addColorStop(0, '#4a4fe9');
+        g.addColorStop(1, '#8b5cf6');
+        return g;
+      },
+      borderRadius: 8,
+      maxBarThickness: 20,
+    }],
   };
-  const CHAN_COLORS = ['#4a4fe9', '#10b981', '#f59e0b', '#94a3b8'];
+  const CHAN_COLORS = ['#4a4fe9', '#10b981', '#f59e0b', '#94a3b8', '#8b5cf6', '#06b6d4'];
   const chanEntries = topEntries(chanMap);
   const channelData = {
     labels: chanEntries.map((e) => e[0]),
-    datasets: [{ data: chanEntries.map((e) => e[1]), backgroundColor: CHAN_COLORS, borderWidth: 3, borderColor: '#fff' }],
+    datasets: [{ data: chanEntries.map((e) => e[1]), backgroundColor: CHAN_COLORS, hoverOffset: 8, borderWidth: 3, borderColor: '#fff', spacing: 2 }],
   };
   const chargesData = {
     labels: ymLabels,
     datasets: [{
       label: 'Charges',
       data: ymKeys.map((k) => ymMap[k].charges),
-      backgroundColor: '#f59e0b',
-      borderRadius: 6,
-      maxBarThickness: 26,
+      backgroundColor: (ctx) => {
+        const { chart } = ctx;
+        const { ctx: c, chartArea } = chart;
+        if (!chartArea) return '#f59e0b';
+        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        g.addColorStop(0, '#fbbf24');
+        g.addColorStop(1, '#f59e0b');
+        return g;
+      },
+      hoverBackgroundColor: '#d97706',
+      borderRadius: 8,
+      maxBarThickness: 24,
     }],
   };
   const clientEntries = topEntries(clientMap, 8);
   const clientData = {
     labels: clientEntries.map((e) => e[0]),
-    datasets: [{ data: clientEntries.map((e) => e[1]), backgroundColor: '#3d3ece', borderRadius: 6, maxBarThickness: 30 }],
+    datasets: [{
+      data: clientEntries.map((e) => e[1]),
+      backgroundColor: '#4a4fe9',
+      hoverBackgroundColor: '#3d3ece',
+      borderRadius: 8,
+      maxBarThickness: 28,
+    }],
   };
 
   // Outstanding: kasus tervalidasi (ON-CALL/MONTHLY) yang invoicenya belum PAID — sama seperti halaman Finance
@@ -280,130 +340,226 @@ export default function DashboardPage() {
   }, [allCases, caseAuditStatus, invoiceStatus]);
   const outstandingData = {
     labels: outstanding.top.map((t) => t[0]),
-    datasets: [{ label: 'Outstanding (Rp)', data: outstanding.top.map((t) => t[1]), backgroundColor: '#f43f5e', borderRadius: 6, maxBarThickness: 22 }],
+    datasets: [{
+      label: 'Outstanding (Rp)',
+      data: outstanding.top.map((t) => t[1]),
+      backgroundColor: (ctx) => {
+        const { chart } = ctx;
+        const { ctx: c, chartArea } = chart;
+        if (!chartArea) return '#f43f5e';
+        const g = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+        g.addColorStop(0, '#fb7185');
+        g.addColorStop(1, '#e11d48');
+        return g;
+      },
+      borderRadius: 8,
+      maxBarThickness: 20,
+    }],
   };
 
-  const noLegend = { plugins: { legend: { display: false } } };
+  const baseTooltip = {
+    backgroundColor: '#0f172a',
+    padding: 12,
+    cornerRadius: 12,
+    titleFont: { weight: '700', size: 12 },
+    bodyFont: { size: 12 },
+    displayColors: false,
+  };
+
+  const noLegend = { plugins: { legend: { display: false }, tooltip: baseTooltip } };
   const doughnutOpt = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '62%',
-    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, font: { weight: 600 } } } },
+    cutout: '68%',
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, borderRadius: 99, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { weight: 600, size: 11 }, color: '#64748b' } },
+      tooltip: baseTooltip,
+    },
   };
 
   const FEATURES = [
-    { title: 'Data Kasus', to: '/kasus', color: 'bg-brand-50 text-brand-600', icon: 'cases', metric: fmtNum(TOTAL) + ' kasus', desc: uniqueClients + ' klien tercatat di Google Sheets' },
-    { title: 'Form Kasus', to: '/form', color: 'bg-sky-50 text-sky-500', icon: 'form', metric: fmtNum(latestYM ? ymMap[latestYM].count : 0) + ' kasus', desc: 'masuk pada bulan terakhir periode data' },
-    { title: 'Billing & Audit', to: '/billing', color: 'bg-amber-50 text-amber-500', icon: 'billing', metric: fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0)) + ' tagihan', desc: 'ON-CALL: ' + fmtNum(billMap['ON-CALL'] || 0) + ' · MONTHLY: ' + fmtNum(billMap['MONTHLY'] || 0) },
-    { title: 'Finance Audit', to: '/finance', color: 'bg-emerald-50 text-emerald-500', icon: 'finance', metric: fmtRpShort(totalCharge), desc: 'total nilai charges yang tercatat' },
-    { title: 'Konfigurasi Sheet', to: '/cfg', color: 'bg-violet-50 text-violet-500', icon: 'cfg', metric: priceRefs + ' paket', desc: 'referensi price list yang dipakai kasus' },
-    { title: 'HR Report', to: '/hrreport', color: 'bg-slate-100 text-slate-500', icon: 'report', metric: Object.keys(moduleMap).length + ' modul', desc: Object.keys(teamPerf).length + ' petugas · ' + Object.keys(chanMap).length + ' channel aktif' },
+    { title: 'Data Kasus', to: '/kasus', icon: 'cases', metric: fmtNum(TOTAL) + ' kasus', desc: uniqueClients + ' klien tercatat di Google Sheets', grad: 'from-indigo-500 to-violet-500', soft: 'bg-indigo-50 text-indigo-600' },
+    { title: 'Form Kasus', to: '/form', icon: 'form', metric: fmtNum(latestYM ? ymMap[latestYM].count : 0) + ' kasus', desc: 'masuk pada bulan terakhir periode data', grad: 'from-sky-400 to-blue-600', soft: 'bg-sky-50 text-sky-600' },
+    { title: 'Billing & Audit', to: '/billing', icon: 'billing', metric: fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0)) + ' tagihan', desc: 'ON-CALL: ' + fmtNum(billMap['ON-CALL'] || 0) + ' · MONTHLY: ' + fmtNum(billMap['MONTHLY'] || 0), grad: 'from-amber-400 to-orange-500', soft: 'bg-amber-50 text-amber-600' },
+    { title: 'Finance Audit', to: '/finance', icon: 'finance', metric: fmtRpShort(totalCharge), desc: 'total nilai charges yang tercatat', grad: 'from-emerald-400 to-teal-600', soft: 'bg-emerald-50 text-emerald-600' },
+    { title: 'Konfigurasi Sheet', to: '/cfg', icon: 'cfg', metric: priceRefs + ' paket', desc: 'referensi price list yang dipakai kasus', grad: 'from-violet-500 to-purple-600', soft: 'bg-violet-50 text-violet-600' },
+    { title: 'HR Report', to: '/hrreport', icon: 'report', metric: Object.keys(moduleMap).length + ' modul', desc: Object.keys(teamPerf).length + ' petugas · ' + Object.keys(chanMap).length + ' channel aktif', grad: 'from-slate-500 to-slate-700', soft: 'bg-slate-100 text-slate-600' },
   ];
 
-  const TEAM_COLORS = ['bg-brand-500', 'bg-emerald-500', 'bg-amber-500', 'bg-sky-500', 'bg-violet-500'];
+  const paidPct = TOTAL > 0 ? ((paidCases.length / TOTAL) * 100).toFixed(1) : '0.0';
+  const TEAM_COLORS = ['from-indigo-500 to-violet-500', 'from-emerald-400 to-teal-500', 'from-amber-400 to-orange-500', 'from-sky-400 to-blue-500', 'from-fuchsia-400 to-purple-500'];
 
   return (
-    <div className="px-8 py-6 space-y-6">
-      {/* Topbar tombol */}
-      <div className="flex items-center justify-end gap-3 -mt-1">
-        <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-2">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          Terakhir diperbarui: <span className="font-semibold text-slate-700">{lastUpdated}</span>
-        </div>
-        <button
-          onClick={syncAndReload}
-          disabled={syncing}
-          title={mockMode ? 'Backend mode MOCK: sync tidak membaca Google Sheet asli' : lastSync ? `Sinkron terakhir: ${lastSync}` : 'Sinkron Sheets lalu muat ulang data'}
-          className="inline-flex items-center gap-2.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-700 hover:to-emerald-600 text-white text-sm font-bold pl-4 pr-5 py-2.5 rounded-xl shadow-lg shadow-brand-600/25 transition active:scale-95 disabled:opacity-70 disabled:cursor-wait"
-        >
-          <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-          </svg>
-          {!syncing ? 'Sinkron & Muat Ulang' : syncStage === 'sync' ? '1/2 Sinkron Sheets…' : '2/2 Memuat Data…'}
-        </button>
-        {mockMode && (
-          <span className="hidden md:inline text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-            Mode mock: sync tidak membaca Google Sheet asli
-          </span>
-        )}
-        {syncMsg && (
-          <span className={`hidden md:inline text-xs font-semibold border rounded-lg px-3 py-2 ${syncErr ? 'text-rose-600 bg-rose-50 border-rose-200' : 'text-emerald-600 bg-emerald-50 border-emerald-200'}`}>
-            {syncMsg}
-          </span>
-        )}
+    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+      {/* dekorasi latar */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-24 right-0 w-[420px] h-[420px] bg-gradient-to-br from-brand-200/50 to-violet-200/40 rounded-full blur-3xl" />
+        <div className="absolute top-64 -left-24 w-[320px] h-[320px] bg-gradient-to-tr from-emerald-100/60 to-sky-100/50 rounded-full blur-3xl" />
       </div>
-      {loading && <p className="text-xs text-slate-400">Memuat data dari backend…</p>}
+
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#2629b8] via-[#4a4fe9] to-[#7c3aed] text-white shadow-2xl shadow-brand-600/25 animate-fade-in-fast">
+        {/* pola + glow */}
+        <div aria-hidden="true" className="absolute inset-0 opacity-[.14]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '22px 22px' }} />
+        <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
+        <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-emerald-300/20 rounded-full blur-3xl" />
+
+        <div className="relative p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center gap-8">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 backdrop-blur rounded-full pl-2 pr-3 py-1">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300" />
+                </span>
+                Live · Google Sheets
+              </span>
+              {mockMode && (
+                <span className="text-[11px] font-bold bg-amber-300/90 text-amber-950 rounded-full px-3 py-1">
+                  Mode mock
+                </span>
+              )}
+              {loading && (
+                <span className="text-[11px] font-semibold bg-white/10 border border-white/15 rounded-full px-3 py-1 animate-pulse">
+                  Memuat data…
+                </span>
+              )}
+            </div>
+            <h1 className="mt-4 text-2xl sm:text-3xl lg:text-[34px] font-extrabold tracking-tight leading-tight">
+              {greeting()}, ini ringkasan operasionalmu.
+            </h1>
+            <p className="mt-2 text-sm sm:text-[15px] text-white/75 max-w-xl leading-relaxed">
+              {fmtNum(TOTAL)} kasus dari {uniqueClients} klien · {fmtNum(paidCases.length)} berbayar · outstanding {fmtRpShort(outstanding.amount)}. Data diperbarui {lastUpdated}.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
+              <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-2">
+                <Dot /> {fmtNum(latestYM ? ymMap[latestYM].count : 0)} kasus bulan terakhir
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-2">
+                <Dot /> {fmtRpShort(totalCharge)} nilai billing
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-2">
+                <Dot /> {Object.keys(teamPerf).length} petugas aktif
+              </span>
+            </div>
+          </div>
+
+          {/* kartu aksi sinkron */}
+          <div className="w-full lg:w-[340px] shrink-0">
+            <div className="bg-white/[.12] border border-white/20 backdrop-blur-xl rounded-3xl p-5 shadow-xl">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/60">Sinkronisasi</p>
+              <p className="mt-1 text-sm font-bold">{lastSync ? `Terakhir: ${lastSync}` : 'Belum pernah sinkron sesi ini'}</p>
+              <div className="mt-4 grid grid-cols-1 gap-2.5">
+                <button
+                  onClick={syncAndReload}
+                  disabled={syncing}
+                  className="inline-flex items-center justify-center gap-2.5 bg-white text-brand-700 text-sm font-extrabold px-4 py-3 rounded-2xl shadow-lg hover:bg-brand-50 hover:shadow-xl transition active:scale-[.98] disabled:opacity-70 disabled:cursor-wait focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                >
+                  <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                  {!syncing ? 'Sinkron & Muat Ulang' : syncStage === 'sync' ? '1/2 Sinkron Sheets…' : '2/2 Memuat Data…'}
+                </button>
+                <button
+                  onClick={refresh}
+                  disabled={spinning || syncing}
+                  className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 rounded-2xl transition active:scale-[.98] disabled:opacity-60"
+                >
+                  <svg className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                  Muat ulang tampilan
+                </button>
+              </div>
+              {syncMsg && (
+                <p className={`mt-3 text-[12px] font-semibold leading-relaxed rounded-xl px-3 py-2 border ${syncErr ? 'text-rose-100 bg-rose-500/20 border-rose-300/30' : 'text-emerald-100 bg-emerald-400/15 border-emerald-200/25'}`}>
+                  {syncMsg}
+                </p>
+              )}
+              {mockMode && !syncMsg && (
+                <p className="mt-3 text-[11px] text-amber-100/90 font-medium">Mode mock: sync tidak membaca Google Sheet asli.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {error && (
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl px-5 py-3 text-xs text-rose-700 flex items-center justify-between">
-          <span>Backend tidak terjangkau ({error}).</span>
-          <button onClick={refresh} className="font-bold hover:underline">Coba lagi</button>
+        <div className="bg-white border border-rose-200 rounded-2xl px-5 py-3.5 text-[13px] text-rose-700 flex items-center justify-between shadow-sm animate-fade-in-fast">
+          <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-rose-500" /> Backend tidak terjangkau ({error}).</span>
+          <button onClick={refresh} className="font-bold hover:underline shrink-0 ml-4">Coba lagi</button>
         </div>
       )}
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
-        <StatCard title="Total Kasus" value={fmtNum(TOTAL)} sub={`${uniqueClients} klien · ${Object.keys(moduleMap).length} modul`} icon="cases" box="bg-brand-50 text-brand-600" delay=".02s" />
-        <StatCard title="Kasus Bulan Terakhir" value={fmtNum(latestYM ? ymMap[latestYM].count : 0)} sub={latestYM ? 'periode ' + ymLabels[ymLabels.length - 1] : '—'} icon="mockup" box="bg-sky-50 text-sky-500" delay=".06s" />
-        <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} valueCls="text-amber-600" subCls="text-amber-600" sub={`${((paidCases.length / TOTAL) * 100).toFixed(1)}% dari total kasus`} icon="billing" box="bg-amber-50 text-amber-500" delay=".1s" />
-        <StatCard title="Total Nilai Billing" value={fmtRpShort(totalCharge)} valueCls="text-emerald-600" subCls="text-emerald-600" sub={'dari ' + fmtNum(paidCases.length) + ' kasus berbayar'} icon="finance" box="bg-emerald-50 text-emerald-500" delay=".14s" />
-        <StatCard title="Total Outstanding" value={fmtRpShort(outstanding.amount)} valueCls="text-rose-600" subCls="text-rose-600" sub={`${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" box="bg-rose-50 text-rose-500" delay=".18s" />
+      {/* ===== STAT CARDS ===== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <StatCard title="Total Kasus" value={fmtNum(TOTAL)} sub={`${uniqueClients} klien · ${Object.keys(moduleMap).length} modul`} icon="cases" grad="from-indigo-500 to-violet-600" glow="group-hover:shadow-indigo-500/25" delta={`${fmtNum(ymKeys.length)} bulan periode`} tone="text-indigo-600 bg-indigo-50 border-indigo-100" delay=".02s" />
+        <StatCard title="Bulan Terakhir" value={fmtNum(latestYM ? ymMap[latestYM].count : 0)} sub={latestYM ? 'periode ' + ymLabels[ymLabels.length - 1] : '—'} icon="mockup" grad="from-sky-400 to-blue-600" glow="group-hover:shadow-sky-500/25" delta={momGrowth == null ? 'data awal' : `${momGrowth >= 0 ? '▲' : '▼'} ${Math.abs(momGrowth)}% MoM`} tone={momGrowth != null && momGrowth < 0 ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'} delay=".06s" />
+        <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} valueCls="text-slate-900" sub={`${paidPct}% dari total kasus`} icon="billing" grad="from-amber-400 to-orange-500" glow="group-hover:shadow-amber-500/25" delta={`${fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0))} tagihan`} tone="text-amber-700 bg-amber-50 border-amber-100" delay=".1s" />
+        <StatCard title="Nilai Billing" value={fmtRpShort(totalCharge)} valueCls="text-slate-900" sub={'dari ' + fmtNum(paidCases.length) + ' kasus berbayar'} icon="finance" grad="from-emerald-400 to-teal-600" glow="group-hover:shadow-emerald-500/25" delta="tercatat" tone="text-emerald-700 bg-emerald-50 border-emerald-100" delay=".14s" />
+        <StatCard title="Outstanding" value={fmtRpShort(outstanding.amount)} valueCls="text-slate-900" sub={`${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" delay=".18s" />
       </div>
 
-      {/* Rekap per fitur */}
-      <div>
-        <h3 className="font-bold text-slate-900 mb-3">Rekap per Fitur</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {FEATURES.map((f, i) => (
+      {/* ===== REKAP FITUR ===== */}
+      <div className="animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
+        <SectionHead eyebrow="Navigasi cepat" title="Rekap per Fitur" desc="Loncat ke modul dengan konteks angka terkini" />
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {FEATURES.map((f) => (
             <Link
               key={f.title}
               to={f.to}
-              className="group bg-white rounded-2xl border border-slate-200 p-5 flex items-start gap-4 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-600/5 transition animate-fade-in-fast"
-              style={{ animationDelay: `${0.16 + i * 0.04}s` }}
+              className="group relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 p-5 flex items-start gap-4 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-[0_16px_40px_-16px_rgba(74,79,233,.3)] hover:border-brand-200 hover:-translate-y-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
-              <div className={`w-11 h-11 shrink-0 rounded-xl ${f.color} flex items-center justify-center`}>
+              <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${f.grad} opacity-0 group-hover:opacity-100 transition`} />
+              <div className={`w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br ${f.grad} text-white flex items-center justify-center shadow-lg`}>
                 <FeatureIcon name={f.icon} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{f.title}</p>
-                <p className="mt-1 text-lg font-extrabold text-slate-900">{f.metric}</p>
-                <p className="text-[11px] text-slate-400 truncate">{f.desc}</p>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em]">{f.title}</p>
+                <p className="mt-1 text-lg font-extrabold text-slate-900 tracking-tight">{f.metric}</p>
+                <p className="text-[12px] text-slate-400 truncate">{f.desc}</p>
               </div>
-              <svg className="w-4 h-4 mt-1 text-slate-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
+              <span className="w-8 h-8 shrink-0 mt-1 rounded-full border border-slate-200 text-slate-300 flex items-center justify-center group-hover:bg-brand-600 group-hover:border-brand-600 group-hover:text-white group-hover:translate-x-0.5 transition-all">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+              </span>
             </Link>
           ))}
         </div>
       </div>
 
-      {/* Grafik tren + billing */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <Panel className="xl:col-span-2" title="Tren Kasus per Bulan" desc="Jumlah kasus masuk berdasarkan tanggal issue" delay=".2s">
+      {/* ===== TREN + BILLING ===== */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <Panel className="xl:col-span-2" title="Tren Kasus per Bulan" desc="Jumlah kasus masuk berdasarkan tanggal issue" delay=".24s" accent="from-indigo-500 to-violet-500" badge={`${fmtNum(TOTAL)} total`}>
           <div className="h-64">
             <Line
               data={trendData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: gridOpt, ticks: { precision: 0 } }, x: { grid: { display: false } } },
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: false }, tooltip: baseTooltip },
+                scales: {
+                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11, weight: 600 } } },
+                  x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 600 } } },
+                },
               }}
             />
           </div>
         </Panel>
-        <Panel title="Status Billing" desc="Pembagian FREE / ON-CALL / MONTHLY" delay=".24s">
-          <div className="h-64 flex items-center justify-center">
+        <Panel title="Status Billing" desc="Pembagian FREE / ON-CALL / MONTHLY" delay=".28s" accent="from-emerald-400 to-teal-500">
+          <div className="relative h-64">
             <Doughnut data={billingData} options={doughnutOpt} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-10">
+              <p className="text-3xl font-extrabold text-slate-900 tracking-tight">{fmtNum(billTotal)}</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">kasus</p>
+            </div>
           </div>
         </Panel>
       </div>
 
-      {/* Grafik modul + channel + charges */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <Panel title="Kasus per Modul" desc="Modul terbanyak ditangani" delay=".28s">
+      {/* ===== MODUL + CHANNEL + CHARGES ===== */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <Panel title="Kasus per Modul" desc="Modul terbanyak ditangani" delay=".3s" accent="from-violet-500 to-purple-600" badge={`Top ${modEntries.length}`}>
           <div className="h-64">
             <Bar
               data={moduleData}
@@ -412,17 +568,17 @@ export default function DashboardPage() {
                 responsive: true,
                 maintainAspectRatio: false,
                 ...noLegend,
-                scales: { x: { beginAtZero: true, grid: gridOpt, ticks: { precision: 0 } }, y: { grid: { display: false }, ticks: { font: { size: 10, weight: 600 } } } },
+                scales: { x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: '#334155' } } },
               }}
             />
           </div>
         </Panel>
-        <Panel title="Channel Tiket" desc="Sumber masuknya kasus" delay=".32s">
+        <Panel title="Channel Tiket" desc="Sumber masuknya kasus" delay=".34s" accent="from-sky-400 to-blue-500">
           <div className="h-64 flex items-center justify-center">
             <Doughnut data={channelData} options={doughnutOpt} />
           </div>
         </Panel>
-        <Panel title="Nilai Billing per Bulan" desc="Total charges (Rp) dari kasus berbayar" delay=".36s">
+        <Panel title="Nilai Billing per Bulan" desc="Total charges (Rp) dari kasus berbayar" delay=".38s" accent="from-amber-400 to-orange-500" badge={fmtRpShort(totalCharge)}>
           <div className="h-64">
             <Bar
               data={chargesData}
@@ -431,21 +587,25 @@ export default function DashboardPage() {
                 maintainAspectRatio: false,
                 plugins: {
                   legend: { display: false },
-                  tooltip: { callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.y) } },
+                  tooltip: { ...baseTooltip, callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.y) } },
                 },
-                scales: { y: { beginAtZero: true, grid: gridOpt, ticks: { callback: (v) => fmtRpShort(v) } }, x: { grid: { display: false } } },
+                scales: { y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRpShort(v), color: '#94a3b8', font: { size: 11 } } }, x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 600 } } } },
               }}
             />
           </div>
         </Panel>
       </div>
 
-      {/* Outstanding per brand */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <Panel className="xl:col-span-2" title="Outstanding per Brand" desc="Top 5 brand dengan invoice belum PAID" delay=".38s">
+      {/* ===== OUTSTANDING ===== */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <Panel className="xl:col-span-2" title="Outstanding per Brand" desc="Top 5 brand dengan invoice belum PAID" delay=".4s" accent="from-rose-400 to-rose-600" badge={`${fmtNum(outstanding.count)} kasus`}>
           {outstanding.top.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-sm text-slate-400">
-              Tidak ada outstanding — semua invoice sudah PAID
+            <div className="h-64 flex flex-col items-center justify-center gap-2 text-center">
+              <span className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </span>
+              <p className="text-sm font-bold text-slate-700">Tidak ada outstanding</p>
+              <p className="text-xs text-slate-400">Semua invoice sudah PAID. Kerja bagus!</p>
             </div>
           ) : (
             <div className="h-64">
@@ -457,53 +617,51 @@ export default function DashboardPage() {
                   maintainAspectRatio: false,
                   plugins: {
                     legend: { display: false },
-                    tooltip: { callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.x) } },
+                    tooltip: { ...baseTooltip, callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.x) } },
                   },
                   scales: {
-                    x: { beginAtZero: true, grid: gridOpt, ticks: { callback: (v) => fmtRpShort(v), font: { size: 10 } } },
-                    y: { grid: { display: false }, ticks: { font: { size: 11, weight: 600 } } },
+                    x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRpShort(v), font: { size: 10 }, color: '#94a3b8' } },
+                    y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: '#334155' } },
                   },
                 }}
               />
             </div>
           )}
         </Panel>
-        <Panel title="Ringkasan Outstanding" desc="Kasus tervalidasi yang belum PAID" delay=".42s">
-          <div className="space-y-5">
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Outstanding</p>
-              <p className="mt-1 text-3xl font-extrabold text-rose-600">{fmtRpShort(outstanding.amount)}</p>
-              <p className="mt-1 text-xs text-slate-400 font-medium">{fmtNum(outstanding.count)} kasus · {fmtRp(outstanding.amount)}</p>
-            </div>
-            <div className="space-y-4">
-              {outstanding.top.slice(0, 3).map(([brand, amount]) => (
-                <div key={brand}>
-                  <div className="flex items-center justify-between text-sm mb-1.5">
-                    <span className="font-bold text-slate-700 truncate">{brand}</span>
-                    <span className="text-xs text-slate-400 font-semibold ml-2 whitespace-nowrap">{fmtRpShort(amount)}</span>
-                  </div>
-                  <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-rose-500 rounded-full transition-all duration-700" style={{ width: `${Math.round((amount / outstanding.max) * 100)}%` }} />
-                  </div>
-                </div>
-              ))}
-              {outstanding.top.length === 0 && (
-                <p className="text-xs text-slate-400">Belum ada data outstanding.</p>
-              )}
-            </div>
-            <Link to="/finance" className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline">
-              Buka Finance Audit
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </Link>
+        <Panel title="Ringkasan Outstanding" desc="Kasus tervalidasi yang belum PAID" delay=".42s" accent="from-rose-400 to-orange-400">
+          <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-100 p-5">
+            <p className="text-[11px] font-bold text-rose-400 uppercase tracking-[0.14em]">Total Outstanding</p>
+            <p className="mt-1 text-[32px] leading-none font-extrabold text-slate-900 tracking-tight">{fmtRpShort(outstanding.amount)}</p>
+            <p className="mt-2 text-xs text-slate-500 font-medium">{fmtNum(outstanding.count)} kasus · {fmtRp(outstanding.amount)}</p>
           </div>
+          <div className="mt-5 space-y-4">
+            {outstanding.top.slice(0, 3).map(([brand, amount]) => (
+              <div key={brand}>
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <span className="font-bold text-slate-700 truncate">{brand}</span>
+                  <span className="text-xs text-slate-400 font-bold ml-2 whitespace-nowrap">{fmtRpShort(amount)}</span>
+                </div>
+                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-700" style={{ width: `${Math.round((amount / outstanding.max) * 100)}%` }} />
+                </div>
+              </div>
+            ))}
+            {outstanding.top.length === 0 && (
+              <p className="text-xs text-slate-400">Belum ada data outstanding.</p>
+            )}
+          </div>
+          <Link to="/finance" className="mt-5 inline-flex items-center gap-2 text-[13px] font-extrabold text-white bg-slate-900 hover:bg-brand-600 px-4 py-2.5 rounded-xl transition shadow-lg shadow-slate-900/10">
+            Buka Finance Audit
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </Link>
         </Panel>
       </div>
 
-      {/* Top klien + kinerja tim */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <Panel className="xl:col-span-2" title="Top 8 Klien" desc="Klien dengan kasus terbanyak" delay=".4s">
+      {/* ===== TOP KLIEN + TIM ===== */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <Panel className="xl:col-span-2" title="Top 8 Klien" desc="Klien dengan kasus terbanyak" delay=".44s" accent="from-indigo-500 to-blue-500" badge={`${uniqueClients} klien`}>
           <div className="h-72">
             <Bar
               data={clientData}
@@ -512,53 +670,66 @@ export default function DashboardPage() {
                 maintainAspectRatio: false,
                 ...noLegend,
                 scales: {
-                  y: { beginAtZero: true, grid: gridOpt, ticks: { precision: 0 } },
-                  x: { grid: { display: false }, ticks: { font: { size: 9, weight: 600 }, maxRotation: 45, minRotation: 45 } },
+                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } } },
+                  x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: 700 }, color: '#475569', maxRotation: 45, minRotation: 45 } },
                 },
               }}
             />
           </div>
         </Panel>
-        <Panel title="Kinerja Tim Support" desc="Kasus ditangani per petugas" delay=".44s">
-          <div className="space-y-5">
+        <Panel title="Kinerja Tim Support" desc="Kasus ditangani per petugas" delay=".46s" accent="from-emerald-400 to-sky-500">
+          <div className="space-y-4 max-h-72 overflow-y-auto scrollbar-thin pr-1">
             {teamPerf.map((t, i) => (
-              <div key={t.name}>
-                <div className="flex items-center justify-between text-sm mb-1.5">
-                  <span className="font-bold text-slate-700">{t.name}</span>
-                  <span className="text-xs text-slate-400 font-semibold">
-                    {fmtNum(t.count)} kasus · {fmtRpShort(t.charge)}
+              <div key={t.name} className="group">
+                <div className="flex items-center gap-3 mb-1.5">
+                  <span className={`w-8 h-8 shrink-0 rounded-xl bg-gradient-to-br ${TEAM_COLORS[i % TEAM_COLORS.length]} text-white text-[11px] font-extrabold flex items-center justify-center shadow`}>
+                    {t.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
                   </span>
-                </div>
-                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${TEAM_COLORS[i % TEAM_COLORS.length]} rounded-full transition-all duration-700`}
-                    style={{ width: `${t.pct}%` }}
-                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-slate-700 text-[13px] truncate">{t.name}</span>
+                      <span className="text-[11px] text-slate-400 font-bold whitespace-nowrap">
+                        {fmtNum(t.count)} · {fmtRpShort(t.charge)}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full bg-gradient-to-r ${TEAM_COLORS[i % TEAM_COLORS.length]} rounded-full transition-all duration-700`}
+                        style={{ width: `${t.pct}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
+            {teamPerf.length === 0 && <p className="text-xs text-slate-400">Belum ada data tim.</p>}
           </div>
         </Panel>
       </div>
 
-      {/* Kasus terbaru */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-fade-in-fast" style={{ animationDelay: '.48s' }}>
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-slate-900">Kasus Terbaru</h3>
-            <p className="text-xs text-slate-400">10 kasus terakhir dari Google Sheets</p>
+      {/* ===== KASUS TERBARU ===== */}
+      <div className="bg-white rounded-3xl border border-slate-200/70 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast" style={{ animationDelay: '.48s' }}>
+        <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d={MINI_PATHS.cases} /></svg>
+            </span>
+            <div>
+              <h3 className="font-extrabold text-slate-900 tracking-tight">Kasus Terbaru</h3>
+              <p className="text-xs text-slate-400">10 kasus terakhir dari Google Sheets</p>
+            </div>
           </div>
-          <Link to="/kasus" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700 transition">
+          <Link to="/kasus" className="inline-flex items-center gap-1.5 text-[13px] font-extrabold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2.5 rounded-xl transition shadow-lg shadow-brand-600/25">
             Lihat Semua Data
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
             </svg>
           </Link>
         </div>
         <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[820px]">
             <thead>
-              <tr className="bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+              <tr className="bg-slate-50/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
                 <th className="px-6 py-3">Tanggal</th>
                 <th className="px-6 py-3">Klien</th>
                 <th className="px-6 py-3">Kendala</th>
@@ -571,58 +742,106 @@ export default function DashboardPage() {
             <tbody className="divide-y divide-slate-100">
               {recent.map((c) => {
                 const bs = (c.billingStatus || '').trim() || '-';
+                const initials = String(c.client || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
                 return (
-                  <tr key={c.recordUuid} className="hover:bg-slate-50/70 transition">
-                    <td className="px-6 py-3.5 text-xs text-slate-500 whitespace-nowrap">{fmtDate(c.dateIssue)}</td>
-                    <td className="px-6 py-3.5 font-semibold text-slate-800 whitespace-nowrap">{c.client || '-'}</td>
+                  <tr key={c.recordUuid} className="hover:bg-brand-50/40 transition">
+                    <td className="px-6 py-3.5 text-xs text-slate-500 whitespace-nowrap font-medium">{fmtDate(c.dateIssue)}</td>
+                    <td className="px-6 py-3.5 whitespace-nowrap">
+                      <span className="flex items-center gap-2.5">
+                        <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 text-[10px] font-extrabold flex items-center justify-center shrink-0">{initials}</span>
+                        <span className="font-bold text-slate-800">{c.client || '-'}</span>
+                      </span>
+                    </td>
                     <td className="px-6 py-3.5 text-xs text-slate-500 max-w-[280px] truncate" title={c.issue}>{c.issue || '-'}</td>
                     <td className="px-6 py-3.5">
-                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 rounded-full px-2.5 py-1">{c.module || '-'}</span>
+                      <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1 whitespace-nowrap">{c.module || '-'}</span>
                     </td>
-                    <td className="px-6 py-3.5 text-xs font-semibold text-slate-600">{c.assignTo || '-'}</td>
+                    <td className="px-6 py-3.5 text-xs font-semibold text-slate-600 whitespace-nowrap">{c.assignTo || '-'}</td>
                     <td className="px-6 py-3.5">
-                      <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[bs] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>{bs}</span>
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${BILL_BADGE[bs] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />{bs}
+                      </span>
                     </td>
-                    <td className={`px-6 py-3.5 text-right text-xs font-bold ${c.charges > 0 ? 'text-amber-600' : 'text-slate-300'}`}>
+                    <td className={`px-6 py-3.5 text-right text-xs font-extrabold whitespace-nowrap ${c.charges > 0 ? 'text-slate-900' : 'text-slate-300'}`}>
                       {c.charges > 0 ? fmtRp(c.charges) : '—'}
                     </td>
                   </tr>
                 );
               })}
+              {recent.length === 0 && (
+                <tr><td colSpan={7} className="px-6 py-10 text-center text-sm text-slate-400">Belum ada data kasus.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <p className="text-center text-[11px] text-slate-400 pb-4">Dashboard diperbarui {lastUpdated} · sumber Google Sheets via backend</p>
     </div>
   );
 }
 
 /* ===== Sub-komponen ===== */
-function StatCard({ title, value, sub, icon, box, valueCls = '', subCls = 'text-slate-400', delay }) {
+function Dot() {
+  return <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block" />;
+}
+
+function SectionHead({ eyebrow, title, desc }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 animate-fade-in-fast" style={{ animationDelay: delay }}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
-          <p className={`mt-2 text-3xl font-extrabold text-slate-900 ${valueCls}`}>{value}</p>
-          <p className={`mt-1 text-xs font-medium ${subCls}`}>{sub}</p>
-        </div>
-        <div className={`w-11 h-11 rounded-xl ${box} flex items-center justify-center`}>
-          <FeatureIcon name={icon} />
-        </div>
+    <div className="flex flex-wrap items-end justify-between gap-2">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-600">{eyebrow}</p>
+        <h3 className="mt-1 text-lg font-extrabold text-slate-900 tracking-tight">{title}</h3>
+        <p className="text-xs text-slate-400">{desc}</p>
       </div>
     </div>
   );
 }
 
-function Panel({ title, desc, children, className = '', delay }) {
+function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', delay }) {
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200 p-6 animate-fade-in-fast ${className}`} style={{ animationDelay: delay }}>
-      <div className="mb-4">
-        <h3 className="font-bold text-slate-900">{title}</h3>
-        <p className="text-xs text-slate-400">{desc}</p>
+    <div className={`group relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`} style={{ animationDelay: delay }}>
+      <div aria-hidden="true" className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${grad} opacity-[.08] rounded-full blur-2xl group-hover:opacity-[.18] transition`} />
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{title}</p>
+          <p className={`mt-2 text-[28px] leading-none font-extrabold tracking-tight text-slate-900 ${valueCls}`}>{value}</p>
+          <p className="mt-2 text-[12px] font-medium text-slate-400 truncate">{sub}</p>
+        </div>
+        <div className={`w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br ${grad} text-white flex items-center justify-center shadow-lg`}>
+          <FeatureIcon name={icon} />
+        </div>
       </div>
-      {children}
+      {delta && (
+        <span className={`relative mt-4 inline-flex items-center gap-1 text-[11px] font-bold border rounded-full px-2.5 py-1 ${tone}`}>
+          {delta}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Panel({ title, desc, children, className = '', delay, accent = 'from-brand-500 to-violet-500', badge }) {
+  return (
+    <div className={`relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast ${className}`} style={{ animationDelay: delay }}>
+      <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
+      <div className="p-6">
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <span aria-hidden="true" className={`mt-0.5 w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br ${accent} opacity-90`} style={{ maskImage: 'linear-gradient(#000,#000)', WebkitMaskImage: 'linear-gradient(#000,#000)' }}>
+              <span className="w-full h-full block bg-white/20" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="font-extrabold text-slate-900 tracking-tight leading-tight">{title}</h3>
+              <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+            </div>
+          </div>
+          {badge && (
+            <span className="shrink-0 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1 whitespace-nowrap">{badge}</span>
+          )}
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

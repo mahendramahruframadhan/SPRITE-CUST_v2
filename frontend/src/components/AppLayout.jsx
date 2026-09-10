@@ -110,7 +110,7 @@ export default function AppLayout() {
 
       {/* Main */}
       <main className="ml-64 flex flex-col min-h-screen">
-        <header className="shrink-0 bg-white/80 backdrop-blur border-b border-slate-200 px-8 py-3.5 flex items-center gap-4 z-30 sticky top-0">
+        <header className="shrink-0 bg-white/80 backdrop-blur border-b border-slate-200 px-4 md:px-5 py-3.5 flex items-center gap-4 z-30 sticky top-0">
           <div>
             <h2 className="text-lg font-bold text-slate-900">{current?.title || 'Dashboard'}</h2>
             <p className="text-xs text-slate-400">{current?.sub || '—'}</p>
@@ -136,7 +136,7 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Outlet />
         </div>
       </main>
