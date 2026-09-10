@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Line, Doughnut, Pie, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
+import { useTheme } from '../context/ThemeContext.jsx';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 
 const iso8now = () => {
@@ -14,6 +15,12 @@ export default function MockupPage() {
   const [detail, setDetail] = useState(null);
   const [spinning, setSpinning] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(() => stampNow());
+
+  // Palet chart mengikuti tema (terang/gelap)
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
+  const chartGrid = dark ? '#1e293b' : '#f1f5f9';
+  const chartTick = '#94a3b8';
 
   function stampNow() {
     const n = new Date();
@@ -133,39 +140,39 @@ export default function MockupPage() {
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#94a3b8' } },
-      y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 }, color: '#94a3b8' } },
+      x: { grid: { display: false }, ticks: { font: { size: 11 }, color: chartTick } },
+      y: { beginAtZero: true, grid: { color: chartGrid }, ticks: { font: { size: 11 }, color: chartTick } },
     },
   };
   const legendRight = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 } } } },
+    plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 }, color: chartTick } } },
   };
   const legendBottom = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 } } } },
+    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 }, color: chartTick } } },
   };
 
   const KPI_STYLE = {
-    brand: { text: 'text-brand-600', box: 'bg-brand-50 text-brand-600' },
-    emerald: { text: 'text-emerald-600', box: 'bg-emerald-50 text-emerald-500' },
-    amber: { text: 'text-amber-600', box: 'bg-amber-50 text-amber-500' },
+    brand: { text: 'text-brand-600 dark:text-brand-300', box: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400' },
+    emerald: { text: 'text-emerald-600 dark:text-emerald-400', box: 'bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400' },
+    amber: { text: 'text-amber-600 dark:text-amber-400', box: 'bg-amber-50 text-amber-500 dark:bg-amber-500/10 dark:text-amber-400' },
   };
 
   const setF = (k) => (e) => setFilters({ ...filters, [k]: e.target.value });
 
   return (
-    <div className="px-8 py-6 space-y-6">
+    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-6">
       {/* Topbar */}
       <div className="flex items-center justify-end gap-3 -mt-1">
-        <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-2">
+        <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
-          Sinkron terakhir: <span className="font-semibold text-slate-700">{lastUpdated}</span>
+          Sinkron terakhir: <span className="font-semibold text-slate-700 dark:text-slate-200">{lastUpdated}</span>
         </div>
         <button
           onClick={refresh}
@@ -181,7 +188,7 @@ export default function MockupPage() {
       {/* KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {kpi.map((d, i) => (
-          <div key={d.t} className="bg-white rounded-2xl border border-slate-200 p-5 animate-fade-in-fast" style={{ animationDelay: `${i * 0.05}s` }}>
+          <div key={d.t} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast" style={{ animationDelay: `${i * 0.05}s` }}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{d.t}</p>
@@ -198,18 +205,18 @@ export default function MockupPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-200 p-6">
+        <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="mb-4">
-            <h3 className="font-bold text-slate-900">Tren Kasus per Minggu</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white">Tren Kasus per Minggu</h3>
             <p className="text-xs text-slate-400">Berdasarkan nomor minggu pada sheet</p>
           </div>
           <div className="h-72">
             <Line data={charts.trend} options={axisOpt} />
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="mb-4">
-            <h3 className="font-bold text-slate-900">Distribusi Modul</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white">Distribusi Modul</h3>
             <p className="text-xs text-slate-400">Kasus berdasarkan modul</p>
           </div>
           <div className="h-72">
@@ -219,18 +226,18 @@ export default function MockupPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="mb-4">
-            <h3 className="font-bold text-slate-900">Status Billing</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white">Status Billing</h3>
             <p className="text-xs text-slate-400">FREE / MONTHLY / ON-CALL</p>
           </div>
           <div className="h-64">
             <Pie data={charts.billing} options={legendBottom} />
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="mb-4">
-            <h3 className="font-bold text-slate-900">Top PIC / Assign To</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white">Top PIC / Assign To</h3>
             <p className="text-xs text-slate-400">Jumlah kasus ditangani per petugas</p>
           </div>
           <div className="h-64">
@@ -240,10 +247,10 @@ export default function MockupPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200">
-        <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-end gap-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-end gap-3">
           <div>
-            <h3 className="font-bold text-slate-900">Daftar Kasus Dukungan</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white">Daftar Kasus Dukungan</h3>
             <p className="text-xs text-slate-400">Klik baris untuk lihat detail lengkap</p>
           </div>
           <div className="ml-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2 w-full xl:w-auto">
@@ -256,28 +263,28 @@ export default function MockupPage() {
                 placeholder="Cari client / pic / issue..."
                 value={filters.kw}
                 onChange={setF('kw')}
-                className="pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 w-full bg-white"
+                className="pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
               />
             </div>
-            <select value={filters.module} onChange={setF('module')} className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white">
+            <select value={filters.module} onChange={setF('module')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
               <option value="">Semua Modul</option>
               {modules.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
-            <select value={filters.status} onChange={setF('status')} className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white">
+            <select value={filters.status} onChange={setF('status')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
               <option value="">Semua Status</option>
               {statuses.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
-            <select value={filters.assign} onChange={setF('assign')} className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white">
+            <select value={filters.assign} onChange={setF('assign')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
               <option value="">Semua PIC</option>
               {assignees.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
-            <input type="date" value={filters.date} onChange={setF('date')} className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white" />
+            <input type="date" value={filters.date} onChange={setF('date')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100" />
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
                 <th className="px-6 py-3 font-semibold">No</th>
                 <th className="px-4 py-3 font-semibold">Tanggal</th>
                 <th className="px-4 py-3 font-semibold">Client</th>
@@ -292,27 +299,27 @@ export default function MockupPage() {
                 <th className="px-6 py-3 font-semibold text-right">Tagihan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.map((c) => {
                 const s = statusMeta(c.status);
                 return (
-                  <tr key={c.recordUuid} onClick={() => setDetail(c)} className="hover:bg-brand-50/40 cursor-pointer transition">
-                    <td className="px-6 py-3.5 text-slate-500">{c.no}</td>
-                    <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{fmtDate8(c.dateIssue)}</td>
-                    <td className="px-4 py-3.5 font-semibold text-slate-800">{c.client}</td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.picName || '-'}</td>
+                  <tr key={c.recordUuid} onClick={() => setDetail(c)} className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-brand-50/50 dark:hover:bg-slate-800 cursor-pointer transition">
+                    <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100">{c.client}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.picName || '-'}</td>
                     <td className="px-4 py-3.5">
-                      <span className="text-xs bg-slate-100 text-slate-600 font-medium px-2 py-1 rounded-full">{c.module}</span>
+                      <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium px-2 py-1 rounded-full">{c.module}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.subModule || '-'}</td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.location || '-'}</td>
-                    <td className="px-4 py-3.5 text-slate-600 max-w-xs truncate" title={c.issue}>{c.issue}</td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.assignTo || '-'}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.subModule || '-'}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.location || '-'}</td>
+                    <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 max-w-xs truncate" title={c.issue}>{c.issue}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.assignTo || '-'}</td>
                     <td className="px-4 py-3.5">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${s.cls}`}>{s.label}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-500">{c.billingStatus || '-'}</td>
-                    <td className="px-6 py-3.5 text-right font-medium text-slate-700">{fmtMoney(c.charges)}</td>
+                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.billingStatus || '-'}</td>
+                    <td className="px-6 py-3.5 text-right font-medium text-slate-700 dark:text-slate-200 tabular-nums">{fmtMoney(c.charges)}</td>
                   </tr>
                 );
               })}
@@ -326,7 +333,7 @@ export default function MockupPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 text-xs text-slate-400">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400">
           Menampilkan {filtered.length} dari {cases.length} kasus
         </div>
       </div>
@@ -382,16 +389,16 @@ function MockupDetailModal({ item, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col animate-fade-in-fast">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between gap-3">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col animate-fade-in-fast">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-lg text-slate-900">{item.client}</h3>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">{item.client}</h3>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${s.cls}`}>{s.label}</span>
             </div>
-            <p className="text-sm text-slate-500 mt-0.5">{item.issue}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{item.issue}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 transition">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -401,13 +408,13 @@ function MockupDetailModal({ item, onClose }) {
           {fields.map(([k, v]) => (
             <div key={k}>
               <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{k}</p>
-              <p className={`mt-0.5 text-slate-800 ${k === 'Completion Notes' ? 'leading-relaxed' : ''}`}>{v}</p>
+              <p className={`mt-0.5 text-slate-800 dark:text-slate-100 ${k === 'Completion Notes' ? 'leading-relaxed' : ''}`}>{v}</p>
             </div>
           ))}
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl">
           <p className="text-[11px] text-slate-400">
-            RECORD_UUID: <span className="font-mono text-slate-600">{item.recordUuid}</span>
+            RECORD_UUID: <span className="font-mono text-slate-600 dark:text-slate-300">{item.recordUuid}</span>
           </p>
         </div>
       </div>
