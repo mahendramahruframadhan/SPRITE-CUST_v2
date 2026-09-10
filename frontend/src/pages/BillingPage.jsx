@@ -137,8 +137,11 @@ export default function BillingPage() {
     labels: ['ON-CALL', 'MONTHLY', 'FREE'],
     datasets: [{
       data: [stats.oncall.count, stats.monthly.count, stats.free.count],
-      backgroundColor: ['#f59e0b', '#8b5cf6', '#0ea5e9'],
-      borderWidth: 0,
+      backgroundColor: ['#f59e0b', '#0ea5e9', '#10b981'],
+      hoverOffset: 6,
+      borderWidth: 3,
+      borderColor: '#fff',
+      spacing: 2,
     }],
   };
   const amountData = {
@@ -146,8 +149,10 @@ export default function BillingPage() {
     datasets: [{
       label: 'Tagihan (Rp)',
       data: [stats.oncall.amount, stats.monthly.amount, stats.free.amount],
-      backgroundColor: ['#f59e0b', '#8b5cf6', '#0ea5e9'],
-      borderRadius: 6,
+      backgroundColor: ['#f59e0b', '#0ea5e9', '#10b981'],
+      hoverBackgroundColor: '#111111',
+      borderRadius: 8,
+      maxBarThickness: 64,
     }],
   };
   const auditData = {
@@ -155,19 +160,37 @@ export default function BillingPage() {
     datasets: [{
       data: auditActions.map((a) => stats.auditCounts[a] || 0),
       backgroundColor: ['#94a3b8', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6', '#06b6d4'],
-      borderWidth: 0,
+      hoverOffset: 6,
+      borderWidth: 3,
+      borderColor: '#fff',
+      spacing: 2,
     }],
+  };
+
+  const tooltipDark = {
+    backgroundColor: '#111111',
+    padding: 10,
+    cornerRadius: 0,
+    titleFont: { family: 'monospace', weight: '700', size: 11 },
+    bodyFont: { family: 'monospace', size: 11 },
+    displayColors: false,
   };
 
   const legendBottom = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 } } } },
+    plugins: {
+      legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'rect', boxWidth: 8, boxHeight: 8, padding: 12, font: { size: 11, weight: 600 }, color: '#111111' } },
+      tooltip: tooltipDark,
+    },
   };
   const legendRight = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } } },
+    plugins: {
+      legend: { position: 'right', labels: { usePointStyle: true, pointStyle: 'rect', boxWidth: 8, boxHeight: 8, padding: 10, font: { size: 10, weight: 600 }, color: '#111111' } },
+      tooltip: tooltipDark,
+    },
   };
 
   const items = catItems.filter((c) =>
@@ -310,32 +333,41 @@ export default function BillingPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <ChartPanel title="Distribusi Billing" desc="Jumlah kasus per kategori billing">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <ChartPanel title="Distribusi Billing" desc="Jumlah kasus per kategori billing" accent="from-amber-400 to-orange-500" badge={`${filtered.length} kasus`}>
           <Doughnut data={distData} options={legendBottom} />
         </ChartPanel>
-        <ChartPanel title="Total Tagihan per Kategori" desc="Dalam Rupiah">
+        <ChartPanel title="Total Tagihan per Kategori" desc="Dalam Rupiah penuh" accent="from-emerald-400 to-teal-600" badge={fmtMoney(stats.totalAmount)}>
           <Bar
             data={amountData}
             options={{
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f1f5f9' } } },
+              plugins: {
+                legend: { display: false },
+                tooltip: { ...tooltipDark, callbacks: { label: (ctx) => ' ' + fmtMoney(ctx.parsed.y) } },
+              },
+              scales: {
+                x: { grid: { display: false }, border: { display: true, color: '#111111' }, ticks: { color: '#6b6b66', font: { size: 11, weight: 700 } } },
+                y: { beginAtZero: true, grid: { color: '#d8d5cc' }, border: { display: true, color: '#111111' }, ticks: { color: '#6b6b66', font: { size: 10 }, maxTicksLimit: 5, callback: (v) => fmtMoney(v) } },
+              },
             }}
           />
         </ChartPanel>
-        <ChartPanel title="Distribusi Status Validasi" desc="Status validasi kasus berbayar">
+        <ChartPanel title="Distribusi Status Validasi" desc="Status validasi kasus berbayar" accent="from-brand-500 to-violet-500" badge={`${stats.auditCounts['VALID - SIAP INVOICE'] || 0} valid`}>
           <Pie data={auditData} options={legendRight} />
         </ChartPanel>
       </div>
 
       {/* Tab Kategori Billing */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
+      <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-4 sm:p-5 animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori Billing</p>
-          <p className="text-xs text-slate-400">
-            Total <span className="font-bold text-slate-700">{fmtMoney((catStats[cat] || {}).amount || 0)}</span>
+          <div>
+            <h3 className="font-extrabold text-slate-900 tracking-tight">Kategori Billing</h3>
+            <p className="text-xs text-slate-400">Pilih kategori untuk memfilter tabel di bawah</p>
+          </div>
+          <p className="text-xs text-slate-400 tabular-nums">
+            Total <span className="font-extrabold text-slate-900">{fmtMoney((catStats[cat] || {}).amount || 0)}</span>
             {' '}• {((catStats[cat] || {}).count || 0).toLocaleString('id-ID')} kasus {cat}
           </p>
         </div>
@@ -692,12 +724,22 @@ function KpiIcon({ name }) {
     </svg>
   );
 }
-
-function ChartPanel({ title, desc, children }) {  return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6">
-      <h3 className="font-bold text-slate-900 mb-1">{title}</h3>
-      <p className="text-xs text-slate-400 mb-4">{desc}</p>
-      <div className="h-64">{children}</div>
+function ChartPanel({ title, desc, children, accent = 'from-brand-500 to-violet-500', badge }) {
+  return (
+    <div className="relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast">
+      <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
+      <div className="p-6">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-extrabold text-slate-900 tracking-tight leading-tight">{title}</h3>
+            <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+          </div>
+          {badge && (
+            <span className="shrink-0 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1 whitespace-nowrap tabular-nums">{badge}</span>
+          )}
+        </div>
+        <div className="h-64">{children}</div>
+      </div>
     </div>
   );
 }
