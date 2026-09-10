@@ -34,16 +34,14 @@ ChartJS.register(
 /* ================= Helpers ================= */
 const fmtNum = (n) => (+n || 0).toLocaleString('id-ID');
 const fmtRp = (n) => 'Rp ' + fmtNum(Math.round(+n || 0));
-// Bentuk singkat dengan PEMOTONGAN ke bawah (bukan pembulatan) agar tidak pernah
-// melebihi nominal asli — mis. 18.454.069 → "Rp 18,4 jt", bukan "Rp 18,5 jt".
-const fmtRpShort = (n) => {
-  n = +n || 0;
-  if (n >= 1e9) return 'Rp ' + (Math.floor(n / 1e7) / 100).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' M';
-  if (n >= 1e6) return 'Rp ' + (Math.floor(n / 1e5) / 10).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt';
-  if (n >= 1e3) return 'Rp ' + Math.floor(n / 1e3).toLocaleString('id-ID') + ' rb';
-  return fmtRp(n);
-};
 const MONTH_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+// Ukuran angka menyesuaikan panjang nominal penuh (22px normal, mengecil bila miliaran)
+const moneySize = (n) => {
+  const len = fmtRp(n).length;
+  if (len > 16) return 'text-[17px]';
+  if (len > 13) return 'text-[20px]';
+  return 'text-[22px]';
+};
 
 function parseDate(ds) {
   const s = String(ds || '').replace(/\D/g, '').padStart(8, '0');
@@ -385,7 +383,7 @@ export default function DashboardPage() {
     { title: 'Data Kasus', to: '/kasus', icon: 'cases', metric: fmtNum(TOTAL) + ' kasus', desc: uniqueClients + ' klien tercatat di Google Sheets', grad: 'from-indigo-500 to-violet-500', soft: 'bg-indigo-50 text-indigo-600' },
     { title: 'Form Kasus', to: '/form', icon: 'form', metric: fmtNum(latestYM ? ymMap[latestYM].count : 0) + ' kasus', desc: 'masuk pada bulan terakhir periode data', grad: 'from-sky-400 to-blue-600', soft: 'bg-sky-50 text-sky-600' },
     { title: 'Billing & Audit', to: '/billing', icon: 'billing', metric: fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0)) + ' tagihan', desc: 'ON-CALL: ' + fmtNum(billMap['ON-CALL'] || 0) + ' · MONTHLY: ' + fmtNum(billMap['MONTHLY'] || 0), grad: 'from-amber-400 to-orange-500', soft: 'bg-amber-50 text-amber-600' },
-    { title: 'Finance Audit', to: '/finance', icon: 'finance', metric: fmtRpShort(totalCharge), desc: 'total nilai charges yang tercatat', grad: 'from-emerald-400 to-teal-600', soft: 'bg-emerald-50 text-emerald-600' },
+    { title: 'Finance Audit', to: '/finance', icon: 'finance', metric: fmtRp(totalCharge), desc: 'total nilai charges yang tercatat', grad: 'from-emerald-400 to-teal-600', soft: 'bg-emerald-50 text-emerald-600' },
     { title: 'Konfigurasi Sheet', to: '/cfg', icon: 'cfg', metric: priceRefs + ' paket', desc: 'referensi price list yang dipakai kasus', grad: 'from-violet-500 to-purple-600', soft: 'bg-violet-50 text-violet-600' },
     { title: 'HR Report', to: '/hrreport', icon: 'report', metric: Object.keys(moduleMap).length + ' modul', desc: Object.keys(teamPerf).length + ' petugas · ' + Object.keys(chanMap).length + ' channel aktif', grad: 'from-slate-500 to-slate-700', soft: 'bg-slate-100 text-slate-600' },
   ];
@@ -501,8 +499,8 @@ export default function DashboardPage() {
         <StatCard title="Total Kasus" value={fmtNum(TOTAL)} sub={`${uniqueClients} klien · ${Object.keys(moduleMap).length} modul`} icon="cases" grad="from-indigo-500 to-violet-600" glow="group-hover:shadow-indigo-500/25" delta={`${fmtNum(ymKeys.length)} bulan periode`} tone="text-indigo-600 bg-indigo-50 border-indigo-100" delay=".02s" />
         <StatCard title="Bulan Terakhir" value={fmtNum(latestYM ? ymMap[latestYM].count : 0)} sub={latestYM ? 'periode ' + ymLabels[ymLabels.length - 1] : '—'} icon="mockup" grad="from-sky-400 to-blue-600" glow="group-hover:shadow-sky-500/25" delta={momGrowth == null ? 'data awal' : `${momGrowth >= 0 ? '▲' : '▼'} ${Math.abs(momGrowth)}% MoM`} tone={momGrowth != null && momGrowth < 0 ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'} delay=".06s" />
         <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} valueCls="text-slate-900" sub={`${paidPct}% dari total kasus`} icon="billing" grad="from-amber-400 to-orange-500" glow="group-hover:shadow-amber-500/25" delta={`${fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0))} tagihan`} tone="text-amber-700 bg-amber-50 border-amber-100" delay=".1s" />
-        <StatCard title="Nilai Billing" value={fmtRpShort(totalCharge)} sub={<><span className="font-bold text-slate-600 tabular-nums">{fmtRp(totalCharge)}</span>{` · dari ${fmtNum(paidCases.length)} kasus berbayar`}</>} icon="finance" grad="from-emerald-400 to-teal-600" glow="group-hover:shadow-emerald-500/25" delta="tercatat" tone="text-emerald-700 bg-emerald-50 border-emerald-100" delay=".14s" />
-        <StatCard title="Outstanding" value={fmtRpShort(outstanding.amount)} sub={<><span className="font-bold text-slate-600 tabular-nums">{fmtRp(outstanding.amount)}</span>{` · ${fmtNum(outstanding.count)} kasus belum PAID`}</>} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" delay=".18s" />
+        <StatCard title="Nilai Billing" value={fmtRp(totalCharge)} valueSize={moneySize(totalCharge)} sub={`dari ${fmtNum(paidCases.length)} kasus berbayar`} icon="finance" grad="from-emerald-400 to-teal-600" glow="group-hover:shadow-emerald-500/25" delta="tercatat" tone="text-emerald-700 bg-emerald-50 border-emerald-100" delay=".14s" />
+        <StatCard title="Outstanding" value={fmtRp(outstanding.amount)} valueSize={moneySize(outstanding.amount)} sub={`${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" delay=".18s" />
       </div>
 
       {/* ===== NAVIGASI CEPAT (strip ramping) ===== */}
@@ -581,7 +579,7 @@ export default function DashboardPage() {
             <Doughnut data={channelData} options={doughnutOpt} />
           </div>
         </Panel>
-        <Panel title="Nilai Billing per Bulan" desc="Total charges (Rp) dari kasus berbayar" delay=".38s" accent="from-amber-400 to-orange-500" badge={fmtRpShort(totalCharge)}>
+        <Panel title="Nilai Billing per Bulan" desc="Total charges (Rp) dari kasus berbayar" delay=".38s" accent="from-amber-400 to-orange-500" badge={fmtRp(totalCharge)}>
           <div className="h-64">
             <Bar
               data={chargesData}
@@ -592,7 +590,7 @@ export default function DashboardPage() {
                   legend: { display: false },
                   tooltip: { ...baseTooltip, callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.y) } },
                 },
-                scales: { y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRpShort(v), color: '#94a3b8', font: { size: 11 } } }, x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 600 } } } },
+                scales: { y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), color: '#94a3b8', font: { size: 10 }, maxTicksLimit: 5 } }, x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 600 } } } },
               }}
             />
           </div>
@@ -623,7 +621,7 @@ export default function DashboardPage() {
                     tooltip: { ...baseTooltip, callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.x) } },
                   },
                   scales: {
-                    x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRpShort(v), font: { size: 10 }, color: '#94a3b8' } },
+                    x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), font: { size: 10 }, color: '#94a3b8', maxTicksLimit: 5 } },
                     y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: '#334155' } },
                   },
                 }}
@@ -634,7 +632,7 @@ export default function DashboardPage() {
         <Panel title="Ringkasan Outstanding" desc="Kasus tervalidasi yang belum PAID" delay=".42s" accent="from-rose-400 to-orange-400">
           <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-100 p-5">
             <p className="text-[11px] font-bold text-rose-400 uppercase tracking-[0.14em]">Total Outstanding</p>
-            <p className="mt-1 text-[32px] leading-none font-extrabold text-slate-900 tracking-tight">{fmtRpShort(outstanding.amount)}</p>
+            <p className="mt-1 text-[32px] leading-none font-extrabold text-slate-900 tracking-tight tabular-nums">{fmtRp(outstanding.amount)}</p>
             <p className="mt-2 text-xs text-slate-500 font-medium">{fmtNum(outstanding.count)} kasus · {fmtRp(outstanding.amount)}</p>
           </div>
           <div className="mt-5 space-y-4">
@@ -642,7 +640,7 @@ export default function DashboardPage() {
               <div key={brand}>
                 <div className="flex items-center justify-between text-sm mb-1.5">
                   <span className="font-bold text-slate-700 truncate">{brand}</span>
-                  <span className="text-xs text-slate-400 font-bold ml-2 whitespace-nowrap">{fmtRpShort(amount)}</span>
+                    <span className="text-xs text-slate-600 font-bold ml-2 whitespace-nowrap tabular-nums">{fmtRp(amount)}</span>
                 </div>
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-700" style={{ width: `${Math.round((amount / outstanding.max) * 100)}%` }} />
@@ -692,7 +690,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-slate-700 text-[13px] truncate">{t.name}</span>
                       <span className="text-[11px] text-slate-400 font-bold whitespace-nowrap">
-                        {fmtNum(t.count)} · {fmtRpShort(t.charge)}
+                        {fmtNum(t.count)} · {fmtRp(t.charge)}
                       </span>
                     </div>
                     <div className="mt-1.5 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -859,14 +857,14 @@ function Dot() {
   return <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block" />;
 }
 
-function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', delay }) {
+function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', valueSize = 'text-[28px]', delay }) {
   return (
     <div className={`group relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`} style={{ animationDelay: delay }}>
       <div aria-hidden="true" className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${grad} opacity-[.08] rounded-full blur-2xl group-hover:opacity-[.18] transition`} />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{title}</p>
-          <p className={`mt-2 text-[28px] leading-none font-extrabold tracking-tight tabular-nums text-slate-900 ${valueCls}`}>{value}</p>
+          <p className={`mt-2 ${valueSize} leading-tight font-extrabold tracking-tight tabular-nums text-slate-900 ${valueCls}`}>{value}</p>
           <p className="mt-2 text-[12px] font-medium text-slate-400 truncate">{sub}</p>
         </div>
         <div className={`w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br ${grad} text-white flex items-center justify-center shadow-lg`}>
