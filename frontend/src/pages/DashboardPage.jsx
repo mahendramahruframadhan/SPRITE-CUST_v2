@@ -41,13 +41,6 @@ const fmtRpShort = (n) => {
   if (n >= 1e3) return 'Rp ' + (n / 1e3).toLocaleString('id-ID', { maximumFractionDigits: 0 }) + ' rb';
   return fmtRp(n);
 };
-// Ukuran font adaptif agar nominal penuh selalu muat di kartu (17px untuk M, 20px untuk jt, 22px sisanya)
-const rpSize = (n) => {
-  const digits = String(Math.round(Math.abs(+n || 0))).length;
-  if (digits > 10) return 'text-[17px]';
-  if (digits > 7) return 'text-[20px]';
-  return 'text-[22px]';
-};
 const MONTH_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
 function parseDate(ds) {
@@ -506,8 +499,8 @@ export default function DashboardPage() {
         <StatCard title="Total Kasus" value={fmtNum(TOTAL)} sub={`${uniqueClients} klien · ${Object.keys(moduleMap).length} modul`} icon="cases" grad="from-indigo-500 to-violet-600" glow="group-hover:shadow-indigo-500/25" delta={`${fmtNum(ymKeys.length)} bulan periode`} tone="text-indigo-600 bg-indigo-50 border-indigo-100" delay=".02s" />
         <StatCard title="Bulan Terakhir" value={fmtNum(latestYM ? ymMap[latestYM].count : 0)} sub={latestYM ? 'periode ' + ymLabels[ymLabels.length - 1] : '—'} icon="mockup" grad="from-sky-400 to-blue-600" glow="group-hover:shadow-sky-500/25" delta={momGrowth == null ? 'data awal' : `${momGrowth >= 0 ? '▲' : '▼'} ${Math.abs(momGrowth)}% MoM`} tone={momGrowth != null && momGrowth < 0 ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'} delay=".06s" />
         <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} valueCls="text-slate-900" sub={`${paidPct}% dari total kasus`} icon="billing" grad="from-amber-400 to-orange-500" glow="group-hover:shadow-amber-500/25" delta={`${fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0))} tagihan`} tone="text-amber-700 bg-amber-50 border-amber-100" delay=".1s" />
-        <StatCard title="Nilai Billing" value={fmtRp(totalCharge)} valueSize={rpSize(totalCharge)} sub={`≈ ${fmtRpShort(totalCharge)} · dari ${fmtNum(paidCases.length)} kasus berbayar`} icon="finance" grad="from-emerald-400 to-teal-600" glow="group-hover:shadow-emerald-500/25" delta="tercatat" tone="text-emerald-700 bg-emerald-50 border-emerald-100" delay=".14s" />
-        <StatCard title="Outstanding" value={fmtRp(outstanding.amount)} valueSize={rpSize(outstanding.amount)} valueCls="text-rose-600" sub={`≈ ${fmtRpShort(outstanding.amount)} · ${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" delay=".18s" />
+        <StatCard title="Nilai Billing" value={fmtRpShort(totalCharge)} sub={<><span className="font-bold text-slate-600 tabular-nums">{fmtRp(totalCharge)}</span>{` · dari ${fmtNum(paidCases.length)} kasus berbayar`}</>} icon="finance" grad="from-emerald-400 to-teal-600" glow="group-hover:shadow-emerald-500/25" delta="tercatat" tone="text-emerald-700 bg-emerald-50 border-emerald-100" delay=".14s" />
+        <StatCard title="Outstanding" value={fmtRpShort(outstanding.amount)} sub={<><span className="font-bold text-slate-600 tabular-nums">{fmtRp(outstanding.amount)}</span>{` · ${fmtNum(outstanding.count)} kasus belum PAID`}</>} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" delay=".18s" />
       </div>
 
       {/* ===== NAVIGASI CEPAT (strip ramping) ===== */}
@@ -864,14 +857,14 @@ function Dot() {
   return <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block" />;
 }
 
-function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', valueSize = 'text-[28px]', delay }) {
+function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', delay }) {
   return (
     <div className={`group relative overflow-hidden bg-white rounded-3xl border border-slate-200/70 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`} style={{ animationDelay: delay }}>
       <div aria-hidden="true" className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${grad} opacity-[.08] rounded-full blur-2xl group-hover:opacity-[.18] transition`} />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{title}</p>
-          <p className={`mt-2 ${valueSize} leading-tight font-extrabold tracking-tight tabular-nums text-slate-900 ${valueCls}`}>{value}</p>
+          <p className={`mt-2 text-[28px] leading-none font-extrabold tracking-tight tabular-nums text-slate-900 ${valueCls}`}>{value}</p>
           <p className="mt-2 text-[12px] font-medium text-slate-400 truncate">{sub}</p>
         </div>
         <div className={`w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br ${grad} text-white flex items-center justify-center shadow-lg`}>
