@@ -64,6 +64,7 @@ export const getConfig = (key) => get(key ? `/config?key=${encodeURIComponent(ke
 export const putConfig = (config, key) => put('/config', key ? { key, config } : { config });
 export const getStatusOptions = () => get('/config/status-options');
 export const putStatusOptions = (body) => put('/config/status-options', body);
+export const renameStatusOption = (body) => patch('/config/status-options/rename', body);
 export const getHealth = () => get('/health');
 export const createCase = (body) => post('/cases', body);
 export const patchAudit = (uuid, action) => patch(`/cases/${uuid}/audit`, { action });

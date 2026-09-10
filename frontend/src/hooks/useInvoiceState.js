@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { patchInvoice, getStatusOptions, putStatusOptions } from '../lib/api.js';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { patchInvoice, getStatusOptions, putStatusOptions, renameStatusOption } from '../lib/api.js';
 
 // Status invoice Finance Audit — cermin useAuditState.js (billing).
 // Daftar aksi bisa dikonfigurasi user (localStorage `invoiceActions`);
@@ -38,6 +38,14 @@ export function useInvoiceState() {
   const [invoiceStatus, setInvoiceStatus] = useState(loadCaseStatus);
   const [invoiceMeta, setInvoiceMeta] = useState(loadMeta);
 
+  // Cermin reaktif daftar aksi agar fallback status default tidak yatim
+  // bila status default di-rename/hapus (pakai aksi pertama sebagai pengganti).
+  const actionsRef = useRef(invoiceActions);
+  actionsRef.current = invoiceActions;
+  const defaultInvoiceStatus = invoiceActions.includes(DEFAULT_INVOICE_STATUS)
+    ? DEFAULT_INVOICE_STATUS
+    : (invoiceActions[0] || DEFAULT_INVOICE_STATUS);
+
   useEffect(() => {
     localStorage.setItem('invoiceActions', JSON.stringify(invoiceActions));
   }, [invoiceActions]);
@@ -72,12 +80,15 @@ export function useInvoiceState() {
 
   // Isi status default untuk kasus yang belum punya (tanpa memanggil API)
   const ensureDefaults = useCallback((uuids) => {
+    const fallback = actionsRef.current.includes(DEFAULT_INVOICE_STATUS)
+      ? DEFAULT_INVOICE_STATUS
+      : (actionsRef.current[0] || DEFAULT_INVOICE_STATUS);
     setInvoiceStatus((prev) => {
       const next = { ...prev };
       let changed = false;
       (uuids || []).forEach((u) => {
         if (!next[u]) {
-          next[u] = DEFAULT_INVOICE_STATUS;
+          next[u] = fallback;
           changed = true;
         }
       });
@@ -103,18 +114,61 @@ export function useInvoiceState() {
       putStatusOptions({ invoiceActions: next }).catch(() => {}); // sinkron ke DB (best-effort)
       return next;
     });
+    const fallback = actionsRef.current.includes(DEFAULT_INVOICE_STATUS)
+      ? DEFAULT_INVOICE_STATUS
+      : (actionsRef.current.filter((a) => a !== status)[0] || DEFAULT_INVOICE_STATUS);
     setInvoiceStatus((prev) => {
       const next = { ...prev };
       Object.keys(next).forEach((uuid) => {
-        if (next[uuid] === status) next[uuid] = DEFAULT_INVOICE_STATUS;
+        if (next[uuid] === status) next[uuid] = fallback;
       });
       return next;
     });
+  }, []);
+
+  // Ubah nama (rename) satu status master: backend mengganti daftar + migrasi
+  // SEMUA kasus yang memakai nama lama; lokal dioptimistic-update setelah sukses.
+  // Melempar Error dengan pesan ramah bila validasi backend gagal / 403.
+  const renameInvoiceAction = useCallback(async (from, to) => {
+    const v = String(to || '').trim().replace(/\s+/g, ' ').slice(0, 40).toUpperCase();
+    if (!v) throw new Error('Nama status tidak boleh kosong.');
+    if (v === from) return { unchanged: true };
+    if (actionsRef.current.some((a) => a !== from && a.toLowerCase() === v.toLowerCase())) {
+      throw new Error(`Status "${v}" sudah ada.`);
+    }
+    let r;
+    try {
+      r = await renameStatusOption({ scope: 'invoiceActions', from, to: v });
+    } catch (e) {
+      // Sinkron ulang dari sumber kebenaran agar daftar lokal tidak melenceng
+      getStatusOptions()
+        .then((rr) => {
+          if (Array.isArray(rr?.invoiceActions) && rr.invoiceActions.length) {
+            setInvoiceActions([...new Set(rr.invoiceActions)]);
+          }
+        })
+        .catch(() => {});
+      throw new Error(e?.status === 403 ? 'Hanya role dengan akses Billing yang dapat mengubah.' : (e?.message || 'Gagal mengubah nama status.'));
+    }
+    if (Array.isArray(r?.invoiceActions) && r.invoiceActions.length) {
+      setInvoiceActions([...new Set(r.invoiceActions)]);
+    } else {
+      setInvoiceActions((prev) => prev.map((a) => (a === from ? v : a)));
+    }
+    const finalName = r?.to || v;
+    setInvoiceStatus((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((uuid) => {
+        if (next[uuid] === from) next[uuid] = finalName;
+      });
+      return next;
+    });
+    return r;
   }, []);
 
   const updateInvoiceMeta = useCallback((uuid, patch) => {
     setInvoiceMeta((prev) => ({ ...prev, [uuid]: { ...(prev[uuid] || {}), ...patch } }));
   }, []);
 
-  return { invoiceActions, invoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta };
+  return { invoiceActions, invoiceStatus, defaultInvoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta };
 }
