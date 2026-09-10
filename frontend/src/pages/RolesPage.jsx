@@ -13,11 +13,11 @@ const AI_PRESETS = {
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 const ROLE_STYLE = {
-  'Super Admin': 'bg-violet-50 text-violet-600 border-violet-200',
-  'Admin CS': 'bg-brand-50 text-brand-700 border-brand-200',
-  Support: 'bg-sky-50 text-sky-600 border-sky-200',
-  Finance: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  Viewer: 'bg-slate-100 text-slate-500 border-slate-200',
+  'Super Admin': 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20',
+  'Admin CS': 'bg-brand-50 text-brand-700 border-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/20',
+  Support: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20',
+  Finance: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+  Viewer: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
 };
 const ROLE_DESC = {
   'Super Admin': 'Akses penuh semua modul & pengaturan',
@@ -395,13 +395,13 @@ export default function RolesPage({ bare = false }) {
   };
 
   const inputCls =
-    'text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white';
+    'text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
 
   return (
-    <div className={bare ? 'space-y-6' : 'px-8 py-6 space-y-6'}>
+    <div className={bare ? 'space-y-6' : 'w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-6'}>
       {/* Toolbar */}
       <div className="flex items-center justify-end gap-3 -mt-1">
-        <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
+        <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-lg px-3 py-2">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
           </svg>
@@ -427,7 +427,7 @@ export default function RolesPage({ bare = false }) {
       </div>
 
       {/* Tab */}
-      <div className="flex items-center gap-2 bg-slate-200/60 rounded-xl p-1 w-fit text-sm font-semibold animate-fade-in-fast" style={{ animationDelay: '.18s' }}>
+      <div className="flex items-center gap-2 bg-slate-200/60 dark:bg-slate-800 rounded-xl p-1 w-fit text-sm font-semibold animate-fade-in-fast" style={{ animationDelay: '.18s' }}>
         {[
           { id: 'pengguna', label: 'Pengguna' },
           { id: 'role', label: 'Role & Izin Modul' },
@@ -437,7 +437,7 @@ export default function RolesPage({ bare = false }) {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2 rounded-lg transition ${tab === t.id ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'}`}
+            className={`px-4 py-2 rounded-lg transition ${tab === t.id ? 'bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-sm' : 'text-slate-500 dark:text-slate-300'}`}
           >
             {t.label}
           </button>
@@ -447,7 +447,7 @@ export default function RolesPage({ bare = false }) {
       {/* TAB: Pengguna */}
       {tab === 'pengguna' && (
         <section className="space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center gap-3 animate-fade-in-fast" style={{ animationDelay: '.22s' }}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap items-center gap-3 animate-fade-in-fast" style={{ animationDelay: '.22s' }}>
             <div className="relative flex-1 min-w-[220px]">
               <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -457,7 +457,7 @@ export default function RolesPage({ bare = false }) {
                 placeholder="Cari nama atau email..."
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
               />
             </div>
             <select value={fRole} onChange={(e) => setFRole(e.target.value)} className={inputCls}>
@@ -473,10 +473,10 @@ export default function RolesPage({ bare = false }) {
             </select>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-fade-in-fast" style={{ animationDelay: '.26s' }}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-fade-in-fast" style={{ animationDelay: '.26s' }}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                <tr className="bg-slate-50 dark:bg-slate-800/70 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-700">
                   <th className="px-6 py-3.5">Pengguna</th>
                   <th className="px-6 py-3.5">Role</th>
                   <th className="px-6 py-3.5">Login Terakhir</th>
@@ -484,16 +484,16 @@ export default function RolesPage({ bare = false }) {
                   <th className="px-6 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/70 transition">
+                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/70 transition">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-xs font-bold shrink-0">
                           {initials(u.name)}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-slate-800 truncate">{u.name}</p>
+                          <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">{u.name}</p>
                           <p className="text-xs text-slate-400 truncate">{u.email}</p>
                         </div>
                       </div>
@@ -501,12 +501,12 @@ export default function RolesPage({ bare = false }) {
                     <td className="px-6 py-4">
                       <span className={`inline-block text-[11px] font-bold border rounded-full px-2.5 py-1 ${ROLE_STYLE[u.role]}`}>{u.role}</span>
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-500">{u.lastLogin}</td>
+                    <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">{u.lastLogin}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => toggleUser(u.id)}
-                          className={`relative w-10 h-[22px] rounded-full transition ${u.active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                          className={`relative w-10 h-[22px] rounded-full transition ${u.active ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
                           title={u.active ? 'Nonaktifkan' : 'Aktifkan'}
                         >
                           <span
@@ -521,7 +521,7 @@ export default function RolesPage({ bare = false }) {
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => openUserModal(u.id)}
-                        className="p-2 rounded-lg hover:bg-brand-50 text-slate-400 hover:text-brand-600 transition"
+                        className="p-2 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-500/10 text-slate-400 hover:text-brand-600 transition"
                         title="Edit"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -530,7 +530,7 @@ export default function RolesPage({ bare = false }) {
                       </button>
                       <button
                         onClick={() => deleteUser(u.id)}
-                        className="p-2 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition"
+                        className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition"
                         title="Hapus"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -554,21 +554,21 @@ export default function RolesPage({ bare = false }) {
         <section className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             {roleCards.map(({ r, i, count, modCount }) => (
-              <div key={r} className="bg-white rounded-2xl border border-slate-200 p-4 animate-fade-in-fast" style={{ animationDelay: `${0.05 * i}s` }}>
+              <div key={r} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 animate-fade-in-fast" style={{ animationDelay: `${0.05 * i}s` }}>
                 <span className={`inline-block text-[11px] font-bold border rounded-full px-2.5 py-1 ${ROLE_STYLE[r]}`}>{r}</span>
                 <p className="mt-2.5 text-[11px] text-slate-400 leading-relaxed min-h-[32px]">{ROLE_DESC[r]}</p>
-                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-700">{count} pengguna</span>
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-700 dark:text-slate-200">{count} pengguna</span>
                   <span className="text-slate-400">{modCount}/{MODULES.length} modul</span>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-fade-in-fast">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-fade-in-fast">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
               <div>
-                <h3 className="font-bold text-slate-900">Matriks Izin Modul</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">Matriks Izin Modul</h3>
                 <p className="text-xs text-slate-400">Centang modul yang boleh diakses setiap role</p>
               </div>
               <button
@@ -584,18 +584,18 @@ export default function RolesPage({ bare = false }) {
             <div className="overflow-x-auto scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                  <tr className="bg-slate-50 dark:bg-slate-800/70 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-700">
                     <th className="px-6 py-3.5 text-left">Modul</th>
                     {ROLES.map((r) => (
                       <th key={r} className="px-4 py-3.5 text-center">{r}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {MODULES.map((m) => (
-                    <tr key={m.id} className="hover:bg-slate-50/70 transition">
+                    <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/70 transition">
                       <td className="px-6 py-3.5">
-                        <p className="font-semibold text-slate-800">{m.name}</p>
+                        <p className="font-semibold text-slate-800 dark:text-slate-100">{m.name}</p>
                         <p className="text-[11px] text-slate-400">{m.desc}</p>
                       </td>
                       {ROLES.map((r) => {
@@ -618,7 +618,7 @@ export default function RolesPage({ bare = false }) {
                 </tbody>
               </table>
             </div>
-            <p className="px-6 py-3 text-[11px] text-slate-400 border-t border-slate-100 bg-slate-50/60">
+            <p className="px-6 py-3 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
               * Super Admin selalu memiliki akses penuh dan tidak dapat diubah.
             </p>
           </div>
@@ -629,8 +629,8 @@ export default function RolesPage({ bare = false }) {
       {tab === 'ai' && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">
-              <span className="font-bold text-slate-700">{conns.filter((c) => c.active).length ? '1 AI dipakai' : 'Tidak ada AI dipakai'}</span>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="font-bold text-slate-700 dark:text-slate-200">{conns.filter((c) => c.active).length ? '1 AI dipakai' : 'Tidak ada AI dipakai'}</span>
               {' '}— chat memakai koneksi bertanda DIPAKAI
             </p>
             <button
@@ -642,20 +642,20 @@ export default function RolesPage({ bare = false }) {
           </div>
 
           {conns.map((c) => (
-            <div key={c.id} className={`bg-white rounded-2xl border p-5 animate-fade-in-fast ${c.active ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-slate-200'}`}>
+            <div key={c.id} className={`bg-white dark:bg-slate-900 rounded-2xl border p-5 animate-fade-in-fast ${c.active ? 'border-emerald-300 dark:border-emerald-500/40 ring-1 ring-emerald-200 dark:ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800'}`}>
               <div className="flex items-center gap-3 flex-wrap">
                 <button
                   onClick={() => activateConn(c.id)}
                   title={c.active ? 'Nonaktifkan (chat jadi mode lokal)' : 'Pakai AI ini'}
-                  className={`relative w-12 h-7 rounded-full transition shrink-0 ${c.active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                  className={`relative w-12 h-7 rounded-full transition shrink-0 ${c.active ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
                 >
                   <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${c.active ? 'left-6' : 'left-1'}`} />
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-slate-900 text-sm">{c.name}</h3>
-                    {c.active && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">DIPAKAI</span>}
-                    {c.hasKey && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">KEY ●</span>}
+                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">{c.name}</h3>
+                    {c.active && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">DIPAKAI</span>}
+                    {c.hasKey && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">KEY ●</span>}
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5 font-mono">{c.provider} · {c.model}</p>
                   <p className="text-[11px] text-slate-400 truncate">{c.baseURL}</p>
@@ -668,12 +668,12 @@ export default function RolesPage({ bare = false }) {
                       </svg>
                     </button>
                   )}
-                  <button onClick={() => startEditConn(c.id)} title="Edit (termasuk ganti API key)" aria-label="Edit koneksi" className="p-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-100 transition active:scale-95">
+                  <button onClick={() => startEditConn(c.id)} title="Edit (termasuk ganti API key)" aria-label="Edit koneksi" className="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 transition active:scale-95">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                     </svg>
                   </button>
-                  <button onClick={() => removeConn(c.id)} title="Hapus" aria-label="Hapus koneksi" className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-500 border border-rose-100 transition active:scale-95">
+                  <button onClick={() => removeConn(c.id)} title="Hapus" aria-label="Hapus koneksi" className="p-2 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 transition active:scale-95">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                     </svg>
@@ -688,21 +688,21 @@ export default function RolesPage({ bare = false }) {
             </div>
           ))}
           {conns.length === 0 && !showAiForm && (
-            <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-10 text-center text-sm text-slate-400">
               Belum ada AI terdaftar — klik <span className="font-bold">+ Tambah AI</span>.
             </div>
           )}
 
           {showAiForm && (
-            <div className="bg-white rounded-2xl border border-brand-200 p-6 animate-fade-in-fast">
-              <h3 className="font-bold text-slate-900 text-sm mb-4">{editingId ? 'Edit Koneksi AI' : 'Tambah AI Baru'}</h3>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-brand-200 dark:border-brand-500/20 p-6 animate-fade-in-fast">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm mb-4">{editingId ? 'Edit Koneksi AI' : 'Tambah AI Baru'}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="text-xs font-semibold text-slate-500">Nama</label>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Nama</label>
                   <input value={aiCfg.name || ''} onChange={(e) => setAiCfg({ ...aiCfg, name: e.target.value })} placeholder="mis. Gemini Utama" className={`${inputCls} mt-1 w-full`} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-500">Provider</label>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Provider</label>
                   <select
                     value={aiCfg.provider}
                     onChange={(e) => {
@@ -717,15 +717,15 @@ export default function RolesPage({ bare = false }) {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-500">Model</label>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Model</label>
                   <input value={aiCfg.model} onChange={(e) => setAiCfg({ ...aiCfg, model: e.target.value })} placeholder="gemini-2.0-flash" className={`${inputCls} mt-1 w-full`} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-xs font-semibold text-slate-500">Base URL</label>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Base URL</label>
                   <input value={aiCfg.baseURL} onChange={(e) => setAiCfg({ ...aiCfg, baseURL: e.target.value })} placeholder="https://…" className={`${inputCls} mt-1 w-full font-mono`} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-xs font-semibold text-slate-500">API Key {hasKey && <span className="text-emerald-600 font-bold">● tersimpan</span>}</label>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">API Key {hasKey && <span className="text-emerald-600 font-bold">● tersimpan</span>}</label>
                   <input
                     type="password"
                     value={aiKeyInput}
@@ -739,7 +739,7 @@ export default function RolesPage({ bare = false }) {
                 <button onClick={saveAiForm} className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition">
                   Simpan
                 </button>
-                <button onClick={() => { setShowAiForm(false); setAiKeyInput(''); }} className="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition">
+                <button onClick={() => { setShowAiForm(false); setAiKeyInput(''); }} className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                   Batal
                 </button>
               </div>
@@ -751,13 +751,13 @@ export default function RolesPage({ bare = false }) {
       {/* TAB: Log */}
       {tab === 'log' && (
         <section>
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 animate-fade-in-fast">
-            <h3 className="font-bold text-slate-900 mb-4">Log Aktivitas Admin</h3>
-            <ol className="relative border-l-2 border-slate-100 space-y-5 ml-2">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 animate-fade-in-fast">
+            <h3 className="font-bold text-slate-900 dark:text-white mb-4">Log Aktivitas Admin</h3>
+            <ol className="relative border-l-2 border-slate-100 dark:border-slate-800 space-y-5 ml-2">
               {logs.map((l, i) => (
                 <li key={i} className="ml-5 relative">
-                  <span className="absolute -left-[27px] top-1 w-3 h-3 rounded-full bg-brand-100 border-2 border-brand-500" />
-                  <p className="text-sm text-slate-700">
+                  <span className="absolute -left-[27px] top-1 w-3 h-3 rounded-full bg-brand-100 dark:bg-brand-500/20 border-2 border-brand-500" />
+                  <p className="text-sm text-slate-700 dark:text-slate-200">
                     <span className="font-bold">{l.who}</span> {l.act}
                   </p>
                     <p className="text-[11px] text-slate-400 mt-0.5">{fmtLogTime(l.time)}</p>
@@ -773,9 +773,9 @@ export default function RolesPage({ bare = false }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && setModal(null)}>
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setModal(null)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in-fast">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900">{modal.id ? 'Edit Pengguna' : 'Tambah Pengguna'}</h3>
-              <button onClick={() => setModal(null)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 dark:text-white">{modal.id ? 'Edit Pengguna' : 'Tambah Pengguna'}</h3>
+              <button onClick={() => setModal(null)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -783,29 +783,29 @@ export default function RolesPage({ bare = false }) {
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-500">Nama</label>
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Nama</label>
                 <input
                   type="text"
                   value={modal.name}
                   onChange={(e) => setModal({ ...modal, name: e.target.value })}
-                  className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-500">Email</label>
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Email</label>
                 <input
                   type="email"
                   value={modal.email}
                   onChange={(e) => setModal({ ...modal, email: e.target.value })}
-                  className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-500">Role</label>
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Role</label>
                 <select
                   value={modal.role}
                   onChange={(e) => setModal({ ...modal, role: e.target.value })}
-                  className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                 >
                   {ROLES.map((r) => (
                     <option key={r}>{r}</option>
@@ -814,7 +814,7 @@ export default function RolesPage({ bare = false }) {
               </div>
               {!modal.id && (
                 <div>
-                  <label className="text-xs font-semibold text-slate-500">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     Password login <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -822,36 +822,36 @@ export default function RolesPage({ bare = false }) {
                     value={modal.password || ''}
                     onChange={(e) => setModal({ ...modal, password: e.target.value })}
                     placeholder="Min. 5 karakter — tersimpan di backend"
-                    className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                   />
                 </div>
               )}
               {modal.id && (
                 <div>
-                  <label className="text-xs font-semibold text-slate-500">Password baru (opsional)</label>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Password baru (opsional)</label>
                   <input
                     type="password"
                     value={modal.password || ''}
                     onChange={(e) => setModal({ ...modal, password: e.target.value })}
                     placeholder="Kosongkan bila tidak diubah"
-                    className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
                   />
                 </div>
               )}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setModal({ ...modal, active: !modal.active })}
-                  className={`relative w-10 h-[22px] rounded-full transition ${modal.active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                  className={`relative w-10 h-[22px] rounded-full transition ${modal.active ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
                 >
                   <span
                     className={`absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-all ${modal.active ? 'left-[21px]' : 'left-[3px]'}`}
                   />
                 </button>
-                <span className="text-xs font-semibold text-slate-600">Akun aktif</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Akun aktif</span>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
-              <button onClick={() => setModal(null)} className="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition">
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+              <button onClick={() => setModal(null)} className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                 Batal
               </button>
               <button
@@ -880,11 +880,11 @@ export default function RolesPage({ bare = false }) {
 
 function StatCard({ title, value, sub, valueCls = '', subCls = 'text-slate-400', delay }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 animate-fade-in-fast" style={{ animationDelay: delay }}>
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast" style={{ animationDelay: delay }}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
-          <p className={`mt-2 text-3xl font-extrabold text-slate-900 ${valueCls}`}>{value}</p>
+          <p className={`mt-2 text-3xl font-extrabold text-slate-900 dark:text-white ${valueCls}`}>{value}</p>
           <p className={`mt-1 text-xs font-medium ${subCls}`}>{sub}</p>
         </div>
       </div>
