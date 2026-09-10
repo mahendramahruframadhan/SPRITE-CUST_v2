@@ -262,7 +262,7 @@ export default function BillingPage() {
   };
 
   const filterCls =
-    'mt-1 block text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white';
+    'mt-1 block text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white transition';
 
   return (
     <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
@@ -409,19 +409,19 @@ export default function BillingPage() {
       </div>
 
       {/* Detail Kasus */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+      <div className="bg-white rounded-3xl border border-slate-200/70 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast" style={{ animationDelay: '.24s' }}>
+        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white">
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="text-xs font-semibold text-slate-500">Date From</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Date From</label>
               <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={filterCls} />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-500">Date Until</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Date Until</label>
               <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={filterCls} />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-500">Brand</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Brand</label>
               <select value={brand} onChange={(e) => setBrand(e.target.value)} className={`${filterCls} min-w-[200px]`}>
                 <option value="">Semua Brand</option>
                 {brands.map((b) => (
@@ -435,7 +435,7 @@ export default function BillingPage() {
                 setTo('');
                 setBrand('');
               }}
-              className="text-sm font-semibold text-slate-500 px-4 py-2 rounded-lg hover:bg-slate-100 transition"
+              className="text-[13px] font-bold text-slate-500 hover:text-rose-600 border border-slate-200 hover:border-rose-200 hover:bg-rose-50 px-4 py-2.5 rounded-xl transition"
             >
               Reset
             </button>
@@ -449,7 +449,17 @@ export default function BillingPage() {
         </div>
 
         <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
-          <h3 className="font-bold text-slate-900">Detail Kasus — {cat}</h3>
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/25">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+            </span>
+            <div>
+              <h3 className="font-extrabold text-slate-900 tracking-tight">Detail Kasus — {cat}</h3>
+              <p className="text-xs text-slate-400">{items.length} kasus · total {fmtMoney(grandTotal)}</p>
+            </div>
+          </div>
           <div className="ml-auto relative">
             <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -459,15 +469,15 @@ export default function BillingPage() {
               placeholder="Cari kasus..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white"
+              className="pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white transition"
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm min-w-[1240px]">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50/80">
                 <th className="px-6 py-3 font-bold" title="Nomor kasus">No</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap" title="Tanggal issue (tahun-bulan-tanggal)">Tgl Issue</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap" title="Nama brand / client">Brand</th>
@@ -484,10 +494,17 @@ export default function BillingPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paged.map((c) => (
-                <tr key={c.recordUuid} className="odd:bg-white even:bg-slate-50/60 hover:bg-brand-50/50 transition">
-                  <td className="px-6 py-3.5 text-slate-400 font-mono text-xs whitespace-nowrap">{c.no || '-'}</td>
-                  <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap text-xs">{fmtDate8(c.dateIssue)}</td>
-                  <td className="px-4 py-3.5 font-bold text-slate-800 whitespace-nowrap">{c.client || '-'}</td>
+                <tr key={c.recordUuid} className="odd:bg-white even:bg-slate-50/60 hover:bg-amber-50/50 transition">
+                  <td className="px-6 py-3.5 text-slate-400 tabular-nums">{c.no || '-'}</td>
+                  <td className="px-4 py-3.5 text-slate-600 font-semibold whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    <span className="flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-700 border border-amber-100 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                        {String(c.client || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                      </span>
+                      <span className="font-bold text-slate-800">{c.client || '-'}</span>
+                    </span>
+                  </td>
                   <td className="px-4 py-3.5">
                     <div className="min-w-[220px] max-w-[320px]">
                       <p className="text-xs text-slate-600 line-clamp-2">{c.issue || '-'}</p>
@@ -504,17 +521,18 @@ export default function BillingPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{c.picName || c.assignTo || '-'}</td>
-                  <td className="px-4 py-3.5">
-                    <span className="text-[11px] bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">{c.module || '-'}</span>
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1">{c.module || '-'}</span>
+                    {c.subModule && <span className="mt-1 block text-[10px] text-slate-400 font-medium">{c.subModule}</span>}
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${BILL_BADGE[c.billingStatus] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                      {c.billingStatus || '-'}
+                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${BILL_BADGE[c.billingStatus] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />{c.billingStatus || '-'}
                     </span>
                   </td>
                   <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">{c.billingCategory || '-'}</td>
                   <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{c.supportType || '-'}</td>
-                  <td className="px-4 py-3.5 text-right font-semibold text-slate-700 whitespace-nowrap">{fmtMoney(c.charges)}</td>
+                  <td className={`px-4 py-3.5 text-right tabular-nums whitespace-nowrap ${+c.charges > 0 ? 'font-extrabold text-amber-700' : 'font-semibold text-slate-300'}`}>{fmtMoney(c.charges)}</td>
                   <td className="px-4 py-3.5">
                     {c.billingStatus === 'ON-CALL' ? (
                         (() => {
@@ -562,8 +580,8 @@ export default function BillingPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-          <span>
+        <div className="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs text-slate-400 bg-slate-50/60">
+          <span className="tabular-nums">
             Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} data
           </span>
           <div className="flex items-center gap-1 ml-auto">
@@ -604,7 +622,7 @@ export default function BillingPage() {
             <option value={50}>50 / halaman</option>
             <option value={100}>100 / halaman</option>
           </select>
-          <span className="font-bold text-slate-700">Total: {fmtMoney(grandTotal)}</span>
+          <span className="tabular-nums">{items.length} kasus · <span className="text-base font-extrabold text-slate-900">Total: {fmtMoney(grandTotal)}</span></span>
         </div>
       </div>
 
@@ -612,10 +630,13 @@ export default function BillingPage() {
       {masterOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setMasterOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in-fast">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900">Master Status Validasi</h3>
-              <button onClick={() => setMasterOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md animate-fade-in-fast overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-50/80 to-white">
+              <div>
+                <h3 className="font-extrabold text-slate-900 tracking-tight">Master Status Validasi</h3>
+                <p className="text-xs text-slate-400">Kelola opsi status validasi</p>
+              </div>
+              <button onClick={() => setMasterOpen(false)} aria-label="Tutup" className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -685,18 +706,23 @@ export default function BillingPage() {
             ? [{ text: caseAuditStatus[detailCase.recordUuid] || 'BELUM DIVALIDASI', className: 'bg-amber-300/90 text-amber-900 border-transparent' }]
             : []),
         ] : []}
-        rows={detailCase ? [
-          ['Tgl Issue', fmtDate8(detailCase.dateIssue)],
-          ['Brand', detailCase.client || '-'],
-          ['PIC Name', detailCase.picName || detailCase.assignTo || '-'],
-          ['Module', detailCase.module || '-'],
-          ['Sub-Module', detailCase.subModule || '-'],
-          ['Lokasi', detailCase.location || '-'],
-          ['Status Billing', detailCase.billingStatus || '-'],
-          ['Kategori Billing', detailCase.billingCategory || '-'],
-          ['Tipe Support', detailCase.supportType || '-'],
-          ['Charges', fmtMoney(detailCase.charges)],
-          ['Status Validasi', caseAuditStatus[detailCase.recordUuid] || '-'],
+        sections={detailCase ? [
+          { title: 'Informasi Kasus', rows: [
+            ['Tgl Issue', fmtDate8(detailCase.dateIssue)],
+            ['Brand', detailCase.client || '-'],
+            ['Channel', detailCase.channelTicket || '-'],
+            ['PIC Name', detailCase.picName || detailCase.assignTo || '-'],
+            ['Module', detailCase.module || '-'],
+            ['Sub-Module', detailCase.subModule || '-'],
+            ['Lokasi', detailCase.location || '-'],
+          ]},
+          { title: 'Billing & Validasi', rows: [
+            ['Status Billing', detailCase.billingStatus || '-'],
+            ['Kategori Billing', detailCase.billingCategory || '-'],
+            ['Tipe Support', detailCase.supportType || '-'],
+            ['Charges', fmtMoney(detailCase.charges)],
+            ['Status Validasi', caseAuditStatus[detailCase.recordUuid] || 'BELUM DIVALIDASI'],
+          ]},
         ] : []}
         notes={{ label: 'Completion Notes', text: detailCase?.completionNotes }}
         onClose={() => setDetailUuid(null)}
