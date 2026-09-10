@@ -728,54 +728,106 @@ export default function DashboardPage() {
           </Link>
         </div>
         <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-sm min-w-[820px]">
+          <table className="w-full text-sm min-w-[960px]">
             <thead>
               <tr className="bg-slate-50/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200">
-                <th className="px-6 py-3">Tanggal</th>
-                <th className="px-6 py-3">Klien</th>
-                <th className="px-6 py-3">Kendala</th>
-                <th className="px-6 py-3">Modul</th>
-                <th className="px-6 py-3">Petugas</th>
-                <th className="px-6 py-3">Billing</th>
-                <th className="px-6 py-3 text-right">Biaya</th>
+                <th className="pl-6 pr-2 py-3 w-12">No</th>
+                <th className="px-3 py-3">Tanggal</th>
+                <th className="px-3 py-3">Klien</th>
+                <th className="px-3 py-3">Kendala</th>
+                <th className="px-3 py-3">Modul</th>
+                <th className="px-3 py-3">Petugas</th>
+                <th className="px-3 py-3">Billing</th>
+                <th className="px-3 pr-6 py-3 text-right">Biaya</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {recent.map((c) => {
                 const bs = (c.billingStatus || '').trim() || '-';
-                const initials = String(c.client || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+                const clientInitials = String(c.client || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+                const staffInitials = String(c.assignTo || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
                 return (
-                  <tr key={c.recordUuid} className="hover:bg-brand-50/40 transition">
-                    <td className="px-6 py-3.5 text-xs text-slate-500 whitespace-nowrap font-medium">{fmtDate(c.dateIssue)}</td>
-                    <td className="px-6 py-3.5 whitespace-nowrap">
+                  <tr key={c.recordUuid} className="even:bg-slate-50/60 hover:bg-brand-50/50 transition">
+                    <td className="pl-6 pr-2 py-3.5 text-xs text-slate-400 tabular-nums">{c.no || '-'}</td>
+                    <td className="px-3 py-3.5 text-xs font-semibold text-slate-600 whitespace-nowrap tabular-nums">{fmtDate(c.dateIssue)}</td>
+                    <td className="px-3 py-3.5 whitespace-nowrap">
                       <span className="flex items-center gap-2.5">
-                        <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 text-[10px] font-extrabold flex items-center justify-center shrink-0">{initials}</span>
+                        <span className="w-8 h-8 rounded-lg bg-brand-600/10 text-brand-700 border border-brand-100 text-[10px] font-extrabold flex items-center justify-center shrink-0">{clientInitials}</span>
                         <span className="font-bold text-slate-800">{c.client || '-'}</span>
                       </span>
                     </td>
-                    <td className="px-6 py-3.5 text-xs text-slate-500 max-w-[280px] truncate" title={c.issue}>{c.issue || '-'}</td>
-                    <td className="px-6 py-3.5">
-                      <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1 whitespace-nowrap">{c.module || '-'}</span>
+                    <td className="px-3 py-3.5">
+                      <div className="min-w-[220px] max-w-[320px]">
+                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-2" title={c.issue}>{c.issue || '-'}</p>
+                        <button
+                          type="button"
+                          onClick={() => setDetailUuid(c.recordUuid)}
+                          className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-100 rounded-lg px-2.5 py-1 transition"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                          </svg>
+                          Lihat Detail
+                        </button>
+                      </div>
                     </td>
-                    <td className="px-6 py-3.5 text-xs font-semibold text-slate-600 whitespace-nowrap">{c.assignTo || '-'}</td>
-                    <td className="px-6 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${BILL_BADGE[bs] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />{bs}
+                    <td className="px-3 py-3.5 whitespace-nowrap">
+                      <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200/60 rounded-full px-2.5 py-1">{c.module || '-'}</span>
+                      {c.subModule && <span className="mt-1 block text-[10px] text-slate-400 font-medium">{c.subModule}</span>}
+                    </td>
+                    <td className="px-3 py-3.5 whitespace-nowrap">
+                      <span className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white text-[9px] font-extrabold flex items-center justify-center shrink-0">{staffInitials}</span>
+                        <span className="text-xs font-semibold text-slate-700">{c.assignTo || '-'}</span>
                       </span>
                     </td>
-                    <td className={`px-6 py-3.5 text-right text-xs font-extrabold whitespace-nowrap ${c.charges > 0 ? 'text-slate-900' : 'text-slate-300'}`}>
+                    <td className="px-3 py-3.5 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[bs] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />{bs}
+                      </span>
+                      {c.billingCategory && <span className="mt-1 block text-[10px] text-slate-400 font-medium">{c.billingCategory}</span>}
+                    </td>
+                    <td className={`px-3 pr-6 py-3.5 text-right whitespace-nowrap tabular-nums ${c.charges > 0 ? 'text-sm font-extrabold text-amber-700' : 'text-xs font-bold text-slate-300'}`}>
                       {c.charges > 0 ? fmtRp(c.charges) : '—'}
                     </td>
                   </tr>
                 );
               })}
               {recent.length === 0 && (
-                <tr><td colSpan={7} className="px-6 py-10 text-center text-sm text-slate-400">Belum ada data kasus.</td></tr>
+                <tr><td colSpan={8} className="px-6 py-10 text-center text-sm text-slate-400">Belum ada data kasus.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Popup detail kasus dari kolom Kendala — sama seperti Finance */}
+      <CaseDetailModal
+        c={detailCase}
+        kicker={`Detail Kasus #${detailCase?.no || '-'}`}
+        title={detailCase?.client || '-'}
+        chips={detailCase ? [
+          { text: detailCase.module || '-', className: 'bg-white/15 border-white/20' },
+          { text: detailCase.billingStatus || '-', className: BILL_BADGE[detailCase.billingStatus] || 'bg-white/15 border-white/20' },
+          { text: caseAuditStatus[detailCase.recordUuid] || 'BELUM DIVALIDASI', className: 'bg-amber-300/90 text-amber-900 border-transparent' },
+        ] : []}
+        rows={detailCase ? [
+          ['Tgl Issue', fmtDate(detailCase.dateIssue)],
+          ['Brand', detailCase.client || '-'],
+          ['Petugas', detailCase.assignTo || '-'],
+          ['Module', detailCase.module || '-'],
+          ['Sub-Module', detailCase.subModule || '-'],
+          ['Lokasi', detailCase.location || '-'],
+          ['Status Billing', detailCase.billingStatus || '-'],
+          ['Kategori Billing', detailCase.billingCategory || '-'],
+          ['Tipe Support', detailCase.supportType || '-'],
+          ['Charges', detailCase.charges > 0 ? fmtRp(detailCase.charges) : '-'],
+          ['Status Validasi', caseAuditStatus[detailCase.recordUuid] || 'BELUM DIVALIDASI'],
+          ['Status Invoice', invoiceStatus[detailCase.recordUuid] || 'MENUNGGU INVOICE'],
+        ] : []}
+        notes={{ label: 'Completion Notes', text: detailCase?.completionNotes }}
+        onClose={() => setDetailUuid(null)}
+      />
 
       <p className="text-center text-[11px] text-slate-400 pb-4">Dashboard diperbarui {lastUpdated} · sumber Google Sheets via backend</p>
     </div>
