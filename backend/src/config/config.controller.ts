@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Patch, Body, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { maskKey } from '../ai/ai.controller';
@@ -122,8 +122,7 @@ export class ConfigController {
   @Put('status-options')
   @UseGuards(PermGuard)
   @Perm('billing')
-  async saveStatusOptions(@Body() body: any) {
-    const out: any = { ok: true };
+  async saveStatusOptions(@Body() body: any) {    const out: any = { ok: true };
     for (const k of ['auditActions', 'invoiceActions'] as const) {
       if (body?.[k] === undefined) continue;
       const list = cleanStatusList(body[k], DEFAULT_STATUS_OPTIONS[k]);
@@ -132,5 +131,57 @@ export class ConfigController {
       out[k] = list;
     }
     return out;
+  }
+
+  // Rename satu status master + migrasi SEMUA baris kasus yang memakainya.
+  // Dipakai modal "Master Status Invoice" (Finance) agar CRUD lengkap: tambah, ubah nama, hapus.
+  // PUT dijaga modul 'billing' (dimiliki role Admin CS & Finance).
+  @Patch('status-options/rename')
+  @UseGuards(PermGuard)
+  @Perm('billing')
+  async renameStatusOption(@Body() body: any) {
+    const scope = body?.scope === 'auditActions' ? 'auditActions' : 'invoiceActions';
+    const norm = (v: any) => String(v ?? '').trim().replace(/\s+/g, ' ').slice(0, 40).toUpperCase();
+    const from = norm(body?.from);
+    const to = norm(body?.to);
+    if (!from) throw new BadRequestException('Status asal wajib diisi.');
+    if (!to) throw new BadRequestException('Nama baru tidak boleh kosong.');
+    if (to === from) throw new BadRequestException('Nama baru sama dengan nama lama.');
+
+    const fallback = DEFAULT_STATUS_OPTIONS[scope];
+    let list: string[];
+    try {
+      const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='${scope}'` as any);
+      const raw = (r.rows || r)[0]?.value;
+      list = raw ? cleanStatusList(JSON.parse(raw), fallback) : [...fallback];
+    } catch {
+      list = [...fallback];
+    }
+    if (!list.includes(from)) throw new BadRequestException(`Status "${from}" tidak ditemukan.`);
+    if (list.some((a) => a.toLowerCase() === to.toLowerCase())) {
+      throw new BadRequestException(`Status "${to}" sudah ada.`);
+    }
+
+    const next = list.map((a) => (a === from ? to : a));
+    const val = JSON.stringify(next).replace(/'/g, "''");
+    const now = new Date().toISOString();
+    await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${scope}','${val}','${now}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
+
+    // Migrasi status per-kasus agar tidak yatim (orphan).
+    const esc = (s: string) => s.replace(/'/g, "''");
+    const target = scope === 'auditActions'
+      ? { table: 'audit_status', col: 'action' }
+      : { table: 'invoice_status', col: 'status' };
+    let migrated = 0;
+    try {
+      const cnt: any = await this.db.execute(`SELECT COUNT(*) as c FROM ${target.table} WHERE ${target.col}='${esc(from)}'` as any);
+      migrated = +((cnt.rows || cnt)[0]?.c || 0);
+      if (migrated > 0) {
+        await this.db.execute(`UPDATE ${target.table} SET ${target.col}='${esc(to)}', updated_at='${now}' WHERE ${target.col}='${esc(from)}'` as any);
+      }
+    } catch {
+      migrated = 0;
+    }
+    return { ok: true, scope, from, to, [scope]: next, migrated };
   }
 }
