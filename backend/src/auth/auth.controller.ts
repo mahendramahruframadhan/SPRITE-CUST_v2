@@ -1,5 +1,4 @@
 import { Controller, Post, Body, Req, Res, Get, HttpCode, HttpException, HttpStatus } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
 import { getDb } from '../db/drizzle.service';
 import * as crypto from 'crypto';
 import { pickRole, validateRegistration } from './register.validation';
@@ -10,6 +9,10 @@ import { pickRole, validateRegistration } from './register.validation';
 // pertama) HANYA menyimpan ke DB. Login dilakukan terpisah di /login via
 // POST sign-in/email — frontend mengarahkan ke sana sesudah daftar berhasil.
 const rowsOf = (r: any): any[] => r?.rows || r || [];
+// pg-mem: db.execute hanya andal dengan string mentah — sql-tag berparameter
+// memicu "getTypeParser is not supported" di adapter pg-mem. Gaya string mentah
+// + esc() sama dengan roles.controller & initDb; jalan di pg-mem maupun Postgres asli.
+const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 
 // Role peminta dari header x-user-email (pola yang sama dengan PermGuard).
 // Hanya Super Admin boleh menentukan role akun baru (dipakai form tambah
@@ -18,7 +21,7 @@ async function requesterIsSuperAdmin(db: any, req: any): Promise<boolean> {
   try {
     const email = String(req?.headers?.['x-user-email'] || '').toLowerCase().trim();
     if (!email) return false;
-    const r: any = await db.execute(sql`SELECT role FROM "user" WHERE lower(email) = ${email} LIMIT 1`);
+    const r: any = await db.execute(`SELECT role FROM "user" WHERE lower(email) = '${esc(email)}' LIMIT 1` as any);
     return rowsOf(r)[0]?.role === 'Super Admin';
   } catch {
     return false;
@@ -43,7 +46,7 @@ export class AuthController {
     const canAssignRole = await requesterIsSuperAdmin(this.db, req);
     const role = canAssignRole ? pickRole(body.role) : 'Viewer';
 
-    const dup: any = await this.db.execute(sql`SELECT id FROM "user" WHERE lower(email) = ${values.email} LIMIT 1`);
+    const dup: any = await this.db.execute(`SELECT id FROM "user" WHERE lower(email) = '${esc(values.email)}' LIMIT 1` as any);
     if (rowsOf(dup)[0]) {
       throw new HttpException(
         { code: 'EMAIL_TAKEN', message: 'Email sudah terdaftar. Silakan login.' },
@@ -55,10 +58,10 @@ export class AuthController {
     const now = new Date().toISOString();
     try {
       await this.db.execute(
-        sql`INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES (${id}, ${values.name}, ${values.email}, 1, ${role}, 1, ${now}, ${now})`,
+        `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES ('${esc(id)}', '${esc(values.name)}', '${esc(values.email)}', 1, '${esc(role)}', 1, '${now}', '${now}')` as any,
       );
       await this.db.execute(
-        sql`INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES (${`acc_${id}`}, ${values.email}, 'credential', ${id}, ${values.password}, ${now}, ${now})`,
+        `INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES ('${esc(`acc_${id}`)}', '${esc(values.email)}', 'credential', '${esc(id)}', '${esc(values.password)}', '${now}', '${now}')` as any,
       );
     } catch (e: any) {
       throw new HttpException(
@@ -73,7 +76,7 @@ export class AuthController {
   async signIn(@Body() body: any, @Res({ passthrough: true }) res: any) {
     const email = String(body.email || '').toLowerCase().trim();
     const password = String(body.password || '');
-    const r: any = await this.db.execute(sql`SELECT u.id, u.name, u.email, u.role, u.active, a.password FROM "user" u JOIN account a ON a.user_id = u.id WHERE lower(u.email) = ${email} LIMIT 1`);
+    const r: any = await this.db.execute(`SELECT u.id, u.name, u.email, u.role, u.active, a.password FROM "user" u JOIN account a ON a.user_id = u.id WHERE lower(u.email) = '${esc(email)}' LIMIT 1` as any);
     const row = rowsOf(r)[0];
     if (!row || row.password !== password) return { error: 'invalid credentials' };
     if (!Number(row.active ?? 1)) return { error: 'akun dinonaktifkan' };

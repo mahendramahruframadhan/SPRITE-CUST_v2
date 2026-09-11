@@ -11,6 +11,8 @@ import { validateRegistration } from '../auth/register.validation';
 // Setelah 1 user ada, POST selalu 409 ALREADY_INITIALIZED. Role dikunci di
 // server — body.role dari client selalu diabaikan.
 const rowsOf = (r: any): any[] => r?.rows || r || [];
+// Lihat auth.controller: string mentah + esc() agar jalan di pg-mem maupun Postgres asli.
+const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 
 // Throttle sederhana in-memory: max 10 POST /setup/first-admin per menit per IP.
 const firstAdminHits = new Map<string, number[]>();
@@ -63,7 +65,7 @@ export class SetupController {
       );
     }
 
-    const dup: any = await this.db.execute(sql`SELECT id FROM "user" WHERE lower(email) = ${values.email} LIMIT 1`);
+    const dup: any = await this.db.execute(`SELECT id FROM "user" WHERE lower(email) = '${esc(values.email)}' LIMIT 1` as any);
     if (rowsOf(dup)[0]) {
       throw new HttpException(
         { code: 'EMAIL_TAKEN', message: 'Email sudah terdaftar. Silakan login.' },
@@ -75,10 +77,10 @@ export class SetupController {
     const now = new Date().toISOString();
     try {
       await this.db.execute(
-        sql`INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES (${id}, ${values.name}, ${values.email}, 1, 'Super Admin', 1, ${now}, ${now})`,
+        `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES ('${esc(id)}', '${esc(values.name)}', '${esc(values.email)}', 1, 'Super Admin', 1, '${now}', '${now}')` as any,
       );
       await this.db.execute(
-        sql`INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES (${`acc_${id}`}, ${values.email}, 'credential', ${id}, ${values.password}, ${now}, ${now})`,
+        `INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES ('${esc(`acc_${id}`)}', '${esc(values.email)}', 'credential', '${esc(id)}', '${esc(values.password)}', '${now}', '${now}')` as any,
       );
     } catch (e: any) {
       // Race: request lain mengisi DB duluan / email duplikat bersamaan.
