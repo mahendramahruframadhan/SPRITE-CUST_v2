@@ -1,8 +1,81 @@
-# SPRITE-CUST Backend — NestJS + Drizzle + Postgres (Docker)
+# SPRITE-CUST Backend — NestJS + Drizzle + Postgres (Docker opsional)
 
-API untuk frontend di `http://localhost:5005/api`. Database Postgres
-berjalan di container Docker `sprite-pg` (port host `5433`, database
-`sprite_cust`) — volume `sprite-pgdata` agar data tidak hilang.
+API untuk frontend di `http://localhost:5005/api`.
+
+## Cara cepat jalan di localhost (baru clone / lanjutkan project)
+
+```bash
+cd backend
+npm run setup      # bikin .env dari .env.example (tidak menimpa kalau .env sudah ada)
+npm install        # install dependencies (wajib pertama kali → mengadakan ts-node)
+npm run dev        # → http://localhost:5005/api/health
+```
+
+Cek: buka `http://localhost:5005/api/health` → harus balas
+`{"ok":true,"service":"sprite-cust-backend",...}`.
+
+> Default `.env` memakai **MODE A (tanpa Docker)**: `DATABASE_URL` dikosongkan
+> sehingga backend memakai `pg-mem` (database in-memory). Jadi **langsung jalan
+> tanpa install Docker/Postgres**. Data hilang saat restart — normal untuk dev.
+
+## Syarat
+
+- **Node.js ≥ 18** (teruji di Node 24), **npm ≥ 9**. Cek dengan:
+  `node --version && npm --version`.
+- Tidak butuh Docker/Postgres untuk mulai (lihat MODE A di bawah).
+- Frontend terpisah — jalankan dari folder `frontend` bila perlu
+  (`FRONTEND_URL` default `http://localhost:5173`).
+
+## Database: 2 mode (pilih di `.env`)
+
+| Mode | `DATABASE_URL` | Kapan dipakai |
+|------|----------------|---------------|
+| **A. pg-mem (default)** | dikosongkan | Localhost cepat, tanpa Docker. Seed otomatis tiap boot. Data hilang saat restart. |
+| **B. Postgres asli** | `postgresql://postgres:postgres@localhost:5433/sprite_cust` | Data persisten. Wajib Postgres jalan dulu (mis. container `sprite-pg`, port host `5433`, db `sprite_cust`, volume `sprite-pgdata`). |
+
+Aturan di kode (`src/db/drizzle.service.ts`): URL diawali `postgres` → pakai
+Postgres asli, selain itu → `pg-mem`.
+
+`src/main.ts` memanggil `initDb()` saat boot: buat tabel bila belum ada
+(`IF NOT EXISTS`), lalu seed **2034 kasus** dari
+`frontend/src/data/cases.js` + **6 user** bila tabel masih kosong.
+
+## Scripts
+
+| Perintah | Fungsi |
+|----------|--------|
+| `npm run setup` | Buat `.env` dari `.env.example` (aman, tidak menimpa) |
+| `npm install` | Install dependencies (pertama kali / setelah pull) |
+| `npm run dev` | Jalankan dev server (`ts-node`, baca `.env`) |
+| `npm run dev:local` | Sama seperti `dev` tapi paksa MODE A (pg-mem), abaikan `DATABASE_URL` di `.env` — berguna bila `.env` menunjuk Postgres yang sedang mati |
+| `npm run build` | Compile TypeScript ke `dist/` |
+| `npm start` | Jalankan hasil build (`node dist/main.js`) |
+| `npm run typecheck` | Cek tipe tanpa emit (CI / sebelum commit) |
+| `npm run db:push` / `db:generate` | Drizzle Kit (hanya untuk MODE B / Postgres asli) |
+| `npm run db:empty` | Kosongkan isi DB Postgres (`scripts/reset-db.sql`, struktur tetap) |
+| `npm run dev:empty` | Boot pg-mem kosong tanpa seed (`SKIP_SEED=true`, siap inject Sheet) |
+
+## Troubleshooting (yang sering kejadian)
+
+1. **`ts-node not found` / `sh: ts-node: command not found` saat `npm run dev`**
+   → `node_modules` belum ada. Solusi: `npm install` dulu, lalu `npm run dev`.
+2. **`ERESOLVE could not resolve` (`better-auth` vs `drizzle-kit`) saat `npm install`**
+   → Sudah ditangani repo ini via file `.npmrc` (`legacy-peer-deps=true`).
+   Jangan hapus file itu. Bila masih error, pastikan npm ≥ 9 lalu ulangi
+   `npm install`.
+3. **Backend exit / gagal konek padahal `.env` menunjuk `postgresql://...`**
+   → Postgres-nya belum jalan (atau Docker belum terinstall). Pilihan:
+   - cepat: `npm run dev:local` (paksa pg-mem), atau
+   - kosongkan `DATABASE_URL` di `.env`, atau
+   - nyalakan Postgres lalu `npm run dev` lagi.
+4. **`EADDRINUSE` / port 5005 sudah dipakai** → ada backend lain masih jalan.
+   Matikan proses lama, atau ganti `PORT` di `.env`.
+5. **Frontend kena CORS / `Failed to fetch`** → pastikan backend jalan di
+   `http://localhost:5005` dan `FRONTEND_URL` di `.env` = origin frontend
+   (`http://localhost:5173`).
+6. **Data kosong setelah restart** → normal di MODE A (pg-mem in-memory).
+   Butuh persisten? Pakai MODE B.
+7. **`.env` tidak ada** → `npm run setup` (atau `cp .env.example .env`).
 
 ## Stack
 
@@ -13,25 +86,12 @@ berjalan di container Docker `sprite-pg` (port host `5433`, database
 - Auth email/password di `src/auth/auth.controller.ts`
   (Better Auth tidak di-mount — men-shadow route Nest + password seed plaintext)
 
-## Menjalankan
-
-```bash
-cd backend
-npm install
-cp .env.example .env
-npm run dev            # → http://localhost:5005/api/health
-```
-
-`src/main.ts` memanggil `initDb()` saat boot: buat tabel bila belum ada
-(`IF NOT EXISTS`), lalu seed **2034 kasus** dari
-`frontend/src/data/cases.js` + **6 user** bila tabel masih kosong.
-
 ## Env
 
-| Key | Nilai | Ket |
-|-----|-------|-----|
+| Key | Nilai default | Ket |
+|-----|---------------|-----|
 | `PORT` | `5005` | Nest listen |
-| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5433/sprite_cust` | Wajib `postgres://` agar pakai DB asli |
+| `DATABASE_URL` | *(kosong = pg-mem)* | Isi `postgresql://postgres:postgres@localhost:5433/sprite_cust` untuk MODE B |
 | `BETTER_AUTH_SECRET` | dev-secret | Ganti 32 char random di prod |
 | `BETTER_AUTH_URL` | `http://localhost:5005` | Base URL auth |
 | `FRONTEND_URL` | `http://localhost:5173` | Origin CORS |
@@ -98,6 +158,30 @@ Super Admin selalu lolos dan barisnya dikunci penuh di `PUT /roles/permissions`.
 
 `GET` (baca) sengaja terbuka; menu + route frontend difilter oleh
 `usePermissions` + `RequirePerm` dari matriks yang sama.
+
+## Kosongkan DB + inject dari Sheet live terbaru
+
+Sheet live saat ini: `1dozgmtHZFsIkwbnFbsDR5hCQWc6_LG_psPzIXyFX8XU`
+(sheet lama `1dJKS7iJ80iK2rV5Jd9D6ap3yATcaUOlj07IcJg74CuY` sudah tidak dipakai —
+struktur/kolom sama persis, 25 kolom `COLS` di `src/sheets/sheets.service.ts`).
+
+1. Backup dulu (MODE B / Postgres asli):
+   `pg_dump "$DATABASE_URL" > backup-main-$(date +%F).sql`
+2. Kosongkan isi (struktur tetap):
+   - MODE B: `npm run db:empty` (= `psql "$DATABASE_URL" -f scripts/reset-db.sql`;
+     TRUNCATE CASCADE + hapus `app_config.syncHashes` agar sync berikutnya
+     menganggap semua baris baru).
+   - MODE A (pg-mem, default): cukup `npm run dev:empty`
+     (= `SKIP_SEED=true`), karena in-memory hilang tiap restart dan seed
+     2034 kasus + 6 user dilewati.
+   - Tanpa `SKIP_SEED`, `initDb()` akan me-seed ulang data lama saat boot.
+3. Isi `.env` Sheet live + share sheet ke service account sebagai Editor:
+   `SHEET_ID=1dozgmtHZFsIkwbnFbsDR5hCQWc6_LG_psPzIXyFX8XU`,
+   `SHEET_DATA_TAB=` (kosong = coba tab `Data`, lalu tab pertama),
+   `GOOGLE_SERVICE_ACCOUNT_JSON=<base64 JSON>`, `SHEETS_MOCK=false`. Restart.
+4. Inject: `POST /api/sync/trigger` (atau tunggu cron 5 menit).
+   Verifikasi: `GET /api/sync/logs` → `success`,
+   `GET /api/cases?limit=1` → data baru, `GET /api/setup/status` → userCount.
 
 ## Google Sheets live (bila mau)
 
