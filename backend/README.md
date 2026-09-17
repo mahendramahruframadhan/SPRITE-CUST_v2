@@ -189,6 +189,22 @@ struktur/kolom sama persis, 25 kolom `COLS` di `src/sheets/sheets.service.ts`).
 2. Share sheet ke service account sebagai Editor
 3. `.env`: `SHEETS_MOCK=false`, restart. Cron tiap 5 menit + `POST /api/sync/trigger` manual.
 
+## Deploy (live, Postgres permanen)
+
+1. Siapkan Postgres + database (contoh lokal: cluster port `5433`, db `sprite_cust`).
+2. `.env` produksi (jangan commit):
+   `DATABASE_URL=postgresql://user:pass@host:5433/sprite_cust`,
+   `BETTER_AUTH_SECRET=<32 char random>`, `BETTER_AUTH_URL=<url backend>`,
+   `FRONTEND_URL=<url frontend>`, `SHEET_ID`, `SHEET_DATA_TAB`,
+   `GOOGLE_SERVICE_ACCOUNT_JSON=<base64>`, `SHEETS_MOCK=false`.
+   Sheet harus di-share ke `client_email` Service Account sebagai Editor.
+3. Boot pertama: `SKIP_SEED=true npm run build && SKIP_SEED=true npm start`
+   (atau `npm run dev:empty`) → DDL saja, tanpa seed dev.
+4. Inject: `POST /api/sync/trigger` → `rows:N`, cek `GET /api/sync/logs`.
+5. Buat Super Admin: `POST /api/setup/first-admin {name,email,password}`
+   (hanya saat user kosong). Boot normal berikutnya tidak me-seed ulang:
+   user dev hanya di-seed saat fresh install (kasus kosong saat boot).
+
 ## Skipped (YAGNI) — add when needed
 
 Bulk read status audit/invoice, `role_permissions` table (role masih map di
