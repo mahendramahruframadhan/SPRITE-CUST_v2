@@ -56,7 +56,20 @@ export async function initDb() {
     }
   }
 
+  // Mode kosong: SKIP_SEED=true → hanya DDL, tanpa seed/backfill.
+  // Dipakai saat pengosongan DB sebelum inject dari Sheet live terbaru,
+  // agar restart tidak mengembalikan 2034 kasus + 6 user lama.
+  // Contoh: SKIP_SEED=true npm run dev
+  if (process.env.SKIP_SEED === 'true') {
+    console.log('[db] SKIP_SEED=true — database dibiarkan kosong (DDL saja)');
+    return;
+  }
+
   // Seed assistance_records from frontend/src/data/cases.js if empty
+  // freshInstall menandai DB benar-benar baru (kasus kosong saat boot).
+  // Dipakai di bawah: user dev hanya di-seed saat fresh install, agar DB yang
+  // sudah di-inject dari Sheet live tidak kemasukan 6 user default tiap restart.
+  let freshInstall = false;
   try {
     let c = 0;
     if (!isRealPg && mem) {
@@ -65,6 +78,7 @@ export async function initDb() {
       const res: any = await db.execute(`SELECT COUNT(*) as c FROM assistance_records` as any);
       c = Number(res.rows?.[0]?.c ?? res[0]?.c ?? 0);
     }
+    freshInstall = c === 0;
     if (c === 0) {
       const casesPath = path.resolve(__dirname, '..', '..', '..', 'frontend', 'src', 'data', 'cases.js');
       if (fs.existsSync(casesPath)) {
@@ -91,11 +105,13 @@ export async function initDb() {
     console.warn('[db] seed cases skipped', e);
   }
 
-  // Seed users
+  // Seed users — HANYA saat fresh install (kasus juga kosong saat boot).
+  // DB live (kasus sudah ada, user kosong) tidak di-seed agar firstRun
+  // (/api/setup/first-admin) tetap berlaku untuk akun Super Admin asli.
   try {
     const res: any = await db.execute(`SELECT COUNT(*) as c FROM "user"` as any);
     const c = Number(res.rows?.[0]?.c ?? res[0]?.c ?? 0);
-    if (c === 0) {
+    if (freshInstall && c === 0) {
       const now = new Date().toISOString();
       const users = [
         ['u_admin', 'Admin Utama', 'admin@revota.id', 'Super Admin', '12345'],
@@ -146,6 +162,21 @@ export async function initDb() {
         await q(`ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS ${col}`);
       } catch {}
     }
+    // Seed matriks penuh DULU bila kosong — harus sebelum backfill logs/settings
+    // di bawah (yang memakai DO NOTHING), kalau tidak count>0 dan matriks
+    // 11 modul tidak pernah ter-seed pada DB baru.
+    try {
+      const pc: any = await q(`SELECT COUNT(*) as c FROM role_permissions`);
+      if (!Number(pc[0]?.c || 0)) {
+        const now = new Date().toISOString();
+        for (const [role, mods] of Object.entries(ROLE_PERMS)) {
+          for (const [mod, allowed] of Object.entries(mods)) {
+            await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','${mod}',${allowed},'${now}')`);
+          }
+        }
+        console.log('[db] seeded role_permissions');
+      }
+    } catch {}
     // Backfill izin modul 'logs' untuk DB yang di-seed sebelum modul ini ada
     try {
       const now = new Date().toISOString();
@@ -175,16 +206,6 @@ export async function initDb() {
         await q(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${now}') ON CONFLICT (key) DO NOTHING`);
       }
     } catch {}
-    const pc: any = await q(`SELECT COUNT(*) as c FROM role_permissions`);
-    if (!Number(pc[0]?.c || 0)) {
-      const now = new Date().toISOString();
-      for (const [role, mods] of Object.entries(ROLE_PERMS)) {
-        for (const [mod, allowed] of Object.entries(mods)) {
-          await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','${mod}',${allowed},'${now}')`);
-        }
-      }
-      console.log('[db] seeded role_permissions');
-    }
     const lc: any = await q(`SELECT COUNT(*) as c FROM activity_logs`);
     if (!Number(lc[0]?.c || 0)) {
       const now = new Date().toISOString();
