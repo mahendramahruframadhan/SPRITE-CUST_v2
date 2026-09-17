@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { useFontSize, FONT_SIZES } from '../context/FontSizeContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { NAV_MODULES } from '../config/modules.js';
 import Icon from '../components/Icon.jsx';
@@ -19,7 +20,7 @@ const ROLE_BADGE = {
 
 const TABS = [
   { id: 'akun', label: 'Akun', desc: 'Profil, keamanan & sesi', icon: 'user' },
-  { id: 'tampilan', label: 'Tampilan', desc: 'Tema gelap & terang', icon: 'sun' },
+  { id: 'tampilan', label: 'Tampilan', desc: 'Tema & ukuran font', icon: 'sun' },
   { id: 'master', label: 'Master Status', desc: 'Status Billing & Finance', icon: 'billing' },
   { id: 'akses', label: 'Akses Saya', desc: 'Modul yang dapat diakses', icon: 'dashboard' },
   { id: 'roles', label: 'Hak Akses', desc: 'Kelola pengguna & izin', icon: 'roles', perm: 'roles' },
@@ -138,6 +139,7 @@ function StatusListManager({ label, hint, items, newVal, onNewVal, onAdd, onDele
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { fontSize, setFontSize } = useFontSize();
   const { can, perms, role } = usePermissions();
   const location = useLocation();
   const [myId, setMyId] = useState('');
@@ -523,6 +525,52 @@ export default function SettingsPage() {
                 </div>
                 <p className="text-[11px] text-slate-400">
                   Pilihan tersimpan otomatis dan langsung berlaku di semua halaman.
+                </p>
+              </div>
+
+              {/* Ukuran font */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+                <SectionHead icon="sun" title="Ukuran Font" desc="Kecil, sedang, atau besar — tersimpan otomatis di browser ini" />
+                <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Pilih ukuran font">
+                  {[
+                    { id: 'small', previewCls: 'text-sm' },
+                    { id: 'medium', previewCls: 'text-base' },
+                    { id: 'large', previewCls: 'text-lg' },
+                  ].map((o) => {
+                    const active = fontSize === o.id;
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        onClick={() => setFontSize(o.id)}
+                        className={`relative text-center rounded-2xl border-2 px-3 py-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                          active
+                            ? 'border-brand-500 shadow-lg shadow-brand-500/10'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                        }`}
+                      >
+                        <span className={`block font-extrabold text-slate-800 dark:text-slate-100 ${o.previewCls}`} aria-hidden="true">
+                          Aa
+                        </span>
+                        <span className="mt-1.5 block text-sm font-bold text-slate-800 dark:text-slate-100">
+                          {FONT_SIZES[o.id].label}
+                        </span>
+                        <span className="block text-[11px] text-slate-400 mt-0.5">{FONT_SIZES[o.id].px}</span>
+                        {active && (
+                          <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center" aria-hidden="true">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {FONT_SIZES[fontSize]?.desc} — berlaku ke seluruh aplikasi dan tersimpan otomatis.
                 </p>
               </div>
             </div>
