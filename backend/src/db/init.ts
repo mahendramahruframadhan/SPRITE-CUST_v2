@@ -56,6 +56,15 @@ export async function initDb() {
     }
   }
 
+  // Mode kosong: SKIP_SEED=true → hanya DDL, tanpa seed/backfill.
+  // Dipakai saat pengosongan DB sebelum inject dari Sheet live terbaru,
+  // agar restart tidak mengembalikan 2034 kasus + 6 user lama.
+  // Contoh: SKIP_SEED=true npm run dev
+  if (process.env.SKIP_SEED === 'true') {
+    console.log('[db] SKIP_SEED=true — database dibiarkan kosong (DDL saja)');
+    return;
+  }
+
   // Seed assistance_records from frontend/src/data/cases.js if empty
   try {
     let c = 0;
