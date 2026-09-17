@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
+import { FontSizeProvider } from './context/FontSizeContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { usePermissions } from './hooks/usePermissions.js';
 import AppLayout from './components/AppLayout.jsx';
@@ -40,6 +41,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
+        <FontSizeProvider>
         <ToastProvider>
         <BrowserRouter>
         <Routes>
@@ -66,6 +68,7 @@ export default function App() {
         </Routes>
         </BrowserRouter>
         </ToastProvider>
+        </FontSizeProvider>
       </ThemeProvider>
     </AuthProvider>
   );
