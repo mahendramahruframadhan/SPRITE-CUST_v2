@@ -753,7 +753,6 @@ export default function DashboardPage() {
                 const bs = (c.billingStatus || '').trim() || '-';
                 const audit = caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI';
                 const isValid = audit === 'VALID - SIAP INVOICE';
-                const clientInitials = String(c.client || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
                 const staffInitials = String(c.assignTo || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
                 return (
                   <tr
@@ -765,12 +764,9 @@ export default function DashboardPage() {
                     <td className="pl-6 pr-2 py-3.5 text-xs text-slate-400 tabular-nums">{c.no || '-'}</td>
                     <td className="px-3 py-3.5 text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap tabular-nums">{fmtDate(c.dateIssue)}</td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
-                      <span className="flex items-center gap-2.5">
-                        <span className="w-8 h-8 rounded-lg bg-brand-600/10 text-brand-700 dark:text-brand-300 border border-brand-100 dark:border-brand-500/20 text-[10px] font-extrabold flex items-center justify-center shrink-0">{clientInitials}</span>
-                        <span className="min-w-0">
-                          <span className="block font-bold text-slate-800 dark:text-slate-100 truncate">{c.client || '-'}</span>
-                          {c.channelTicket && <span className="block text-[10px] text-slate-400 font-medium">via {c.channelTicket}</span>}
-                        </span>
+                      <span className="min-w-0">
+                        <span className="block font-bold text-slate-800 dark:text-slate-100 truncate">{c.client || '-'}</span>
+                        {c.channelTicket && <span className="block text-[10px] text-slate-400 font-medium">via {c.channelTicket}</span>}
                       </span>
                     </td>
                     <td className="px-3 py-3.5">
