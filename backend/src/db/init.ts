@@ -66,6 +66,10 @@ export async function initDb() {
   }
 
   // Seed assistance_records from frontend/src/data/cases.js if empty
+  // freshInstall menandai DB benar-benar baru (kasus kosong saat boot).
+  // Dipakai di bawah: user dev hanya di-seed saat fresh install, agar DB yang
+  // sudah di-inject dari Sheet live tidak kemasukan 6 user default tiap restart.
+  let freshInstall = false;
   try {
     let c = 0;
     if (!isRealPg && mem) {
@@ -74,6 +78,7 @@ export async function initDb() {
       const res: any = await db.execute(`SELECT COUNT(*) as c FROM assistance_records` as any);
       c = Number(res.rows?.[0]?.c ?? res[0]?.c ?? 0);
     }
+    freshInstall = c === 0;
     if (c === 0) {
       const casesPath = path.resolve(__dirname, '..', '..', '..', 'frontend', 'src', 'data', 'cases.js');
       if (fs.existsSync(casesPath)) {
@@ -100,11 +105,13 @@ export async function initDb() {
     console.warn('[db] seed cases skipped', e);
   }
 
-  // Seed users
+  // Seed users — HANYA saat fresh install (kasus juga kosong saat boot).
+  // DB live (kasus sudah ada, user kosong) tidak di-seed agar firstRun
+  // (/api/setup/first-admin) tetap berlaku untuk akun Super Admin asli.
   try {
     const res: any = await db.execute(`SELECT COUNT(*) as c FROM "user"` as any);
     const c = Number(res.rows?.[0]?.c ?? res[0]?.c ?? 0);
-    if (c === 0) {
+    if (freshInstall && c === 0) {
       const now = new Date().toISOString();
       const users = [
         ['u_admin', 'Admin Utama', 'admin@revota.id', 'Super Admin', '12345'],
