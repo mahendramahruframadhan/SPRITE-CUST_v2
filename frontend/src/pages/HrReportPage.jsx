@@ -45,6 +45,43 @@ function KpiBadge({ k }) {
   );
 }
 
+// Geser tanggal ISO (yyyy-MM-dd) sejauh N hari — untuk preset cepat
+function shiftISO(iso, days) {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function CalendarIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+    </svg>
+  );
+}
+
+function FilterField({ label, icon, children }) {
+  return (
+    <div className="min-w-0">
+      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</label>
+      <div className="relative mt-1.5">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true">
+          {icon}
+        </span>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function defaultDates(cases) {
   const valid = cases.map((c) => normDate8(c.dateIssue)).filter((d) => /^\d{8}$/.test(d)).sort();
   if (!valid.length) return { from: '', to: '' };
@@ -111,10 +148,43 @@ export default function HrReportPage() {
     year: 'numeric',
   });
 
-  const periodLabel = from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal';
-  const reportPeriod = (from || to
+  const rangeLabel = from || to
     ? `${from ? fmtDate8(from.replace(/-/g, '')) : 'Awal'} — ${to ? fmtDate8(to.replace(/-/g, '')) : 'Akhir'}`
-    : 'Semua tanggal') + (pic ? ` · PIC: ${pic}` : '');
+    : 'Semua tanggal';
+  const reportPeriod = rangeLabel + (pic ? ` · PIC: ${pic}` : '');
+
+  // Tanggal terbaru di data — acuan preset cepat (7/30 hari, bulan ini)
+  const maxISO = useMemo(() => {
+    const valid = allCases.map((c) => normDate8(c.dateIssue)).filter((d) => /^\d{8}$/.test(d)).sort();
+    if (!valid.length) return '';
+    const max = valid[valid.length - 1];
+    return `${max.slice(0, 4)}-${max.slice(4, 6)}-${max.slice(6, 8)}`;
+  }, [allCases]);
+
+  function applyPreset(kind) {
+    if (!maxISO) return;
+    if (kind === '7') {
+      setFrom(shiftISO(maxISO, -6));
+      setTo(maxISO);
+    } else if (kind === '30') {
+      setFrom(shiftISO(maxISO, -29));
+      setTo(maxISO);
+    } else if (kind === 'month') {
+      setFrom(`${maxISO.slice(0, 7)}-01`);
+      setTo(maxISO);
+    }
+  }
+
+  const activePreset =
+    from && to && maxISO && to === maxISO
+      ? from === shiftISO(maxISO, -6)
+        ? '7'
+        : from === shiftISO(maxISO, -29)
+          ? '30'
+          : from === `${maxISO.slice(0, 7)}-01`
+            ? 'month'
+            : ''
+      : '';
 
   /* Rekapitulasi */
   const { byPic, picList, grand, grandTotal } = useMemo(() => {
@@ -167,55 +237,104 @@ export default function HrReportPage() {
   }
 
   const dateCls =
-    'block text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-amber-50/60 dark:bg-slate-800 text-slate-800 dark:text-slate-100';
+    'block w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition [color-scheme:light] dark:[color-scheme:dark]';
+
+  const presetBtn = (active) =>
+    `text-xs font-bold px-3.5 py-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+      active
+        ? 'bg-brand-600 border-brand-600 text-white shadow-md shadow-brand-600/25'
+        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+    }`;
 
   return (
     <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
       {/* Filter */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap items-end gap-3 animate-fade-in-fast">
-        <div>
-          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Date From</label>
-          <div className="mt-1 flex items-center gap-2">
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={dateCls} />
-            <span className="text-[10px] text-slate-400 font-mono">&lt;&lt;&lt; yyyyMMdd</span>
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Date Until</label>
-          <div className="mt-1 flex items-center gap-2">
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={dateCls} />
-            <span className="text-[10px] text-slate-400 font-mono">&lt;&lt;&lt; yyyyMMdd</span>
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">PIC Name</label>
-          <div className="mt-1 flex items-center gap-2">
-            <select value={pic} onChange={(e) => setPic(e.target.value)} className={`${dateCls} min-w-[180px]`}>
-              <option value="">— Semua PIC —</option>
-              {pics.map((p) => (
-                <option key={p} value={p}>{p}</option>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 animate-fade-in-fast">
+        <div className="flex flex-col xl:flex-row gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <FilterField label="Tanggal Dari" icon={<CalendarIcon />}>
+                <input
+                  type="date"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  aria-label="Tanggal dari"
+                  className={dateCls}
+                />
+              </FilterField>
+              <FilterField label="Tanggal Sampai" icon={<CalendarIcon />}>
+                <input
+                  type="date"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  aria-label="Tanggal sampai"
+                  className={dateCls}
+                />
+              </FilterField>
+              <FilterField label="Nama PIC" icon={<UserIcon />}>
+                <select
+                  value={pic}
+                  onChange={(e) => setPic(e.target.value)}
+                  aria-label="Nama PIC"
+                  className={dateCls}
+                >
+                  <option value="">— Semua PIC —</option>
+                  {pics.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </FilterField>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold text-slate-400 mr-1">Cepat:</span>
+              {[
+                { id: '7', label: '7 Hari' },
+                { id: '30', label: '30 Hari' },
+                { id: 'month', label: 'Bulan Ini' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => applyPreset(p.id)}
+                  aria-pressed={activePreset === p.id}
+                  className={presetBtn(activePreset === p.id)}
+                >
+                  {p.label}
+                </button>
               ))}
-            </select>
-            <span className="text-[10px] text-slate-400 font-mono">&lt;&lt;&lt; input name</span>
+              <span className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" aria-hidden="true" />
+              <button
+                onClick={() => { setPic(''); setFrom(''); setTo(''); }}
+                className="text-xs font-bold text-slate-500 dark:text-slate-300 px-3.5 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                Reset
+              </button>
+              <button
+                onClick={exportCSV}
+                className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-3.5 py-2 rounded-full transition"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Export CSV
+              </button>
+            </div>
           </div>
-        </div>
-        <button
-          onClick={() => { setPic(''); setFrom(''); setTo(''); }}
-          className="text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-        >
-          Reset
-        </button>
-        <button
-          onClick={exportCSV}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-4 py-2 rounded-lg transition"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          Export CSV
-        </button>
-        <div className="ml-auto text-xs text-slate-400">
-          Periode: <span className="font-semibold text-slate-600 dark:text-slate-300">{periodLabel}</span>
+          {/* Ringkasan periode */}
+          <div className="shrink-0 xl:w-64 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 p-4 flex xl:flex-col flex-row flex-wrap items-center xl:items-stretch gap-3">
+            <div className="min-w-0 flex-1 xl:flex-none">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Periode Laporan</p>
+              <p className="mt-1 text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug">{rangeLabel}</p>
+              {pic && (
+                <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  PIC: <span className="text-brand-600 dark:text-brand-300">{pic}</span>
+                </p>
+              )}
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-full px-3 py-1.5 tabular-nums">
+              {filtered.length.toLocaleString('id-ID')} ticket
+            </span>
+          </div>
         </div>
       </div>
 
