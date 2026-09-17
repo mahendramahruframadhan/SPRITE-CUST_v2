@@ -139,7 +139,7 @@ export default function SheetConfigPage() {
   function exportJSON() {
     const payload = {
       meta: {
-        source: 'https://docs.google.com/spreadsheets/d/1dJKS7iJ80iK2rV5Jd9D6ap3yATcaUOlj07IcJg74CuY/edit?gid=0',
+        source: 'https://docs.google.com/spreadsheets/d/1dozgmtHZFsIkwbnFbsDR5hCQWc6_LG_psPzIXyFX8XU/edit?gid=0',
         description: 'Master config Pusat Data Bantuan — struktur mengikuti tab konfigurasi Google Sheets',
         exportedAt: new Date().toISOString(),
       },

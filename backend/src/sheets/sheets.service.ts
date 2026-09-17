@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { google } from 'googleapis';
 
-const SHEET_ID = process.env.SHEET_ID || '1dJKS7iJ80iK2rV5Jd9D6ap3yATcaUOlj07IcJg74CuY';
+const SHEET_ID = process.env.SHEET_ID || '1dozgmtHZFsIkwbnFbsDR5hCQWc6_LG_psPzIXyFX8XU';
 // Nama tab data (opsional) — bila dikosongkan: coba 'Data', lalu tab pertama.
 // Contoh: SHEET_DATA_TAB=Data September
 const SHEET_DATA_TAB = (process.env.SHEET_DATA_TAB || '').trim();
