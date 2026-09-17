@@ -162,6 +162,21 @@ export async function initDb() {
         await q(`ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS ${col}`);
       } catch {}
     }
+    // Seed matriks penuh DULU bila kosong — harus sebelum backfill logs/settings
+    // di bawah (yang memakai DO NOTHING), kalau tidak count>0 dan matriks
+    // 11 modul tidak pernah ter-seed pada DB baru.
+    try {
+      const pc: any = await q(`SELECT COUNT(*) as c FROM role_permissions`);
+      if (!Number(pc[0]?.c || 0)) {
+        const now = new Date().toISOString();
+        for (const [role, mods] of Object.entries(ROLE_PERMS)) {
+          for (const [mod, allowed] of Object.entries(mods)) {
+            await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','${mod}',${allowed},'${now}')`);
+          }
+        }
+        console.log('[db] seeded role_permissions');
+      }
+    } catch {}
     // Backfill izin modul 'logs' untuk DB yang di-seed sebelum modul ini ada
     try {
       const now = new Date().toISOString();
@@ -191,16 +206,6 @@ export async function initDb() {
         await q(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${now}') ON CONFLICT (key) DO NOTHING`);
       }
     } catch {}
-    const pc: any = await q(`SELECT COUNT(*) as c FROM role_permissions`);
-    if (!Number(pc[0]?.c || 0)) {
-      const now = new Date().toISOString();
-      for (const [role, mods] of Object.entries(ROLE_PERMS)) {
-        for (const [mod, allowed] of Object.entries(mods)) {
-          await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','${mod}',${allowed},'${now}')`);
-        }
-      }
-      console.log('[db] seeded role_permissions');
-    }
     const lc: any = await q(`SELECT COUNT(*) as c FROM activity_logs`);
     if (!Number(lc[0]?.c || 0)) {
       const now = new Date().toISOString();
