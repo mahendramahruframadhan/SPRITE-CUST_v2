@@ -326,16 +326,12 @@ export default function FinanceAuditPage() {
               {filtered.map((c) => {
                 const meta = invoiceMeta[c.recordUuid] || {};
                 const bs = (c.billingStatus || '').trim() || '-';
-                const brandInitials = String(c.client || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
                 return (
                 <tr key={c.recordUuid} className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition">
                   <td className="px-6 py-3.5 text-slate-400 tabular-nums">{c.no}</td>
                   <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 font-semibold whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
-                    <span className="flex items-center gap-2.5">
-                      <span className="w-8 h-8 rounded-lg bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 text-[10px] font-extrabold flex items-center justify-center shrink-0">{brandInitials}</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-100">{c.client}</span>
-                    </span>
+                    <span className="font-bold text-slate-800 dark:text-slate-100">{c.client}</span>
                   </td>
                   <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{c.picName || '-'}</td>
                   <td className="px-4 py-3.5">
