@@ -350,7 +350,7 @@ export default function HrReportPage() {
         </div>
 
         {/* Rekapitulasi */}
-        <div className="border-b border-slate-200 dark:border-slate-800">
+        <div>
           <div className="px-6 py-4 bg-slate-800 dark:bg-slate-950 text-white">
             <h3 className="font-bold text-sm">REKAPITULASI PERFORMANCE GROUP KPI</h3>
             <p className="text-[11px] text-slate-300 mt-0.5">Laporan komprehensif berdasarkan tim & kategori Group KPI</p>
@@ -407,8 +407,10 @@ export default function HrReportPage() {
             </table>
           </div>
         </div>
+      </div>
 
-        {/* Detail Ticket */}
+      {/* Detail Ticket — kartu terpisah agar ada jarak dari rekap */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fade-in-fast" style={{ animationDelay: '.12s' }}>
         <div>
           <div className="px-6 py-4 bg-brand-700 text-white">
             <h3 className="font-bold text-sm">LAPORAN DETAIL TICKET & ISSUE</h3>
