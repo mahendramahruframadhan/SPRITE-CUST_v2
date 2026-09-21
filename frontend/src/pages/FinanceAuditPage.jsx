@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
+import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, requestPdfDownloadUrl, deletePdf } from '../lib/api.js';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState, DEFAULT_INVOICE } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
@@ -14,15 +15,51 @@ const VALID_TAG = 'VALID - SIAP INVOICE';
 
 const MAX_PDF_MB = 10;
 
-// Tombol upload PDF invoice per baris (FRONTEND SAJA, backend menyusul).
-// File hanya dicatat di memori (nama + ukuran) sebagai persiapan kontrak upload.
-// Catatan: jangan simpan File ke invoiceMeta karena hook itu persist ke localStorage.
-function PdfUploadButton({ recordUuid, selected, onSelect, onClear, notify }) {
+// PUT langsung ke presigned URL R2 dengan progress (fetch tanpa progress bar).
+function putXhr(url, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    xhr.setRequestHeader('Content-Type', 'application/pdf');
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload R2 gagal (${xhr.status}).`)));
+    xhr.onerror = () => reject(new Error('Koneksi putus saat upload, coba lagi.'));
+    xhr.send(file);
+  });
+}
+
+const fmtKB = (b) => `${(Number(b || 0) / 1024).toLocaleString('id-ID', { maximumFractionDigits: 0 })} KB`;
+
+// Sel upload PDF invoice per baris: pilih -> PUT R2 (progress) -> confirm ->
+// daftar file (unduh/hapus). File tidak disimpan ke invoiceMeta (localStorage).
+function PdfCell({ recordUuid, notify }) {
   const inputId = `pdf-${recordUuid}`;
-  const pick = (e) => {
+  const fileRef = useRef(null);
+  const seq = useRef(0);
+  const [files, setFiles] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [pct, setPct] = useState(null);
+
+  const reload = useCallback(() => {
+    const my = ++seq.current;
+    listPdfsByCase(recordUuid).then(
+      (rows) => {
+        if (seq.current === my) setFiles(Array.isArray(rows) ? rows : []);
+      },
+      () => {}
+    );
+  }, [recordUuid]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const pick = async (e) => {
     const f = e.target.files && e.target.files[0];
     e.target.value = '';
-    if (!f) return;
+    if (!f || busy) return;
     const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
     if (!isPdf) {
       notify('File harus berformat PDF.', 'err');
@@ -32,38 +69,90 @@ function PdfUploadButton({ recordUuid, selected, onSelect, onClear, notify }) {
       notify(`Ukuran PDF maksimal ${MAX_PDF_MB} MB.`, 'err');
       return;
     }
-    onSelect(recordUuid, { name: f.name, size: f.size });
-    notify(`PDF dipilih: ${f.name} (upload ke server menyusul).`, 'success');
+    fileRef.current = f;
+    setBusy(true);
+    setPct(0);
+    try {
+      const u = await requestPdfUploadUrl({ recordUuid, filename: f.name, sizeBytes: f.size });
+      await putXhr(u.url, f, setPct);
+      await confirmPdfUpload({ id: u.id });
+      notify(`PDF terupload: ${f.name}.`, 'success');
+      reload();
+    } catch (err) {
+      notify(err?.data?.message || err?.message || 'Upload gagal, coba lagi.', 'err');
+    } finally {
+      fileRef.current = null;
+      setBusy(false);
+      setPct(null);
+    }
   };
-  const kb = selected ? (selected.size / 1024).toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '';
+
+  const download = async (id, filename) => {
+    try {
+      const r = await requestPdfDownloadUrl(id);
+      const a = document.createElement('a');
+      a.href = r.url;
+      a.download = filename || 'invoice.pdf';
+      a.click();
+    } catch (err) {
+      notify(err?.data?.message || 'Unduhan gagal, coba lagi.', 'err');
+    }
+  };
+
+  const remove = async (id, filename) => {
+    if (!confirm(`Hapus PDF "${filename}"?`)) return;
+    try {
+      await deletePdf(id);
+      notify('PDF dihapus.', 'success');
+      reload();
+    } catch (err) {
+      notify(err?.data?.message || 'Hapus gagal, coba lagi.', 'err');
+    }
+  };
+
   return (
-    <div className="mt-1.5 w-[130px]">
-      <input id={inputId} type="file" accept="application/pdf,.pdf" className="hidden" onChange={pick} />
-      {!selected ? (
-        <label
-          htmlFor={inputId}
-          className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-lg px-2.5 py-1 transition"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-          </svg>
-          Upload PDF
-        </label>
-      ) : (
-        <div className="flex w-full items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
-          <svg className="w-3.5 h-3.5 shrink-0 text-rose-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-          </svg>
-          <span className="flex-1 min-w-0 truncate" title={`${selected.name} (${kb} KB)`}>{selected.name}</span>
-          <button
-            type="button"
-            onClick={() => onClear(recordUuid)}
-            aria-label={`Hapus PDF ${selected.name}`}
-            className="shrink-0 font-bold text-slate-400 hover:text-rose-600 px-1"
-          >
-            ✕
-          </button>
+    <div className="w-[150px]">
+      <input id={inputId} type="file" accept="application/pdf,.pdf" className="hidden" onChange={pick} disabled={busy} />
+      <label
+        htmlFor={inputId}
+        aria-disabled={busy}
+        className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold rounded-lg px-2.5 py-1 border transition ${busy ? 'cursor-wait text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700' : 'cursor-pointer text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border-emerald-200 dark:border-emerald-500/20'}`}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+        </svg>
+        {busy && pct !== null ? `${pct}%` : 'Upload PDF'}
+      </label>
+      {busy && pct !== null && (
+        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
         </div>
+      )}
+      {files.length > 0 && (
+        <ul className="mt-1.5 space-y-1">
+          {files.map((f) => (
+            <li
+              key={f.id}
+              className="flex w-full items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1"
+            >
+              <span className="flex-1 min-w-0 truncate" title={`${f.filename} (${fmtKB(f.sizeBytes)})${f.status !== 'completed' ? ' - ' + f.status : ''}`}>
+                {f.filename}
+              </span>
+              {f.status === 'completed' ? (
+                <>
+                  <button type="button" onClick={() => download(f.id, f.filename)} aria-label={`Unduh ${f.filename}`} className="shrink-0 font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-1">
+                    Unduh
+                  </button>
+                  <button type="button" onClick={() => remove(f.id, f.filename)} aria-label={`Hapus ${f.filename}`} className="shrink-0 font-bold text-slate-400 hover:text-rose-600 px-1">
+                    ✕
+                  </button>
+                </>
+              ) : (
+                <span className="shrink-0 text-[10px] text-amber-600">{f.status}</span>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -100,14 +189,6 @@ export default function FinanceAuditPage() {
   const [editValue, setEditValue] = useState('');
   const [editBusy, setEditBusy] = useState(false);
   const [editErr, setEditErr] = useState('');
-  // PDF terpilih per baris (memori saja, menunggu backend upload)
-  const [pdfSel, setPdfSel] = useState({});
-  const selectPdf = (uuid, file) => setPdfSel((m) => ({ ...m, [uuid]: file }));
-  const clearPdf = (uuid) => setPdfSel((m) => {
-    const next = { ...m };
-    delete next[uuid];
-    return next;
-  });
 
   // Pastikan kasus tervalidasi punya status invoice default
   useEffect(() => {
@@ -434,13 +515,7 @@ export default function FinanceAuditPage() {
                     </select>
                   </td>
                   <td className="px-4 py-3.5">
-                    <PdfUploadButton
-                      recordUuid={c.recordUuid}
-                      selected={pdfSel[c.recordUuid]}
-                      onSelect={selectPdf}
-                      onClear={clearPdf}
-                      notify={notify}
-                    />
+                    <PdfCell recordUuid={c.recordUuid} notify={notify} />
                   </td>
                   <td className="px-4 py-3.5">
                     <input

@@ -106,3 +106,10 @@ export const getLogs = () => get('/roles/logs');
 export const postLog = (who, action, extra = {}) => post('/roles/logs', { who, action, ...extra });
 export const chatAi = (messages, connectionId) => post('/ai/chat', connectionId ? { messages, connectionId } : { messages });
 export const getAiConnections = () => get('/ai/connections');
+// PDF invoice (R2 presigned URL). Upload file via PUT langsung ke URL R2,
+// bukan lewat body API (lihat backend/src/pdf).
+export const requestPdfUploadUrl = (body) => post('/pdf/upload-url', body);
+export const confirmPdfUpload = (body) => post('/pdf/confirm', body);
+export const listPdfsByCase = (uuid) => get(`/pdf/by-case/${uuid}`);
+export const requestPdfDownloadUrl = (id) => get(`/pdf/${id}/download-url`);
+export const deletePdf = (id) => req(`/pdf/${id}`, { method: 'DELETE' });
