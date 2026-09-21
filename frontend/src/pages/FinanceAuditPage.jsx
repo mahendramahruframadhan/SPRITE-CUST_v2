@@ -12,8 +12,6 @@ import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 const VALID_TAG = 'VALID - SIAP INVOICE';
 
-const shortInvoice = (a) => (a === 'INVOICE TERBIT' ? 'Terbit Invoice' : a === 'PAID' ? 'Paid' : a);
-
 const MAX_PDF_MB = 10;
 
 // Tombol upload PDF invoice per baris (FRONTEND SAJA, backend menyusul).
@@ -381,9 +379,9 @@ export default function FinanceAuditPage() {
                 <th className="px-4 py-3 font-bold">Billing Category</th>
                 <th className="px-4 py-3 font-bold text-right">Charges</th>
                 <th className="px-4 py-3 font-bold">Status Invoice</th>
+                <th className="px-4 py-3 font-bold">Upload PDF</th>
                 <th className="px-4 py-3 font-bold">No. Invoice</th>
                 <th className="px-4 py-3 font-bold">Keterangan</th>
-                <th className="px-6 py-3 font-bold text-center">Aksi Cepat</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -436,13 +434,6 @@ export default function FinanceAuditPage() {
                     </select>
                   </td>
                   <td className="px-4 py-3.5">
-                    <input
-                      type="text"
-                      placeholder="No. invoice"
-                      value={meta.no || ''}
-                      onChange={(e) => updateInvoiceMeta(c.recordUuid, { no: e.target.value })}
-                      className="text-xs font-mono border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 w-[130px]"
-                    />
                     <PdfUploadButton
                       recordUuid={c.recordUuid}
                       selected={pdfSel[c.recordUuid]}
@@ -454,32 +445,21 @@ export default function FinanceAuditPage() {
                   <td className="px-4 py-3.5">
                     <input
                       type="text"
+                      placeholder="No. invoice"
+                      value={meta.no || ''}
+                      onChange={(e) => updateInvoiceMeta(c.recordUuid, { no: e.target.value })}
+                      className="text-xs font-mono border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 w-[130px]"
+                    />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <input
+                      type="text"
                       placeholder="Keterangan..."
                       title={meta.note || ''}
                       value={meta.note || ''}
                       onChange={(e) => updateInvoiceMeta(c.recordUuid, { note: e.target.value })}
                       className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 w-[160px]"
                     />
-                  </td>
-                  <td className="px-6 py-3.5 text-center">
-                    <div className="flex items-center justify-center gap-1 flex-wrap">
-                      {invoiceActions
-                        .filter((a) => a !== (invoiceStatus[c.recordUuid] || defaultInvoiceStatus))
-                        .slice(0, 2)
-                        .map((a, i) => (
-                          <button
-                            key={a}
-                            onClick={() => handleInvoice(c.recordUuid, a)}
-                            className={`text-[10px] font-semibold px-2 py-1 rounded transition ${
-                              i === 0
-                                ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-100 dark:hover:bg-violet-500/20'
-                                : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
-                            }`}
-                          >
-                            {shortInvoice(a)}
-                          </button>
-                        ))}
-                    </div>
                   </td>
                 </tr>
                 );
