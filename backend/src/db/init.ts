@@ -42,6 +42,7 @@ export async function initDb() {
     ALTER TABLE "user" ADD COLUMN IF NOT EXISTS active INTEGER DEFAULT 1;
     CREATE TABLE IF NOT EXISTS role_permissions (role TEXT NOT NULL, module TEXT NOT NULL, allowed INTEGER DEFAULT 0, updated_at TEXT, PRIMARY KEY (role, module));
     CREATE TABLE IF NOT EXISTS activity_logs (id TEXT PRIMARY KEY, who TEXT, action TEXT NOT NULL, category TEXT, detail TEXT, record_uuid TEXT, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS invoice_pdfs (id TEXT PRIMARY KEY, record_uuid TEXT NOT NULL REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, filename TEXT NOT NULL, storage_key TEXT NOT NULL UNIQUE, size_bytes INTEGER DEFAULT 0, status TEXT NOT NULL DEFAULT 'uploading', uploaded_by TEXT, created_at TEXT NOT NULL, updated_at TEXT);
   `;
 
   if (!isRealPg && mem) {
