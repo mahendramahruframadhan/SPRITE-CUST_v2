@@ -1,0 +1,78 @@
+/* ============================================================
+ * SPRITE-CUST design tokens — tiga lapis (primitive → semantic → component)
+ * ala skill design-system. Single source of truth untuk nilai bersama.
+ * Pola dark: Tailwind (dark:) tetap dipakai di markup; token di sini
+ * menyimpan nilai light + override .dark untuk yang dibaca via var().
+ * ============================================================ */
+
+/* === PRIMITIVE: nilai mentah (cermin tailwind.config brand scale) === */
+:root {
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dfe9ff;
+  --color-brand-200: #c5d7ff;
+  --color-brand-300: #a2bcff;
+  --color-brand-400: #7d97fb;
+  --color-brand-500: #5f72f5;
+  --color-brand-600: #4a4fe9;
+  --color-brand-700: #3d3ece;
+  --color-brand-800: #3336a6;
+  --color-brand-900: #2f3383;
+  --color-brand-950: #1c1e4e;
+  --color-brand-rgb: 74 79 233;
+
+  /* Chart hues (dipakai chartPalette.js sebagai fallback CSS) */
+  --color-chart-emerald: #10b981;
+  --color-chart-amber: #f59e0b;
+  --color-chart-amber-light: #fbbf24;
+  --color-chart-amber-dark: #d97706;
+  --color-chart-sky: #0ea5e9;
+  --color-chart-cyan: #06b6d4;
+  --color-chart-violet: #8b5cf6;
+  --color-chart-rose: #f43f5e;
+  --color-chart-rose-light: #fb7185;
+  --color-chart-rose-dark: #e11d48;
+  --color-chart-red: #ef4444;
+  --color-chart-pink: #ec4899;
+  --color-chart-orange: #f97316;
+  --color-chart-indigo: #6366f1;
+  --color-chart-teal: #14b8a6;
+  --color-chart-slate: #64748b;
+  --color-chart-slate-tick: #94a3b8;
+  --color-chart-slate-pale: #cbd5e1;
+
+  /* Radius & shadow */
+  --radius-card: 1.5rem; /* rounded-3xl */
+  --radius-control: 0.75rem; /* rounded-xl */
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.05);
+
+  /* Durasi */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+}
+
+/* === SEMANTIC: alias tujuan (ganti tema cukup di sini + .dark) === */
+:root {
+  --color-primary: var(--color-brand-600);
+  --color-primary-dark: var(--color-brand-700);
+  --surface-card: #ffffff;
+  --surface-page: #f1f5f9; /* slate-100 */
+  --surface-grid-line: #eef2f7;
+  --surface-grid-line-alt: #f1f5f9;
+  --text-chart-tick: var(--color-chart-slate-tick);
+}
+
+/* === COMPONENT: token per komponen === */
+:root {
+  --card-bg: var(--surface-card);
+  --card-radius: var(--radius-card);
+  --card-shadow: var(--shadow-card);
+  --chart-tooltip-bg: #0f172a; /* slate-900 */
+}
+
+/* === DARK MODE: override semantik yang dibaca via var() === */
+.dark {
+  --surface-card: #0f172a; /* slate-900 */
+  --surface-page: #020617; /* slate-950 */
+  --surface-grid-line: #1e293b; /* slate-800 */
+  --surface-grid-line-alt: #1e293b;
+}
