@@ -18,6 +18,7 @@ import { triggerSync, getSyncLogs, getHealth } from '../lib/api.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 ChartJS.register(
@@ -92,13 +93,14 @@ export default function DashboardPage() {
   const [mockMode, setMockMode] = useState(false);
   const [detailUuid, setDetailUuid] = useState(null);
 
-  // Palet chart mengikuti tema (terang/gelap)
+  // Palet chart terpusat (lib/chartPalette.js) mengikuti tema terang/gelap
   const { theme } = useTheme();
   const dark = theme === 'dark';
-  const gridOpt = { color: dark ? '#1e293b' : '#eef2f7' };
-  const sliceBorder = dark ? '#0f172a' : '#ffffff';
-  const legendColor = dark ? '#94a3b8' : '#64748b';
-  const axisLabelColor = dark ? '#94a3b8' : '#334155';
+  const t = chartTheme(dark);
+  const gridOpt = { color: t.grid };
+  const sliceBorder = t.sliceBorder;
+  const legendColor = t.legend;
+  const axisLabelColor = t.axisLabel;
 
   function stampNow() {
     const now = new Date();
@@ -240,35 +242,26 @@ export default function DashboardPage() {
     datasets: [{
       label: 'Kasus',
       data: ymKeys.map((k) => ymMap[k].count),
-      borderColor: '#4a4fe9',
-      backgroundColor: (ctx) => {
-        const { chart } = ctx;
-        const { ctx: c, chartArea } = chart;
-        if (!chartArea) return 'rgba(74,79,233,.12)';
-        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-        g.addColorStop(0, 'rgba(74,79,233,.28)');
-        g.addColorStop(.6, 'rgba(74,79,233,.08)');
-        g.addColorStop(1, 'rgba(74,79,233,0)');
-        return g;
-      },
+      borderColor: CHART.brand,
+      backgroundColor: areaFade(CHART.brandRgb),
       fill: true,
       tension: 0.45,
       pointRadius: 0,
       pointHoverRadius: 5,
-      pointBackgroundColor: '#4a4fe9',
+      pointBackgroundColor: CHART.brand,
       pointBorderColor: sliceBorder,
       pointBorderWidth: 2,
       borderWidth: 2.5,
     }],
   };
-  const BILL_COLORS = { FREE: '#10b981', 'ON-CALL': '#f59e0b', MONTHLY: '#0ea5e9', LAINNYA: '#cbd5e1' };
+  const BILL_COLORS = CHART.bill;
   const billEntries = topEntries(billMap);
   const billTotal = billEntries.reduce((s, e) => s + e[1], 0) || 1;
   const billingData = {
     labels: billEntries.map((e) => e[0]),
     datasets: [{
       data: billEntries.map((e) => e[1]),
-      backgroundColor: billEntries.map((e) => BILL_COLORS[e[0]] || '#cbd5e1'),
+      backgroundColor: billEntries.map((e) => BILL_COLORS[e[0]] || CHART.slatePale),
       hoverOffset: 8,
       borderWidth: 3,
       borderColor: sliceBorder,
@@ -280,20 +273,12 @@ export default function DashboardPage() {
     labels: modEntries.map((e) => e[0]),
     datasets: [{
       data: modEntries.map((e) => e[1]),
-      backgroundColor: (ctx) => {
-        const { chart } = ctx;
-        const { ctx: c, chartArea } = chart;
-        if (!chartArea) return '#5f72f5';
-        const g = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-        g.addColorStop(0, '#4a4fe9');
-        g.addColorStop(1, '#8b5cf6');
-        return g;
-      },
+      backgroundColor: barGradient(CHART.brand, CHART.violet, true, CHART.brandLight),
       borderRadius: 8,
       maxBarThickness: 20,
     }],
   };
-  const CHAN_COLORS = ['#4a4fe9', '#10b981', '#f59e0b', '#94a3b8', '#8b5cf6', '#06b6d4'];
+  const CHAN_COLORS = CHART.channel6;
   const chanEntries = topEntries(chanMap);
   const channelData = {
     labels: chanEntries.map((e) => e[0]),
@@ -304,16 +289,8 @@ export default function DashboardPage() {
     datasets: [{
       label: 'Charges',
       data: ymKeys.map((k) => ymMap[k].charges),
-      backgroundColor: (ctx) => {
-        const { chart } = ctx;
-        const { ctx: c, chartArea } = chart;
-        if (!chartArea) return '#f59e0b';
-        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-        g.addColorStop(0, '#fbbf24');
-        g.addColorStop(1, '#f59e0b');
-        return g;
-      },
-      hoverBackgroundColor: '#d97706',
+      backgroundColor: barGradient(CHART.amberLight, CHART.amber, false, CHART.amber),
+      hoverBackgroundColor: CHART.amberDark,
       borderRadius: 8,
       maxBarThickness: 24,
     }],
@@ -323,8 +300,8 @@ export default function DashboardPage() {
     labels: clientEntries.map((e) => e[0]),
     datasets: [{
       data: clientEntries.map((e) => e[1]),
-      backgroundColor: '#4a4fe9',
-      hoverBackgroundColor: '#3d3ece',
+      backgroundColor: CHART.brand,
+      hoverBackgroundColor: CHART.brandDark,
       borderRadius: 8,
       maxBarThickness: 28,
     }],
@@ -352,22 +329,14 @@ export default function DashboardPage() {
     datasets: [{
       label: 'Outstanding (Rp)',
       data: outstanding.top.map((t) => t[1]),
-      backgroundColor: (ctx) => {
-        const { chart } = ctx;
-        const { ctx: c, chartArea } = chart;
-        if (!chartArea) return '#f43f5e';
-        const g = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-        g.addColorStop(0, '#fb7185');
-        g.addColorStop(1, '#e11d48');
-        return g;
-      },
+      backgroundColor: barGradient(CHART.roseLight, CHART.roseDark, true, CHART.rose),
       borderRadius: 8,
       maxBarThickness: 20,
     }],
   };
 
   const baseTooltip = {
-    backgroundColor: '#0f172a',
+    backgroundColor: t.tooltipBg,
     padding: 12,
     cornerRadius: 12,
     titleFont: { weight: '700', size: 12 },
@@ -547,8 +516,8 @@ export default function DashboardPage() {
                 interaction: { mode: 'index', intersect: false },
                 plugins: { legend: { display: false }, tooltip: baseTooltip },
                 scales: {
-                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11, weight: 600 } } },
-                  x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 600 } } },
+                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: CHART.slateTick, font: { size: 11, weight: 600 } } },
+                  x: { grid: { display: false }, border: { display: false }, ticks: { color: CHART.slateTick, font: { size: 11, weight: 600 } } },
                 },
               }}
             />
@@ -576,7 +545,7 @@ export default function DashboardPage() {
                 responsive: true,
                 maintainAspectRatio: false,
                 ...noLegend,
-                scales: { x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: axisLabelColor } } },
+                scales: { x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: CHART.slateTick, font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: axisLabelColor } } },
               }}
             />
           </div>
@@ -597,7 +566,7 @@ export default function DashboardPage() {
                   legend: { display: false },
                   tooltip: { ...baseTooltip, callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.y) } },
                 },
-                scales: { y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), color: '#94a3b8', font: { size: 10 }, maxTicksLimit: 5 } }, x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 600 } } } },
+                scales: { y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), color: CHART.slateTick, font: { size: 10 }, maxTicksLimit: 5 } }, x: { grid: { display: false }, border: { display: false }, ticks: { color: CHART.slateTick, font: { size: 11, weight: 600 } } } },
               }}
             />
           </div>
@@ -628,7 +597,7 @@ export default function DashboardPage() {
                     tooltip: { ...baseTooltip, callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.x) } },
                   },
                   scales: {
-                    x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), font: { size: 10 }, color: '#94a3b8', maxTicksLimit: 5 } },
+                    x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), font: { size: 10 }, color: CHART.slateTick, maxTicksLimit: 5 } },
                     y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: axisLabelColor } },
                   },
                 }}
@@ -678,8 +647,8 @@ export default function DashboardPage() {
                 maintainAspectRatio: false,
                 ...noLegend,
                 scales: {
-                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } } },
-                  x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: 700 }, color: '#475569', maxRotation: 45, minRotation: 45 } },
+                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: CHART.slateTick, font: { size: 11 } } },
+                  x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: 700 }, color: CHART.slate600, maxRotation: 45, minRotation: 45 } },
                 },
               }}
             />
