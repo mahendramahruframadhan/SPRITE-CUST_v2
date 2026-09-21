@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
-import { useCases } from '../hooks/useCases.js';
+import { useRangedCases } from '../hooks/useCases.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState, DEFAULT_ACTIONS } from '../hooks/useAuditState.js';
@@ -48,9 +48,26 @@ function ExpandableText({ text }) {
 export default function BillingPage() {
   const { notify } = useToast();
   const { auditActions, caseAuditStatus, defaultAuditStatus, updateAudit, addAction, removeAction, renameAuditAction } = useAuditState();
-  const { cases: allCases, loading } = useCases();
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  // Filter bulan langsung ke backend: month -> from/to (YYYY-MM-DD) -> WHERE date_issue.
+  // Default = bulan berjalan (otomatis ikut kalender). Kosong = semua tanggal.
+  const monthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const rangeOfMonth = (ym) => {
+    if (!ym) return { from: '', to: '' };
+    const [y, m] = ym.split('-').map(Number);
+    const last = new Date(y, m, 0).getDate();
+    const p = (n) => String(n).padStart(2, '0');
+    return { from: `${y}-${p(m)}-01`, to: `${y}-${p(m)}-${last}` };
+  };
+  const [month, setMonth] = useState(() => monthKey());
+  const [from, setFrom] = useState(() => rangeOfMonth(monthKey()).from);
+  const [to, setTo] = useState(() => rangeOfMonth(monthKey()).to);
+  const { cases: allCases, loading } = useRangedCases(from, to);
+  const applyMonth = (ym) => {
+    setMonth(ym);
+    const r = rangeOfMonth(ym);
+    setFrom(r.from);
+    setTo(r.to);
+  };
   const [brand, setBrand] = useState('');
   const [cat, setCat] = useState('ON-CALL');
   const [q, setQ] = useState('');
@@ -464,12 +481,26 @@ export default function BillingPage() {
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex flex-wrap items-end gap-3">
             <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Bulan</label>
+              <div className="flex items-center gap-2">
+                <input type="month" value={month} onChange={(e) => applyMonth(e.target.value)} className={filterCls} />
+                <button
+                  type="button"
+                  onClick={() => applyMonth(monthKey())}
+                  title="Kembali ke bulan berjalan"
+                  className="text-[13px] font-bold text-brand-600 dark:text-brand-300 hover:text-brand-700 border border-slate-200 dark:border-slate-700 hover:border-brand-300 px-4 py-2.5 rounded-xl transition whitespace-nowrap"
+                >
+                  Bulan ini
+                </button>
+              </div>
+            </div>
+            <div>
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Date From</label>
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={filterCls} />
+              <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setMonth(''); }} className={filterCls} />
             </div>
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Date Until</label>
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={filterCls} />
+              <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setMonth(''); }} className={filterCls} />
             </div>
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Brand</label>
@@ -482,6 +513,7 @@ export default function BillingPage() {
             </div>
             <button
               onClick={() => {
+                setMonth('');
                 setFrom('');
                 setTo('');
                 setBrand('');

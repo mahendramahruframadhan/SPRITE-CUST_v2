@@ -63,6 +63,23 @@ export function reloadAllCases() {
   return fetchAllCases();
 }
 
+// GET /api/cases dengan filter rentang tanggal server-side (WHERE date_issue).
+// Dipakai pemilih bulan (Billing): DB yang memfilter, bukan browser.
+// Tanpa cache global (rentang bervariasi); halaman 2..N diambil paralel.
+export async function fetchCasesRange({ from = '', to = '' } = {}) {
+  const qs = `${from ? `&from=${encodeURIComponent(from)}` : ''}${to ? `&to=${encodeURIComponent(to)}` : ''}`;
+  const first = await get(`/cases?page=1&limit=100${qs}`);
+  const out = [...(first.data || [])];
+  const totalPages = first.totalPages || 1;
+  if (totalPages > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) => get(`/cases?page=${i + 2}&limit=100${qs}`))
+    );
+    rest.forEach((r) => out.push(...(r.data || [])));
+  }
+  return out;
+}
+
 export const getMasters = () => get('/masters');
 export const getConfig = (key) => get(key ? `/config?key=${encodeURIComponent(key)}` : '/config');
 export const putConfig = (config, key) => put('/config', key ? { key, config } : { config });
