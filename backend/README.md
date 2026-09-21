@@ -189,6 +189,29 @@ struktur/kolom sama persis, 25 kolom `COLS` di `src/sheets/sheets.service.ts`).
 2. Share sheet ke service account sebagai Editor
 3. `.env`: `SHEETS_MOCK=false`, restart. Cron tiap 5 menit + `POST /api/sync/trigger` manual.
 
+## PDF invoice (Cloudflare R2)
+
+Upload langsung browser → R2 via presigned URL (file tidak transit server).
+Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
+
+1. R2 → bucket (mis. `pdf-storage`) → API token (baca+tulis bucket ini).
+2. CORS bucket (wajib untuk PUT langsung dari browser):
+   `AllowedOrigins: [<domain deploy>, http://localhost:5173]`,
+   `AllowedMethods: [PUT, GET, DELETE, HEAD]`, `AllowedHeaders: [*]`.
+3. `.env` (server saja, jangan commit):
+   `R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`,
+   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`,
+   `R2_MAX_MB=10`, `PDF_STUCK_MINUTES=30`. Restart backend.
+4. Alur per file: `POST /api/pdf/upload-url {recordUuid,filename,sizeBytes}`
+   → PUT ke `url` (maks 10 MB, 5 menit) → `POST /api/pdf/confirm {id}`
+   (cek HEAD + magic bytes `%PDF-`) → `completed`.
+5. Baca/hapus: `GET /api/pdf/by-case/:uuid`,
+   `GET /api/pdf/:id/download-url` (presigned GET 5 menit, attachment),
+   `DELETE /api/pdf/:id`. Tulis dijaga modul `finance` (PermGuard).
+6. Cron 10 menit menghapus baris `uploading` macet > 30 menit.
+7. Frontend: kolom Upload PDF di halaman Finance (`PdfCell`) —
+   pilih → progress → daftar/unduh/hapus per baris kasus.
+
 ## Deploy (live, Postgres permanen)
 
 1. Siapkan Postgres + database (contoh lokal: cluster port `5433`, db `sprite_cust`).
