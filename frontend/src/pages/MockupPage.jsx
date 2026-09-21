@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Line, Doughnut, Pie, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { CHART, chartTheme } from '../lib/chartPalette.js';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 
 const iso8now = () => {
@@ -16,11 +17,12 @@ export default function MockupPage() {
   const [spinning, setSpinning] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(() => stampNow());
 
-  // Palet chart mengikuti tema (terang/gelap)
+  // Palet chart terpusat (lib/chartPalette.js) mengikuti tema terang/gelap
   const { theme } = useTheme();
   const dark = theme === 'dark';
-  const chartGrid = dark ? '#1e293b' : '#f1f5f9';
-  const chartTick = '#94a3b8';
+  const t = chartTheme(dark);
+  const chartGrid = t.gridAlt;
+  const chartTick = t.tick;
 
   function stampNow() {
     const n = new Date();
@@ -77,8 +79,8 @@ export default function MockupPage() {
       datasets: [{
         label: 'Jumlah Kasus',
         data: sortedWeeks.map((w) => weekCounts[w]),
-        borderColor: '#4a4fe9',
-        backgroundColor: 'rgba(74,79,233,0.08)',
+        borderColor: CHART.brand,
+        backgroundColor: `rgba(${CHART.brandRgb},0.08)`,
         fill: true,
         tension: 0.3,
         borderWidth: 2.5,
@@ -93,7 +95,7 @@ export default function MockupPage() {
       labels: modLabels,
       datasets: [{
         data: modLabels.map((l) => modCounts[l]),
-        backgroundColor: ['#4a4fe9', '#f59e0b', '#10b981', '#8b5cf6', '#06b6d4', '#ec4899', '#64748b', '#14b8a6', '#f97316', '#6366f1'],
+        backgroundColor: CHART.categorical10,
         borderWidth: 0,
       }],
     };
@@ -105,7 +107,7 @@ export default function MockupPage() {
       labels: billLabels,
       datasets: [{
         data: billLabels.map((l) => billCounts[l]),
-        backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#94a3b8'],
+        backgroundColor: CHART.billing4,
         borderWidth: 0,
       }],
     };
@@ -115,7 +117,7 @@ export default function MockupPage() {
     const picLabels = Object.keys(picCounts).sort((a, b) => picCounts[b] - picCounts[a]).slice(0, 6);
     const pic = {
       labels: picLabels,
-      datasets: [{ label: 'Kasus', data: picLabels.map((l) => picCounts[l]), backgroundColor: '#4a4fe9', borderRadius: 6 }],
+      datasets: [{ label: 'Kasus', data: picLabels.map((l) => picCounts[l]), backgroundColor: CHART.brand, borderRadius: 6 }],
     };
     return { trend, module, billing, pic };
   }, [cases]);
@@ -188,7 +190,7 @@ export default function MockupPage() {
       {/* KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {kpi.map((d, i) => (
-          <div key={d.t} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast" style={{ animationDelay: `${i * 0.05}s` }}>
+          <div key={d.t} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{d.t}</p>

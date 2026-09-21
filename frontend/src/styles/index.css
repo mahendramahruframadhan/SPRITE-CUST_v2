@@ -1,3 +1,5 @@
+@import './tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -34,6 +36,15 @@
   }
   .shell-nav.active {
     @apply bg-brand-50 text-brand-700 border-r-[3px] border-brand-600 dark:bg-brand-500/10 dark:text-brand-300;
+  }
+
+  /* Kartu permukaan standar (token: --card-bg/--card-radius/--card-shadow).
+     Dark mode ditangani override .dark di tokens.css */
+  .card {
+    background-color: var(--card-bg);
+    border-radius: var(--radius-card);
+    box-shadow: var(--card-shadow);
+    @apply border border-slate-200/70 dark:border-slate-800;
   }
 
   /* Sub-nav horizontal internal (sebelumnya diubah jadi tab bar oleh app.js) */

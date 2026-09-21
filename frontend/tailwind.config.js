@@ -32,6 +32,13 @@ export default {
         'fade-in': 'fadeIn .4s ease both',
         'fade-in-fast': 'fadeIn .3s ease both',
       },
+      // Token semantik (nilai di src/styles/tokens.css) — pakai via var()
+      boxShadow: {
+        card: 'var(--shadow-card)',
+      },
+      borderRadius: {
+        card: 'var(--radius-card)',
+      },
     },
   },
   plugins: [],

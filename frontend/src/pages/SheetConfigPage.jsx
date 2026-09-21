@@ -165,13 +165,12 @@ export default function SheetConfigPage() {
     <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
       {/* ===== HERO ===== */}
       <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#4c1d95] via-[#7c3aed] to-[#a78bfa] text-white shadow-2xl shadow-violet-600/25 animate-fade-in-fast">
-        <div aria-hidden="true" className="absolute inset-0 opacity-[.14]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '22px 22px' }} />
         <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
         <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-fuchsia-300/20 rounded-full blur-3xl" />
         <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center gap-6">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 backdrop-blur rounded-full px-3 py-1">
+              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 rounded-full px-3 py-1">
                 [ KONFIGURASI /// SHEET ]
               </span>
               <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white/10 border border-white/15 rounded-full px-3 py-1">
@@ -209,7 +208,7 @@ export default function SheetConfigPage() {
       </section>
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm p-2 animate-fade-in-fast" style={{ animationDelay: '.05s' }}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm p-2 animate-fade-in-fast">
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin" role="tablist" aria-label="Kategori konfigurasi">
           {TABS.map((t) => (
             <button
@@ -306,7 +305,7 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
   const [val, setVal] = useState('');
   const [err, setErr] = useState('');
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-5 animate-fade-in-fast">
+    <div className="card p-5 animate-fade-in-fast">
       <div className="flex items-center justify-between mb-1">
         <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{title}</h3>
         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full px-2.5 py-0.5 tabular-nums">{arr.length} item</span>
@@ -380,11 +379,11 @@ function TabPricelist({ cfg, patch }) {
         const rows = cfg.pricelist.map((p, i) => ({ ...p, _i: i })).filter((p) => p.version === v);
         const maxT = Math.max(...rows.map((r) => r.tariff), 1);
         return (
-          <div key={v} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] overflow-hidden animate-fade-in-fast">
+          <div key={v} className="card overflow-hidden animate-fade-in-fast">
             <div className="px-6 py-4 bg-slate-800 dark:bg-slate-950 text-white flex flex-wrap items-center gap-3 justify-between">
               <div>
                 <h3 className="font-extrabold text-sm tracking-tight">{v}</h3>
-                <p className="text-[11px] text-slate-300 tabular-nums">{rows.length} billing category</p>
+                <p className="text-[11px] text-slate-500 tabular-nums">{rows.length} billing category</p>
               </div>
               <button onClick={() => setAddingVersion(v)} className="text-xs font-bold bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition">
                 + Tambah Baris
@@ -486,7 +485,7 @@ function TabBcMap({ cfg, patch }) {
   }, [cfg]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] overflow-hidden animate-fade-in-fast">
+    <div className="card overflow-hidden animate-fade-in-fast">
       <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
         <div>
           <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">Mapping BILLING CATEGORY → SUPPORT TYPE</h3>
@@ -624,7 +623,7 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
 /* ===== Tab Kalender (read-only) ===== */
 function RoTable({ title, desc, head, children }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] overflow-hidden">
+    <div className="card overflow-hidden">
       <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800">
         <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{title}</h3>
         <p className="text-[11px] text-slate-400">{desc}</p>
@@ -679,7 +678,7 @@ function TabCalendar({ cfg }) {
             </tr>
           ))}
         </RoTable>
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-5">
+        <div className="card p-5">
           <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">WEEKNUM & YEAR</h3>
           <p className="text-[11px] text-slate-400 mb-3">Nomor minggu dan tahun yang dikenali sheet</p>
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Weeknum (1–{cfg.weeknums.length})</p>
@@ -712,7 +711,7 @@ function TabHeaders({ cfg }) {
           <span className="font-bold">KRITIS UNTUK BACKEND — TERKUNCI.</span> Tabel ini adalah mapping kolom sheet master (HEADER NAME → COL NO → DEF_HEADERS_NAME). Jangan diubah tanpa koordinasi dengan backend agar sinkronisasi tidak rusak.
         </span>
       </div>
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] overflow-hidden animate-fade-in-fast">
+      <div className="card overflow-hidden animate-fade-in-fast">
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div>
             <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">Mapping Kolom Sheet Master ({cfg.headerMapping.length} kolom)</h3>
@@ -760,7 +759,7 @@ function TabAi({ agents, onToggle }) {
         Koneksi API key diatur di <span className="font-bold">Hak Akses → AI & API Key</span>.
       </div>
       {agents.map((a) => (
-        <div key={a.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-5 flex items-center gap-4 animate-fade-in-fast">
+        <div key={a.id} className="card p-5 flex items-center gap-4 animate-fade-in-fast">
           <button
             onClick={() => onToggle(a.id)}
             title={a.enabled ? 'Nonaktifkan' : 'Aktifkan'}

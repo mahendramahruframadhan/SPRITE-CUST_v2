@@ -339,7 +339,7 @@ export default function HrReportPage() {
       </div>
 
       {/* Report paper */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fade-in-fast" style={{ animationDelay: '.08s' }}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fade-in-fast">
         {/* Header laporan */}
         <div className="px-8 py-6 border-b-2 border-slate-800 dark:border-slate-700">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-300">Revota — Customer Support</p>
@@ -410,7 +410,7 @@ export default function HrReportPage() {
       </div>
 
       {/* Detail Ticket — kartu terpisah agar ada jarak dari rekap */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fade-in-fast" style={{ animationDelay: '.12s' }}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fade-in-fast">
         <div>
           <div className="px-6 py-4 bg-brand-700 text-white">
             <h3 className="font-bold text-sm">LAPORAN DETAIL TICKET & ISSUE</h3>

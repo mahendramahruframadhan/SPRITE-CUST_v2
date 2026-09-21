@@ -18,6 +18,7 @@ import { triggerSync, getSyncLogs, getHealth } from '../lib/api.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 ChartJS.register(
@@ -92,13 +93,14 @@ export default function DashboardPage() {
   const [mockMode, setMockMode] = useState(false);
   const [detailUuid, setDetailUuid] = useState(null);
 
-  // Palet chart mengikuti tema (terang/gelap)
+  // Palet chart terpusat (lib/chartPalette.js) mengikuti tema terang/gelap
   const { theme } = useTheme();
   const dark = theme === 'dark';
-  const gridOpt = { color: dark ? '#1e293b' : '#eef2f7' };
-  const sliceBorder = dark ? '#0f172a' : '#ffffff';
-  const legendColor = dark ? '#94a3b8' : '#64748b';
-  const axisLabelColor = dark ? '#94a3b8' : '#334155';
+  const t = chartTheme(dark);
+  const gridOpt = { color: t.grid };
+  const sliceBorder = t.sliceBorder;
+  const legendColor = t.legend;
+  const axisLabelColor = t.axisLabel;
 
   function stampNow() {
     const now = new Date();
@@ -240,35 +242,26 @@ export default function DashboardPage() {
     datasets: [{
       label: 'Kasus',
       data: ymKeys.map((k) => ymMap[k].count),
-      borderColor: '#4a4fe9',
-      backgroundColor: (ctx) => {
-        const { chart } = ctx;
-        const { ctx: c, chartArea } = chart;
-        if (!chartArea) return 'rgba(74,79,233,.12)';
-        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-        g.addColorStop(0, 'rgba(74,79,233,.28)');
-        g.addColorStop(.6, 'rgba(74,79,233,.08)');
-        g.addColorStop(1, 'rgba(74,79,233,0)');
-        return g;
-      },
+      borderColor: CHART.brand,
+      backgroundColor: areaFade(CHART.brandRgb),
       fill: true,
       tension: 0.45,
       pointRadius: 0,
       pointHoverRadius: 5,
-      pointBackgroundColor: '#4a4fe9',
+      pointBackgroundColor: CHART.brand,
       pointBorderColor: sliceBorder,
       pointBorderWidth: 2,
       borderWidth: 2.5,
     }],
   };
-  const BILL_COLORS = { FREE: '#10b981', 'ON-CALL': '#f59e0b', MONTHLY: '#0ea5e9', LAINNYA: '#cbd5e1' };
+  const BILL_COLORS = CHART.bill;
   const billEntries = topEntries(billMap);
   const billTotal = billEntries.reduce((s, e) => s + e[1], 0) || 1;
   const billingData = {
     labels: billEntries.map((e) => e[0]),
     datasets: [{
       data: billEntries.map((e) => e[1]),
-      backgroundColor: billEntries.map((e) => BILL_COLORS[e[0]] || '#cbd5e1'),
+      backgroundColor: billEntries.map((e) => BILL_COLORS[e[0]] || CHART.slatePale),
       hoverOffset: 8,
       borderWidth: 3,
       borderColor: sliceBorder,
@@ -280,20 +273,12 @@ export default function DashboardPage() {
     labels: modEntries.map((e) => e[0]),
     datasets: [{
       data: modEntries.map((e) => e[1]),
-      backgroundColor: (ctx) => {
-        const { chart } = ctx;
-        const { ctx: c, chartArea } = chart;
-        if (!chartArea) return '#5f72f5';
-        const g = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-        g.addColorStop(0, '#4a4fe9');
-        g.addColorStop(1, '#8b5cf6');
-        return g;
-      },
+      backgroundColor: barGradient(CHART.brand, CHART.violet, true, CHART.brandLight),
       borderRadius: 8,
       maxBarThickness: 20,
     }],
   };
-  const CHAN_COLORS = ['#4a4fe9', '#10b981', '#f59e0b', '#94a3b8', '#8b5cf6', '#06b6d4'];
+  const CHAN_COLORS = CHART.channel6;
   const chanEntries = topEntries(chanMap);
   const channelData = {
     labels: chanEntries.map((e) => e[0]),
@@ -304,16 +289,8 @@ export default function DashboardPage() {
     datasets: [{
       label: 'Charges',
       data: ymKeys.map((k) => ymMap[k].charges),
-      backgroundColor: (ctx) => {
-        const { chart } = ctx;
-        const { ctx: c, chartArea } = chart;
-        if (!chartArea) return '#f59e0b';
-        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-        g.addColorStop(0, '#fbbf24');
-        g.addColorStop(1, '#f59e0b');
-        return g;
-      },
-      hoverBackgroundColor: '#d97706',
+      backgroundColor: barGradient(CHART.amberLight, CHART.amber, false, CHART.amber),
+      hoverBackgroundColor: CHART.amberDark,
       borderRadius: 8,
       maxBarThickness: 24,
     }],
@@ -323,8 +300,8 @@ export default function DashboardPage() {
     labels: clientEntries.map((e) => e[0]),
     datasets: [{
       data: clientEntries.map((e) => e[1]),
-      backgroundColor: '#4a4fe9',
-      hoverBackgroundColor: '#3d3ece',
+      backgroundColor: CHART.brand,
+      hoverBackgroundColor: CHART.brandDark,
       borderRadius: 8,
       maxBarThickness: 28,
     }],
@@ -352,22 +329,14 @@ export default function DashboardPage() {
     datasets: [{
       label: 'Outstanding (Rp)',
       data: outstanding.top.map((t) => t[1]),
-      backgroundColor: (ctx) => {
-        const { chart } = ctx;
-        const { ctx: c, chartArea } = chart;
-        if (!chartArea) return '#f43f5e';
-        const g = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-        g.addColorStop(0, '#fb7185');
-        g.addColorStop(1, '#e11d48');
-        return g;
-      },
+      backgroundColor: barGradient(CHART.roseLight, CHART.roseDark, true, CHART.rose),
       borderRadius: 8,
       maxBarThickness: 20,
     }],
   };
 
   const baseTooltip = {
-    backgroundColor: '#0f172a',
+    backgroundColor: t.tooltipBg,
     padding: 12,
     cornerRadius: 12,
     titleFont: { weight: '700', size: 12 },
@@ -410,14 +379,13 @@ export default function DashboardPage() {
       {/* ===== HERO ===== */}
       <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#2629b8] via-[#4a4fe9] to-[#7c3aed] text-white shadow-2xl shadow-brand-600/25 animate-fade-in-fast">
         {/* pola + glow */}
-        <div aria-hidden="true" className="absolute inset-0 opacity-[.14]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '22px 22px' }} />
         <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
         <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-emerald-300/20 rounded-full blur-3xl" />
 
         <div className="relative p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center gap-8">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 backdrop-blur rounded-full pl-2 pr-3 py-1">
+              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 rounded-full pl-2 pr-3 py-1">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300" />
@@ -457,7 +425,7 @@ export default function DashboardPage() {
           {/* kartu aksi sinkron */}
           <div className="w-full lg:w-[340px] shrink-0">
             <div className="bg-white/[.12] border border-white/20 backdrop-blur-xl rounded-3xl p-5 shadow-xl">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/60">Sinkronisasi</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white">Sinkronisasi</p>
               <p className="mt-1 text-sm font-bold">{lastSync ? `Terakhir: ${lastSync}` : 'Belum pernah sinkron sesi ini'}</p>
               <div className="mt-4 grid grid-cols-1 gap-2.5">
                 <button
@@ -511,7 +479,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ===== NAVIGASI CEPAT (strip ramping) ===== */}
-      <nav aria-label="Navigasi cepat" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
+      <nav aria-label="Navigasi cepat" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm animate-fade-in-fast">
         <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-thin px-2 py-2">
           {FEATURES.map((f) => (
             <Link
@@ -547,8 +515,8 @@ export default function DashboardPage() {
                 interaction: { mode: 'index', intersect: false },
                 plugins: { legend: { display: false }, tooltip: baseTooltip },
                 scales: {
-                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11, weight: 600 } } },
-                  x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 600 } } },
+                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: CHART.slateTick, font: { size: 11, weight: 600 } } },
+                  x: { grid: { display: false }, border: { display: false }, ticks: { color: CHART.slateTick, font: { size: 11, weight: 600 } } },
                 },
               }}
             />
@@ -576,7 +544,7 @@ export default function DashboardPage() {
                 responsive: true,
                 maintainAspectRatio: false,
                 ...noLegend,
-                scales: { x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: axisLabelColor } } },
+                scales: { x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: CHART.slateTick, font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: axisLabelColor } } },
               }}
             />
           </div>
@@ -597,7 +565,7 @@ export default function DashboardPage() {
                   legend: { display: false },
                   tooltip: { ...baseTooltip, callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.y) } },
                 },
-                scales: { y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), color: '#94a3b8', font: { size: 10 }, maxTicksLimit: 5 } }, x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 600 } } } },
+                scales: { y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), color: CHART.slateTick, font: { size: 10 }, maxTicksLimit: 5 } }, x: { grid: { display: false }, border: { display: false }, ticks: { color: CHART.slateTick, font: { size: 11, weight: 600 } } } },
               }}
             />
           </div>
@@ -628,7 +596,7 @@ export default function DashboardPage() {
                     tooltip: { ...baseTooltip, callbacks: { label: (ctx) => ' ' + fmtRp(ctx.parsed.x) } },
                   },
                   scales: {
-                    x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), font: { size: 10 }, color: '#94a3b8', maxTicksLimit: 5 } },
+                    x: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { callback: (v) => fmtRp(v), font: { size: 10 }, color: CHART.slateTick, maxTicksLimit: 5 } },
                     y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11, weight: 700 }, color: axisLabelColor } },
                   },
                 }}
@@ -678,8 +646,8 @@ export default function DashboardPage() {
                 maintainAspectRatio: false,
                 ...noLegend,
                 scales: {
-                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } } },
-                  x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: 700 }, color: '#475569', maxRotation: 45, minRotation: 45 } },
+                  y: { beginAtZero: true, grid: gridOpt, border: { display: false }, ticks: { precision: 0, color: CHART.slateTick, font: { size: 11 } } },
+                  x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: 700 }, color: CHART.slate600, maxRotation: 45, minRotation: 45 } },
                 },
               }}
             />
@@ -716,7 +684,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ===== KASUS TERBARU ===== */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast" style={{ animationDelay: '.48s' }}>
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25">
@@ -862,7 +830,7 @@ function Dot() {
 
 function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', valueSize = 'text-[28px]', delay }) {
   return (
-    <div className={`group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`} style={{ animationDelay: delay }}>
+    <div className={`group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`}>
       <div aria-hidden="true" className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${grad} opacity-[.08] rounded-full blur-2xl group-hover:opacity-[.18] transition`} />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -885,7 +853,7 @@ function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, value
 
 function Panel({ title, desc, children, className = '', delay, accent = 'from-brand-500 to-violet-500', badge }) {
   return (
-    <div className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast ${className}`} style={{ animationDelay: delay }}>
+    <div className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast ${className}`}>
       <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
       <div className="p-6">
         <div className="mb-5 flex items-start justify-between gap-3">

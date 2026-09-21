@@ -427,7 +427,7 @@ export default function RolesPage({ bare = false }) {
       </div>
 
       {/* Tab */}
-      <div className="flex items-center gap-2 bg-slate-200/60 dark:bg-slate-800 rounded-xl p-1 w-fit text-sm font-semibold animate-fade-in-fast" style={{ animationDelay: '.18s' }}>
+      <div className="flex items-center gap-2 bg-slate-200/60 dark:bg-slate-800 rounded-xl p-1 w-fit text-sm font-semibold animate-fade-in-fast">
         {[
           { id: 'pengguna', label: 'Pengguna' },
           { id: 'role', label: 'Role & Izin Modul' },
@@ -447,7 +447,7 @@ export default function RolesPage({ bare = false }) {
       {/* TAB: Pengguna */}
       {tab === 'pengguna' && (
         <section className="space-y-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap items-center gap-3 animate-fade-in-fast" style={{ animationDelay: '.22s' }}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap items-center gap-3 animate-fade-in-fast">
             <div className="relative flex-1 min-w-[220px]">
               <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -473,7 +473,7 @@ export default function RolesPage({ bare = false }) {
             </select>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-fade-in-fast" style={{ animationDelay: '.26s' }}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-fade-in-fast">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/70 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-700">
@@ -554,7 +554,7 @@ export default function RolesPage({ bare = false }) {
         <section className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             {roleCards.map(({ r, i, count, modCount }) => (
-              <div key={r} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 animate-fade-in-fast" style={{ animationDelay: `${0.05 * i}s` }}>
+              <div key={r} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 animate-fade-in-fast">
                 <span className={`inline-block text-[11px] font-bold border rounded-full px-2.5 py-1 ${ROLE_STYLE[r]}`}>{r}</span>
                 <p className="mt-2.5 text-[11px] text-slate-400 leading-relaxed min-h-[32px]">{ROLE_DESC[r]}</p>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
@@ -880,7 +880,7 @@ export default function RolesPage({ bare = false }) {
 
 function StatCard({ title, value, sub, valueCls = '', subCls = 'text-slate-400', delay }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast" style={{ animationDelay: delay }}>
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
