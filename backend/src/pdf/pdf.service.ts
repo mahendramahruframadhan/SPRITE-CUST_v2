@@ -40,7 +40,7 @@ export class PdfService {
   constructor() {
     if (this.isConfigured()) {
       this.s3 = new S3Client({
-        region: 'auto',
+        region: process.env.R2_REGION || 'auto',
         endpoint: process.env.R2_ENDPOINT!,
         credentials: {
           accessKeyId: process.env.R2_ACCESS_KEY_ID!,

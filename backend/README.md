@@ -212,6 +212,24 @@ Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
 7. Frontend: kolom Upload PDF di halaman Finance (`PdfCell`) —
    pilih → progress → daftar/unduh/hapus per baris kasus.
 
+## Ganti provider storage (R2 <-> Supabase <-> S3 lain)
+
+Backend memakai protokol S3-compatible (`@aws-sdk/client-s3`), jadi pindah
+provider = ganti env + CORS, **tanpa ubah kode**. Prosedur (prompt sakti):
+
+1. Buat bucket privat di provider baru (nama boleh sama, mis. `pdf-storage`).
+2. Buat access key (scope tulis+baca bucket itu) + catat endpoint S3-nya:
+   - R2: `https://<account-id>.r2.cloudflarestorage.com`, `R2_REGION=auto`
+   - Supabase: `https://<project-ref>.supabase.co/storage/v1/s3`, `R2_REGION=<region project>`
+   - S3/MinIO lain: endpoint masing-masing, `R2_REGION` mengikuti regionnya
+3. Pasang CORS bucket: origin = domain deploy + `http://localhost:5173`,
+   methods `PUT, GET, DELETE, HEAD`, headers `*`.
+4. Isi `.env`: `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+   `R2_BUCKET_NAME`, `R2_REGION`. Restart backend.
+5. Uji 1 file: pilih → progress 100% → `confirm` → `completed` →
+   unduh sama isinya → hapus. File lama tetap di provider lama
+   (migrasi manual bila perlu, key: `invoices/<uuid>/...`).
+
 ## Deploy (live, Postgres permanen)
 
 1. Siapkan Postgres + database (contoh lokal: cluster port `5433`, db `sprite_cust`).
