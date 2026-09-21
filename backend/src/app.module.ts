@@ -15,10 +15,12 @@ import { AuthController } from './auth/auth.controller';
 import { SetupController } from './setup/setup.controller';
 import { RolesController } from './roles/roles.controller';
 import { AiController } from './ai/ai.controller';
+import { PdfController } from './pdf/pdf.controller';
+import { PdfService } from './pdf/pdf.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
-  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, MastersController, AuthController, SetupController, RolesController, AiController],
-  providers: [DrizzleService, CasesService, SheetsService, SyncService],
+  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController],
+  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService],
 })
 export class AppModule {}
