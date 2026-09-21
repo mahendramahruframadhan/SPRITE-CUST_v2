@@ -190,7 +190,7 @@ export default function MockupPage() {
       {/* KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {kpi.map((d, i) => (
-          <div key={d.t} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast" style={{ animationDelay: `${i * 0.05}s` }}>
+          <div key={d.t} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{d.t}</p>

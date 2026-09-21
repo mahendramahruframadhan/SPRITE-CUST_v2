@@ -379,14 +379,13 @@ export default function DashboardPage() {
       {/* ===== HERO ===== */}
       <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#2629b8] via-[#4a4fe9] to-[#7c3aed] text-white shadow-2xl shadow-brand-600/25 animate-fade-in-fast">
         {/* pola + glow */}
-        <div aria-hidden="true" className="absolute inset-0 opacity-[.14]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '22px 22px' }} />
         <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
         <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-emerald-300/20 rounded-full blur-3xl" />
 
         <div className="relative p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center gap-8">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 backdrop-blur rounded-full pl-2 pr-3 py-1">
+              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 rounded-full pl-2 pr-3 py-1">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300" />
@@ -426,7 +425,7 @@ export default function DashboardPage() {
           {/* kartu aksi sinkron */}
           <div className="w-full lg:w-[340px] shrink-0">
             <div className="bg-white/[.12] border border-white/20 backdrop-blur-xl rounded-3xl p-5 shadow-xl">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/60">Sinkronisasi</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white">Sinkronisasi</p>
               <p className="mt-1 text-sm font-bold">{lastSync ? `Terakhir: ${lastSync}` : 'Belum pernah sinkron sesi ini'}</p>
               <div className="mt-4 grid grid-cols-1 gap-2.5">
                 <button
@@ -480,7 +479,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ===== NAVIGASI CEPAT (strip ramping) ===== */}
-      <nav aria-label="Navigasi cepat" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm animate-fade-in-fast" style={{ animationDelay: '.2s' }}>
+      <nav aria-label="Navigasi cepat" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm animate-fade-in-fast">
         <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-thin px-2 py-2">
           {FEATURES.map((f) => (
             <Link
@@ -685,7 +684,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ===== KASUS TERBARU ===== */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast" style={{ animationDelay: '.48s' }}>
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25">
@@ -831,7 +830,7 @@ function Dot() {
 
 function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', valueSize = 'text-[28px]', delay }) {
   return (
-    <div className={`group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`} style={{ animationDelay: delay }}>
+    <div className={`group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`}>
       <div aria-hidden="true" className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${grad} opacity-[.08] rounded-full blur-2xl group-hover:opacity-[.18] transition`} />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -854,7 +853,7 @@ function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, value
 
 function Panel({ title, desc, children, className = '', delay, accent = 'from-brand-500 to-violet-500', badge }) {
   return (
-    <div className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast ${className}`} style={{ animationDelay: delay }}>
+    <div className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast ${className}`}>
       <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
       <div className="p-6">
         <div className="mb-5 flex items-start justify-between gap-3">

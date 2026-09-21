@@ -165,13 +165,12 @@ export default function SheetConfigPage() {
     <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
       {/* ===== HERO ===== */}
       <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#4c1d95] via-[#7c3aed] to-[#a78bfa] text-white shadow-2xl shadow-violet-600/25 animate-fade-in-fast">
-        <div aria-hidden="true" className="absolute inset-0 opacity-[.14]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '22px 22px' }} />
         <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
         <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-fuchsia-300/20 rounded-full blur-3xl" />
         <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center gap-6">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 backdrop-blur rounded-full px-3 py-1">
+              <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] bg-white/15 border border-white/20 rounded-full px-3 py-1">
                 [ KONFIGURASI /// SHEET ]
               </span>
               <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white/10 border border-white/15 rounded-full px-3 py-1">
@@ -209,7 +208,7 @@ export default function SheetConfigPage() {
       </section>
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm p-2 animate-fade-in-fast" style={{ animationDelay: '.05s' }}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm p-2 animate-fade-in-fast">
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin" role="tablist" aria-label="Kategori konfigurasi">
           {TABS.map((t) => (
             <button
@@ -384,7 +383,7 @@ function TabPricelist({ cfg, patch }) {
             <div className="px-6 py-4 bg-slate-800 dark:bg-slate-950 text-white flex flex-wrap items-center gap-3 justify-between">
               <div>
                 <h3 className="font-extrabold text-sm tracking-tight">{v}</h3>
-                <p className="text-[11px] text-slate-300 tabular-nums">{rows.length} billing category</p>
+                <p className="text-[11px] text-slate-500 tabular-nums">{rows.length} billing category</p>
               </div>
               <button onClick={() => setAddingVersion(v)} className="text-xs font-bold bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition">
                 + Tambah Baris
