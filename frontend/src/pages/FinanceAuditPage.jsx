@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
-import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, requestPdfDownloadUrl, deletePdf } from '../lib/api.js';
+import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, requestPdfDownloadUrl, deletePdf } from '../lib/api.js';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState, DEFAULT_INVOICE } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
@@ -41,6 +41,9 @@ function PdfCell({ recordUuid, notify }) {
   const fileRef = useRef(null);
   const seq = useRef(0);
   const [files, setFiles] = useState([]);
+  // Gate server (GET /api/pdf/state/:uuid) — default false sampai backend menjawab.
+  // Fallback: bila endpoint belum ada (backend lama), gating mengandalkan status lokal.
+  const [gate, setGate] = useState(null);
   const [busy, setBusy] = useState(false);
   const [pct, setPct] = useState(null);
 
@@ -49,6 +52,12 @@ function PdfCell({ recordUuid, notify }) {
     listPdfsByCase(recordUuid).then(
       (rows) => {
         if (seq.current === my) setFiles(Array.isArray(rows) ? rows : []);
+      },
+      () => {}
+    );
+    getPdfState(recordUuid).then(
+      (st) => {
+        if (seq.current === my) setGate({ canDownload: !!st?.canDownload, canDelete: !!st?.canDelete });
       },
       () => {}
     );
@@ -133,9 +142,12 @@ function PdfCell({ recordUuid, notify }) {
       {files.length > 0 ? (
         <ul className="mt-1.5 space-y-1">
           {files.map((f) => {
-            // Kondisi true/false: tombol aktif hanya setelah upload terkonfirmasi
+            // Kondisi true/false: status lokal AND gate server (keduanya harus true).
+            // gate null = backend lama tanpa /state → hanya status lokal yang dipakai.
             const ready = isPdfReady(f.status);
-            const hint = ready ? undefined : 'Tersedia setelah upload selesai dikonfirmasi';
+            const canDl = ready && (!gate || gate.canDownload);
+            const canDel = ready && (!gate || gate.canDelete);
+            const hint = ready ? 'Belum dikonfirmasi server — muat ulang halaman.' : 'Tersedia setelah upload selesai dikonfirmasi';
             return (
             <li
               key={f.id}
@@ -150,10 +162,10 @@ function PdfCell({ recordUuid, notify }) {
               <button
                 type="button"
                 onClick={() => download(f.id, f.filename)}
-                disabled={!ready}
-                title={ready ? `Unduh ${f.filename}` : hint}
+                disabled={!canDl}
+                title={canDl ? `Unduh ${f.filename}` : hint}
                 aria-label={`Unduh ${f.filename}`}
-                aria-disabled={!ready}
+                aria-disabled={!canDl}
                 className="shrink-0 font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-1 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:no-underline disabled:cursor-not-allowed"
               >
                 Unduh
@@ -161,10 +173,10 @@ function PdfCell({ recordUuid, notify }) {
               <button
                 type="button"
                 onClick={() => remove(f.id, f.filename)}
-                disabled={!ready}
-                title={ready ? `Hapus ${f.filename}` : hint}
+                disabled={!canDel}
+                title={canDel ? `Hapus ${f.filename}` : hint}
                 aria-label={`Hapus ${f.filename}`}
-                aria-disabled={!ready}
+                aria-disabled={!canDel}
                 className="shrink-0 font-bold text-slate-400 hover:text-rose-600 px-1 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:cursor-not-allowed"
               >
                 ✕
