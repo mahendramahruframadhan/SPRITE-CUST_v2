@@ -133,6 +133,24 @@ export class PdfService {
     }));
   }
 
+  // Kondisi gate tombol Unduh/Hapus versi server (cermin isPdfReady di frontend):
+  // true hanya bila ada ≥1 file completed pada kasus ini.
+  async caseState(recordUuid: string) {
+    const r: any = await this.db.execute(
+      `SELECT status, COUNT(*) as c FROM invoice_pdfs WHERE record_uuid='${esc(recordUuid)}' GROUP BY status` as any,
+    );
+    const rows = r.rows || r || [];
+    let completed = 0;
+    let pending = 0;
+    for (const x of rows) {
+      const n = Number(x.c ?? x.count ?? 0) || 0;
+      if (x.status === 'completed') completed += n;
+      else pending += n;
+    }
+    const can = completed > 0;
+    return { ok: true, recordUuid, total: completed + pending, completed, pending, canDownload: can, canDelete: can };
+  }
+
   async downloadUrl(id: string) {
     const s3 = this.needS3();
     const r: any = await this.db.execute(`SELECT * FROM invoice_pdfs WHERE id='${esc(id)}' LIMIT 1` as any);

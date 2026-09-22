@@ -206,6 +206,8 @@ Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
    → PUT ke `url` (maks 10 MB, 5 menit) → `POST /api/pdf/confirm {id}`
    (cek HEAD + magic bytes `%PDF-`) → `completed`.
 5. Baca/hapus: `GET /api/pdf/by-case/:uuid`,
+   `GET /api/pdf/state/:uuid` → `{total, completed, pending, canDownload, canDelete}`
+   (kondisi gate tombol Unduh/Hapus, true bila ada file `completed`),
    `GET /api/pdf/:id/download-url` (presigned GET 5 menit, attachment),
    `DELETE /api/pdf/:id`. Tulis dijaga modul `finance` (PermGuard).
 6. Cron 10 menit menghapus baris `uploading` macet > 30 menit.

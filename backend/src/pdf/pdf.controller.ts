@@ -33,6 +33,13 @@ export class PdfController {
     return this.pdf.listByCase(uuid);
   }
 
+  // Kondisi true/false tombol Unduh/Hapus (sumber kebenaran server).
+  // Baca terbuka seperti by-case; unduh/hapus tetap dijaga PermGuard finance.
+  @Get('pdf/state/:uuid')
+  async state(@Param('uuid') uuid: string) {
+    return this.pdf.caseState(uuid);
+  }
+
   @Get('pdf/:id/download-url')
   @UseGuards(PermGuard)
   @Perm('finance')
