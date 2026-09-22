@@ -16,7 +16,8 @@ export default function PdfPreviewModal({ file, onClose, onDownload, onDelete })
     setLoading(true);
     setError('');
     setUrl('');
-    requestPdfDownloadUrl(file.id).then(
+    // inline=1 → disposition inline agar PDF tampil di iframe, bukan terunduh
+    requestPdfDownloadUrl(file.id, { inline: true }).then(
       (r) => {
         setUrl(r.url);
         setLoading(false);

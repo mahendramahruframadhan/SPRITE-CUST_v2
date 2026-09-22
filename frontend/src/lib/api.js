@@ -112,5 +112,5 @@ export const requestPdfUploadUrl = (body) => post('/pdf/upload-url', body);
 export const confirmPdfUpload = (body) => post('/pdf/confirm', body);
 export const listPdfsByCase = (uuid) => get(`/pdf/by-case/${uuid}`);
 export const getPdfState = (uuid) => get(`/pdf/state/${uuid}`);
-export const requestPdfDownloadUrl = (id) => get(`/pdf/${id}/download-url`);
+export const requestPdfDownloadUrl = (id, opts = {}) => get(`/pdf/${id}/download-url${opts.inline ? '?inline=1' : ''}`);
 export const deletePdf = (id) => req(`/pdf/${id}`, { method: 'DELETE' });
