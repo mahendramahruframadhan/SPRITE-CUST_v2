@@ -44,6 +44,9 @@ const PDF_ERR_MSG = {
 };
 const pdfErrMsg = (err, fallback) => PDF_ERR_MSG[err?.code] || err?.data?.message || err?.message || fallback;
 
+// Label status file yang ramah (status mentah: uploading/failed/completed)
+const PDF_STATUS_LABEL = { uploading: 'mengupload…', failed: 'gagal', completed: 'selesai' };
+
 // Sel upload PDF invoice per baris: pilih -> PUT R2 (progress) -> confirm ->
 // daftar file (unduh/hapus). Tombol Unduh/Hapus digate kondisi true/false:
 // aktif hanya bila file berstatus 'completed', selain itu disabled + tooltip.
@@ -95,8 +98,10 @@ function PdfCell({ recordUuid, notify }) {
     fileRef.current = f;
     setBusy(true);
     setPct(0);
+    let uid = null;
     try {
       const u = await requestPdfUploadUrl({ recordUuid, filename: f.name, sizeBytes: f.size });
+      uid = u.id;
       notify(`Mengupload "${f.name}" (${fmtKB(f.size)})…`, 'info', 2000);
       await putXhr(u.url, f, setPct);
       await confirmPdfUpload({ id: u.id });
@@ -104,6 +109,12 @@ function PdfCell({ recordUuid, notify }) {
       reload();
     } catch (err) {
       notify(pdfErrMsg(err, 'Upload gagal, coba lagi.'), 'err');
+      // Bersihkan baris uploading yang gagal agar tidak nyangkut di daftar
+      // (server juga menghapusnya via cron, tapi itu butuh >30 menit)
+      if (uid) {
+        try { await deletePdf(uid); } catch { /* abaikan, daftar di-reload */ }
+        reload();
+      }
     } finally {
       fileRef.current = null;
       setBusy(false);
@@ -158,20 +169,22 @@ function PdfCell({ recordUuid, notify }) {
           {files.map((f) => {
             // Kondisi true/false: status lokal AND gate server (keduanya harus true).
             // gate null = backend lama tanpa /state → hanya status lokal yang dipakai.
+            // Hapus SELALU aktif termasuk baris macet (uploading/failed) agar user bisa
+            // membersihkan sendiri; Unduh tetap khusus file completed.
             const ready = isPdfReady(f.status);
             const canDl = ready && (!gate || gate.canDownload);
-            const canDel = ready && (!gate || gate.canDelete);
             const hint = ready ? 'Belum dikonfirmasi server — muat ulang halaman.' : 'Tersedia setelah upload selesai dikonfirmasi';
+            const statusLabel = PDF_STATUS_LABEL[f.status] || f.status;
             return (
             <li
               key={f.id}
               className="flex w-full items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1"
             >
-              <span className="flex-1 min-w-0 truncate" title={`${f.filename} (${fmtKB(f.sizeBytes)})${!ready ? ' - ' + f.status : ''}`}>
+              <span className="flex-1 min-w-0 truncate" title={`${f.filename} (${fmtKB(f.sizeBytes)})${!ready ? ' - ' + statusLabel : ''}`}>
                 {f.filename}
               </span>
               {!ready && (
-                <span className="shrink-0 text-[10px] text-amber-600">{f.status}</span>
+                <span className="shrink-0 text-[10px] text-amber-600">{statusLabel}</span>
               )}
               <button
                 type="button"
@@ -187,11 +200,9 @@ function PdfCell({ recordUuid, notify }) {
               <button
                 type="button"
                 onClick={() => remove(f.id, f.filename)}
-                disabled={!canDel}
-                title={canDel ? `Hapus ${f.filename}` : hint}
+                title={ready ? `Hapus ${f.filename}` : `Hapus ${f.filename} (${statusLabel}, belum selesai)`}
                 aria-label={`Hapus ${f.filename}`}
-                aria-disabled={!canDel}
-                className="shrink-0 font-bold text-slate-400 hover:text-rose-600 px-1 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:cursor-not-allowed"
+                className="shrink-0 font-bold text-slate-400 hover:text-rose-600 px-1"
               >
                 ✕
               </button>
