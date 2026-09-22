@@ -32,6 +32,18 @@ function putXhr(url, file, onProgress) {
 
 const fmtKB = (b) => `${(Number(b || 0) / 1024).toLocaleString('id-ID', { maximumFractionDigits: 0 })} KB`;
 
+// Pesan error backend → kalimat ramah untuk toast
+const PDF_ERR_MSG = {
+  R2_NOT_CONFIGURED: 'Penyimpanan PDF belum dikonfigurasi — hubungi admin.',
+  NOT_PDF: 'File harus berformat PDF.',
+  BAD_SIZE: 'Ukuran PDF di luar batas yang diizinkan.',
+  CASE_NOT_FOUND: 'Kasus tidak ditemukan.',
+  PDF_NOT_FOUND: 'Data PDF tidak ditemukan.',
+  NOT_READY: 'File belum selesai diunggah.',
+  VERIFY_FAILED: 'File tidak terverifikasi sebagai PDF.',
+};
+const pdfErrMsg = (err, fallback) => PDF_ERR_MSG[err?.code] || err?.data?.message || err?.message || fallback;
+
 // Sel upload PDF invoice per baris: pilih -> PUT R2 (progress) -> confirm ->
 // daftar file (unduh/hapus). Tombol Unduh/Hapus digate kondisi true/false:
 // aktif hanya bila file berstatus 'completed', selain itu disabled + tooltip.
@@ -73,11 +85,11 @@ function PdfCell({ recordUuid, notify }) {
     if (!f || busy) return;
     const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
     if (!isPdf) {
-      notify('File harus berformat PDF.', 'err');
+      notify(`"${f.name}" bukan PDF — pilih file berformat PDF.`, 'err');
       return;
     }
     if (f.size > MAX_PDF_MB * 1024 * 1024) {
-      notify(`Ukuran PDF maksimal ${MAX_PDF_MB} MB.`, 'err');
+      notify(`"${f.name}" terlalu besar (${fmtKB(f.size)}) — maksimal ${MAX_PDF_MB} MB.`, 'err');
       return;
     }
     fileRef.current = f;
@@ -85,12 +97,13 @@ function PdfCell({ recordUuid, notify }) {
     setPct(0);
     try {
       const u = await requestPdfUploadUrl({ recordUuid, filename: f.name, sizeBytes: f.size });
+      notify(`Mengupload "${f.name}" (${fmtKB(f.size)})…`, 'info', 2000);
       await putXhr(u.url, f, setPct);
       await confirmPdfUpload({ id: u.id });
-      notify(`PDF terupload: ${f.name}.`, 'success');
+      notify(`PDF terupload: "${f.name}" (${fmtKB(f.size)}).`, 'success');
       reload();
     } catch (err) {
-      notify(err?.data?.message || err?.message || 'Upload gagal, coba lagi.', 'err');
+      notify(pdfErrMsg(err, 'Upload gagal, coba lagi.'), 'err');
     } finally {
       fileRef.current = null;
       setBusy(false);
@@ -105,8 +118,9 @@ function PdfCell({ recordUuid, notify }) {
       a.href = r.url;
       a.download = filename || 'invoice.pdf';
       a.click();
+      notify(`Mengunduh "${filename || 'invoice.pdf'}".`, 'success');
     } catch (err) {
-      notify(err?.data?.message || 'Unduhan gagal, coba lagi.', 'err');
+      notify(pdfErrMsg(err, 'Unduhan gagal, coba lagi.'), 'err');
     }
   };
 
@@ -114,10 +128,10 @@ function PdfCell({ recordUuid, notify }) {
     if (!confirm(`Hapus PDF "${filename}"?`)) return;
     try {
       await deletePdf(id);
-      notify('PDF dihapus.', 'success');
+      notify(`PDF dihapus: "${filename}".`, 'success');
       reload();
     } catch (err) {
-      notify(err?.data?.message || 'Hapus gagal, coba lagi.', 'err');
+      notify(pdfErrMsg(err, 'Hapus gagal, coba lagi.'), 'err');
     }
   };
 
