@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
-import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, requestPdfDownloadUrl, deletePdf, patchInvoice } from '../lib/api.js';
+import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, getInvoiceMap } from '../lib/api.js';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState, DEFAULT_INVOICE } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
@@ -11,6 +11,7 @@ import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
+import InvoiceHistoryModal from '../components/InvoiceHistoryModal.jsx';
 
 const VALID_TAG = 'VALID - SIAP INVOICE';
 
@@ -61,7 +62,7 @@ const invErrMsg = (err, fallback) => INV_ERR_MSG[err?.code] || err?.data?.messag
 // daftar file (unduh/hapus). Tombol Unduh/Hapus digate kondisi true/false:
 // aktif hanya bila file berstatus 'completed', selain itu disabled + tooltip.
 const isPdfReady = (st) => st === 'completed';
-function PdfCell({ recordUuid, notify, onStatusChange }) {
+function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange }) {
   const inputId = `pdf-${recordUuid}`;
   const fileRef = useRef(null);
   const seq = useRef(0);
@@ -180,6 +181,24 @@ function PdfCell({ recordUuid, notify, onStatusChange }) {
   const [deleteBusy, setDeleteBusy] = useState(false);
   // Id file yang sedang disiapkan unduhannya (spinner di tombol Unduh)
   const [downloadBusy, setDownloadBusy] = useState(null);
+  // B. Riwayat invoice+PDF per baris
+  const [histOpen, setHistOpen] = useState(false);
+  const [hist, setHist] = useState([]);
+  const [histBusy, setHistBusy] = useState(false);
+
+  const openHistory = async () => {
+    if (histBusy) return;
+    setHistBusy(true);
+    try {
+      const r = await getPdfHistory(recordUuid);
+      setHist(Array.isArray(r?.history) ? r.history : []);
+      setHistOpen(true);
+    } catch (err) {
+      notify(pdfErrMsg(err, 'Riwayat gagal dimuat.'), 'err');
+    } finally {
+      setHistBusy(false);
+    }
+  };
 
   const confirmDelete = async () => {
     if (!deleteTarget || deleteBusy) return;
@@ -352,6 +371,33 @@ function PdfCell({ recordUuid, notify, onStatusChange }) {
           onConfirm={confirmDelete}
         />
       )}
+      <button
+        type="button"
+        onClick={openHistory}
+        disabled={histBusy}
+        title="Lihat riwayat invoice & PDF kasus ini"
+        className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold rounded-xl px-2 py-1.5 text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 border border-transparent hover:border-brand-100 dark:hover:border-brand-500/20 transition disabled:opacity-50"
+      >
+        {histBusy ? (
+          <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+        ) : (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )}
+        {histBusy ? 'Memuat…' : 'Riwayat'}
+      </button>
+      {histOpen && (
+        <InvoiceHistoryModal
+          title={`Kasus #${caseNo} (${caseClient})`}
+          subtitle={`${hist.length} aktivitas tercatat`}
+          history={hist}
+          onClose={() => setHistOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -374,7 +420,7 @@ export default function FinanceAuditPage() {
   const { user } = useAuth();
   const { caseAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
-  const { invoiceActions, invoiceStatus, defaultInvoiceStatus, updateInvoice, syncInvoiceStatus, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
+  const { invoiceActions, invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [brand, setBrand] = useState('');
@@ -393,6 +439,21 @@ export default function FinanceAuditPage() {
     ensureDefaults(validatedPool.map((c) => c.recordUuid));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseAuditStatus]);
+
+  // A. Sinkron status invoice dari backend (sumber kebenaran otomasi upload/hapus)
+  // saat halaman dimuat — menutup celah basi antar-browser/perangkat.
+  useEffect(() => {
+    let ignore = false;
+    getInvoiceMap()
+      .then((r) => {
+        if (ignore || !r || typeof r.map !== 'object') return;
+        Object.entries(r.map).forEach(([uuid, st]) => syncInvoiceStatus(uuid, st));
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, [syncInvoiceStatus]);
 
   const brands = useMemo(
     () => [...new Set(allCases.map((c) => c.client).filter(Boolean))].sort(),
@@ -727,7 +788,7 @@ export default function FinanceAuditPage() {
                     </select>
                   </td>
                   <td className="px-4 py-3.5">
-                    <PdfCell recordUuid={c.recordUuid} notify={notify} onStatusChange={syncInvoiceStatus} />
+                    <PdfCell recordUuid={c.recordUuid} caseNo={c.no} caseClient={c.client} notify={notify} onStatusChange={syncInvoiceStatus} />
                   </td>
                   <td className="px-4 py-3.5">
                     <input
