@@ -91,6 +91,7 @@ export const createCase = (body) => post('/cases', body);
 export const patchAudit = (uuid, action) => patch(`/cases/${uuid}/audit`, { action });
 export const patchInvoice = (uuid, status) => patch(`/cases/${uuid}/invoice`, { status });
 export const getBillingStats = () => get('/billing/stats');
+export const getInvoiceMap = () => get('/billing/invoice-map');
 export const triggerSync = () => post('/sync/trigger', {});
 export const getSyncLogs = () => get('/sync/logs');
 export const signIn = (email, password) => post('/auth/sign-in/email', { email, password });
@@ -106,3 +107,12 @@ export const getLogs = () => get('/roles/logs');
 export const postLog = (who, action, extra = {}) => post('/roles/logs', { who, action, ...extra });
 export const chatAi = (messages, connectionId) => post('/ai/chat', connectionId ? { messages, connectionId } : { messages });
 export const getAiConnections = () => get('/ai/connections');
+// PDF invoice (R2 presigned URL). Upload file via PUT langsung ke URL R2,
+// bukan lewat body API (lihat backend/src/pdf).
+export const requestPdfUploadUrl = (body) => post('/pdf/upload-url', body);
+export const confirmPdfUpload = (body) => post('/pdf/confirm', body);
+export const listPdfsByCase = (uuid) => get(`/pdf/by-case/${uuid}`);
+export const getPdfState = (uuid) => get(`/pdf/state/${uuid}`);
+export const getPdfHistory = (uuid) => get(`/pdf/history/${uuid}`);
+export const requestPdfDownloadUrl = (id, opts = {}) => get(`/pdf/${id}/download-url${opts.inline ? '?inline=1' : ''}`);
+export const deletePdf = (id) => req(`/pdf/${id}`, { method: 'DELETE' });

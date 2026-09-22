@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
+import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, getInvoiceMap } from '../lib/api.js';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState, DEFAULT_INVOICE } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
@@ -9,10 +10,399 @@ import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
+import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
+import InvoiceHistoryModal from '../components/InvoiceHistoryModal.jsx';
 
 const VALID_TAG = 'VALID - SIAP INVOICE';
 
-const shortInvoice = (a) => (a === 'INVOICE TERBIT' ? 'Terbit Invoice' : a === 'PAID' ? 'Paid' : a);
+const MAX_PDF_MB = 10;
+
+// PUT langsung ke presigned URL R2 dengan progress (fetch tanpa progress bar).
+function putXhr(url, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    xhr.setRequestHeader('Content-Type', 'application/pdf');
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload R2 gagal (${xhr.status}).`)));
+    xhr.onerror = () => reject(new Error('Koneksi putus saat upload, coba lagi.'));
+    xhr.send(file);
+  });
+}
+
+const fmtKB = (b) => `${(Number(b || 0) / 1024).toLocaleString('id-ID', { maximumFractionDigits: 0 })} KB`;
+
+// Pesan error backend → kalimat ramah untuk toast
+const PDF_ERR_MSG = {
+  R2_NOT_CONFIGURED: 'Penyimpanan PDF belum dikonfigurasi — hubungi admin.',
+  NOT_PDF: 'File harus berformat PDF.',
+  BAD_SIZE: 'Ukuran PDF di luar batas yang diizinkan.',
+  CASE_NOT_FOUND: 'Kasus tidak ditemukan.',
+  PDF_NOT_FOUND: 'Data PDF tidak ditemukan.',
+  NOT_READY: 'File belum selesai diunggah.',
+  VERIFY_FAILED: 'File tidak terverifikasi sebagai PDF.',
+};
+const pdfErrMsg = (err, fallback) => PDF_ERR_MSG[err?.code] || err?.data?.message || err?.message || fallback;
+
+// Label status file yang ramah (status mentah: uploading/failed/completed)
+const PDF_STATUS_LABEL = { uploading: 'mengupload…', failed: 'gagal', completed: 'selesai' };
+
+// Status invoice kanonis yang dikunci sistem (otomatis upload/hapus PDF) —
+// manual dari dropdown ditolak backend 422. PAID satu-satunya yang boleh manual.
+const INV_AUTO_LOCKED = ['MENUNGGU INVOICE', 'INVOICE TERBIT'];
+const INV_ERR_MSG = {
+  INVOICE_AUTO_LOCKED: 'Status ini diatur otomatis oleh sistem (upload/hapus PDF) — manual hanya PAID.',
+  INVOICE_NEED_PDF: 'Belum bisa PAID — upload minimal 1 PDF invoice dulu.',
+};
+const invErrMsg = (err, fallback) => INV_ERR_MSG[err?.code] || err?.data?.message || err?.message || fallback;
+
+// Sel upload PDF invoice per baris: pilih -> PUT R2 (progress) -> confirm ->
+// daftar file (unduh/hapus). Tombol Unduh/Hapus digate kondisi true/false:
+// aktif hanya bila file berstatus 'completed', selain itu disabled + tooltip.
+const isPdfReady = (st) => st === 'completed';
+function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange }) {
+  const inputId = `pdf-${recordUuid}`;
+  const fileRef = useRef(null);
+  const seq = useRef(0);
+  const [files, setFiles] = useState([]);
+  // Gate server (GET /api/pdf/state/:uuid) — default false sampai backend menjawab.
+  // Fallback: bila endpoint belum ada (backend lama), gating mengandalkan status lokal.
+  const [gate, setGate] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [pct, setPct] = useState(null);
+
+  const reload = useCallback(() => {
+    const my = ++seq.current;
+    listPdfsByCase(recordUuid).then(
+      (rows) => {
+        if (seq.current === my) setFiles(Array.isArray(rows) ? rows : []);
+      },
+      () => {}
+    );
+    getPdfState(recordUuid).then(
+      (st) => {
+        if (seq.current === my) setGate({ canDownload: !!st?.canDownload, canDelete: !!st?.canDelete });
+      },
+      () => {}
+    );
+  }, [recordUuid]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const pick = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f || busy) return;
+    // Pengaman ganda: input sudah disabled, tapi cegah juga secara logika
+    const allowed = gate ? gate.canUpload : !files.some((x) => isPdfReady(x.status));
+    if (!allowed) {
+      notify('Upload dinonaktifkan — PDF sudah terupload. Hapus PDF untuk upload ulang.', 'err');
+      return;
+    }
+    const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+    if (!isPdf) {
+      notify(`"${f.name}" bukan PDF — pilih file berformat PDF.`, 'err');
+      return;
+    }
+    if (f.size > MAX_PDF_MB * 1024 * 1024) {
+      notify(`"${f.name}" terlalu besar (${fmtKB(f.size)}) — maksimal ${MAX_PDF_MB} MB.`, 'err');
+      return;
+    }
+    fileRef.current = f;
+    setBusy(true);
+    setPct(0);
+    let uid = null;
+    try {
+      const u = await requestPdfUploadUrl({ recordUuid, filename: f.name, sizeBytes: f.size });
+      uid = u.id;
+      notify(`Mengupload "${f.name}" (${fmtKB(f.size)})…`, 'info', 2000);
+      await putXhr(u.url, f, setPct);
+      const done = await confirmPdfUpload({ id: u.id });
+      notify(`PDF terupload: "${f.name}" (${fmtKB(f.size)}).`, 'success');
+      // Sinkron status invoice otomatis dari backend (TERBIT, kecuali sudah PAID)
+      if (done?.invoiceStatus) onStatusChange?.(recordUuid, done.invoiceStatus);
+      reload();
+    } catch (err) {
+      notify(pdfErrMsg(err, 'Upload gagal, coba lagi.'), 'err');
+      // Bersihkan baris uploading yang gagal agar tidak nyangkut di daftar
+      // (server juga menghapusnya via cron, tapi itu butuh >30 menit)
+      if (uid) {
+        try { await deletePdf(uid); } catch { /* abaikan, daftar di-reload */ }
+        reload();
+      }
+    } finally {
+      fileRef.current = null;
+      setBusy(false);
+      setPct(null);
+    }
+  };
+
+  const download = async (id, filename, sizeBytes) => {
+    if (downloadBusy) return;
+    setDownloadBusy(id);
+    try {
+      const r = await requestPdfDownloadUrl(id);
+      const a = document.createElement('a');
+      a.href = r.url;
+      a.download = filename || 'invoice.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      const label = `"${filename || 'invoice.pdf'}"${sizeBytes ? ` (${fmtKB(sizeBytes)})` : ''}`;
+      notify(`Mengunduh ${label}…`, 'download');
+    } catch (err) {
+      notify(pdfErrMsg(err, 'Unduhan gagal, coba lagi.'), 'err');
+    } finally {
+      setDownloadBusy(null);
+    }
+  };
+
+  // Hapus via modal konfirmasi elegan (tanpa confirm() bawaan browser).
+  // remove() murni menghapus; askDelete() membuka modal; confirmDelete() mengeksekusi.
+  const remove = async (id, filename) => {
+    try {
+      const r = await deletePdf(id);
+      notify(`PDF dihapus: "${filename}".`, 'success');
+      // Sinkron status invoice otomatis dari backend (kembali MENUNGGU bila PDF habis)
+      if (r?.invoiceStatus) onStatusChange?.(recordUuid, r.invoiceStatus);
+      reload();
+      return true;
+    } catch (err) {
+      notify(pdfErrMsg(err, 'Hapus gagal, coba lagi.'), 'err');
+      return false;
+    }
+  };
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  // Id file yang sedang disiapkan unduhannya (spinner di tombol Unduh)
+  const [downloadBusy, setDownloadBusy] = useState(null);
+  // B. Riwayat invoice+PDF per baris
+  const [histOpen, setHistOpen] = useState(false);
+  const [hist, setHist] = useState([]);
+  const [histBusy, setHistBusy] = useState(false);
+
+  const openHistory = async () => {
+    if (histBusy) return;
+    setHistBusy(true);
+    try {
+      const r = await getPdfHistory(recordUuid);
+      setHist(Array.isArray(r?.history) ? r.history : []);
+      setHistOpen(true);
+    } catch (err) {
+      notify(pdfErrMsg(err, 'Riwayat gagal dimuat.'), 'err');
+    } finally {
+      setHistBusy(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleteBusy) return;
+    setDeleteBusy(true);
+    try {
+      const gone = await remove(deleteTarget.id, deleteTarget.filename);
+      if (gone) setDeleteTarget(null);
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
+  // Id file yang sedang dibuka ke tab baru (untuk status loading tombol mata)
+  const [previewBusy, setPreviewBusy] = useState(null);
+
+  // Buka isi PDF di tab baru (bukan modal — lebih lega).
+  // Tab dibuka sinkron (tanpa noopener agar bisa diisi/ditutup dari sini, anti popup-blocker),
+  // lalu diarahkan LANGSUNG ke presigned URL inline — tanpa fetch/blob sehingga tidak
+  // tergantung CORS dan tidak pernah memicu download (syarat: backend sudah ?inline=1).
+  const openPreview = async (f) => {
+    if (previewBusy) return;
+    const tab = window.open('', '_blank');
+    if (!tab) {
+      notify('Tab baru diblokir browser — izinkan popup untuk situs ini.', 'err');
+      return;
+    }
+    try {
+      tab.document.write('<!doctype html><html><head><title>Memuat…</title></head><body style="font-family:sans-serif;display:flex;height:100vh;align-items:center;justify-content:center;color:#64748b">Memuat pratinjau PDF…</body></html>');
+      tab.document.close();
+    } catch { /* abaikan bila tab tak bisa ditulis */ }
+    setPreviewBusy(f.id);
+    try {
+      const r = await requestPdfDownloadUrl(f.id, { inline: true });
+      tab.location.href = r.url;
+    } catch (err) {
+      try { tab.close(); } catch { /* abaikan */ }
+      notify(pdfErrMsg(err, 'Pratinjau gagal dibuka.'), 'err');
+    } finally {
+      setPreviewBusy(null);
+    }
+  };
+
+  // Upload di-disabled bila sudah ada file completed (aturan: 1 kasus = 1 PDF aktif).
+  // Tombol aktif kembali otomatis setelah PDF dihapus (gate.canUpload dari server).
+  const hasCompleted = files.some((f) => isPdfReady(f.status));
+  const canUpload = gate ? gate.canUpload : !hasCompleted;
+  const uploadDisabled = busy || !canUpload;
+
+  return (
+    <div className="w-[220px]">
+      <input id={inputId} type="file" accept="application/pdf,.pdf" className="hidden" onChange={pick} disabled={uploadDisabled} />
+      <div className="flex items-center gap-1.5">
+      <label
+        htmlFor={inputId}
+        aria-disabled={uploadDisabled}
+        title={canUpload ? 'Upload PDF invoice' : 'Upload dinonaktifkan — PDF sudah terupload. Hapus PDF untuk upload ulang.'}
+        className={`inline-flex flex-1 min-w-0 items-center justify-center gap-2 text-[12px] font-extrabold rounded-xl px-3 py-2 transition ${uploadDisabled ? 'cursor-not-allowed text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700' : 'cursor-pointer text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-sm shadow-emerald-600/25 hover:shadow-md'}`}
+      >
+        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+        </svg>
+        {busy && pct !== null ? `${pct}%` : 'Upload PDF'}
+      </label>
+      <button
+        type="button"
+        onClick={openHistory}
+        disabled={histBusy}
+        title="Riwayat invoice, validasi & PDF kasus ini"
+        aria-label="Riwayat invoice, validasi dan PDF kasus ini"
+        className="shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 p-2 text-slate-400 shadow-sm transition hover:text-brand-600 dark:hover:text-brand-300 hover:border-brand-200 dark:hover:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10 hover:shadow-md disabled:opacity-50 disabled:cursor-wait"
+      >
+        {histBusy ? (
+          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )}
+      </button>
+      </div>
+      {busy && pct !== null && (
+        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+          <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      )}
+      {files.length > 0 ? (
+        <ul className="mt-1.5 space-y-1.5">
+          {files.map((f) => {
+            // Kondisi true/false: status lokal AND gate server (keduanya harus true).
+            // gate null = backend lama tanpa /state → hanya status lokal yang dipakai.
+            // Hapus SELALU aktif termasuk baris macet (uploading/failed) agar user bisa
+            // membersihkan sendiri; Lihat & Unduh tetap khusus file completed.
+            const ready = isPdfReady(f.status);
+            const canDl = ready && (!gate || gate.canDownload);
+            const hint = ready ? 'Belum dikonfirmasi server — muat ulang halaman.' : 'Tersedia setelah upload selesai dikonfirmasi';
+            const statusLabel = PDF_STATUS_LABEL[f.status] || f.status;
+            const iconBtn = 'shrink-0 rounded-lg p-1.5 transition disabled:opacity-30 disabled:cursor-not-allowed';
+            return (
+            <li
+              key={f.id}
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 shadow-sm px-2 py-1.5"
+            >
+              <div className="flex items-center gap-1.5">
+                <span aria-hidden="true" className={`shrink-0 rounded-lg p-1.5 ${ready ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/10 dark:text-rose-400' : 'bg-amber-50 text-amber-500 dark:bg-amber-500/10 dark:text-amber-400'}`}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-[11px] font-bold text-slate-700 dark:text-slate-200" title={f.filename}>{f.filename}</p>
+                  <p className="text-[10px] font-semibold text-slate-400 tabular-nums">
+                    {fmtKB(f.sizeBytes)}{!ready ? ` · ${statusLabel}` : ''}
+                  </p>
+                </div>
+                <div className="shrink-0 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => openPreview(f)}
+                    disabled={!canDl || previewBusy !== null}
+                    title={canDl ? `Lihat ${f.filename} di tab baru` : hint}
+                    aria-label={`Lihat ${f.filename} di tab baru`}
+                    aria-disabled={!canDl}
+                    className={`${iconBtn} text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10`}
+                  >
+                    {previewBusy === f.id ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => download(f.id, f.filename, f.sizeBytes)}
+                    disabled={!canDl || downloadBusy !== null}
+                    title={downloadBusy === f.id ? 'Menyiapkan unduhan…' : (canDl ? `Unduh ${f.filename}` : hint)}
+                    aria-label={`Unduh ${f.filename}`}
+                    aria-disabled={!canDl}
+                    className={`${iconBtn} text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10`}
+                  >
+                    {downloadBusy === f.id ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(f)}
+                    title={ready ? `Hapus ${f.filename}` : `Hapus ${f.filename} (${statusLabel}, belum selesai)`}
+                    aria-label={`Hapus ${f.filename}`}
+                    className={`${iconBtn} text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </li>
+            );
+          })}
+        </ul>
+      ) : (
+        // Sebelum ada upload: status kosong yang elegan
+        <div className="mt-1.5 flex w-full items-center gap-1.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 px-2 py-1.5 text-slate-400">
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <span className="flex-1 min-w-0 truncate text-[11px] font-semibold">Belum ada PDF</span>
+        </div>
+      )}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          file={{ filename: deleteTarget.filename, sizeLabel: fmtKB(deleteTarget.sizeBytes) }}
+          busy={deleteBusy}
+          onCancel={() => { if (!deleteBusy) setDeleteTarget(null); }}
+          onConfirm={confirmDelete}
+        />
+      )}
+      {histOpen && (
+        <InvoiceHistoryModal
+          title={`Kasus #${caseNo} (${caseClient})`}
+          subtitle={`${hist.length} aktivitas tercatat`}
+          history={hist}
+          onClose={() => setHistOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
 
 // Badge billing status (selaras dashboard)
 const BILL_BADGE = {
@@ -32,7 +422,7 @@ export default function FinanceAuditPage() {
   const { user } = useAuth();
   const { caseAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
-  const { invoiceActions, invoiceStatus, defaultInvoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
+  const { invoiceActions, invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [brand, setBrand] = useState('');
@@ -51,6 +441,23 @@ export default function FinanceAuditPage() {
     ensureDefaults(validatedPool.map((c) => c.recordUuid));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseAuditStatus]);
+
+  // A+P3. Sinkron status invoice dari backend (sumber kebenaran otomasi upload/hapus):
+  // saat halaman dimuat + tiap jendela kembali fokus (tutup sisa celah basi antar-tab).
+  const syncFromServer = useCallback(() => {
+    getInvoiceMap()
+      .then((r) => {
+        if (!r || typeof r.map !== 'object') return;
+        Object.entries(r.map).forEach(([uuid, st]) => syncInvoiceStatus(uuid, st));
+      })
+      .catch(() => {});
+  }, [syncInvoiceStatus]);
+
+  useEffect(() => {
+    syncFromServer();
+    window.addEventListener('focus', syncFromServer);
+    return () => window.removeEventListener('focus', syncFromServer);
+  }, [syncFromServer]);
 
   const brands = useMemo(
     () => [...new Set(allCases.map((c) => c.client).filter(Boolean))].sort(),
@@ -108,13 +515,23 @@ export default function FinanceAuditPage() {
 
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
-  function handleInvoice(uuid, action) {
+  // Ubah status invoice manual: hanya PAID yang diizinkan server (422 bila dilanggar).
+  // Lokal diubah HANYA setelah server sukses — sinkron, bukan optimistic.
+  async function handleInvoice(uuid, action) {
+    const prev = invoiceStatus[uuid] || defaultInvoiceStatus;
+    if (action === prev) return;
     const c = allCases.find((x) => x.recordUuid === uuid);
-    updateInvoice(uuid, action);
     const meta = invoiceMeta[uuid] || {};
     const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
     const invNo = (meta.no || '').trim();
-    recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}${invNo ? ` • no. invoice ${invNo}` : ''}`, 'Invoice');
+    try {
+      await patchInvoice(uuid, action);
+      syncInvoiceStatus(uuid, action);
+      notify(`Status invoice ${label} menjadi ${action}.`, 'success');
+      recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}${invNo ? ` • no. invoice ${invNo}` : ''}`, 'Invoice');
+    } catch (err) {
+      notify(invErrMsg(err, 'Gagal mengubah status invoice.'), 'err');
+    }
   }
 
   function exportData() {
@@ -316,9 +733,9 @@ export default function FinanceAuditPage() {
                 <th className="px-4 py-3 font-bold">Billing Category</th>
                 <th className="px-4 py-3 font-bold text-right">Charges</th>
                 <th className="px-4 py-3 font-bold">Status Invoice</th>
+                <th className="px-4 py-3 font-bold">Upload PDF</th>
                 <th className="px-4 py-3 font-bold">No. Invoice</th>
                 <th className="px-4 py-3 font-bold">Keterangan</th>
-                <th className="px-6 py-3 font-bold text-center">Aksi Cepat</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -363,12 +780,19 @@ export default function FinanceAuditPage() {
                     <select
                       value={invoiceStatus[c.recordUuid] || defaultInvoiceStatus}
                       onChange={(e) => handleInvoice(c.recordUuid, e.target.value)}
+                      title="MENUNGGU/TERBIT otomatis oleh sistem (upload/hapus PDF) — manual hanya PAID"
                       className={`text-xs font-semibold border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 dark:text-slate-100 max-w-[180px] ${INV_TONE[invoiceStatus[c.recordUuid]] || 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
-                      {invoiceActions.map((a) => (
-                        <option key={a} value={a}>{a}</option>
-                      ))}
+                      {invoiceActions.map((a) => {
+                        const cur = invoiceStatus[c.recordUuid] || defaultInvoiceStatus;
+                        // Opsi otomatis dikunci kecuali sedang terpilih (tampil baca-saja)
+                        const locked = INV_AUTO_LOCKED.includes(a) && cur !== a;
+                        return <option key={a} value={a} disabled={locked}>{a}{locked ? ' (otomatis)' : ''}</option>;
+                      })}
                     </select>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <PdfCell recordUuid={c.recordUuid} caseNo={c.no} caseClient={c.client} notify={notify} onStatusChange={syncInvoiceStatus} />
                   </td>
                   <td className="px-4 py-3.5">
                     <input
@@ -388,26 +812,6 @@ export default function FinanceAuditPage() {
                       onChange={(e) => updateInvoiceMeta(c.recordUuid, { note: e.target.value })}
                       className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 w-[160px]"
                     />
-                  </td>
-                  <td className="px-6 py-3.5 text-center">
-                    <div className="flex items-center justify-center gap-1 flex-wrap">
-                      {invoiceActions
-                        .filter((a) => a !== (invoiceStatus[c.recordUuid] || defaultInvoiceStatus))
-                        .slice(0, 2)
-                        .map((a, i) => (
-                          <button
-                            key={a}
-                            onClick={() => handleInvoice(c.recordUuid, a)}
-                            className={`text-[10px] font-semibold px-2 py-1 rounded transition ${
-                              i === 0
-                                ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-100 dark:hover:bg-violet-500/20'
-                                : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
-                            }`}
-                          >
-                            {shortInvoice(a)}
-                          </button>
-                        ))}
-                    </div>
                   </td>
                 </tr>
                 );

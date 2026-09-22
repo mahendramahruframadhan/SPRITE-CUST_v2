@@ -189,6 +189,60 @@ struktur/kolom sama persis, 25 kolom `COLS` di `src/sheets/sheets.service.ts`).
 2. Share sheet ke service account sebagai Editor
 3. `.env`: `SHEETS_MOCK=false`, restart. Cron tiap 5 menit + `POST /api/sync/trigger` manual.
 
+## PDF invoice (Cloudflare R2)
+
+Upload langsung browser → R2 via presigned URL (file tidak transit server).
+Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
+
+1. R2 → bucket (mis. `pdf-storage`) → API token (baca+tulis bucket ini).
+2. CORS bucket (wajib untuk PUT langsung dari browser):
+   `AllowedOrigins: [<domain deploy>, http://localhost:5173]`,
+   `AllowedMethods: [PUT, GET, DELETE, HEAD]`, `AllowedHeaders: [*]`.
+3. `.env` (server saja, jangan commit):
+   `R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`,
+   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`,
+   `R2_MAX_MB=10`, `PDF_STUCK_MINUTES=30`. Restart backend.
+4. Alur per file: `POST /api/pdf/upload-url {recordUuid,filename,sizeBytes}`
+   → PUT ke `url` (maks 10 MB, 5 menit) → `POST /api/pdf/confirm {id}`
+   (cek HEAD + magic bytes `%PDF-`) → `completed`.
+5. Baca/hapus: `GET /api/pdf/by-case/:uuid`,
+   `GET /api/pdf/state/:uuid` → `{total, completed, pending, canDownload, canDelete, canUpload}`
+   (kondisi gate tombol; `canUpload` false bila sudah ada file `completed`),
+   `GET /api/pdf/:id/download-url` (presigned GET 5 menit, attachment;
+   tambah `?inline=1` untuk disposition inline → tampil di iframe pratinjau),
+   `DELETE /api/pdf/:id`. Tulis dijaga modul `finance` (PermGuard).
+   `GET /api/pdf/history/:uuid` → riwayat invoice + validasi + PDF per kasus (50 terakhir,
+   dari `activity_logs` kategori `Invoice`/`Validasi`: siapa, apa, kapan).
+   `GET /api/billing/invoice-map` → peta `{recordUuid: status}` seluruh kasus
+   (dipakai frontend menyinkronkan status lokal dengan otomasi backend).
+6. **Otomatisasi status invoice** (3 status, tercatat di `activity_logs` kategori `Invoice`):
+   `confirm` sukses → `INVOICE TERBIT` (kecuali sudah `PAID`, tidak diturunkan);
+   hapus PDF terakhir → kembali `MENUNGGU INVOICE` (kecuali `PAID`).
+   Manual `PATCH /cases/:uuid/invoice` hanya menerima `PAID` dan wajib ≥1 PDF
+   `completed` — `MENUNGGU/TERBIT` manual ditolak `422 INVOICE_AUTO_LOCKED`,
+   `PAID` tanpa PDF ditolak `422 INVOICE_NEED_PDF`.
+6. Cron 10 menit menghapus baris `uploading` macet > 30 menit + baris `failed` yang tua (> 24 jam, beserta objeknya di storage).
+7. Frontend: kolom Upload PDF di halaman Finance (`PdfCell`) —
+   pilih → progress → daftar/lihat/unduh/hapus per baris kasus.
+
+## Ganti provider storage (R2 <-> Supabase <-> S3 lain)
+
+Backend memakai protokol S3-compatible (`@aws-sdk/client-s3`), jadi pindah
+provider = ganti env + CORS, **tanpa ubah kode**. Prosedur (prompt sakti):
+
+1. Buat bucket privat di provider baru (nama boleh sama, mis. `pdf-storage`).
+2. Buat access key (scope tulis+baca bucket itu) + catat endpoint S3-nya:
+   - R2: `https://<account-id>.r2.cloudflarestorage.com`, `R2_REGION=auto`
+   - Supabase: `https://<project-ref>.supabase.co/storage/v1/s3`, `R2_REGION=<region project>`
+   - S3/MinIO lain: endpoint masing-masing, `R2_REGION` mengikuti regionnya
+3. Pasang CORS bucket: origin = domain deploy + `http://localhost:5173`,
+   methods `PUT, GET, DELETE, HEAD`, headers `*`.
+4. Isi `.env`: `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+   `R2_BUCKET_NAME`, `R2_REGION`. Restart backend.
+5. Uji 1 file: pilih → progress 100% → `confirm` → `completed` →
+   unduh sama isinya → hapus. File lama tetap di provider lama
+   (migrasi manual bila perlu, key: `invoices/<uuid>/...`).
+
 ## Deploy (live, Postgres permanen)
 
 1. Siapkan Postgres + database (contoh lokal: cluster port `5433`, db `sprite_cust`).

@@ -135,3 +135,15 @@ export const activityLogs = pgTable('activity_logs', {
   recordUuid: text('record_uuid'),
   createdAt: text('created_at').notNull(),
 });
+
+export const invoicePdfs = pgTable('invoice_pdfs', {
+  id: text('id').primaryKey(),
+  recordUuid: text('record_uuid').notNull().references(() => assistanceRecords.recordUuid, { onDelete: 'cascade' }),
+  filename: text('filename').notNull(),
+  storageKey: text('storage_key').notNull().unique(),
+  sizeBytes: integer('size_bytes').default(0),
+  status: text('status').notNull().default('uploading'),
+  uploadedBy: text('uploaded_by'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at'),
+});

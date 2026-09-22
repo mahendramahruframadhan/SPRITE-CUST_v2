@@ -257,3 +257,27 @@ Invoke-RestMethod http://localhost:5005/api/sync/logs | Select-Object -First 1  
 - [`backend/README.md`](backend/README.md) — API, env, dan Google Sheets live.
 - [`frontend/README.md`](frontend/README.md) — struktur, route, lapisan API.
 - `.local/pusat-data-bantuan-PRD.md` — Product Requirements Document.
+
+## 🚧 Progres review 2026-09-22 (branch `dev/20260921-pdf-sync`)
+
+Hasil review kerjaan PDF invoice + status invoice otomatis. Status: ✅ selesai dikerjakan.
+
+- [x] **A.** Sinkron status invoice dari backend saat halaman Finance dimuat (tutup celah basi antar-browser) — endpoint `GET /api/billing/invoice-map`
+- [x] **B.** Tombol Riwayat per baris (history upload/hapus/PAID + tanggal terlihat user) — endpoint `GET /api/pdf/history/:uuid` + modal timeline
+- [x] **C.** Cron ikut membersihkan baris PDF `failed` yang tua (> 24 jam)
+- [x] **D.** Rapi-rapi: hapus `updateInvoice` menganggur + abaikan `.opencode/` di git
+- [ ] **E.** Rotasi token GitHub & S3 key (aksi pemilik di dashboard — lihat panduan di bawah)
+- [x] **F.** Serah-terima proses backend `:5005` ke terminal pemilik + PR ke `main` → PR #1: https://github.com/mahendramahruframadhan/SPRITE-CUST_v2/pull/1
+
+## 🚀 Tindak lanjut review (P1–P3) — ✅ selesai
+
+- [x] **P1.** Hapus `updateInvoice` menganggur + stabilkan efek modal (ref callback)
+- [x] **P2.** Riwayat mencakup kategori `Validasi` + lencana kategori per baris timeline
+- [x] **P3.** Sinkron ulang `invoice-map` tiap jendela kembali fokus
+
+### E. Panduan rotasi (dilakukan pemilik)
+
+1. GitHub → Settings → Developer settings → Personal access tokens → revoke token lama
+   → Generate new token (scope `repo`) → kirim ke asisten untuk disimpan ulang.
+2. Supabase → Project Settings → Storage → S3 Access Keys → hapus key lama → buat baru
+   → update `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` di `backend/.env` → restart backend.

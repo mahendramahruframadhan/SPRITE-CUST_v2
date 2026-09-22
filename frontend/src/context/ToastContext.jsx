@@ -6,20 +6,32 @@ let toastSeq = 0;
 const KIND_STYLE = {
   success: {
     bar: 'bg-emerald-500',
+    tint: 'bg-emerald-50/70 dark:bg-emerald-500/[0.07]',
     icon: 'text-emerald-500 dark:text-emerald-400',
     path: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
   },
   error: {
     bar: 'bg-rose-500',
+    tint: 'bg-rose-50/70 dark:bg-rose-500/[0.07]',
     icon: 'text-rose-500 dark:text-rose-400',
     path: 'M12 9v3.75m0 3.75h.008v.008H12v-.008zm9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z',
   },
   info: {
     bar: 'bg-brand-500',
+    tint: '',
     icon: 'text-brand-500 dark:text-brand-300',
     path: 'M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z',
   },
+  download: {
+    bar: 'bg-sky-500',
+    tint: 'bg-sky-50/70 dark:bg-sky-500/[0.07]',
+    icon: 'text-sky-500 dark:text-sky-400',
+    path: 'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3',
+  },
 };
+
+// Alias lama agar tetap tampil benar ('err' dipakai banyak pemanggil).
+const KIND_ALIAS = { err: 'error', warn: 'info', warning: 'info' };
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
@@ -35,8 +47,11 @@ export function ToastProvider({ children }) {
 
   const notify = useCallback((message, kind = 'success', ms = 3500) => {
     const id = ++toastSeq;
-    setToasts((prev) => [...prev.slice(-3), { id, message: String(message), kind: KIND_STYLE[kind] ? kind : 'info' }]);
-    timers.current[id] = setTimeout(() => dismiss(id), ms);
+    const k = KIND_STYLE[kind] ? kind : (KIND_ALIAS[kind] || 'info');
+    // Error ditampilkan sedikit lebih lama agar sempat dibaca
+    const ttl = ms ?? (k === 'error' ? 5000 : 3500);
+    setToasts((prev) => [...prev.slice(-3), { id, message: String(message), kind: k }]);
+    timers.current[id] = setTimeout(() => dismiss(id), ttl);
     return id;
   }, [dismiss]);
 
@@ -50,7 +65,7 @@ export function ToastProvider({ children }) {
             <div
               key={t.id}
               role={t.kind === 'error' ? 'alert' : 'status'}
-              className="pointer-events-auto flex items-start gap-2.5 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-3 pl-3 pr-2 shadow-2xl animate-fade-in-fast"
+              className={`pointer-events-auto flex items-start gap-2.5 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 ${s.tint} py-3 pl-3 pr-2 shadow-2xl animate-fade-in-fast`}
             >
               <span aria-hidden="true" className={`mt-0.5 w-1 self-stretch rounded-full ${s.bar}`} />
               <svg className={`w-5 h-5 shrink-0 mt-0.5 ${s.icon}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
