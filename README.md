@@ -269,6 +269,12 @@ Hasil review kerjaan PDF invoice + status invoice otomatis. Status: ✅ selesai 
 - [ ] **E.** Rotasi token GitHub & S3 key (aksi pemilik di dashboard — lihat panduan di bawah)
 - [x] **F.** Serah-terima proses backend `:5005` ke terminal pemilik + PR ke `main` → PR #1: https://github.com/mahendramahruframadhan/SPRITE-CUST_v2/pull/1
 
+## 🚀 Tindak lanjut review (P1–P3) — ✅ selesai
+
+- [x] **P1.** Hapus `updateInvoice` menganggur + stabilkan efek modal (ref callback)
+- [x] **P2.** Riwayat mencakup kategori `Validasi` + lencana kategori per baris timeline
+- [x] **P3.** Sinkron ulang `invoice-map` tiap jendela kembali fokus
+
 ### E. Panduan rotasi (dilakukan pemilik)
 
 1. GitHub → Settings → Developer settings → Personal access tokens → revoke token lama
