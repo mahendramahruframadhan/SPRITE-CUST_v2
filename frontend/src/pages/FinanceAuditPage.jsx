@@ -10,6 +10,7 @@ import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
+import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
 
 const VALID_TAG = 'VALID - SIAP INVOICE';
 
@@ -135,8 +136,9 @@ function PdfCell({ recordUuid, notify }) {
     }
   };
 
+  // Hapus via modal konfirmasi elegan (tanpa confirm() bawaan browser).
+  // remove() murni menghapus; askDelete() membuka modal; confirmDelete() mengeksekusi.
   const remove = async (id, filename) => {
-    if (!confirm(`Hapus PDF "${filename}"?`)) return false;
     try {
       await deletePdf(id);
       notify(`PDF dihapus: "${filename}".`, 'success');
@@ -145,6 +147,20 @@ function PdfCell({ recordUuid, notify }) {
     } catch (err) {
       notify(pdfErrMsg(err, 'Hapus gagal, coba lagi.'), 'err');
       return false;
+    }
+  };
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleteBusy) return;
+    setDeleteBusy(true);
+    try {
+      const gone = await remove(deleteTarget.id, deleteTarget.filename);
+      if (gone) setDeleteTarget(null);
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -262,7 +278,7 @@ function PdfCell({ recordUuid, notify }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => remove(f.id, f.filename)}
+                    onClick={() => setDeleteTarget(f)}
                     title={ready ? `Hapus ${f.filename}` : `Hapus ${f.filename} (${statusLabel}, belum selesai)`}
                     aria-label={`Hapus ${f.filename}`}
                     className={`${iconBtn} text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10`}
@@ -285,6 +301,14 @@ function PdfCell({ recordUuid, notify }) {
           </svg>
           <span className="flex-1 min-w-0 truncate text-[11px] font-semibold">Belum ada PDF</span>
         </div>
+      )}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          file={{ filename: deleteTarget.filename, sizeLabel: fmtKB(deleteTarget.sizeBytes) }}
+          busy={deleteBusy}
+          onCancel={() => { if (!deleteBusy) setDeleteTarget(null); }}
+          onConfirm={confirmDelete}
+        />
       )}
     </div>
   );
