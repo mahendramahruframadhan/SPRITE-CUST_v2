@@ -375,7 +375,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange }) {
         type="button"
         onClick={openHistory}
         disabled={histBusy}
-        title="Lihat riwayat invoice & PDF kasus ini"
+        title="Lihat riwayat invoice, validasi & PDF kasus ini"
         className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold rounded-xl px-2 py-1.5 text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 border border-transparent hover:border-brand-100 dark:hover:border-brand-500/20 transition disabled:opacity-50"
       >
         {histBusy ? (
@@ -440,20 +440,22 @@ export default function FinanceAuditPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseAuditStatus]);
 
-  // A. Sinkron status invoice dari backend (sumber kebenaran otomasi upload/hapus)
-  // saat halaman dimuat — menutup celah basi antar-browser/perangkat.
-  useEffect(() => {
-    let ignore = false;
+  // A+P3. Sinkron status invoice dari backend (sumber kebenaran otomasi upload/hapus):
+  // saat halaman dimuat + tiap jendela kembali fokus (tutup sisa celah basi antar-tab).
+  const syncFromServer = useCallback(() => {
     getInvoiceMap()
       .then((r) => {
-        if (ignore || !r || typeof r.map !== 'object') return;
+        if (!r || typeof r.map !== 'object') return;
         Object.entries(r.map).forEach(([uuid, st]) => syncInvoiceStatus(uuid, st));
       })
       .catch(() => {});
-    return () => {
-      ignore = true;
-    };
   }, [syncInvoiceStatus]);
+
+  useEffect(() => {
+    syncFromServer();
+    window.addEventListener('focus', syncFromServer);
+    return () => window.removeEventListener('focus', syncFromServer);
+  }, [syncFromServer]);
 
   const brands = useMemo(
     () => [...new Set(allCases.map((c) => c.client).filter(Boolean))].sort(),
