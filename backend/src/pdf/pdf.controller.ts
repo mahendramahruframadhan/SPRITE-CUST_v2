@@ -40,7 +40,7 @@ export class PdfController {
     return this.pdf.caseState(uuid);
   }
 
-  // Riwayat invoice+PDF per kasus. Baca terbuka seperti by-case/state.
+  // Riwayat invoice + validasi + PDF per kasus. Baca terbuka seperti by-case/state.
   @Get('pdf/history/:uuid')
   async history(@Param('uuid') uuid: string) {
     return this.pdf.caseHistory(uuid);

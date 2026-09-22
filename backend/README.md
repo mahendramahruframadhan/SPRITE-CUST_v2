@@ -211,8 +211,8 @@ Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
    `GET /api/pdf/:id/download-url` (presigned GET 5 menit, attachment;
    tambah `?inline=1` untuk disposition inline → tampil di iframe pratinjau),
    `DELETE /api/pdf/:id`. Tulis dijaga modul `finance` (PermGuard).
-   `GET /api/pdf/history/:uuid` → riwayat invoice+PDF per kasus (50 terakhir,
-   dari `activity_logs` kategori `Invoice`: siapa, apa, kapan).
+   `GET /api/pdf/history/:uuid` → riwayat invoice + validasi + PDF per kasus (50 terakhir,
+   dari `activity_logs` kategori `Invoice`/`Validasi`: siapa, apa, kapan).
    `GET /api/billing/invoice-map` → peta `{recordUuid: status}` seluruh kasus
    (dipakai frontend menyinkronkan status lokal dengan otomasi backend).
 6. **Otomatisasi status invoice** (3 status, tercatat di `activity_logs` kategori `Invoice`):

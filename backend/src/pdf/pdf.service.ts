@@ -189,11 +189,11 @@ export class PdfService {
     return { ok: true, recordUuid, total: completed + pending, completed, pending, canDownload: can, canDelete: can, canUpload: !can };
   }
 
-  // Riwayat invoice+PDF per kasus (sumber: activity_logs kategori Invoice).
+  // Riwayat invoice + validasi + PDF per kasus (sumber: activity_logs).
   // Dipakai tombol Riwayat di frontend — siapa berbuat apa + kapan.
   async caseHistory(recordUuid: string) {
     const r: any = await this.db.execute(
-      `SELECT who, action, detail, created_at as "createdAt" FROM activity_logs WHERE record_uuid='${esc(recordUuid)}' AND category='Invoice' ORDER BY created_at DESC LIMIT 50` as any,
+      `SELECT who, action, category, detail, created_at as "createdAt" FROM activity_logs WHERE record_uuid='${esc(recordUuid)}' AND category IN ('Invoice','Validasi') ORDER BY created_at DESC LIMIT 50` as any,
     );
     return {
       ok: true,
@@ -201,6 +201,7 @@ export class PdfService {
       history: (r.rows || r || []).map((x: any) => ({
         who: x.who || 'Sistem',
         action: x.action,
+        category: x.category || '',
         detail: x.detail || '',
         createdAt: x.createdAt || x.createdat || '',
       })),
