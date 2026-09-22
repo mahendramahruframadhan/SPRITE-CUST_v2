@@ -150,39 +150,28 @@ function PdfCell({ recordUuid, notify }) {
 
   // Id file yang sedang dibuka ke tab baru (untuk status loading tombol mata)
   const [previewBusy, setPreviewBusy] = useState(null);
-  // Blob URL tab yang pernah dibuka — dibebaskan saat baris di-unmount
-  const blobRefs = useRef([]);
-
-  useEffect(() => {
-    const stash = blobRefs.current;
-    return () => {
-      stash.forEach((u) => {
-        try { URL.revokeObjectURL(u); } catch { /* abaikan */ }
-      });
-      stash.length = 0;
-    };
-  }, []);
 
   // Buka isi PDF di tab baru (bukan modal — lebih lega).
-  // Tab dibuka sinkron agar tidak diblokir popup-blocker, isinya diisi setelah termuat.
+  // Tab dibuka sinkron (tanpa noopener agar bisa diisi/ditutup dari sini, anti popup-blocker),
+  // lalu diarahkan LANGSUNG ke presigned URL inline — tanpa fetch/blob sehingga tidak
+  // tergantung CORS dan tidak pernah memicu download (syarat: backend sudah ?inline=1).
   const openPreview = async (f) => {
     if (previewBusy) return;
-    const tab = window.open('', '_blank', 'noopener');
+    const tab = window.open('', '_blank');
     if (!tab) {
       notify('Tab baru diblokir browser — izinkan popup untuk situs ini.', 'err');
       return;
     }
+    try {
+      tab.document.write('<!doctype html><html><head><title>Memuat…</title></head><body style="font-family:sans-serif;display:flex;height:100vh;align-items:center;justify-content:center;color:#64748b">Memuat pratinjau PDF…</body></html>');
+      tab.document.close();
+    } catch { /* abaikan bila tab tak bisa ditulis */ }
     setPreviewBusy(f.id);
     try {
       const r = await requestPdfDownloadUrl(f.id, { inline: true });
-      const res = await fetch(r.url);
-      if (!res.ok) throw new Error(`Gagal memuat isi file (${res.status}).`);
-      const blob = await res.blob();
-      const objUrl = URL.createObjectURL(blob);
-      blobRefs.current.push(objUrl);
-      tab.location.href = objUrl;
+      tab.location.href = r.url;
     } catch (err) {
-      tab.close();
+      try { tab.close(); } catch { /* abaikan */ }
       notify(pdfErrMsg(err, 'Pratinjau gagal dibuka.'), 'err');
     } finally {
       setPreviewBusy(null);
