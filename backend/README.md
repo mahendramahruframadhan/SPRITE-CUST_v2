@@ -206,14 +206,20 @@ Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
    → PUT ke `url` (maks 10 MB, 5 menit) → `POST /api/pdf/confirm {id}`
    (cek HEAD + magic bytes `%PDF-`) → `completed`.
 5. Baca/hapus: `GET /api/pdf/by-case/:uuid`,
-   `GET /api/pdf/state/:uuid` → `{total, completed, pending, canDownload, canDelete}`
-   (kondisi gate tombol Unduh/Hapus, true bila ada file `completed`),
+   `GET /api/pdf/state/:uuid` → `{total, completed, pending, canDownload, canDelete, canUpload}`
+   (kondisi gate tombol; `canUpload` false bila sudah ada file `completed`),
    `GET /api/pdf/:id/download-url` (presigned GET 5 menit, attachment;
    tambah `?inline=1` untuk disposition inline → tampil di iframe pratinjau),
    `DELETE /api/pdf/:id`. Tulis dijaga modul `finance` (PermGuard).
+6. **Otomatisasi status invoice** (3 status, tercatat di `activity_logs` kategori `Invoice`):
+   `confirm` sukses → `INVOICE TERBIT` (kecuali sudah `PAID`, tidak diturunkan);
+   hapus PDF terakhir → kembali `MENUNGGU INVOICE` (kecuali `PAID`).
+   Manual `PATCH /cases/:uuid/invoice` hanya menerima `PAID` dan wajib ≥1 PDF
+   `completed` — `MENUNGGU/TERBIT` manual ditolak `422 INVOICE_AUTO_LOCKED`,
+   `PAID` tanpa PDF ditolak `422 INVOICE_NEED_PDF`.
 6. Cron 10 menit menghapus baris `uploading` macet > 30 menit.
 7. Frontend: kolom Upload PDF di halaman Finance (`PdfCell`) —
-   pilih → progress → daftar/unduh/hapus per baris kasus.
+   pilih → progress → daftar/lihat/unduh/hapus per baris kasus.
 
 ## Ganti provider storage (R2 <-> Supabase <-> S3 lain)
 

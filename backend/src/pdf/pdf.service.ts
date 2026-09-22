@@ -121,10 +121,43 @@ export class PdfService {
       if (!sig.startsWith('%PDF-')) return markFailed('Isi file bukan PDF (%PDF- tidak ditemukan).');
       await this.db.execute(`UPDATE invoice_pdfs SET status='completed', size_bytes=${actual}, updated_at='${now}' WHERE id='${esc(id)}'` as any);
       await logActivity(this.db, { who, action: 'mengunggah PDF invoice', category: 'Invoice', detail: `${row.filename} (${(actual / 1024).toFixed(0)} KB)`, recordUuid: row.record_uuid });
-      return { ok: true, id, status: 'completed', sizeBytes: actual };
+      // Otomatisasi status invoice: PDF pertama yang completed → INVOICE TERBIT.
+      // PAID tidak pernah diturunkan (keputusan user bersifat final).
+      let invoiceStatus = await this.getInvoiceStatus(row.record_uuid);
+      if (invoiceStatus !== 'PAID' && invoiceStatus !== 'INVOICE TERBIT') {
+        await this.setInvoiceStatus(row.record_uuid, 'INVOICE TERBIT');
+        await logActivity(this.db, { who: 'Sistem', action: 'status invoice otomatis menjadi INVOICE TERBIT karena PDF terupload', category: 'Invoice', detail: row.filename, recordUuid: row.record_uuid });
+        invoiceStatus = 'INVOICE TERBIT';
+      }
+      return { ok: true, id, status: 'completed', sizeBytes: actual, invoiceStatus };
     } catch (e: any) {
       if (e?.status === HttpStatus.BAD_REQUEST) throw e;
       return markFailed('File belum sampai ke storage atau tidak terbaca.');
+    }
+  }
+
+  private async getInvoiceStatus(recordUuid: string): Promise<string> {
+    try {
+      const r: any = await this.db.execute(`SELECT status FROM invoice_status WHERE record_uuid='${esc(recordUuid)}' LIMIT 1` as any);
+      return (r.rows || r)[0]?.status || 'MENUNGGU INVOICE';
+    } catch {
+      return 'MENUNGGU INVOICE';
+    }
+  }
+
+  private async setInvoiceStatus(recordUuid: string, status: string): Promise<void> {
+    const now = new Date().toISOString();
+    await this.db.execute(
+      `INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(recordUuid)}','${esc(status)}','${now}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any,
+    );
+  }
+
+  private async countCompleted(recordUuid: string): Promise<number> {
+    try {
+      const r: any = await this.db.execute(`SELECT COUNT(*) as c FROM invoice_pdfs WHERE record_uuid='${esc(recordUuid)}' AND status='completed'` as any);
+      return Number((r.rows || r)[0]?.c || 0);
+    } catch {
+      return 0;
     }
   }
 
@@ -153,7 +186,7 @@ export class PdfService {
       else pending += n;
     }
     const can = completed > 0;
-    return { ok: true, recordUuid, total: completed + pending, completed, pending, canDownload: can, canDelete: can };
+    return { ok: true, recordUuid, total: completed + pending, completed, pending, canDownload: can, canDelete: can, canUpload: !can };
   }
 
   async downloadUrl(id: string, inline = false) {
@@ -184,7 +217,15 @@ export class PdfService {
     }
     await this.db.execute(`DELETE FROM invoice_pdfs WHERE id='${esc(id)}'` as any);
     await logActivity(this.db, { who, action: 'menghapus PDF invoice', category: 'Invoice', detail: row.filename, recordUuid: row.record_uuid });
-    return { ok: true, id };
+    // Otomatisasi status invoice: PDF completed terakhir dihapus → kembali MENUNGGU.
+    // PAID tidak disentuh (keputusan user bersifat final).
+    let invoiceStatus = await this.getInvoiceStatus(row.record_uuid);
+    if ((await this.countCompleted(row.record_uuid)) === 0 && invoiceStatus !== 'PAID' && invoiceStatus !== 'MENUNGGU INVOICE') {
+      await this.setInvoiceStatus(row.record_uuid, 'MENUNGGU INVOICE');
+      await logActivity(this.db, { who: 'Sistem', action: 'status invoice kembali MENUNGGU INVOICE karena PDF dihapus', category: 'Invoice', detail: row.filename, recordUuid: row.record_uuid });
+      invoiceStatus = 'MENUNGGU INVOICE';
+    }
+    return { ok: true, id, invoiceStatus };
   }
 
   // Bersihkan baris uploading yang macet (user batal/gagal tanpa confirm).
