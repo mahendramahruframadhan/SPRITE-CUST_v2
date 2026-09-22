@@ -10,12 +10,22 @@ const fmtTime = (s) => {
   return h && h !== t ? `${d} ${h}` : d;
 };
 
+// Warna lencana kategori aktivitas
+const CAT_STYLE = {
+  Invoice: 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  Validasi: 'bg-sky-100 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300',
+};
+const catStyle = (c) => CAT_STYLE[c] || 'bg-slate-100 dark:bg-slate-500/15 text-slate-500 dark:text-slate-400';
+
 export default function InvoiceHistoryModal({ title, subtitle, history = [], onClose }) {
   const closeRef = useRef(null);
+  // Stabil: simpan onClose di ref agar efek cukup dipasang sekali
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
@@ -25,7 +35,7 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="inv-history-title">
@@ -39,7 +49,7 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
               </svg>
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-100">Riwayat Invoice & PDF</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-100">Riwayat Kasus</p>
               <h3 id="inv-history-title" className="mt-0.5 font-extrabold truncate" title={title}>{title}</h3>
               {subtitle && <p className="text-[11px] text-emerald-100/90 truncate">{subtitle}</p>}
             </div>
@@ -70,6 +80,7 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
                     {h.detail && <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 break-words">{h.detail}</p>}
                     <p className="mt-1 text-[10px] font-semibold text-slate-400 tabular-nums">
                       {h.who} · {fmtTime(h.createdAt)}
+                      {h.category && <span className={`ml-1.5 rounded-full px-1.5 py-px ${catStyle(h.category)}`}>{h.category}</span>}
                       {auto && <span className="ml-1.5 rounded-full bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-300 px-1.5 py-px">otomatis</span>}
                     </p>
                   </li>

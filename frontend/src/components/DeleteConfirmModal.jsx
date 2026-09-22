@@ -5,11 +5,14 @@ import { useEffect, useRef } from 'react';
 // | onCancel() | onConfirm()
 export default function DeleteConfirmModal({ file, busy = false, onCancel, onConfirm }) {
   const cancelRef = useRef(null);
+  // Stabil: simpan callback di ref agar efek cukup dipasang sekali
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
 
   useEffect(() => {
     if (!file) return;
     const onKey = (e) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape') onCancelRef.current();
     };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
@@ -19,7 +22,7 @@ export default function DeleteConfirmModal({ file, busy = false, onCancel, onCon
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [file, onCancel]);
+  }, [file]);
 
   if (!file) return null;
 

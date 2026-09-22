@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { patchInvoice, getStatusOptions, putStatusOptions, renameStatusOption } from '../lib/api.js';
+import { getStatusOptions, putStatusOptions, renameStatusOption } from '../lib/api.js';
 
 // Status invoice Finance Audit — cermin useAuditState.js (billing).
 // Daftar aksi bisa dikonfigurasi user (localStorage `invoiceActions`);
@@ -73,11 +73,8 @@ export function useInvoiceState() {
     };
   }, []);
 
-  const updateInvoice = useCallback((uuid, status) => {
-    setInvoiceStatus((prev) => ({ ...prev, [uuid]: status }));
-    patchInvoice(uuid, status).catch(() => {}); // backend sumber kebenaran; localStorage tetap cache instan
-  }, []);
-
+  // P1: updateInvoice dihapus — manual invoice kini lewat patchInvoice langsung
+  // di halaman (dengan validasi 422 server), sinkron lokal via syncInvoiceStatus.
   // Sinkron lokal SAJA dari kebenaran backend (dipakai otomasi PDF: confirm/hapus
   // mengembalikan invoiceStatus terbaru) — tanpa PATCH balik agar tak duplikat request.
   const syncInvoiceStatus = useCallback((uuid, status) => {
@@ -177,5 +174,5 @@ export function useInvoiceState() {
     setInvoiceMeta((prev) => ({ ...prev, [uuid]: { ...(prev[uuid] || {}), ...patch } }));
   }, []);
 
-  return { invoiceActions, invoiceStatus, defaultInvoiceStatus, updateInvoice, syncInvoiceStatus, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta };
+  return { invoiceActions, invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta };
 }
