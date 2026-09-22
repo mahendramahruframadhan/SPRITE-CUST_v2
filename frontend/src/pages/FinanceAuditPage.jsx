@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
-import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, requestPdfDownloadUrl, deletePdf } from '../lib/api.js';
+import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, requestPdfDownloadUrl, deletePdf, patchInvoice } from '../lib/api.js';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState, DEFAULT_INVOICE } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
@@ -48,11 +48,20 @@ const pdfErrMsg = (err, fallback) => PDF_ERR_MSG[err?.code] || err?.data?.messag
 // Label status file yang ramah (status mentah: uploading/failed/completed)
 const PDF_STATUS_LABEL = { uploading: 'mengupload…', failed: 'gagal', completed: 'selesai' };
 
+// Status invoice kanonis yang dikunci sistem (otomatis upload/hapus PDF) —
+// manual dari dropdown ditolak backend 422. PAID satu-satunya yang boleh manual.
+const INV_AUTO_LOCKED = ['MENUNGGU INVOICE', 'INVOICE TERBIT'];
+const INV_ERR_MSG = {
+  INVOICE_AUTO_LOCKED: 'Status ini diatur otomatis oleh sistem (upload/hapus PDF) — manual hanya PAID.',
+  INVOICE_NEED_PDF: 'Belum bisa PAID — upload minimal 1 PDF invoice dulu.',
+};
+const invErrMsg = (err, fallback) => INV_ERR_MSG[err?.code] || err?.data?.message || err?.message || fallback;
+
 // Sel upload PDF invoice per baris: pilih -> PUT R2 (progress) -> confirm ->
 // daftar file (unduh/hapus). Tombol Unduh/Hapus digate kondisi true/false:
 // aktif hanya bila file berstatus 'completed', selain itu disabled + tooltip.
 const isPdfReady = (st) => st === 'completed';
-function PdfCell({ recordUuid, notify }) {
+function PdfCell({ recordUuid, notify, onStatusChange }) {
   const inputId = `pdf-${recordUuid}`;
   const fileRef = useRef(null);
   const seq = useRef(0);
@@ -87,6 +96,12 @@ function PdfCell({ recordUuid, notify }) {
     const f = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!f || busy) return;
+    // Pengaman ganda: input sudah disabled, tapi cegah juga secara logika
+    const allowed = gate ? gate.canUpload : !files.some((x) => isPdfReady(x.status));
+    if (!allowed) {
+      notify('Upload dinonaktifkan — PDF sudah terupload. Hapus PDF untuk upload ulang.', 'err');
+      return;
+    }
     const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
     if (!isPdf) {
       notify(`"${f.name}" bukan PDF — pilih file berformat PDF.`, 'err');
@@ -105,8 +120,10 @@ function PdfCell({ recordUuid, notify }) {
       uid = u.id;
       notify(`Mengupload "${f.name}" (${fmtKB(f.size)})…`, 'info', 2000);
       await putXhr(u.url, f, setPct);
-      await confirmPdfUpload({ id: u.id });
+      const done = await confirmPdfUpload({ id: u.id });
       notify(`PDF terupload: "${f.name}" (${fmtKB(f.size)}).`, 'success');
+      // Sinkron status invoice otomatis dari backend (TERBIT, kecuali sudah PAID)
+      if (done?.invoiceStatus) onStatusChange?.(recordUuid, done.invoiceStatus);
       reload();
     } catch (err) {
       notify(pdfErrMsg(err, 'Upload gagal, coba lagi.'), 'err');
@@ -147,8 +164,10 @@ function PdfCell({ recordUuid, notify }) {
   // remove() murni menghapus; askDelete() membuka modal; confirmDelete() mengeksekusi.
   const remove = async (id, filename) => {
     try {
-      await deletePdf(id);
+      const r = await deletePdf(id);
       notify(`PDF dihapus: "${filename}".`, 'success');
+      // Sinkron status invoice otomatis dari backend (kembali MENUNGGU bila PDF habis)
+      if (r?.invoiceStatus) onStatusChange?.(recordUuid, r.invoiceStatus);
       reload();
       return true;
     } catch (err) {
@@ -203,13 +222,20 @@ function PdfCell({ recordUuid, notify }) {
     }
   };
 
+  // Upload di-disabled bila sudah ada file completed (aturan: 1 kasus = 1 PDF aktif).
+  // Tombol aktif kembali otomatis setelah PDF dihapus (gate.canUpload dari server).
+  const hasCompleted = files.some((f) => isPdfReady(f.status));
+  const canUpload = gate ? gate.canUpload : !hasCompleted;
+  const uploadDisabled = busy || !canUpload;
+
   return (
     <div className="w-[220px]">
-      <input id={inputId} type="file" accept="application/pdf,.pdf" className="hidden" onChange={pick} disabled={busy} />
+      <input id={inputId} type="file" accept="application/pdf,.pdf" className="hidden" onChange={pick} disabled={uploadDisabled} />
       <label
         htmlFor={inputId}
-        aria-disabled={busy}
-        className={`inline-flex w-full items-center justify-center gap-2 text-[12px] font-extrabold rounded-xl px-3 py-2 transition ${busy ? 'cursor-wait text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700' : 'cursor-pointer text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-sm shadow-emerald-600/25 hover:shadow-md'}`}
+        aria-disabled={uploadDisabled}
+        title={canUpload ? 'Upload PDF invoice' : 'Upload dinonaktifkan — PDF sudah terupload. Hapus PDF untuk upload ulang.'}
+        className={`inline-flex w-full items-center justify-center gap-2 text-[12px] font-extrabold rounded-xl px-3 py-2 transition ${uploadDisabled ? 'cursor-not-allowed text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700' : 'cursor-pointer text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-sm shadow-emerald-600/25 hover:shadow-md'}`}
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -348,7 +374,7 @@ export default function FinanceAuditPage() {
   const { user } = useAuth();
   const { caseAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
-  const { invoiceActions, invoiceStatus, defaultInvoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
+  const { invoiceActions, invoiceStatus, defaultInvoiceStatus, updateInvoice, syncInvoiceStatus, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [brand, setBrand] = useState('');
@@ -424,13 +450,23 @@ export default function FinanceAuditPage() {
 
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
-  function handleInvoice(uuid, action) {
+  // Ubah status invoice manual: hanya PAID yang diizinkan server (422 bila dilanggar).
+  // Lokal diubah HANYA setelah server sukses — sinkron, bukan optimistic.
+  async function handleInvoice(uuid, action) {
+    const prev = invoiceStatus[uuid] || defaultInvoiceStatus;
+    if (action === prev) return;
     const c = allCases.find((x) => x.recordUuid === uuid);
-    updateInvoice(uuid, action);
     const meta = invoiceMeta[uuid] || {};
     const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
     const invNo = (meta.no || '').trim();
-    recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}${invNo ? ` • no. invoice ${invNo}` : ''}`, 'Invoice');
+    try {
+      await patchInvoice(uuid, action);
+      syncInvoiceStatus(uuid, action);
+      notify(`Status invoice ${label} menjadi ${action}.`, 'success');
+      recordActivity(`mengubah status invoice ${label}`, `menjadi ${action}${invNo ? ` • no. invoice ${invNo}` : ''}`, 'Invoice');
+    } catch (err) {
+      notify(invErrMsg(err, 'Gagal mengubah status invoice.'), 'err');
+    }
   }
 
   function exportData() {
@@ -679,15 +715,19 @@ export default function FinanceAuditPage() {
                     <select
                       value={invoiceStatus[c.recordUuid] || defaultInvoiceStatus}
                       onChange={(e) => handleInvoice(c.recordUuid, e.target.value)}
+                      title="MENUNGGU/TERBIT otomatis oleh sistem (upload/hapus PDF) — manual hanya PAID"
                       className={`text-xs font-semibold border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 dark:text-slate-100 max-w-[180px] ${INV_TONE[invoiceStatus[c.recordUuid]] || 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
-                      {invoiceActions.map((a) => (
-                        <option key={a} value={a}>{a}</option>
-                      ))}
+                      {invoiceActions.map((a) => {
+                        const cur = invoiceStatus[c.recordUuid] || defaultInvoiceStatus;
+                        // Opsi otomatis dikunci kecuali sedang terpilih (tampil baca-saja)
+                        const locked = INV_AUTO_LOCKED.includes(a) && cur !== a;
+                        return <option key={a} value={a} disabled={locked}>{a}{locked ? ' (otomatis)' : ''}</option>;
+                      })}
                     </select>
                   </td>
                   <td className="px-4 py-3.5">
-                    <PdfCell recordUuid={c.recordUuid} notify={notify} />
+                    <PdfCell recordUuid={c.recordUuid} notify={notify} onStatusChange={syncInvoiceStatus} />
                   </td>
                   <td className="px-4 py-3.5">
                     <input

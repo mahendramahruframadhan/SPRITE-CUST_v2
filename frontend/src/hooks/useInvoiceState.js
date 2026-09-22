@@ -78,6 +78,13 @@ export function useInvoiceState() {
     patchInvoice(uuid, status).catch(() => {}); // backend sumber kebenaran; localStorage tetap cache instan
   }, []);
 
+  // Sinkron lokal SAJA dari kebenaran backend (dipakai otomasi PDF: confirm/hapus
+  // mengembalikan invoiceStatus terbaru) — tanpa PATCH balik agar tak duplikat request.
+  const syncInvoiceStatus = useCallback((uuid, status) => {
+    if (!uuid || !status) return;
+    setInvoiceStatus((prev) => (prev[uuid] === status ? prev : { ...prev, [uuid]: status }));
+  }, []);
+
   // Isi status default untuk kasus yang belum punya (tanpa memanggil API)
   const ensureDefaults = useCallback((uuids) => {
     const fallback = actionsRef.current.includes(DEFAULT_INVOICE_STATUS)
@@ -170,5 +177,5 @@ export function useInvoiceState() {
     setInvoiceMeta((prev) => ({ ...prev, [uuid]: { ...(prev[uuid] || {}), ...patch } }));
   }, []);
 
-  return { invoiceActions, invoiceStatus, defaultInvoiceStatus, updateInvoice, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta };
+  return { invoiceActions, invoiceStatus, defaultInvoiceStatus, updateInvoice, syncInvoiceStatus, addInvoiceAction, removeInvoiceAction, renameInvoiceAction, ensureDefaults, invoiceMeta, updateInvoiceMeta };
 }
