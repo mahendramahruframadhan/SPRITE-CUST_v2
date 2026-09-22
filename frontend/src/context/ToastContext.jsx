@@ -22,6 +22,12 @@ const KIND_STYLE = {
     icon: 'text-brand-500 dark:text-brand-300',
     path: 'M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z',
   },
+  download: {
+    bar: 'bg-sky-500',
+    tint: 'bg-sky-50/70 dark:bg-sky-500/[0.07]',
+    icon: 'text-sky-500 dark:text-sky-400',
+    path: 'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3',
+  },
 };
 
 // Alias lama agar tetap tampil benar ('err' dipakai banyak pemanggil).

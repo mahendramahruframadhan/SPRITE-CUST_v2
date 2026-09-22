@@ -123,7 +123,7 @@ function PdfCell({ recordUuid, notify }) {
     }
   };
 
-  const download = async (id, filename) => {
+  const download = async (id, filename, sizeBytes) => {
     if (downloadBusy) return;
     setDownloadBusy(id);
     try {
@@ -134,7 +134,8 @@ function PdfCell({ recordUuid, notify }) {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      notify(`Mengunduh "${filename || 'invoice.pdf'}".`, 'success');
+      const label = `"${filename || 'invoice.pdf'}"${sizeBytes ? ` (${fmtKB(sizeBytes)})` : ''}`;
+      notify(`Mengunduh ${label}…`, 'download');
     } catch (err) {
       notify(pdfErrMsg(err, 'Unduhan gagal, coba lagi.'), 'err');
     } finally {
@@ -273,7 +274,7 @@ function PdfCell({ recordUuid, notify }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => download(f.id, f.filename)}
+                    onClick={() => download(f.id, f.filename, f.sizeBytes)}
                     disabled={!canDl || downloadBusy !== null}
                     title={downloadBusy === f.id ? 'Menyiapkan unduhan…' : (canDl ? `Unduh ${f.filename}` : hint)}
                     aria-label={`Unduh ${f.filename}`}
