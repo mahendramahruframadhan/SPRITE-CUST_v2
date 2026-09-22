@@ -124,15 +124,21 @@ function PdfCell({ recordUuid, notify }) {
   };
 
   const download = async (id, filename) => {
+    if (downloadBusy) return;
+    setDownloadBusy(id);
     try {
       const r = await requestPdfDownloadUrl(id);
       const a = document.createElement('a');
       a.href = r.url;
       a.download = filename || 'invoice.pdf';
+      document.body.appendChild(a);
       a.click();
+      a.remove();
       notify(`Mengunduh "${filename || 'invoice.pdf'}".`, 'success');
     } catch (err) {
       notify(pdfErrMsg(err, 'Unduhan gagal, coba lagi.'), 'err');
+    } finally {
+      setDownloadBusy(null);
     }
   };
 
@@ -152,6 +158,8 @@ function PdfCell({ recordUuid, notify }) {
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  // Id file yang sedang disiapkan unduhannya (spinner di tombol Unduh)
+  const [downloadBusy, setDownloadBusy] = useState(null);
 
   const confirmDelete = async () => {
     if (!deleteTarget || deleteBusy) return;
@@ -266,15 +274,22 @@ function PdfCell({ recordUuid, notify }) {
                   <button
                     type="button"
                     onClick={() => download(f.id, f.filename)}
-                    disabled={!canDl}
-                    title={canDl ? `Unduh ${f.filename}` : hint}
+                    disabled={!canDl || downloadBusy !== null}
+                    title={downloadBusy === f.id ? 'Menyiapkan unduhan…' : (canDl ? `Unduh ${f.filename}` : hint)}
                     aria-label={`Unduh ${f.filename}`}
                     aria-disabled={!canDl}
                     className={`${iconBtn} text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                    </svg>
+                    {downloadBusy === f.id ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                    )}
                   </button>
                   <button
                     type="button"
