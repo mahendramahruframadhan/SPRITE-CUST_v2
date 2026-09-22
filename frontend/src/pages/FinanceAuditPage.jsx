@@ -10,7 +10,6 @@ import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
-import PdfPreviewModal from '../components/PdfPreviewModal.jsx';
 
 const VALID_TAG = 'VALID - SIAP INVOICE';
 
@@ -149,7 +148,46 @@ function PdfCell({ recordUuid, notify }) {
     }
   };
 
-  const [preview, setPreview] = useState(null);
+  // Id file yang sedang dibuka ke tab baru (untuk status loading tombol mata)
+  const [previewBusy, setPreviewBusy] = useState(null);
+  // Blob URL tab yang pernah dibuka — dibebaskan saat baris di-unmount
+  const blobRefs = useRef([]);
+
+  useEffect(() => {
+    const stash = blobRefs.current;
+    return () => {
+      stash.forEach((u) => {
+        try { URL.revokeObjectURL(u); } catch { /* abaikan */ }
+      });
+      stash.length = 0;
+    };
+  }, []);
+
+  // Buka isi PDF di tab baru (bukan modal — lebih lega).
+  // Tab dibuka sinkron agar tidak diblokir popup-blocker, isinya diisi setelah termuat.
+  const openPreview = async (f) => {
+    if (previewBusy) return;
+    const tab = window.open('', '_blank', 'noopener');
+    if (!tab) {
+      notify('Tab baru diblokir browser — izinkan popup untuk situs ini.', 'err');
+      return;
+    }
+    setPreviewBusy(f.id);
+    try {
+      const r = await requestPdfDownloadUrl(f.id, { inline: true });
+      const res = await fetch(r.url);
+      if (!res.ok) throw new Error(`Gagal memuat isi file (${res.status}).`);
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      blobRefs.current.push(objUrl);
+      tab.location.href = objUrl;
+    } catch (err) {
+      tab.close();
+      notify(pdfErrMsg(err, 'Pratinjau gagal dibuka.'), 'err');
+    } finally {
+      setPreviewBusy(null);
+    }
+  };
 
   return (
     <div className="w-[220px]">
@@ -201,17 +239,24 @@ function PdfCell({ recordUuid, notify }) {
                 <div className="shrink-0 flex items-center">
                   <button
                     type="button"
-                    onClick={() => setPreview(f)}
-                    disabled={!canDl}
-                    title={canDl ? `Lihat ${f.filename}` : hint}
-                    aria-label={`Lihat ${f.filename}`}
+                    onClick={() => openPreview(f)}
+                    disabled={!canDl || previewBusy !== null}
+                    title={canDl ? `Lihat ${f.filename} di tab baru` : hint}
+                    aria-label={`Lihat ${f.filename} di tab baru`}
                     aria-disabled={!canDl}
                     className={`${iconBtn} text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                    {previewBusy === f.id ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -251,14 +296,6 @@ function PdfCell({ recordUuid, notify }) {
           </svg>
           <span className="flex-1 min-w-0 truncate text-[11px] font-semibold">Belum ada PDF</span>
         </div>
-      )}
-      {preview && (
-        <PdfPreviewModal
-          file={preview}
-          onClose={() => setPreview(null)}
-          onDownload={(fl) => download(fl.id, fl.filename)}
-          onDelete={async (fl) => remove(fl.id, fl.filename)}
-        />
       )}
     </div>
   );
