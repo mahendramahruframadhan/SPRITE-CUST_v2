@@ -15,6 +15,18 @@ export class BillingController {
     const tot: any = await this.db.execute(`SELECT SUM(charges) as s FROM assistance_records` as any);
     return { auditCounts: a.rows||a, invoiceCounts: inv.rows||inv, totalCharges: (tot.rows||tot)[0]?.s || 0 };
   }
+  // Peta status invoice per kasus — dipakai frontend menyinkronkan tampilan lokal
+  // dengan kebenaran backend (otomasi upload/hapus PDF) saat halaman dimuat.
+  // Baca terbuka seperti GET lain.
+  @Get('billing/invoice-map')
+  async invoiceMap() {
+    const r: any = await this.db.execute(`SELECT record_uuid, status FROM invoice_status` as any);
+    const map: Record<string, string> = {};
+    for (const x of (r.rows || r || [])) {
+      if (x && (x.record_uuid || x.recorduuid) && x.status) map[x.record_uuid || x.recorduuid] = x.status;
+    }
+    return { ok: true, map };
+  }
   @Patch('cases/:uuid/audit')
   @UseGuards(PermGuard)
   @Perm('billing')

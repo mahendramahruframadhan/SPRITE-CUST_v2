@@ -211,13 +211,17 @@ Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
    `GET /api/pdf/:id/download-url` (presigned GET 5 menit, attachment;
    tambah `?inline=1` untuk disposition inline → tampil di iframe pratinjau),
    `DELETE /api/pdf/:id`. Tulis dijaga modul `finance` (PermGuard).
+   `GET /api/pdf/history/:uuid` → riwayat invoice+PDF per kasus (50 terakhir,
+   dari `activity_logs` kategori `Invoice`: siapa, apa, kapan).
+   `GET /api/billing/invoice-map` → peta `{recordUuid: status}` seluruh kasus
+   (dipakai frontend menyinkronkan status lokal dengan otomasi backend).
 6. **Otomatisasi status invoice** (3 status, tercatat di `activity_logs` kategori `Invoice`):
    `confirm` sukses → `INVOICE TERBIT` (kecuali sudah `PAID`, tidak diturunkan);
    hapus PDF terakhir → kembali `MENUNGGU INVOICE` (kecuali `PAID`).
    Manual `PATCH /cases/:uuid/invoice` hanya menerima `PAID` dan wajib ≥1 PDF
    `completed` — `MENUNGGU/TERBIT` manual ditolak `422 INVOICE_AUTO_LOCKED`,
    `PAID` tanpa PDF ditolak `422 INVOICE_NEED_PDF`.
-6. Cron 10 menit menghapus baris `uploading` macet > 30 menit.
+6. Cron 10 menit menghapus baris `uploading` macet > 30 menit + baris `failed` yang tua (> 24 jam, beserta objeknya di storage).
 7. Frontend: kolom Upload PDF di halaman Finance (`PdfCell`) —
    pilih → progress → daftar/lihat/unduh/hapus per baris kasus.
 

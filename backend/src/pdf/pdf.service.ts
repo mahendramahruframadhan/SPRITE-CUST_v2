@@ -189,6 +189,24 @@ export class PdfService {
     return { ok: true, recordUuid, total: completed + pending, completed, pending, canDownload: can, canDelete: can, canUpload: !can };
   }
 
+  // Riwayat invoice+PDF per kasus (sumber: activity_logs kategori Invoice).
+  // Dipakai tombol Riwayat di frontend — siapa berbuat apa + kapan.
+  async caseHistory(recordUuid: string) {
+    const r: any = await this.db.execute(
+      `SELECT who, action, detail, created_at as "createdAt" FROM activity_logs WHERE record_uuid='${esc(recordUuid)}' AND category='Invoice' ORDER BY created_at DESC LIMIT 50` as any,
+    );
+    return {
+      ok: true,
+      recordUuid,
+      history: (r.rows || r || []).map((x: any) => ({
+        who: x.who || 'Sistem',
+        action: x.action,
+        detail: x.detail || '',
+        createdAt: x.createdAt || x.createdat || '',
+      })),
+    };
+  }
+
   async downloadUrl(id: string, inline = false) {
     const s3 = this.needS3();
     const r: any = await this.db.execute(`SELECT * FROM invoice_pdfs WHERE id='${esc(id)}' LIMIT 1` as any);
@@ -228,7 +246,8 @@ export class PdfService {
     return { ok: true, id, invoiceStatus };
   }
 
-  // Bersihkan baris uploading yang macet (user batal/gagal tanpa confirm).
+  // Bersihkan baris uploading yang macet (user batal/gagal tanpa confirm),
+  // plus baris failed yang tua (>24 jam) agar daftar tidak menumpuk.
   @Cron('*/10 * * * *')
   async cleanupStuck() {
     try {
@@ -244,6 +263,18 @@ export class PdfService {
         }
       }
       if (rows.length) this.logger.log(`Bersihkan ${rows.length} upload macet`);
+      const f: any = await this.db.execute(
+        `DELETE FROM invoice_pdfs WHERE status='failed' AND created_at < (NOW() - INTERVAL '24 hours') RETURNING id, storage_key` as any,
+      );
+      const failed = f.rows || f || [];
+      if (this.s3 && failed.length) {
+        for (const x of failed) {
+          try {
+            await this.s3.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: x.storage_key || x.storageKey }));
+          } catch {}
+        }
+      }
+      if (failed.length) this.logger.log(`Bersihkan ${failed.length} upload gagal tua`);
     } catch (e) {
       // pg-mem tidak dukung INTERVAL/RETURNING penuh — lewati diam-diam di dev mock
     }
