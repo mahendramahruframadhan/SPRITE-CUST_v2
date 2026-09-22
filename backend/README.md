@@ -208,7 +208,8 @@ Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
 5. Baca/hapus: `GET /api/pdf/by-case/:uuid`,
    `GET /api/pdf/state/:uuid` → `{total, completed, pending, canDownload, canDelete}`
    (kondisi gate tombol Unduh/Hapus, true bila ada file `completed`),
-   `GET /api/pdf/:id/download-url` (presigned GET 5 menit, attachment),
+   `GET /api/pdf/:id/download-url` (presigned GET 5 menit, attachment;
+   tambah `?inline=1` untuk disposition inline → tampil di iframe pratinjau),
    `DELETE /api/pdf/:id`. Tulis dijaga modul `finance` (PermGuard).
 6. Cron 10 menit menghapus baris `uploading` macet > 30 menit.
 7. Frontend: kolom Upload PDF di halaman Finance (`PdfCell`) —

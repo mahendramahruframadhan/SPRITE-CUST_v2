@@ -156,18 +156,20 @@ export class PdfService {
     return { ok: true, recordUuid, total: completed + pending, completed, pending, canDownload: can, canDelete: can };
   }
 
-  async downloadUrl(id: string) {
+  async downloadUrl(id: string, inline = false) {
     const s3 = this.needS3();
     const r: any = await this.db.execute(`SELECT * FROM invoice_pdfs WHERE id='${esc(id)}' LIMIT 1` as any);
     const row = (r.rows || r)[0];
     if (!row) fail('PDF_NOT_FOUND', 'Data PDF tidak ditemukan.', HttpStatus.NOT_FOUND);
     if (row.status !== 'completed') fail('NOT_READY', 'File belum selesai diunggah.');
+    // inline=true → tampil di iframe pratinjau; default attachment → diunduh browser.
+    const disposition = inline ? 'inline' : 'attachment';
     const url = await getSignedUrl(
       s3,
-      new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: row.storage_key, ResponseContentDisposition: `attachment; filename="${String(row.filename).replace(/"/g, '')}"` }),
+      new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: row.storage_key, ResponseContentDisposition: `${disposition}; filename="${String(row.filename).replace(/"/g, '')}"` }),
       { expiresIn: URL_TTL },
     );
-    return { ok: true, id, url, expiresIn: URL_TTL, filename: row.filename };
+    return { ok: true, id, url, expiresIn: URL_TTL, filename: row.filename, inline };
   }
 
   async remove(id: string, who: string) {
