@@ -250,17 +250,38 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange }) {
   return (
     <div className="w-[220px]">
       <input id={inputId} type="file" accept="application/pdf,.pdf" className="hidden" onChange={pick} disabled={uploadDisabled} />
+      <div className="flex items-center gap-1.5">
       <label
         htmlFor={inputId}
         aria-disabled={uploadDisabled}
         title={canUpload ? 'Upload PDF invoice' : 'Upload dinonaktifkan — PDF sudah terupload. Hapus PDF untuk upload ulang.'}
-        className={`inline-flex w-full items-center justify-center gap-2 text-[12px] font-extrabold rounded-xl px-3 py-2 transition ${uploadDisabled ? 'cursor-not-allowed text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700' : 'cursor-pointer text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-sm shadow-emerald-600/25 hover:shadow-md'}`}
+        className={`inline-flex flex-1 min-w-0 items-center justify-center gap-2 text-[12px] font-extrabold rounded-xl px-3 py-2 transition ${uploadDisabled ? 'cursor-not-allowed text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700' : 'cursor-pointer text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-sm shadow-emerald-600/25 hover:shadow-md'}`}
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden="true">
+        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
         </svg>
         {busy && pct !== null ? `${pct}%` : 'Upload PDF'}
       </label>
+      <button
+        type="button"
+        onClick={openHistory}
+        disabled={histBusy}
+        title="Riwayat invoice, validasi & PDF kasus ini"
+        aria-label="Riwayat invoice, validasi dan PDF kasus ini"
+        className="shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 p-2 text-slate-400 shadow-sm transition hover:text-brand-600 dark:hover:text-brand-300 hover:border-brand-200 dark:hover:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10 hover:shadow-md disabled:opacity-50 disabled:cursor-wait"
+      >
+        {histBusy ? (
+          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )}
+      </button>
+      </div>
       {busy && pct !== null && (
         <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
           <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all" style={{ width: `${pct}%` }} />
@@ -371,25 +392,6 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange }) {
           onConfirm={confirmDelete}
         />
       )}
-      <button
-        type="button"
-        onClick={openHistory}
-        disabled={histBusy}
-        title="Lihat riwayat invoice, validasi & PDF kasus ini"
-        className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold rounded-xl px-2 py-1.5 text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 border border-transparent hover:border-brand-100 dark:hover:border-brand-500/20 transition disabled:opacity-50"
-      >
-        {histBusy ? (
-          <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-          </svg>
-        ) : (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        )}
-        {histBusy ? 'Memuat…' : 'Riwayat'}
-      </button>
       {histOpen && (
         <InvoiceHistoryModal
           title={`Kasus #${caseNo} (${caseClient})`}
