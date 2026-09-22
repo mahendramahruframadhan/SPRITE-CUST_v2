@@ -42,6 +42,11 @@ export class PdfService {
       this.s3 = new S3Client({
         region: process.env.R2_REGION || 'auto',
         endpoint: process.env.R2_ENDPOINT!,
+        // Wajib path-style: Supabase S3 hanya melayani
+        // <endpoint>/<bucket>/<key>. Tanpa ini SDK memakai virtual-hosted
+        // (<bucket>.<endpoint>/...) yang DNS/sertifikatnya tidak valid → 404 +
+        // ERR_SSL_VERSION_OR_CIPHER_MISMATCH saat PUT dari browser.
+        forcePathStyle: true,
         credentials: {
           accessKeyId: process.env.R2_ACCESS_KEY_ID!,
           secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
