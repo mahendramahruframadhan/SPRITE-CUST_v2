@@ -2,35 +2,56 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { requestPdfDownloadUrl } from '../lib/api.js';
 
 // Pratinjau PDF invoice dalam browser (tanpa mengunduh dulu).
-// URL presigned diambil saat dibuka (berlaku 5 menit); iframe me-render PDF bawaan browser.
+// Isi file diambil via fetch → blob URL, lalu dirender iframe. Dengan begitu
+// pratinjau SELALU tampil inline dan tidak pernah memicu download,
+// apa pun Content-Disposition dari presigned URL.
 // file: { id, filename, sizeBytes } | onDownload(file) | onDelete(file) → true bila terhapus
 export default function PdfPreviewModal({ file, onClose, onDownload, onDelete }) {
   const closeRef = useRef(null);
+  const objRef = useRef('');
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(() => {
-    if (!file) return;
+    if (!file) return undefined;
+    let cancelled = false;
     setLoading(true);
     setError('');
     setUrl('');
-    // inline=1 → disposition inline agar PDF tampil di iframe, bukan terunduh
-    requestPdfDownloadUrl(file.id, { inline: true }).then(
-      (r) => {
-        setUrl(r.url);
+    (async () => {
+      try {
+        const r = await requestPdfDownloadUrl(file.id, { inline: true });
+        const res = await fetch(r.url);
+        if (!res.ok) throw new Error(`Gagal memuat isi file (${res.status}).`);
+        const blob = await res.blob();
+        if (cancelled) return;
+        if (objRef.current) URL.revokeObjectURL(objRef.current);
+        objRef.current = URL.createObjectURL(blob);
+        setUrl(objRef.current);
         setLoading(false);
-      },
-      (e) => {
+      } catch (e) {
+        if (cancelled) return;
         setError(e?.data?.message || e?.message || 'Pratinjau gagal dimuat.');
         setLoading(false);
       }
-    );
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [file]);
 
   useEffect(() => {
-    load();
+    const cleanup = load();
+    return () => {
+      if (typeof cleanup === 'function') cleanup();
+      // Bebaskan memori blob saat modal ditutup / file berganti
+      if (objRef.current) {
+        URL.revokeObjectURL(objRef.current);
+        objRef.current = '';
+      }
+    };
   }, [load]);
 
   useEffect(() => {
