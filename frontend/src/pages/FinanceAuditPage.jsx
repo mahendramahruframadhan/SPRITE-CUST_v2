@@ -33,7 +33,9 @@ function putXhr(url, file, onProgress) {
 const fmtKB = (b) => `${(Number(b || 0) / 1024).toLocaleString('id-ID', { maximumFractionDigits: 0 })} KB`;
 
 // Sel upload PDF invoice per baris: pilih -> PUT R2 (progress) -> confirm ->
-// daftar file (unduh/hapus). File tidak disimpan ke invoiceMeta (localStorage).
+// daftar file (unduh/hapus). Tombol Unduh/Hapus digate kondisi true/false:
+// aktif hanya bila file berstatus 'completed', selain itu disabled + tooltip.
+const isPdfReady = (st) => st === 'completed';
 function PdfCell({ recordUuid, notify }) {
   const inputId = `pdf-${recordUuid}`;
   const fileRef = useRef(null);
@@ -128,31 +130,60 @@ function PdfCell({ recordUuid, notify }) {
           <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
         </div>
       )}
-      {files.length > 0 && (
+      {files.length > 0 ? (
         <ul className="mt-1.5 space-y-1">
-          {files.map((f) => (
+          {files.map((f) => {
+            // Kondisi true/false: tombol aktif hanya setelah upload terkonfirmasi
+            const ready = isPdfReady(f.status);
+            const hint = ready ? undefined : 'Tersedia setelah upload selesai dikonfirmasi';
+            return (
             <li
               key={f.id}
               className="flex w-full items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1"
             >
-              <span className="flex-1 min-w-0 truncate" title={`${f.filename} (${fmtKB(f.sizeBytes)})${f.status !== 'completed' ? ' - ' + f.status : ''}`}>
+              <span className="flex-1 min-w-0 truncate" title={`${f.filename} (${fmtKB(f.sizeBytes)})${!ready ? ' - ' + f.status : ''}`}>
                 {f.filename}
               </span>
-              {f.status === 'completed' ? (
-                <>
-                  <button type="button" onClick={() => download(f.id, f.filename)} aria-label={`Unduh ${f.filename}`} className="shrink-0 font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-1">
-                    Unduh
-                  </button>
-                  <button type="button" onClick={() => remove(f.id, f.filename)} aria-label={`Hapus ${f.filename}`} className="shrink-0 font-bold text-slate-400 hover:text-rose-600 px-1">
-                    ✕
-                  </button>
-                </>
-              ) : (
+              {!ready && (
                 <span className="shrink-0 text-[10px] text-amber-600">{f.status}</span>
               )}
+              <button
+                type="button"
+                onClick={() => download(f.id, f.filename)}
+                disabled={!ready}
+                title={ready ? `Unduh ${f.filename}` : hint}
+                aria-label={`Unduh ${f.filename}`}
+                aria-disabled={!ready}
+                className="shrink-0 font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-1 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:no-underline disabled:cursor-not-allowed"
+              >
+                Unduh
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(f.id, f.filename)}
+                disabled={!ready}
+                title={ready ? `Hapus ${f.filename}` : hint}
+                aria-label={`Hapus ${f.filename}`}
+                aria-disabled={!ready}
+                className="shrink-0 font-bold text-slate-400 hover:text-rose-600 px-1 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:cursor-not-allowed"
+              >
+                ✕
+              </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
+      ) : (
+        // Sebelum ada upload: trio tombol tetap terlihat, Unduh/Hapus kondisi false
+        <div className="mt-1.5 flex w-full items-center gap-1 text-[11px] font-semibold text-slate-400 bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
+          <span className="flex-1 min-w-0 truncate">Belum ada PDF</span>
+          <span className="shrink-0 font-bold text-slate-300 dark:text-slate-600 px-1 cursor-not-allowed" title="Tersedia setelah upload selesai dikonfirmasi" aria-disabled="true">
+            Unduh
+          </span>
+          <span className="shrink-0 font-bold text-slate-300 dark:text-slate-600 px-1 cursor-not-allowed" title="Tersedia setelah upload selesai dikonfirmasi" aria-disabled="true">
+            ✕
+          </span>
+        </div>
       )}
     </div>
   );
