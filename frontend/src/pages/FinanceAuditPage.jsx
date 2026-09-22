@@ -10,6 +10,7 @@ import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
+import PdfPreviewModal from '../components/PdfPreviewModal.jsx';
 
 const VALID_TAG = 'VALID - SIAP INVOICE';
 
@@ -136,91 +137,128 @@ function PdfCell({ recordUuid, notify }) {
   };
 
   const remove = async (id, filename) => {
-    if (!confirm(`Hapus PDF "${filename}"?`)) return;
+    if (!confirm(`Hapus PDF "${filename}"?`)) return false;
     try {
       await deletePdf(id);
       notify(`PDF dihapus: "${filename}".`, 'success');
       reload();
+      return true;
     } catch (err) {
       notify(pdfErrMsg(err, 'Hapus gagal, coba lagi.'), 'err');
+      return false;
     }
   };
 
+  const [preview, setPreview] = useState(null);
+
   return (
-    <div className="w-[150px]">
+    <div className="w-[220px]">
       <input id={inputId} type="file" accept="application/pdf,.pdf" className="hidden" onChange={pick} disabled={busy} />
       <label
         htmlFor={inputId}
         aria-disabled={busy}
-        className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold rounded-lg px-2.5 py-1 border transition ${busy ? 'cursor-wait text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700' : 'cursor-pointer text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border-emerald-200 dark:border-emerald-500/20'}`}
+        className={`inline-flex w-full items-center justify-center gap-2 text-[12px] font-extrabold rounded-xl px-3 py-2 transition ${busy ? 'cursor-wait text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700' : 'cursor-pointer text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-sm shadow-emerald-600/25 hover:shadow-md'}`}
       >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
         </svg>
         {busy && pct !== null ? `${pct}%` : 'Upload PDF'}
       </label>
       {busy && pct !== null && (
-        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+          <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all" style={{ width: `${pct}%` }} />
         </div>
       )}
       {files.length > 0 ? (
-        <ul className="mt-1.5 space-y-1">
+        <ul className="mt-1.5 space-y-1.5">
           {files.map((f) => {
             // Kondisi true/false: status lokal AND gate server (keduanya harus true).
             // gate null = backend lama tanpa /state → hanya status lokal yang dipakai.
             // Hapus SELALU aktif termasuk baris macet (uploading/failed) agar user bisa
-            // membersihkan sendiri; Unduh tetap khusus file completed.
+            // membersihkan sendiri; Lihat & Unduh tetap khusus file completed.
             const ready = isPdfReady(f.status);
             const canDl = ready && (!gate || gate.canDownload);
             const hint = ready ? 'Belum dikonfirmasi server — muat ulang halaman.' : 'Tersedia setelah upload selesai dikonfirmasi';
             const statusLabel = PDF_STATUS_LABEL[f.status] || f.status;
+            const iconBtn = 'shrink-0 rounded-lg p-1.5 transition disabled:opacity-30 disabled:cursor-not-allowed';
             return (
             <li
               key={f.id}
-              className="flex w-full items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1"
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 shadow-sm px-2 py-1.5"
             >
-              <span className="flex-1 min-w-0 truncate" title={`${f.filename} (${fmtKB(f.sizeBytes)})${!ready ? ' - ' + statusLabel : ''}`}>
-                {f.filename}
-              </span>
-              {!ready && (
-                <span className="shrink-0 text-[10px] text-amber-600">{statusLabel}</span>
-              )}
-              <button
-                type="button"
-                onClick={() => download(f.id, f.filename)}
-                disabled={!canDl}
-                title={canDl ? `Unduh ${f.filename}` : hint}
-                aria-label={`Unduh ${f.filename}`}
-                aria-disabled={!canDl}
-                className="shrink-0 font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-1 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:no-underline disabled:cursor-not-allowed"
-              >
-                Unduh
-              </button>
-              <button
-                type="button"
-                onClick={() => remove(f.id, f.filename)}
-                title={ready ? `Hapus ${f.filename}` : `Hapus ${f.filename} (${statusLabel}, belum selesai)`}
-                aria-label={`Hapus ${f.filename}`}
-                className="shrink-0 font-bold text-slate-400 hover:text-rose-600 px-1"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-1.5">
+                <span aria-hidden="true" className={`shrink-0 rounded-lg p-1.5 ${ready ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/10 dark:text-rose-400' : 'bg-amber-50 text-amber-500 dark:bg-amber-500/10 dark:text-amber-400'}`}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-[11px] font-bold text-slate-700 dark:text-slate-200" title={f.filename}>{f.filename}</p>
+                  <p className="text-[10px] font-semibold text-slate-400 tabular-nums">
+                    {fmtKB(f.sizeBytes)}{!ready ? ` · ${statusLabel}` : ''}
+                  </p>
+                </div>
+                <div className="shrink-0 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setPreview(f)}
+                    disabled={!canDl}
+                    title={canDl ? `Lihat ${f.filename}` : hint}
+                    aria-label={`Lihat ${f.filename}`}
+                    aria-disabled={!canDl}
+                    className={`${iconBtn} text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => download(f.id, f.filename)}
+                    disabled={!canDl}
+                    title={canDl ? `Unduh ${f.filename}` : hint}
+                    aria-label={`Unduh ${f.filename}`}
+                    aria-disabled={!canDl}
+                    className={`${iconBtn} text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remove(f.id, f.filename)}
+                    title={ready ? `Hapus ${f.filename}` : `Hapus ${f.filename} (${statusLabel}, belum selesai)`}
+                    aria-label={`Hapus ${f.filename}`}
+                    className={`${iconBtn} text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </li>
             );
           })}
         </ul>
       ) : (
-        // Sebelum ada upload: trio tombol tetap terlihat, Unduh/Hapus kondisi false
-        <div className="mt-1.5 flex w-full items-center gap-1 text-[11px] font-semibold text-slate-400 bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
-          <span className="flex-1 min-w-0 truncate">Belum ada PDF</span>
-          <span className="shrink-0 font-bold text-slate-300 dark:text-slate-600 px-1 cursor-not-allowed" title="Tersedia setelah upload selesai dikonfirmasi" aria-disabled="true">
-            Unduh
-          </span>
-          <span className="shrink-0 font-bold text-slate-300 dark:text-slate-600 px-1 cursor-not-allowed" title="Tersedia setelah upload selesai dikonfirmasi" aria-disabled="true">
-            ✕
-          </span>
+        // Sebelum ada upload: status kosong yang elegan
+        <div className="mt-1.5 flex w-full items-center gap-1.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 px-2 py-1.5 text-slate-400">
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <span className="flex-1 min-w-0 truncate text-[11px] font-semibold">Belum ada PDF</span>
         </div>
+      )}
+      {preview && (
+        <PdfPreviewModal
+          file={preview}
+          onClose={() => setPreview(null)}
+          onDownload={(fl) => download(fl.id, fl.filename)}
+          onDelete={async (fl) => remove(fl.id, fl.filename)}
+        />
       )}
     </div>
   );
