@@ -116,3 +116,13 @@ export const getPdfState = (uuid) => get(`/pdf/state/${uuid}`);
 export const getPdfHistory = (uuid) => get(`/pdf/history/${uuid}`);
 export const requestPdfDownloadUrl = (id, opts = {}) => get(`/pdf/${id}/download-url${opts.inline ? '?inline=1' : ''}`);
 export const deletePdf = (id) => req(`/pdf/${id}`, { method: 'DELETE' });
+// Client & Brand (kontrak monthly vs maintenance). Backend sumber kebenaran bila
+// terjangkau; hook useClientBrands memakai localStorage sebagai fallback offline.
+export const getClients = () => get('/clients');
+export const createClient = (body) => post('/clients', body);
+export const patchClient = (id, body) => patch(`/clients/${id}`, body);
+export const deleteClient = (id) => req(`/clients/${id}`, { method: 'DELETE' });
+export const getBrandStatuses = () => get('/brand-status');
+export const createBrandStatus = (body) => post('/brand-status', body);
+export const patchBrandStatus = (id, body) => patch(`/brand-status/${id}`, body);
+export const deleteBrandStatus = (id) => req(`/brand-status/${id}`, { method: 'DELETE' });

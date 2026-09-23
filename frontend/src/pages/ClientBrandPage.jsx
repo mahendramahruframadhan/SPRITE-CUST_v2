@@ -48,7 +48,7 @@ function initials(name) {
 
 export default function ClientBrandPage() {
   const { notify } = useToast();
-  const { statuses, stats, addStatus, updateStatus, removeStatus, seedExamples, ready } = useClientBrands();
+  const { statuses, stats, addStatus, updateStatus, removeStatus, seedExamples, ready, serverOk } = useClientBrands();
   const [brand, setBrand] = useState('');
   const [type, setType] = useState('GRATIS');
   const [expiredAt, setExpiredAt] = useState('');
@@ -93,6 +93,8 @@ export default function ClientBrandPage() {
 
   const soonCount = statuses.filter((s) => s.type === 'GRATIS' && expiryState(s.expiredAt) === 'soon').length;
   const expiredCount = statuses.filter((s) => s.type === 'GRATIS' && expiryState(s.expiredAt) === 'expired').length;
+  // Penanda jujur: bila backend tak terjangkau, data hanya tersimpan di browser.
+  const offTag = serverOk === false ? ' (offline, tersimpan di browser)' : '';
 
   function submit(e) {
     e?.preventDefault();
@@ -113,13 +115,13 @@ export default function ClientBrandPage() {
     addStatus({ brand: name, type, expiredAt: type === 'GRATIS' ? expiredAt : '' });
     setBrand('');
     if (type === 'GRATIS') setExpiredAt('');
-    notify(`${name} masuk daftar ${type === 'GRATIS' ? 'Free Maintenance' : 'Monthly'}.`, 'success');
+    notify(`${name} masuk daftar ${type === 'GRATIS' ? 'Free Maintenance' : 'Monthly'}.${offTag}`, 'success');
   }
 
   function doDelete(item, listLabel) {
     removeStatus(item.id);
     setOpenMenuId(null);
-    notify(`${item.brand} dihapus dari ${listLabel}.`, 'info');
+    notify(`${item.brand} dihapus dari ${listLabel}.${offTag}`, 'info');
   }
 
   function startEdit(item) {
@@ -148,7 +150,7 @@ export default function ClientBrandPage() {
     }
     updateStatus(item.id, { brand: name, ...(item.type === 'GRATIS' ? { expiredAt: editExpired } : {}) });
     setEditingId(null);
-    notify(`${name} diperbarui.`, 'success');
+    notify(`${name} diperbarui.${offTag}`, 'success');
   }
 
   // Menu titik-tiga: satu titik aksi per baris berisi Update dan Hapus.
@@ -395,7 +397,7 @@ export default function ClientBrandPage() {
         <button
           onClick={() => {
             seedExamples();
-            notify('Contoh data finance dimasukkan (tanpa duplikat).', 'success');
+            notify(`Contoh data finance dimasukkan (tanpa duplikat).${offTag}`, 'success');
           }}
           className="sm:ml-auto min-h-[44px] inline-flex items-center text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-2 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
         >

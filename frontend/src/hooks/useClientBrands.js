@@ -1,9 +1,10 @@
-// Hook frontend-only untuk halaman Client & Brand.
-// Context7 react: useState lazy init + useEffect untuk sinkronisasi efek samping,
-// useMemo untuk turunan yang dihitung ulang hanya saat dependensi berubah.
-// Sengaja TANPA backend (permintaan: frontend dulu). Persistensi via localStorage.
-// TODO(backend): ganti loadLS/saveLS dengan GET/POST /api/clients dan /api/brand-status.
+// Hook halaman Client & Brand: backend sebagai sumber kebenaran bila terjangkau,
+// localStorage sebagai fallback offline (halaman tetap bisa dipakai tanpa backend).
+// Context7 react: useState lazy init + useEffect untuk efek samping async,
+// useMemo untuk turunan; backend NestJS + Drizzle via lib/api.js.
+// TODO(backend): done — GET/POST/PATCH/DELETE /api/clients dan /api/brand-status.
 import { useEffect, useMemo, useState } from 'react';
+import { createBrandStatus, deleteBrandStatus, getBrandStatuses, patchBrandStatus } from '../lib/api.js';
 
 const CLIENT_KEY = 'sprite.clients.v1';
 const STATUS_KEY = 'sprite.brandStatus.v1';
@@ -25,7 +26,7 @@ function loadLS(key, fallback) {
 
 export const STATUS_TYPES = ['MONTHLY', 'BARU', 'GRATIS'];
 
-// Contoh bawaan persis format tim finance (dipakai tombol "Isi contoh finance").
+// Contoh bawaan persis format tim finance (fallback offline + tombol contoh).
 export const SEED_MONTHLY = ['Chambers', 'Inspired', 'SCH', 'Skaters', 'Tendencies', 'Screamous'];
 
 export const SEED_FREE = [
@@ -39,6 +40,34 @@ export const SEED_FREE = [
   { brand: 'Betterhalf', expiredAt: '2027-05-26' },
   { brand: 'Smith (Modul Produksi)', expiredAt: '2027-06-15' },
 ];
+
+function buildSeedStatuses() {
+  const now = new Date().toISOString();
+  return [
+    ...SEED_MONTHLY.map((brand, i) => ({ id: `seed-monthly-${i}`, brand, type: 'MONTHLY', createdAt: now, updatedAt: now })),
+    ...SEED_FREE.map(({ brand, expiredAt }, i) => ({ id: `seed-free-${i}`, brand, type: 'GRATIS', expiredAt, createdAt: now, updatedAt: now })),
+  ];
+}
+
+// Baris snake_case backend (brand_statuses) ke bentuk camelCase halaman.
+function mapRow(r) {
+  return {
+    id: r.id,
+    brand: r.brand,
+    type: r.type,
+    startAt: r.start_at || '',
+    expiredAt: r.expired_at || '',
+    monthlyFee: r.monthly_fee ?? '',
+    pic: r.pic || '',
+    note: r.note || '',
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+function isDupeErr(e) {
+  return e?.status === 409 || e?.code === 'BRAND_EXISTS';
+}
 
 export function daysLeft(expiredAt) {
   if (!expiredAt) return null;
@@ -58,14 +87,6 @@ export function expiryState(expiredAt) {
   return 'active';
 }
 
-function buildSeedStatuses() {
-  const now = new Date().toISOString();
-  return [
-    ...SEED_MONTHLY.map((brand, i) => ({ id: `seed-monthly-${i}`, brand, type: 'MONTHLY', createdAt: now, updatedAt: now })),
-    ...SEED_FREE.map(({ brand, expiredAt }, i) => ({ id: `seed-free-${i}`, brand, type: 'GRATIS', expiredAt, createdAt: now, updatedAt: now })),
-  ];
-}
-
 export function useClientBrands() {
   // Lazy init agar baca localStorage sekali (pola Context7 react).
   // Contoh finance langsung jadi isi awal saat browser belum pernah menyimpan;
@@ -82,9 +103,28 @@ export function useClientBrands() {
     }
   });
   const [ready, setReady] = useState(false);
+  // null = belum tahu, true = backend terjangkau, false = mode offline lokal.
+  const [serverOk, setServerOk] = useState(null);
 
   useEffect(() => {
     setReady(true);
+  }, []);
+
+  // Sinkron awal: backend menang bila mengembalikan data (non-kosong).
+  useEffect(() => {
+    let ignore = false;
+    getBrandStatuses()
+      .then((rows) => {
+        if (ignore) return;
+        if (Array.isArray(rows) && rows.length) setStatuses(rows.map(mapRow));
+        setServerOk(true);
+      })
+      .catch(() => {
+        if (!ignore) setServerOk(false);
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -128,27 +168,78 @@ export function useClientBrands() {
     setClients((prev) => prev.filter((c) => c.id !== id));
   }
 
-  function addStatus(payload) {
-    const row = {
-      id: uid(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...payload,
-    };
+  async function addStatus(payload) {
+    if (serverOk !== false) {
+      try {
+        const r = await createBrandStatus(payload);
+        const row = { id: r?.data?.id || uid(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), ...payload };
+        setStatuses((prev) => [row, ...prev]);
+        setServerOk(true);
+        return row;
+      } catch {
+        setServerOk(false);
+      }
+    }
+    const row = { id: uid(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), ...payload };
     setStatuses((prev) => [row, ...prev]);
     return row;
   }
 
-  function updateStatus(id, patch) {
+  async function updateStatus(id, patch) {
+    if (serverOk !== false) {
+      try {
+        await patchBrandStatus(id, patch);
+        setStatuses((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: new Date().toISOString() } : s)));
+        setServerOk(true);
+        return;
+      } catch {
+        setServerOk(false);
+      }
+    }
     setStatuses((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: new Date().toISOString() } : s)));
   }
 
-  function removeStatus(id) {
+  async function removeStatus(id) {
+    if (serverOk !== false) {
+      try {
+        await deleteBrandStatus(id);
+        setStatuses((prev) => prev.filter((s) => s.id !== id));
+        setServerOk(true);
+        return;
+      } catch {
+        setServerOk(false);
+      }
+    }
     setStatuses((prev) => prev.filter((s) => s.id !== id));
   }
 
-  // Isi contoh finance tanpa menduplikasi brand yang sudah ada (per tipe).
-  function seedExamples() {
+  // Isi contoh finance: ke server bila terjangkau (409 = sudah ada, lewati),
+  // gabung lokal bila offline.
+  async function seedExamples() {
+    if (serverOk !== false) {
+      try {
+        for (const brand of SEED_MONTHLY) {
+          try {
+            await createBrandStatus({ brand, type: 'MONTHLY' });
+          } catch (e) {
+            if (!isDupeErr(e)) throw e;
+          }
+        }
+        for (const { brand, expiredAt } of SEED_FREE) {
+          try {
+            await createBrandStatus({ brand, type: 'GRATIS', expiredAt });
+          } catch (e) {
+            if (!isDupeErr(e)) throw e;
+          }
+        }
+        const rows = await getBrandStatuses();
+        if (Array.isArray(rows) && rows.length) setStatuses(rows.map(mapRow));
+        setServerOk(true);
+        return;
+      } catch {
+        setServerOk(false);
+      }
+    }
     setStatuses((prev) => {
       const have = new Set(prev.map((s) => `${s.type}::${String(s.brand).trim().toLowerCase()}`));
       const out = [...prev];
@@ -168,6 +259,7 @@ export function useClientBrands() {
 
   return {
     ready,
+    serverOk,
     clients,
     statuses,
     stats,
