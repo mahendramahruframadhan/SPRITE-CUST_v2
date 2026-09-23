@@ -59,10 +59,13 @@ const INV_ERR_MSG = {
 const invErrMsg = (err, fallback) => INV_ERR_MSG[err?.code] || err?.data?.message || err?.message || fallback;
 
 // Sel upload PDF invoice per baris: pilih -> PUT R2 (progress) -> confirm ->
-// daftar file (unduh/hapus). Tombol Unduh/Hapus digate kondisi true/false:
+// daftar file (unduh/hapus). Aturan kunci: status MENUNGGU INVOICE selalu boleh
+// upload (upload sukses otomatis menaikkan ke INVOICE TERBIT via backend);
+// di luar itu, 1 kasus = 1 PDF aktif (upload dibuka lagi setelah PDF dihapus).
+// Tombol Unduh/Hapus digate kondisi true/false:
 // aktif hanya bila file berstatus 'completed', selain itu disabled + tooltip.
 const isPdfReady = (st) => st === 'completed';
-function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange }) {
+function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoiceStatus }) {
   const inputId = `pdf-${recordUuid}`;
   const fileRef = useRef(null);
   const seq = useRef(0);
@@ -97,8 +100,11 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange }) {
     const f = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!f || busy) return;
-    // Pengaman ganda: input sudah disabled, tapi cegah juga secara logika
-    const allowed = gate ? gate.canUpload : !files.some((x) => isPdfReady(x.status));
+    // Pengaman ganda: input sudah disabled, tapi cegah juga secara logika.
+    // MENUNGGU INVOICE selalu boleh upload agar status bisa naik ke TERBIT;
+    // status lain mengikuti gate server (1 PDF aktif per kasus).
+    const isMenunggu = (invoiceStatus || 'MENUNGGU INVOICE') === 'MENUNGGU INVOICE';
+    const allowed = isMenunggu || (gate ? gate.canUpload : !files.some((x) => isPdfReady(x.status)));
     if (!allowed) {
       notify('Upload dinonaktifkan — PDF sudah terupload. Hapus PDF untuk upload ulang.', 'err');
       return;
@@ -241,10 +247,12 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange }) {
     }
   };
 
-  // Upload di-disabled bila sudah ada file completed (aturan: 1 kasus = 1 PDF aktif).
+  // Upload dibuka bila status MENUNGGU (agar bisa naik ke TERBIT) atau belum
+  // ada file completed (aturan: 1 kasus = 1 PDF aktif).
   // Tombol aktif kembali otomatis setelah PDF dihapus (gate.canUpload dari server).
+  const isMenunggu = (invoiceStatus || 'MENUNGGU INVOICE') === 'MENUNGGU INVOICE';
   const hasCompleted = files.some((f) => isPdfReady(f.status));
-  const canUpload = gate ? gate.canUpload : !hasCompleted;
+  const canUpload = isMenunggu || (gate ? gate.canUpload : !hasCompleted);
   const uploadDisabled = busy || !canUpload;
 
   return (
@@ -792,7 +800,7 @@ export default function FinanceAuditPage() {
                     </select>
                   </td>
                   <td className="px-4 py-3.5">
-                    <PdfCell recordUuid={c.recordUuid} caseNo={c.no} caseClient={c.client} notify={notify} onStatusChange={syncInvoiceStatus} />
+                    <PdfCell recordUuid={c.recordUuid} caseNo={c.no} caseClient={c.client} notify={notify} onStatusChange={syncInvoiceStatus} invoiceStatus={invoiceStatus[c.recordUuid] || defaultInvoiceStatus} />
                   </td>
                   <td className="px-4 py-3.5">
                     <input
