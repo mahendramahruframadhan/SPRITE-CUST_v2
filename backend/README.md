@@ -225,14 +225,15 @@ Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
    dari `activity_logs` kategori `Invoice`/`Validasi`: siapa, apa, kapan).
    `GET /api/billing/invoice-map` → peta `{recordUuid: status}` seluruh kasus
    (dipakai frontend menyinkronkan status lokal dengan otomasi backend).
-6. **Otomatisasi status invoice** (3 status, tercatat di `activity_logs` kategori `Invoice`):
-   `confirm` sukses → `UNPAID` (kecuali sudah `PAID`, tidak diturunkan);
-   hapus PDF terakhir → kembali `MENUNGGU INVOICE` (kecuali `PAID`).
-    Manual `PATCH /cases/:uuid/invoice` hanya menerima `PAID` dari status `UNPAID`
-    dan wajib ≥1 PDF `completed` + `paymentNote` (bukti pembayaran tersimpan di
-    `payment_note/paid_at/paid_by`) — `MENUNGGU/UNPAID` manual ditolak
-    `422 INVOICE_AUTO_LOCKED`, `PAID` tanpa PDF ditolak `422 INVOICE_NEED_PDF`,
-    tanpa notes ditolak `422 PAYMENT_NOTE_REQUIRED`.
+6. **Otomatisasi status invoice** (4 status, tercatat di `activity_logs` kategori `Invoice`):
+   `confirm` sukses → `INVOICE TERBIT` (kecuali `DIKIRIM`/`PAID`, tidak diturunkan);
+   hapus PDF terakhir → kembali `MENUNGGU INVOICE` (hanya dari `TERBIT`; `DIKIRIM`/`PAID` tetap).
+   Manual `PATCH /cases/:uuid/invoice` diizinkan alur: `DIKIRIM` dari `INVOICE TERBIT`
+   (ditandai sudah dikirim, menunggu pembayaran) dan `PAID` dari `DIKIRIM` —
+   wajib ≥1 PDF `completed` + `paymentNote` (tersimpan di `payment_note/paid_at/paid_by`).
+   `MENUNGGU/TERBIT` manual ditolak `422 INVOICE_AUTO_LOCKED`, `PAID` tanpa PDF ditolak
+   `422 INVOICE_NEED_PDF`, tanpa notes ditolak `422 PAYMENT_NOTE_REQUIRED`,
+   urutan salah ditolak `422 NOT_TERBIT_YET` / `NOT_DIKIRIM_YET`.
 6. Cron 10 menit menghapus baris `uploading` macet > 30 menit + baris `failed` yang tua (> 24 jam, beserta objeknya di storage).
 7. Frontend: kolom Upload PDF di halaman Finance (`PdfCell`) —
    pilih → progress → daftar/lihat/unduh/hapus per baris kasus.

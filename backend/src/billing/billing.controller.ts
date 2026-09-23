@@ -54,19 +54,29 @@ export class BillingController {
     const status = String(body.status || '').trim();
     if (!status) throw new HttpException({ code: 'VALIDATION_ERROR', message: 'Status tidak boleh kosong.' }, HttpStatus.BAD_REQUEST);
     const canon = status.toUpperCase();
-    // Kunci total: MENUNGGU & UNPAID murni otomatis (upload/hapus PDF) — manual ditolak.
-    // Satu-satunya status manual adalah PAID: wajib dari UNPAID + bukti pembayaran
-    // (paymentNote) + sudah ada ≥1 PDF completed.
+    // Kunci total: MENUNGGU & TERBIT murni otomatis (upload/hapus PDF) — manual ditolak.
+    // Status manual yang diizinkan alur:
+    //   DIKIRIM  — dari INVOICE TERBIT (invoice diterbitkan lalu ditandai sudah dikirim)
+    //   PAID     — dari DIKIRIM, wajib ≥1 PDF completed + paymentNote (bukti pembayaran)
     // Status kustom non-kanonis (buatan admin via Pengaturan) tetap lolos seperti dulu.
-    if (canon === 'MENUNGGU INVOICE' || canon === 'UNPAID') {
+    if (canon === 'MENUNGGU INVOICE' || canon === 'INVOICE TERBIT') {
       throw new HttpException({ code: 'INVOICE_AUTO_LOCKED', message: `Status "${status}" diatur otomatis oleh sistem (upload/hapus PDF) — tidak bisa diubah manual.` }, 422);
     }
     const who = await resolveWho(this.db, req, body.who);
+    const cur: any = await this.db.execute(`SELECT status FROM invoice_status WHERE record_uuid='${esc(uuid)}' LIMIT 1` as any);
+    const curStatus = String((cur.rows || cur)[0]?.status || 'MENUNGGU INVOICE').toUpperCase();
+    if (canon === 'DIKIRIM') {
+      if (curStatus !== 'INVOICE TERBIT' && curStatus !== 'UNPAID' && curStatus !== 'DIKIRIM') {
+        throw new HttpException({ code: 'NOT_TERBIT_YET', message: 'Belum bisa ditandai dikirim — status harus INVOICE TERBIT dulu (upload PDF invoice).' }, 422);
+      }
+      const nowD = new Date().toISOString();
+      await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(uuid)}','${esc(status)}','${nowD}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);
+      await logActivity(this.db, { who, action: `menandai invoice dikirim ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: 'menunggu pembayaran', recordUuid: uuid });
+      return { ok: true, recordUuid: uuid, status };
+    }
     if (canon === 'PAID') {
-      const cur: any = await this.db.execute(`SELECT status FROM invoice_status WHERE record_uuid='${esc(uuid)}' LIMIT 1` as any);
-      const curStatus = String((cur.rows || cur)[0]?.status || 'MENUNGGU INVOICE').toUpperCase();
-      if (curStatus !== 'UNPAID' && curStatus !== 'PAID') {
-        throw new HttpException({ code: 'NOT_UNPAID_YET', message: 'Belum bisa PAID — status harus UNPAID dulu (upload PDF invoice).' }, 422);
+      if (curStatus !== 'DIKIRIM' && curStatus !== 'PAID') {
+        throw new HttpException({ code: 'NOT_DIKIRIM_YET', message: 'Belum bisa PAID — tandai invoice sudah dikirim (DIKIRIM) dulu.' }, 422);
       }
       const c: any = await this.db.execute(`SELECT COUNT(*) as c FROM invoice_pdfs WHERE record_uuid='${esc(uuid)}' AND status='completed'` as any);
       if (!Number((c.rows || c)[0]?.c || 0)) {

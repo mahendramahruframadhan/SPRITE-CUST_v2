@@ -121,13 +121,13 @@ export class PdfService {
       if (!sig.startsWith('%PDF-')) return markFailed('Isi file bukan PDF (%PDF- tidak ditemukan).');
       await this.db.execute(`UPDATE invoice_pdfs SET status='completed', size_bytes=${actual}, updated_at='${now}' WHERE id='${esc(id)}'` as any);
       await logActivity(this.db, { who, action: 'mengunggah PDF invoice', category: 'Invoice', detail: `${row.filename} (${(actual / 1024).toFixed(0)} KB)`, recordUuid: row.record_uuid });
-      // Otomatisasi status invoice: PDF pertama yang completed → UNPAID.
-      // PAID tidak pernah diturunkan (keputusan user bersifat final).
+      // Otomatisasi status invoice: PDF pertama yang completed → INVOICE TERBIT.
+      // DIKIRIM & PAID tidak pernah diturunkan (invoice sudah diterbitkan/dikirim).
       let invoiceStatus = await this.getInvoiceStatus(row.record_uuid);
-      if (invoiceStatus !== 'PAID' && invoiceStatus !== 'UNPAID') {
-        await this.setInvoiceStatus(row.record_uuid, 'UNPAID');
-        await logActivity(this.db, { who: 'Sistem', action: 'status invoice otomatis menjadi UNPAID karena PDF terupload', category: 'Invoice', detail: row.filename, recordUuid: row.record_uuid });
-        invoiceStatus = 'UNPAID';
+      if (invoiceStatus !== 'PAID' && invoiceStatus !== 'DIKIRIM' && invoiceStatus !== 'INVOICE TERBIT' && invoiceStatus !== 'UNPAID') {
+        await this.setInvoiceStatus(row.record_uuid, 'INVOICE TERBIT');
+        await logActivity(this.db, { who: 'Sistem', action: 'status invoice otomatis menjadi INVOICE TERBIT karena PDF terupload', category: 'Invoice', detail: row.filename, recordUuid: row.record_uuid });
+        invoiceStatus = 'INVOICE TERBIT';
       }
       return { ok: true, id, status: 'completed', sizeBytes: actual, invoiceStatus };
     } catch (e: any) {
@@ -237,9 +237,11 @@ export class PdfService {
     await this.db.execute(`DELETE FROM invoice_pdfs WHERE id='${esc(id)}'` as any);
     await logActivity(this.db, { who, action: 'menghapus PDF invoice', category: 'Invoice', detail: row.filename, recordUuid: row.record_uuid });
     // Otomatisasi status invoice: PDF completed terakhir dihapus → kembali MENUNGGU.
-    // PAID tidak disentuh (keputusan user bersifat final).
+    // Hanya dari TERBIT (atau legacy UNPAID) — DIKIRIM/PAID tidak disentuh
+    // (invoice yang sudah dikirim/dibayar tidak berubah karena file dihapus).
     let invoiceStatus = await this.getInvoiceStatus(row.record_uuid);
-    if ((await this.countCompleted(row.record_uuid)) === 0 && invoiceStatus !== 'PAID' && invoiceStatus !== 'MENUNGGU INVOICE') {
+    const downgradeable = invoiceStatus === 'INVOICE TERBIT' || invoiceStatus === 'UNPAID';
+    if (downgradeable && (await this.countCompleted(row.record_uuid)) === 0) {
       await this.setInvoiceStatus(row.record_uuid, 'MENUNGGU INVOICE');
       await logActivity(this.db, { who: 'Sistem', action: 'status invoice kembali MENUNGGU INVOICE karena PDF dihapus', category: 'Invoice', detail: row.filename, recordUuid: row.record_uuid });
       invoiceStatus = 'MENUNGGU INVOICE';

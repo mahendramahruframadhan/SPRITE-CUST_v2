@@ -186,19 +186,26 @@ export async function initDb() {
         await q(`ALTER TABLE invoice_status ADD COLUMN IF NOT EXISTS ${col}`);
       } catch {}
     }
-    // Migrasi kosakata: INVOICE TERBIT → UNPAID (data + master), no-op bila bersih.
+    // Migrasi kosakata: UNPAID → INVOICE TERBIT (data + master), pastikan DIKIRIM
+    // ada di master. No-op bila DB sudah bersih.
     try {
-      await q(`UPDATE invoice_status SET status='UNPAID', updated_at='${new Date().toISOString()}' WHERE status='INVOICE TERBIT'`);
+      await q(`UPDATE invoice_status SET status='INVOICE TERBIT', updated_at='${new Date().toISOString()}' WHERE status='UNPAID'`);
     } catch {}
     try {
       const cfg: any = await q(`SELECT value FROM app_config WHERE key='invoiceActions'`);
       const raw = cfg[0]?.value;
-      if (raw && String(raw).includes('INVOICE TERBIT')) {
+      if (raw) {
         const arr = JSON.parse(String(raw));
         if (Array.isArray(arr)) {
-          const mapped = [...new Set(arr.map((s: string) => (String(s).toUpperCase() === 'INVOICE TERBIT' ? 'UNPAID' : s)))];
-          await q(`UPDATE app_config SET value='${JSON.stringify(mapped).replace(/'/g, "''")}', updated_at='${new Date().toISOString()}' WHERE key='invoiceActions'`);
-          console.log('[db] migrated invoiceActions TERBIT → UNPAID');
+          let mapped = [...new Set(arr.map((s: string) => (String(s).toUpperCase() === 'UNPAID' ? 'INVOICE TERBIT' : s)))];
+          if (!mapped.includes('DIKIRIM')) {
+            const i = mapped.indexOf('INVOICE TERBIT');
+            mapped.splice(i >= 0 ? i + 1 : mapped.length, 0, 'DIKIRIM');
+          }
+          if (JSON.stringify(mapped) !== JSON.stringify(arr)) {
+            await q(`UPDATE app_config SET value='${JSON.stringify(mapped).replace(/'/g, "''")}', updated_at='${new Date().toISOString()}' WHERE key='invoiceActions'`);
+            console.log('[db] migrated invoiceActions → TERBIT + DIKIRIM');
+          }
         }
       }
     } catch {}
@@ -248,7 +255,7 @@ export async function initDb() {
       const now = new Date().toISOString();
       const statusSeeds: Record<string, string[]> = {
         auditActions: ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'],
-        invoiceActions: ['MENUNGGU INVOICE', 'UNPAID', 'PAID'],
+        invoiceActions: ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'DIKIRIM', 'PAID'],
       };
       for (const [k, arr] of Object.entries(statusSeeds)) {
         const val = JSON.stringify(arr).replace(/'/g, "''");
