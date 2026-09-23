@@ -10,13 +10,9 @@ import {
   deleteBrandStatus,
   getBrandStatuses,
   patchBrandStatus,
-  createClient,
-  deleteClient,
-  getClients,
 } from '../lib/api.js';
-import { expiryState, normalizeBrand } from '../utils/contract.js';
+import { expiryState } from '../utils/contract.js';
 
-const CLIENT_KEY = 'sprite.clients.v1';
 const STATUS_KEY = 'sprite.brandStatus.v1';
 
 function uid() {
@@ -81,23 +77,8 @@ function mapStatusRow(r) {
   };
 }
 
-function mapClientRow(r) {
-  return {
-    id: r.id,
-    brand: r.brand,
-    company: r.company || '',
-    pic: r.pic || '',
-    contact: r.contact || '',
-    joinedAt: r.joined_at || '',
-    source: r.source || '',
-    note: r.note || '',
-    createdAt: r.created_at,
-  };
-}
-
-// Id serverdiawali bs_/cl_/seed-bs-; sisanya baris lokal (offline/seed awal).
+// Id server diawali bs_/seed-bs-; sisanya baris lokal (offline/seed awal).
 const isServerStatusId = (id) => /^(bs_|seed-bs-)/.test(String(id || ''));
-const isServerClientId = (id) => String(id || '').startsWith('cl_');
 const isSeedId = (id) => String(id || '').startsWith('seed-');
 
 // Gagal jaringan (fetch melempar tanpa status) vs error HTTP server.
@@ -110,7 +91,6 @@ function isDupeErr(e) {
 }
 
 export function useClientBrands() {
-  const [clients, setClients] = useState(() => readLS(CLIENT_KEY));
   const [statuses, setStatuses] = useState(() => {
     const raw = (() => {
       try {
@@ -140,12 +120,6 @@ export function useClientBrands() {
   async function syncWithServer() {
     const rows = await getBrandStatuses();
     if (Array.isArray(rows) && rows.length) setStatuses(rows.map(mapStatusRow));
-    try {
-      const crows = await getClients();
-      if (Array.isArray(crows) && crows.length) setClients(crows.map(mapClientRow));
-    } catch {
-      // Koleksi client opsional: status kontrak yang utama.
-    }
     const local = readLS(STATUS_KEY).filter(
       (s) => s && !isServerStatusId(s.id) && !isSeedId(s.id)
     );
@@ -167,24 +141,9 @@ export function useClientBrands() {
         // 409/400 per baris: lewati satu baris, lanjutkan sisanya.
       }
     }
-    const clocal = readLS(CLIENT_KEY).filter((c) => c && !isServerClientId(c.id));
-    for (const u of clocal) {
-      try {
-        await createClient(u);
-        pushed++;
-      } catch (e) {
-        if (isOfflineErr(e)) throw e;
-      }
-    }
     if (pushed) {
       const rows2 = await getBrandStatuses();
       if (Array.isArray(rows2) && rows2.length) setStatuses(rows2.map(mapStatusRow));
-      try {
-        const crows2 = await getClients();
-        if (Array.isArray(crows2) && crows2.length) setClients(crows2.map(mapClientRow));
-      } catch {
-        // Koleksi ikut dibaca ulang bila ada; gagal baca client tidak fatal.
-      }
     }
   }
 
@@ -217,66 +176,14 @@ export function useClientBrands() {
   }
 
   useEffect(() => {
-    if (ready) writeLS(CLIENT_KEY, clients);
-  }, [clients, ready]);
-
-  useEffect(() => {
     if (ready) writeLS(STATUS_KEY, statuses);
   }, [statuses, ready]);
 
   const stats = useMemo(() => {
     const monthly = statuses.filter((s) => s.type === 'MONTHLY').length;
     const gratis = statuses.filter((s) => s.type === 'GRATIS' && expiryState(s.expiredAt) !== 'expired').length;
-    const baru = statuses.filter((s) => s.type === 'BARU').length;
-    return {
-      totalBrand: new Set([...clients.map((c) => c.brand), ...statuses.map((s) => s.brand)].filter(Boolean)).size,
-      totalClient: clients.length,
-      monthly,
-      gratis,
-      baru,
-    };
-  }, [clients, statuses]);
-
-  async function addClient(payload) {
-    const body = { brand: normalizeBrand(payload.brand), company: payload.company || '', pic: payload.pic || '', contact: payload.contact || '' };
-    if (serverOk !== false) {
-      try {
-        const r = await createClient(body);
-        const row = { id: r?.data?.id || uid(), createdAt: new Date().toISOString(), ...body };
-        setClients((prev) => [row, ...prev]);
-        setServerOk(true);
-        return row;
-      } catch (e) {
-        if (!isOfflineErr(e)) throw e;
-        setServerOk(false);
-      }
-    }
-    const row = { id: uid(), createdAt: new Date().toISOString(), ...body };
-    setClients((prev) => [row, ...prev]);
-    return row;
-  }
-
-  async function removeClient(id) {
-    if (serverOk !== false) {
-      try {
-        await deleteClient(id);
-        setClients((prev) => prev.filter((c) => c.id !== id));
-        setServerOk(true);
-        return;
-      } catch (e) {
-        if (isOfflineErr(e)) {
-          setServerOk(false);
-        } else if (e?.status === 404) {
-          // Baris hanya ada lokal: hapus lokal, server tetap dianggap OK.
-          setClients((prev) => prev.filter((c) => c.id !== id));
-          return;
-        } else {
-          throw e;
-        }
-      }
-    }
-    setClients((prev) => prev.filter((c) => c.id !== id));
-  }
+    return { monthly, gratis };
+  }, [statuses]);
 
   async function addStatus(payload) {
     if (serverOk !== false) {
@@ -386,11 +293,8 @@ export function useClientBrands() {
   return {
     ready,
     serverOk,
-    clients,
     statuses,
     stats,
-    addClient,
-    removeClient,
     addStatus,
     updateStatus,
     removeStatus,

@@ -49,7 +49,7 @@ function initials(name) {
 
 export default function ClientBrandPage() {
   const { notify } = useToast();
-  const { statuses, stats, addStatus, updateStatus, removeStatus, seedExamples, ready, serverOk, retryConnection, clients, addClient, removeClient } = useClientBrands();
+  const { statuses, stats, addStatus, updateStatus, removeStatus, seedExamples, ready, serverOk, retryConnection } = useClientBrands();
   const [brand, setBrand] = useState('');
   const [type, setType] = useState('GRATIS');
   const [expiredAt, setExpiredAt] = useState('');
@@ -59,9 +59,6 @@ export default function ClientBrandPage() {
   const [editBrand, setEditBrand] = useState('');
   const [editExpired, setEditExpired] = useState('');
   const [detailItem, setDetailItem] = useState(null);
-  const [clientBrand, setClientBrand] = useState('');
-  const [clientCompany, setClientCompany] = useState('');
-  const [clientContact, setClientContact] = useState('');
 
   // Tutup menu dengan klik di luar atau Escape; Escape juga menutup modal detail.
   useEffect(() => {
@@ -174,39 +171,6 @@ export default function ClientBrandPage() {
       .catch((err) => notify(errMsg(err), 'error'));
   }
 
-  // Koleksi client baru: ringkas (nama + perusahaan + kontak), tersimpan di
-  // server bila terjangkau dan cadangan lokal bila offline.
-  function submitClient(e) {
-    e?.preventDefault();
-    const name = clientBrand.trim();
-    if (!name) {
-      notify('Isi nama brand dulu', 'error');
-      return;
-    }
-    (async () => {
-      try {
-        await addClient({ brand: name, company: clientCompany.trim(), contact: clientContact.trim() });
-        setClientBrand('');
-        setClientCompany('');
-        setClientContact('');
-        notify(`${name} masuk koleksi client baru.${offTag}`, 'success');
-      } catch (err) {
-        notify(errMsg(err), 'error');
-      }
-    })();
-  }
-
-  function delClient(item) {
-    (async () => {
-      try {
-        await removeClient(item.id);
-        notify(`${item.brand} dihapus dari koleksi.${offTag}`, 'info');
-      } catch (err) {
-        notify(errMsg(err), 'error');
-      }
-    })();
-  }
-
   // Menu titik-tiga: satu titik aksi per baris berisi Update dan Hapus.
   function Kebab({ item, listLabel }) {
     const open = openMenuId === item.id;
@@ -284,13 +248,16 @@ export default function ClientBrandPage() {
           <div className="flex gap-2 shrink-0">
             <button
               onClick={() => saveEdit(item)}
-              className="flex-1 sm:flex-none min-h-[44px] inline-flex items-center justify-center bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+              className="flex-1 sm:flex-none min-h-[44px] inline-flex items-center justify-center gap-1.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-sm font-bold px-4 rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
               Simpan
             </button>
             <button
               onClick={() => setEditingId(null)}
-              className="flex-1 sm:flex-none min-h-[44px] inline-flex items-center justify-center text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+              className="flex-1 sm:flex-none min-h-[44px] inline-flex items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-300 px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
             >
               Batal
             </button>
@@ -386,68 +353,6 @@ export default function ClientBrandPage() {
         </div>
       </section>
 
-      {/* Koleksi client baru */}
-      <section aria-label="Koleksi client baru" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Koleksi client baru</h3>
-            <p className="text-[11px] text-slate-400">Brand yang baru masuk, sebelum dikontrak monthly/gratis.</p>
-          </div>
-          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300">
-            {clients.length}
-          </span>
-        </div>
-        <form onSubmit={submitClient} className="flex flex-col md:flex-row gap-3 md:items-end">
-          <div className="flex-1">
-            <label htmlFor="cc-brand" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Nama brand <span className="text-rose-500">*</span>
-            </label>
-            <input id="cc-brand" value={clientBrand} onChange={(e) => setClientBrand(e.target.value)} placeholder="cth. Kopi Arena" className={`${INPUT_CLS} mt-1.5`} />
-          </div>
-          <div className="flex-1">
-            <label htmlFor="cc-company" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Perusahaan</label>
-            <input id="cc-company" value={clientCompany} onChange={(e) => setClientCompany(e.target.value)} placeholder="cth. PT Arena Ritel" className={`${INPUT_CLS} mt-1.5`} />
-          </div>
-          <div className="md:w-52">
-            <label htmlFor="cc-contact" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Kontak</label>
-            <input id="cc-contact" value={clientContact} onChange={(e) => setClientContact(e.target.value)} placeholder="Email atau WA" className={`${INPUT_CLS} mt-1.5`} />
-          </div>
-          <button
-            type="submit"
-            className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-6 py-2.5 min-h-[44px] rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
-          >
-            Tambah
-          </button>
-        </form>
-        {clients.length > 0 && (
-          <ul className="mt-3 divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[220px] overflow-y-auto">
-            {clients.slice(0, 20).map((c) => (
-              <li key={c.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                <span aria-hidden="true" className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 text-white flex items-center justify-center text-[10px] font-bold">
-                  {initials(c.brand)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{c.brand}</p>
-                  {(c.company || c.contact) && (
-                    <p className="text-[11px] text-slate-400 truncate">{[c.company, c.contact].filter(Boolean).join(' · ')}</p>
-                  )}
-                </div>
-                <button
-                  onClick={() => delClient(c)}
-                  title="Hapus"
-                  aria-label={`Hapus ${c.brand} dari koleksi`}
-                  className="w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916" />
-                  </svg>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       {/* Tambah cepat */}
       <form
         onSubmit={submit}
@@ -467,17 +372,17 @@ export default function ClientBrandPage() {
         </div>
         <div>
           <span id="cb-type-label" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Masuk ke</span>
-          <div className="flex gap-2 mt-1.5" role="group" aria-labelledby="cb-type-label">
+          <div className="flex mt-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 p-1 gap-1" role="group" aria-labelledby="cb-type-label">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setType(t.id)}
                 aria-pressed={type === t.id}
-                className={`text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${
+                className={`flex-1 px-4 min-h-[44px] rounded-lg text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${
                   type === t.id
-                    ? 'bg-brand-600 text-white border-brand-600 shadow-md shadow-brand-600/25'
-                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-500/40'
+                    ? 'bg-white dark:bg-slate-900 text-brand-700 dark:text-brand-300 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 {t.label}
@@ -495,21 +400,29 @@ export default function ClientBrandPage() {
         )}
         <button
           type="submit"
-          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-6 py-2.5 min-h-[44px] rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+          className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-sm font-bold px-6 py-2.5 min-h-[44px] rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
         >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
           Tambah
         </button>
       </form>
 
       {/* Cari + contoh + status koneksi */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cari brand..."
-          aria-label="Cari brand"
-          className={`${INPUT_CLS} sm:max-w-xs`}
-        />
+        <div className="relative sm:max-w-xs">
+          <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari brand..."
+            aria-label="Cari brand"
+            className={`${INPUT_CLS} pl-10`}
+          />
+        </div>
         {serverOk === false && (
           <span className="inline-flex items-center gap-2 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
             Mode offline
@@ -522,8 +435,11 @@ export default function ClientBrandPage() {
                 const ok = await retryConnection();
                 notify(ok ? 'Tersambung ke server.' : 'Backend belum terjangkau.', ok ? 'success' : 'error');
               }}
-              className="min-h-[44px] inline-flex items-center text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+              className="min-h-[44px] inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
             >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
               Coba lagi
             </button>
           )}
@@ -534,8 +450,11 @@ export default function ClientBrandPage() {
                   notify(`Contoh data finance dimasukkan (tanpa duplikat).${offTag}`, 'success');
                 }).catch((err) => notify(errMsg(err), 'error'));
               }}
-              className="min-h-[44px] inline-flex items-center text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-2 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+              className="min-h-[44px] inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 active:bg-brand-100 dark:active:bg-brand-500/20 px-3 py-2 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
             >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
               Isi contoh finance
             </button>
           )}
@@ -649,8 +568,11 @@ export default function ClientBrandPage() {
                   setDetailItem(null);
                   startEdit(it);
                 }}
-                className="flex-1 min-h-[44px] inline-flex items-center justify-center bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                className="flex-1 min-h-[44px] inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-sm font-bold px-4 rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                </svg>
                 Update
               </button>
               <button
@@ -659,8 +581,11 @@ export default function ClientBrandPage() {
                   setDetailItem(null);
                   doDelete(it, 'Free Maintenance');
                 }}
-                className="flex-1 min-h-[44px] inline-flex items-center justify-center text-sm font-semibold text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 px-4 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-500/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
+                className="flex-1 min-h-[44px] inline-flex items-center justify-center gap-2 text-sm font-bold text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 px-4 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-500/10 active:bg-rose-100 dark:active:bg-rose-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916" />
+                </svg>
                 Hapus
               </button>
             </div>
