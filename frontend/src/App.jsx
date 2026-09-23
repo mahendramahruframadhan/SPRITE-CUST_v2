@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import DataKasusPage from './pages/DataKasusPage.jsx';
 import MockupPage from './pages/MockupPage.jsx';
 import FormKasusPage from './pages/FormKasusPage.jsx';
+import ClientBrandPage from './pages/ClientBrandPage.jsx';
 import HrReportPage from './pages/HrReportPage.jsx';
 import SheetConfigPage from './pages/SheetConfigPage.jsx';
 import BillingPage from './pages/BillingPage.jsx';
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="/kasus" element={<RequirePerm module="cases"><DataKasusPage /></RequirePerm>} />
             <Route path="/mockup" element={<RequirePerm module="mockup"><MockupPage /></RequirePerm>} />
             <Route path="/form" element={<RequirePerm module="form"><FormKasusPage /></RequirePerm>} />
+            <Route path="/clients" element={<RequirePerm module="clients"><ClientBrandPage /></RequirePerm>} />
             <Route path="/hrreport" element={<RequirePerm module="hrreport"><HrReportPage /></RequirePerm>} />
             {/* /master & /pricelist dialihkan ke /cfg oleh AppLayout */}
             <Route path="/cfg" element={<RequirePerm module="cfg"><SheetConfigPage /></RequirePerm>} />

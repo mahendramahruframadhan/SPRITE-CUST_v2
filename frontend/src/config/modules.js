@@ -7,6 +7,7 @@ export const MODULES = [
   { path: '/mockup', id: 'mockup', title: 'Dashboard Mockup', sub: 'Visualisasi data Google Sheets' },
   { group: 'Operasional' },
   { path: '/form', id: 'form', title: 'Form Kasus', sub: 'Input data kasus support baru' },
+  { path: '/clients', id: 'clients', title: 'Client & Brand', sub: 'Koleksi client baru dan status monthly vs maintenance' },
   { path: '/hrreport', id: 'hrreport', title: 'HR Report', sub: 'Rekap performa tim & detail ticket per periode' },
   { path: '/cfg', id: 'cfg', title: 'Konfigurasi Sheet', sub: 'Master config sheet: master data, pricelist, brand, mapping' },
   { group: 'Keuangan' },
