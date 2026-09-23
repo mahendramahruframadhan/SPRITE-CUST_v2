@@ -1,22 +1,23 @@
-// Halaman Client & Brand, versi simpel untuk tim finance (frontend-only).
+// Halaman Client & Brand, versi elegan untuk tim finance (frontend-only).
 // Design Read: halaman admin operasional untuk tim Revota, bahasa Linear-clean,
 // dial ENERGY 2 / RHYTHM 2 / MOTION 1 (lihat DESIGN.md).
-// Alasan (R-31): satu baris tambah cepat + dua daftar persis format finance
-// (Monthly = nama saja, Free = nama + expired) agar input semudah chat;
-// badge kapsul hanya status fungsional (R-09); satu animasi mount (R-19).
-// Context7 react: form terkontrol + useMemo untuk filter/sort.
+// Alasan (R-31): hero gradien indigo ke ungu adalah identitas brand Revota (R-01);
+// kartu metrik identik + hover-lift karena perbandingan setara (R-14, motif DESIGN.md);
+// badge kapsul hanya status fungsional Monthly/Free/Expired (R-09);
+// satu animasi mount tanpa cascade delay (R-19, MOTION 1).
+// Context7 react: form terkontrol + useMemo (react/docs); Tailwind mobile-first
+// grid + dark: variant (tailwindcss/docs); pola cegah duplikat per daftar.
 // TODO(backend): sambungkan useClientBrands ke API saat backend siap.
 import { useMemo, useState } from 'react';
 import { daysLeft, expiryState, useClientBrands } from '../hooks/useClientBrands.js';
 import { useToast } from '../context/ToastContext.jsx';
 
 const INPUT_CLS =
-  'w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition';
+  'w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition';
 
 const TABS = [
   { id: 'MONTHLY', label: 'Monthly' },
   { id: 'GRATIS', label: 'Free Maintenance' },
-  { id: 'BARU', label: 'Client Baru' },
 ];
 
 function fmtDateID(s) {
@@ -31,6 +32,15 @@ function fmtLeft(d) {
   if (d < 0) return `expired ${Math.abs(d)} hari lalu`;
   if (d === 0) return 'habis hari ini';
   return `sisa ${d} hari`;
+}
+
+function initials(name) {
+  return String(name || '?')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 export default function ClientBrandPage() {
@@ -53,7 +63,6 @@ export default function ClientBrandPage() {
         .sort((a, b) => String(a.expiredAt || '9999').localeCompare(String(b.expiredAt || '9999'))),
     [statuses, q]
   );
-  const baru = useMemo(() => statuses.filter((s) => s.type === 'BARU' && match(s)), [statuses, q]);
 
   const soonCount = statuses.filter((s) => s.type === 'GRATIS' && expiryState(s.expiredAt) === 'soon').length;
   const expiredCount = statuses.filter((s) => s.type === 'GRATIS' && expiryState(s.expiredAt) === 'expired').length;
@@ -71,41 +80,28 @@ export default function ClientBrandPage() {
     }
     const dupe = statuses.some((s) => s.type === type && String(s.brand).trim().toLowerCase() === name.toLowerCase());
     if (dupe) {
-      notify(`${name} sudah ada di daftar ${type === 'GRATIS' ? 'Free' : type === 'MONTHLY' ? 'Monthly' : 'Baru'}`, 'error');
+      notify(`${name} sudah ada di daftar ${type === 'GRATIS' ? 'Free' : 'Monthly'}`, 'error');
       return;
     }
     addStatus({ brand: name, type, expiredAt: type === 'GRATIS' ? expiredAt : '' });
     setBrand('');
     if (type === 'GRATIS') setExpiredAt('');
-    notify(`${name} masuk daftar ${type === 'GRATIS' ? 'Free Maintenance' : type === 'MONTHLY' ? 'Monthly' : 'Client Baru'}.`, 'success');
+    notify(`${name} masuk daftar ${type === 'GRATIS' ? 'Free Maintenance' : 'Monthly'}.`, 'success');
   }
 
-  function Row({ item, showDate }) {
-    const st = expiryState(item.expiredAt);
+  function MonthlyRow({ item }) {
     return (
-      <li className="flex items-center gap-2 px-3 py-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{item.brand}</p>
-          {showDate && (
-            <p className="text-[11px] text-slate-400">
-              {fmtDateID(item.expiredAt)}
-              {st === 'expired' && <span className="text-rose-500 font-bold"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
-              {st === 'soon' && <span className="text-amber-600 font-bold"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
-              {st === 'active' && <span> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
-            </p>
-          )}
-        </div>
-        {showDate && st === 'expired' && (
-          <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20">
-            EXPIRED
-          </span>
-        )}
+      <li className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+        <span aria-hidden="true" className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white flex items-center justify-center text-[11px] font-bold">
+          {initials(item.brand)}
+        </span>
+        <p className="min-w-0 flex-1 text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{item.brand}</p>
         <button
           onClick={() => {
             removeStatus(item.id);
-            notify(`${item.brand} dihapus.`, 'info');
+            notify(`${item.brand} dihapus dari Monthly.`, 'info');
           }}
-          aria-label={`Hapus ${item.brand}`}
+          aria-label={`Hapus ${item.brand} dari Monthly`}
           className="shrink-0 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-2.5 py-1.5 rounded-lg transition"
         >
           Hapus
@@ -114,48 +110,81 @@ export default function ClientBrandPage() {
     );
   }
 
-  function List({ title, count, items, showDate, empty }) {
+  function FreeRow({ item }) {
+    const st = expiryState(item.expiredAt);
     return (
-      <section aria-label={title} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <header className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h3>
-          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300">
-            {count}
+      <li className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+        <span aria-hidden="true" className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-[11px] font-bold">
+          {initials(item.brand)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{item.brand}</p>
+          <p className="text-[11px] text-slate-400">
+            {fmtDateID(item.expiredAt)}
+            {st === 'expired' && <span className="text-rose-500 font-bold"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
+            {st === 'soon' && <span className="text-amber-600 dark:text-amber-400 font-bold"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
+            {st === 'active' && <span> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
+          </p>
+        </div>
+        {st === 'expired' ? (
+          <span className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20">
+            EXPIRED
           </span>
-        </header>
-        {items.length === 0 ? (
-          <p className="px-4 py-6 text-center text-xs text-slate-400">{empty}</p>
         ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[420px] overflow-y-auto">{items.map((it) => <Row key={it.id} item={it} showDate={showDate} />)}</ul>
+          st === 'soon' && (
+            <span className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+              SEGERA
+            </span>
+          )
         )}
-      </section>
+        <button
+          onClick={() => {
+            removeStatus(item.id);
+            notify(`${item.brand} dihapus dari Free Maintenance.`, 'info');
+          }}
+          aria-label={`Hapus ${item.brand} dari Free Maintenance`}
+          className="shrink-0 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-2.5 py-1.5 rounded-lg transition"
+        >
+          Hapus
+        </button>
+      </li>
     );
   }
 
   return (
     <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-4">
-      {/* Ringkas: 3 angka yang finance butuhkan */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Monthly', value: stats.monthly },
-          { label: 'Free aktif', value: `${stats.gratis}`, hint: `${soonCount} segera · ${expiredCount} expired` },
-          { label: 'Client baru', value: stats.baru },
-        ].map((m) => (
-          <div key={m.label} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 animate-fade-in-fast">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{m.label}</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{m.value}</p>
-            {m.hint && <p className="text-[11px] text-slate-400">{m.hint}</p>}
+      {/* Hero identitas brand: gradien indigo ke ungu (R-01, alasan = brand Revota) */}
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#4a4fe9] to-[#7c3aed] p-5 sm:p-6 text-white animate-fade-in-fast">
+        <div className="relative flex flex-wrap items-end gap-4">
+          <div className="min-w-0 flex-1 basis-56">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">Kontrak brand</p>
+            <h3 className="mt-1 text-lg sm:text-xl font-bold leading-tight">Monthly vs Free Maintenance</h3>
+            <p className="mt-1 text-xs text-white/75">Satu tempat untuk info finance: siapa monthly, siapa gratis sampai kapan.</p>
           </div>
-        ))}
-      </div>
+          <dl className="flex gap-2 sm:gap-3">
+            <div className="rounded-xl bg-white/15 backdrop-blur px-4 py-2.5 text-center">
+              <dt className="text-[10px] font-bold uppercase tracking-wider text-white/70">Monthly</dt>
+              <dd className="text-xl font-bold">{stats.monthly}</dd>
+            </div>
+            <div className="rounded-xl bg-white/15 backdrop-blur px-4 py-2.5 text-center">
+              <dt className="text-[10px] font-bold uppercase tracking-wider text-white/70">Free aktif</dt>
+              <dd className="text-xl font-bold">{stats.gratis}</dd>
+            </div>
+            <div className="hidden sm:block rounded-xl bg-white/15 backdrop-blur px-4 py-2.5 text-center">
+              <dt className="text-[10px] font-bold uppercase tracking-wider text-white/70">Perhatian</dt>
+              <dd className="text-xl font-bold">{soonCount + expiredCount}</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
 
-      {/* Tambah cepat: 1 baris, persis cara finance mengirim info */}
+      {/* Tambah cepat */}
       <form
         onSubmit={submit}
-        className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col md:flex-row gap-3 md:items-end"
+        className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex flex-col md:flex-row gap-3 md:items-end shadow-sm"
       >
         <div className="flex-1">
-          <label htmlFor="cb-brand" className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <label htmlFor="cb-brand" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Nama brand <span className="text-rose-500">*</span>
           </label>
           <input
@@ -163,22 +192,22 @@ export default function ClientBrandPage() {
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
             placeholder="cth. Flora Dera"
-            className={`${INPUT_CLS} mt-1`}
+            className={`${INPUT_CLS} mt-1.5`}
           />
         </div>
         <div>
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Masuk ke</span>
-          <div className="flex gap-2 mt-1" role="group" aria-label="Pilih daftar">
+          <span id="cb-type-label" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Masuk ke</span>
+          <div className="flex gap-2 mt-1.5" role="group" aria-labelledby="cb-type-label">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setType(t.id)}
                 aria-pressed={type === t.id}
-                className={`text-xs font-semibold px-3 py-2.5 rounded-lg border transition ${
+                className={`text-xs font-semibold px-4 py-2.5 rounded-xl border transition ${
                   type === t.id
-                    ? 'bg-brand-600 text-white border-brand-600'
-                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    ? 'bg-brand-600 text-white border-brand-600 shadow-md shadow-brand-600/25'
+                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-500/40'
                 }`}
               >
                 {t.label}
@@ -187,16 +216,16 @@ export default function ClientBrandPage() {
           </div>
         </div>
         {type === 'GRATIS' && (
-          <div className="md:w-48">
-            <label htmlFor="cb-exp" className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <div className="md:w-52">
+            <label htmlFor="cb-exp" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Expired <span className="text-rose-500">*</span>
             </label>
-            <input id="cb-exp" type="date" value={expiredAt} onChange={(e) => setExpiredAt(e.target.value)} className={`${INPUT_CLS} mt-1`} />
+            <input id="cb-exp" type="date" value={expiredAt} onChange={(e) => setExpiredAt(e.target.value)} className={`${INPUT_CLS} mt-1.5`} />
           </div>
         )}
         <button
           type="submit"
-          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition"
+          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl shadow-md shadow-brand-600/25 transition"
         >
           Tambah
         </button>
@@ -222,17 +251,48 @@ export default function ClientBrandPage() {
         </button>
       </div>
 
-      {/* Dua daftar utama + baru, urut expired terdekat */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <List title="Support Monthly" count={monthly.length} items={monthly} empty="Belum ada. Ketik nama lalu Tambah ke Monthly." />
-        <List
-          title="Kontrak Free Maintenance"
-          count={gratis.length}
-          items={gratis}
-          showDate
-          empty="Belum ada. Pilih Free Maintenance + isi tanggal expired."
-        />
-        <List title="Client Baru" count={baru.length} items={baru} empty="Belum ada brand baru." />
+      {/* Dua daftar: monthly dan free, urut expired terdekat */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <section aria-label="Support Monthly" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition">
+          <header className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Support Monthly</h3>
+              <p className="text-[11px] text-slate-400">Brand berlangganan bulanan</p>
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20">
+              {monthly.length}
+            </span>
+          </header>
+          {monthly.length === 0 ? (
+            <p className="px-4 py-8 text-center text-xs text-slate-400">Belum ada. Ketik nama lalu Tambah ke Monthly.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto">
+              {monthly.map((it) => <MonthlyRow key={it.id} item={it} />)}
+            </ul>
+          )}
+        </section>
+
+        <section aria-label="Kontrak Free Maintenance" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition">
+          <header className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Kontrak Free Maintenance</h3>
+              <p className="text-[11px] text-slate-400">
+                {expiredCount > 0 ? `${expiredCount} expired` : 'Urut dari expired terdekat'}
+                {soonCount > 0 && ` · ${soonCount} segera habis`}
+              </p>
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+              {gratis.length}
+            </span>
+          </header>
+          {gratis.length === 0 ? (
+            <p className="px-4 py-8 text-center text-xs text-slate-400">Belum ada. Pilih Free Maintenance dan isi tanggal expired.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto">
+              {gratis.map((it) => <FreeRow key={it.id} item={it} />)}
+            </ul>
+          )}
+        </section>
       </div>
 
       <p className="text-[11px] text-slate-400">Tersimpan otomatis di browser ini. Backend disambungkan nanti tanpa mengubah tampilan.</p>
