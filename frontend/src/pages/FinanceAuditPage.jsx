@@ -5,6 +5,7 @@ import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, get
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
+import DatePickerInput from '../components/DatePickerInput.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
@@ -439,7 +440,6 @@ export default function FinanceAuditPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [brand, setBrand] = useState('');
-  const [billStatus, setBillStatus] = useState('');
   const [invFilter, setInvFilter] = useState('');
   const [detailUuid, setDetailUuid] = useState(null);
   // Bukti pembayaran per kasus dari backend (invoice-map.notes) — tampil di baris PAID.
@@ -523,11 +523,10 @@ export default function FinanceAuditPage() {
         (!f || d >= f) &&
         (!t || d <= t) &&
         (!brand || c.client === brand) &&
-        (!billStatus || c.billingStatus === billStatus) &&
         (!invFilter || s === invFilter)
       );
     });
-  }, [validatedPool, invoiceStatus, defaultInvoiceStatus, from, to, brand, billStatus, invFilter]);
+  }, [validatedPool, invoiceStatus, defaultInvoiceStatus, from, to, brand, invFilter]);
 
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
@@ -614,6 +613,26 @@ export default function FinanceAuditPage() {
     notify(`Export ${filtered.length} kasus tervalidasi berhasil diunduh.`, 'success');
   }
 
+  // Catat setiap interaksi filter ke riwayat aktivitas (user + perubahan).
+  // Hanya dicatat bila nilai benar-benar berubah, agar tidak spam saat ketik.
+  function logFilter(label, prev, next) {
+    if (prev === next) return;
+    recordActivity(`filter Finance Audit: ${label}`, `${prev || '(semua)'} → ${next || '(semua)'}`, 'Filter');
+  }
+  function setFromLogged(v) { logFilter('Date From', from, v); setFrom(v); }
+  function setToLogged(v) { logFilter('Date Until', to, v); setTo(v); }
+  function setBrandLogged(v) { logFilter('Brand', brand, v); setBrand(v); }
+  function setInvFilterLogged(v) { logFilter('Status Invoice', invFilter, v); setInvFilter(v); }
+  function resetFilters() {
+    if (from || to || brand || invFilter) {
+      recordActivity('filter Finance Audit: reset', `Date From ${from || '-'}, Date Until ${to || '-'}, Brand ${brand || '-'}, Status ${invFilter || '-'}`, 'Filter');
+    }
+    setFrom('');
+    setTo('');
+    setBrand('');
+    setInvFilter('');
+  }
+
   const filterCls =
     'mt-1 block text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
 
@@ -697,30 +716,28 @@ export default function FinanceAuditPage() {
             </p>
           </div>
           <button
-            onClick={() => {
-              setFrom('');
-              setTo('');
-              setBrand('');
-              setBillStatus('');
-              setInvFilter('');
-            }}
+            onClick={resetFilters}
             className="text-[13px] font-bold text-slate-500 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2 rounded-xl transition"
           >
             Reset Filter
           </button>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <div>
+          <div className="w-[230px]">
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Date From</label>
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={filterCls} />
+            <div className="mt-1">
+              <DatePickerInput id="fin-from" value={from} onChange={setFromLogged} placeholder="Semua tanggal" />
+            </div>
           </div>
-          <div>
+          <div className="w-[230px]">
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Date Until</label>
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={filterCls} />
+            <div className="mt-1">
+              <DatePickerInput id="fin-to" value={to} onChange={setToLogged} placeholder="Semua tanggal" />
+            </div>
           </div>
           <div>
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Brand</label>
-            <select value={brand} onChange={(e) => setBrand(e.target.value)} className={`${filterCls} min-w-[200px]`}>
+            <select value={brand} onChange={(e) => setBrandLogged(e.target.value)} className={`${filterCls} min-w-[200px] mt-1`}>
               <option value="">Semua Brand</option>
               {brands.map((b) => (
                 <option key={b} value={b}>{b}</option>
@@ -728,16 +745,8 @@ export default function FinanceAuditPage() {
             </select>
           </div>
           <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Billing Status</label>
-            <select value={billStatus} onChange={(e) => setBillStatus(e.target.value)} className={`${filterCls} min-w-[150px]`}>
-              <option value="">ON-CALL + MONTHLY</option>
-              <option value="ON-CALL">ON-CALL</option>
-              <option value="MONTHLY">MONTHLY</option>
-            </select>
-          </div>
-          <div>
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status Invoice</label>
-            <select value={invFilter} onChange={(e) => setInvFilter(e.target.value)} className={`${filterCls} min-w-[180px]`}>
+            <select value={invFilter} onChange={(e) => setInvFilterLogged(e.target.value)} className={`${filterCls} min-w-[180px] mt-1`}>
               <option value="">Semua</option>
               {invoiceActions.map((a) => (
                 <option key={a} value={a}>{a}</option>
