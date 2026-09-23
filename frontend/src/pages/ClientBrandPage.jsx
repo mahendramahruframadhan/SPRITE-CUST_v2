@@ -45,7 +45,7 @@ function initials(name) {
 
 export default function ClientBrandPage() {
   const { notify } = useToast();
-  const { statuses, stats, addStatus, removeStatus, seedExamples } = useClientBrands();
+  const { statuses, stats, addStatus, removeStatus, seedExamples, ready } = useClientBrands();
   const [brand, setBrand] = useState('');
   const [type, setType] = useState('GRATIS');
   const [expiredAt, setExpiredAt] = useState('');
@@ -102,7 +102,7 @@ export default function ClientBrandPage() {
             notify(`${item.brand} dihapus dari Monthly.`, 'info');
           }}
           aria-label={`Hapus ${item.brand} dari Monthly`}
-          className="shrink-0 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-2.5 py-1.5 rounded-lg transition"
+          className="shrink-0 inline-flex items-center min-h-[44px] text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-2.5 py-1.5 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
         >
           Hapus
         </button>
@@ -143,7 +143,7 @@ export default function ClientBrandPage() {
             notify(`${item.brand} dihapus dari Free Maintenance.`, 'info');
           }}
           aria-label={`Hapus ${item.brand} dari Free Maintenance`}
-          className="shrink-0 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-2.5 py-1.5 rounded-lg transition"
+          className="shrink-0 inline-flex items-center min-h-[44px] text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-2.5 py-1.5 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
         >
           Hapus
         </button>
@@ -153,25 +153,30 @@ export default function ClientBrandPage() {
 
   return (
     <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-4">
+      {!ready && (
+        <div aria-busy="true" aria-label="Memuat data brand" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 text-center">
+          <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 animate-pulse">Memuat data brand...</p>
+        </div>
+      )}
       {/* Hero identitas brand: gradien indigo ke ungu (R-01, alasan = brand Revota) */}
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#4a4fe9] to-[#7c3aed] p-5 sm:p-6 text-white animate-fade-in-fast">
         <div className="relative flex flex-wrap items-end gap-4">
           <div className="min-w-0 flex-1 basis-56">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">Kontrak brand</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white">Kontrak brand</p>
             <h3 className="mt-1 text-lg sm:text-xl font-bold leading-tight">Monthly vs Free Maintenance</h3>
-            <p className="mt-1 text-xs text-white/75">Satu tempat untuk info finance: siapa monthly, siapa gratis sampai kapan.</p>
+            <p className="mt-1 text-xs text-white/90">Satu tempat untuk info finance: siapa monthly, siapa gratis sampai kapan.</p>
           </div>
           <dl className="flex gap-2 sm:gap-3">
-            <div className="rounded-xl bg-white/15 backdrop-blur px-4 py-2.5 text-center">
-              <dt className="text-[10px] font-bold uppercase tracking-wider text-white/70">Monthly</dt>
+            <div className="rounded-xl bg-white/15 px-4 py-2.5 text-center">
+              <dt className="text-[10px] font-bold uppercase tracking-wider text-white">Monthly</dt>
               <dd className="text-xl font-bold">{stats.monthly}</dd>
             </div>
-            <div className="rounded-xl bg-white/15 backdrop-blur px-4 py-2.5 text-center">
-              <dt className="text-[10px] font-bold uppercase tracking-wider text-white/70">Free aktif</dt>
+            <div className="rounded-xl bg-white/15 px-4 py-2.5 text-center">
+              <dt className="text-[10px] font-bold uppercase tracking-wider text-white">Free aktif</dt>
               <dd className="text-xl font-bold">{stats.gratis}</dd>
             </div>
-            <div className="hidden sm:block rounded-xl bg-white/15 backdrop-blur px-4 py-2.5 text-center">
-              <dt className="text-[10px] font-bold uppercase tracking-wider text-white/70">Perhatian</dt>
+            <div className="hidden sm:block rounded-xl bg-white/15 px-4 py-2.5 text-center">
+              <dt className="text-[10px] font-bold uppercase tracking-wider text-white">Perhatian</dt>
               <dd className="text-xl font-bold">{soonCount + expiredCount}</dd>
             </div>
           </dl>
@@ -204,7 +209,7 @@ export default function ClientBrandPage() {
                 type="button"
                 onClick={() => setType(t.id)}
                 aria-pressed={type === t.id}
-                className={`text-xs font-semibold px-4 py-2.5 rounded-xl border transition ${
+                className={`text-xs font-semibold px-4 py-2.5 min-h-[44px] rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${
                   type === t.id
                     ? 'bg-brand-600 text-white border-brand-600 shadow-md shadow-brand-600/25'
                     : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-500/40'
@@ -225,7 +230,7 @@ export default function ClientBrandPage() {
         )}
         <button
           type="submit"
-          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl shadow-md shadow-brand-600/25 transition"
+          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-6 py-2.5 min-h-[44px] rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
         >
           Tambah
         </button>
@@ -245,7 +250,7 @@ export default function ClientBrandPage() {
             seedExamples();
             notify('Contoh data finance dimasukkan (tanpa duplikat).', 'success');
           }}
-          className="sm:ml-auto text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-2 rounded-lg transition"
+          className="sm:ml-auto min-h-[44px] inline-flex items-center text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-2 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
         >
           Isi contoh finance
         </button>
