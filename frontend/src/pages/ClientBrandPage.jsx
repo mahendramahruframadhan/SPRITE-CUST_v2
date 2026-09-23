@@ -14,13 +14,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useClientBrands } from '../hooks/useClientBrands.js';
 import { daysLeft, expiryState, fmtDateID } from '../utils/contract.js';
+import DatePickerInput from '../components/DatePickerInput.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const INPUT_CLS =
   'w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition';
-
-// Input kalender: skema gelap agar popup mengikuti tema + indikator bisa diklik.
-const DATE_CLS = `${INPUT_CLS} dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100`;
 
 const TABS = [
   { id: 'MONTHLY', label: 'Monthly' },
@@ -311,11 +309,13 @@ export default function ClientBrandPage() {
           </div>
         </div>
         {type === 'GRATIS' && (
-          <div className="md:w-52">
+          <div className="md:w-72">
             <label htmlFor="cb-exp" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Expired <span className="text-rose-500">*</span>
             </label>
-            <input id="cb-exp" type="date" value={expiredAt} onChange={(e) => setExpiredAt(e.target.value)} className={`${DATE_CLS} mt-1.5`} />
+            <div className="mt-1.5">
+              <DatePickerInput id="cb-exp" value={expiredAt} onChange={setExpiredAt} />
+            </div>
           </div>
         )}
         <button
@@ -467,13 +467,9 @@ export default function ClientBrandPage() {
                     <label htmlFor="dm-exp" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Expired sampai <span className="text-rose-500">*</span>
                     </label>
-                    <input
-                      id="dm-exp"
-                      type="date"
-                      value={editDate}
-                      onChange={(e) => setEditDate(e.target.value)}
-                      className={`${DATE_CLS} mt-1.5`}
-                    />
+                    <div className="mt-1.5">
+                      <DatePickerInput id="dm-exp" value={editDate} onChange={setEditDate} />
+                    </div>
                     <p className="mt-1.5 text-[11px] text-slate-400">Tanggal terakhir kontrak gratis berlaku.</p>
                   </div>
                 )}

@@ -2,7 +2,7 @@
 // Jalankan: npm test
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { daysLeft, expiryState, isDupe, normalizeBrand, sortFreeByExpiry, fmtDateID } from '../src/utils/contract.js';
+import { daysLeft, expiryState, isDupe, normalizeBrand, sortFreeByExpiry, fmtDateID, fmtDateLong, parseDateInput } from '../src/utils/contract.js';
 
 const iso = (d) => d.toISOString().slice(0, 10);
 const today = new Date();
@@ -56,5 +56,17 @@ describe('contract utils', () => {
     assert.equal(fmtDateID(''), '-');
     assert.equal(fmtDateID(null), '-');
     assert.equal(fmtDateID('bukan-tanggal'), 'bukan-tanggal');
+  });
+
+  it('parseDateInput: ISO, dd-mm-yyyy, dan "6 Okt 2026"', () => {
+    assert.equal(parseDateInput('2026-10-06'), '2026-10-06');
+    assert.equal(parseDateInput('06/10/2026'), '2026-10-06');
+    assert.equal(parseDateInput('6-10-2026'), '2026-10-06');
+    assert.equal(parseDateInput('6 Okt 2026'), '2026-10-06');
+    assert.equal(parseDateInput('6 Oktober 2026'), '2026-10-06');
+    assert.equal(parseDateInput('31 Feb 2026'), null);
+    assert.equal(parseDateInput('halo'), null);
+    assert.equal(parseDateInput(''), null);
+    assert.equal(fmtDateLong('2026-10-06').includes('Oktober'), true);
   });
 });

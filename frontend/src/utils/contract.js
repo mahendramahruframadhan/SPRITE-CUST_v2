@@ -45,3 +45,46 @@ export function fmtDateID(s) {
   if (Number.isNaN(d.getTime())) return s;
   return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+// Tampilan panjang untuk input kalender: "6 Oktober 2026".
+export function fmtDateLong(s) {
+  if (!s) return '';
+  const d = new Date(`${s}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+const MONTH_ID = {
+  januari: '01', februari: '02', maret: '03', april: '04', mei: '05', juni: '06',
+  juli: '07', agustus: '08', september: '09', oktober: '10', november: '11', desember: '12',
+  jan: '01', feb: '02', mar: '03', apr: '04', jun: '06', jul: '07', agu: '08', agust: '08',
+  sep: '09', sept: '09', okt: '10', nov: '11', des: '12',
+};
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function toISO(y, m, d) {
+  const dt = new Date(y, m - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+  return `${y}-${pad2(m)}-${pad2(d)}`;
+}
+
+// Parse input ketikan menjadi yyyy-MM-dd. Menerima ISO, dd/mm/yyyy (dan
+// varian - .), serta "6 Okt 2026" / "6 Oktober 2026". Kembalikan null bila
+// tidak valid — anti format ambigu (ux: locale-aware dates).
+export function parseDateInput(v) {
+  const s = String(v ?? '').trim();
+  if (!s) return null;
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return toISO(+m[1], +m[2], +m[3]);
+  m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+  if (m) return toISO(+m[3], +m[2], +m[1]);
+  m = s.toLowerCase().match(/^(\d{1,2})\s+([a-z]+)\s+(\d{4})$/);
+  if (m) {
+    const mo = MONTH_ID[m[2]];
+    if (mo) return toISO(+m[3], +mo, +m[1]);
+  }
+  return null;
+}
