@@ -11,7 +11,7 @@ const cleanKey = (k: any) => String(k || 'sheetConfig').replace(/[^a-zA-Z0-9_]/g
 // Disimpan di app_config agar disharing semua browser (localStorage hanya cache).
 const DEFAULT_STATUS_OPTIONS: Record<string, string[]> = {
   auditActions: ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'],
-  invoiceActions: ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'PAID'],
+  invoiceActions: ['MENUNGGU INVOICE', 'UNPAID', 'PAID'],
 };
 
 const cleanStatusList = (arr: any, fallback: string[]) => {

@@ -101,6 +101,10 @@ export const invoiceStatus = pgTable('invoice_status', {
   status: text('status').notNull().default('MENUNGGU INVOICE'),
   updatedBy: text('updated_by'),
   updatedAt: text('updated_at'),
+  // Bukti pembayaran saat status menjadi PAID (diisi via PATCH invoice).
+  paymentNote: text('payment_note'),
+  paidAt: text('paid_at'),
+  paidBy: text('paid_by'),
 });
 
 export const syncLogs = pgTable('sync_logs', {

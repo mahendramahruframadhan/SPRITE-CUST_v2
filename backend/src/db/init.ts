@@ -35,7 +35,7 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS account (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, provider_id TEXT NOT NULL, user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE, access_token TEXT, refresh_token TEXT, id_token TEXT, access_token_expires_at TIMESTAMP, refresh_token_expires_at TIMESTAMP, scope TEXT, password TEXT, created_at TIMESTAMP, updated_at TIMESTAMP);
     CREATE TABLE IF NOT EXISTS verification (id TEXT PRIMARY KEY, identifier TEXT NOT NULL, value TEXT NOT NULL, expires_at TIMESTAMP NOT NULL, created_at TIMESTAMP, updated_at TIMESTAMP);
     CREATE TABLE IF NOT EXISTS audit_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, action TEXT NOT NULL DEFAULT 'BELUM DIVALIDASI', updated_by TEXT, updated_at TEXT);
-    CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'MENUNGGU INVOICE', updated_by TEXT, updated_at TEXT);
+    CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'MENUNGGU INVOICE', updated_by TEXT, updated_at TEXT, payment_note TEXT, paid_at TEXT, paid_by TEXT);
     CREATE TABLE IF NOT EXISTS sync_logs (id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL, rows_processed INTEGER DEFAULT 0, error_message TEXT, source TEXT DEFAULT 'sheets');
     CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT);
     ALTER TABLE "user" ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'Viewer';
@@ -180,6 +180,28 @@ export async function initDb() {
         await q(`ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS ${col}`);
       } catch {}
     }
+    // Kolom bukti pembayaran invoice_status untuk DB lama
+    for (const col of ['payment_note TEXT', 'paid_at TEXT', 'paid_by TEXT']) {
+      try {
+        await q(`ALTER TABLE invoice_status ADD COLUMN IF NOT EXISTS ${col}`);
+      } catch {}
+    }
+    // Migrasi kosakata: INVOICE TERBIT → UNPAID (data + master), no-op bila bersih.
+    try {
+      await q(`UPDATE invoice_status SET status='UNPAID', updated_at='${new Date().toISOString()}' WHERE status='INVOICE TERBIT'`);
+    } catch {}
+    try {
+      const cfg: any = await q(`SELECT value FROM app_config WHERE key='invoiceActions'`);
+      const raw = cfg[0]?.value;
+      if (raw && String(raw).includes('INVOICE TERBIT')) {
+        const arr = JSON.parse(String(raw));
+        if (Array.isArray(arr)) {
+          const mapped = [...new Set(arr.map((s: string) => (String(s).toUpperCase() === 'INVOICE TERBIT' ? 'UNPAID' : s)))];
+          await q(`UPDATE app_config SET value='${JSON.stringify(mapped).replace(/'/g, "''")}', updated_at='${new Date().toISOString()}' WHERE key='invoiceActions'`);
+          console.log('[db] migrated invoiceActions TERBIT → UNPAID');
+        }
+      }
+    } catch {}
     // Seed matriks penuh DULU bila kosong — harus sebelum backfill logs/settings
     // di bawah (yang memakai DO NOTHING), kalau tidak count>0 dan matriks
     // 11 modul tidak pernah ter-seed pada DB baru.
@@ -226,7 +248,7 @@ export async function initDb() {
       const now = new Date().toISOString();
       const statusSeeds: Record<string, string[]> = {
         auditActions: ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'],
-        invoiceActions: ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'PAID'],
+        invoiceActions: ['MENUNGGU INVOICE', 'UNPAID', 'PAID'],
       };
       for (const [k, arr] of Object.entries(statusSeeds)) {
         const val = JSON.stringify(arr).replace(/'/g, "''");
