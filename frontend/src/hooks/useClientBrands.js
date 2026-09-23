@@ -25,6 +25,21 @@ function loadLS(key, fallback) {
 
 export const STATUS_TYPES = ['MONTHLY', 'BARU', 'GRATIS'];
 
+// Contoh bawaan persis format tim finance (dipakai tombol "Isi contoh finance").
+export const SEED_MONTHLY = ['Chambers', 'Inspired', 'SCH', 'Skaters', 'Tendencies', 'Screamous'];
+
+export const SEED_FREE = [
+  { brand: 'Flora Dera', expiredAt: '2026-10-06' },
+  { brand: 'Nusantara Batavia Internasional (NBI)', expiredAt: '2026-10-10' },
+  { brand: 'AWW Fashion Kauman (SR)', expiredAt: '2026-12-19' },
+  { brand: 'House Of Shopaholic (Solo)', expiredAt: '2027-01-13' },
+  { brand: 'Helter', expiredAt: '2027-01-27' },
+  { brand: 'Wispie Indonesia Maju', expiredAt: '2027-04-06' },
+  { brand: 'Own Store', expiredAt: '2027-04-24' },
+  { brand: 'Betterhalf', expiredAt: '2027-05-26' },
+  { brand: 'Smith (Modul Produksi)', expiredAt: '2027-06-15' },
+];
+
 export function daysLeft(expiredAt) {
   if (!expiredAt) return null;
   const end = new Date(`${expiredAt}T23:59:59`);
@@ -113,6 +128,25 @@ export function useClientBrands() {
     setStatuses((prev) => prev.filter((s) => s.id !== id));
   }
 
+  // Isi contoh finance tanpa menduplikasi brand yang sudah ada (per tipe).
+  function seedExamples() {
+    setStatuses((prev) => {
+      const have = new Set(prev.map((s) => `${s.type}::${String(s.brand).trim().toLowerCase()}`));
+      const out = [...prev];
+      SEED_MONTHLY.forEach((brand) => {
+        if (!have.has(`MONTHLY::${brand.toLowerCase()}`)) {
+          out.unshift({ id: uid(), brand, type: 'MONTHLY', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+        }
+      });
+      SEED_FREE.forEach(({ brand, expiredAt }) => {
+        if (!have.has(`GRATIS::${brand.toLowerCase()}`)) {
+          out.unshift({ id: uid(), brand, type: 'GRATIS', expiredAt, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+        }
+      });
+      return out;
+    });
+  }
+
   return {
     ready,
     clients,
@@ -123,5 +157,6 @@ export function useClientBrands() {
     addStatus,
     updateStatus,
     removeStatus,
+    seedExamples,
   };
 }
