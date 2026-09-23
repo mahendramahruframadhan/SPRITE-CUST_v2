@@ -156,7 +156,7 @@ export default function SettingsPage() {
   const [pwMsg, setPwMsg] = useState(null);
   // Master status (disharing via backend) — hanya Status Validasi; master
   // status invoice sengaja dihapus karena status invoice kini dikunci alur
-  // (MENUNGGU → UNPAID → PAID) dan tidak boleh dikonfigurasi user.
+  // (MENUNGGU → TERBIT → DIKIRIM → PAID) dan tidak boleh dikonfigurasi user.
   const [masters, setMasters] = useState({ auditActions: [] });
   const [mastersLoading, setMastersLoading] = useState(true);
   const [newAudit, setNewAudit] = useState('');
@@ -576,7 +576,7 @@ export default function SettingsPage() {
 
           {safeTab === 'master' && (
             <div className="max-w-3xl bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-              <SectionHead icon="billing" title="Master Status Validasi" desc="Status Billing & Audit yang bisa dikonfigurasi. Status invoice (MENUNGGU / UNPAID / PAID) dikunci alur dan tidak bisa diubah di sini." />
+              <SectionHead icon="billing" title="Master Status Validasi" desc="Status Billing & Audit yang bisa dikonfigurasi. Status invoice (MENUNGGU / TERBIT / DIKIRIM / PAID) dikunci alur dan tidak bisa diubah di sini." />
               {!canEditMaster && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400">
                   Role Anda tidak memiliki akses Billing — daftar hanya bisa dilihat, hubungi admin untuk mengubah.

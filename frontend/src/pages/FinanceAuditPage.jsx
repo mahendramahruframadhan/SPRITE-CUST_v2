@@ -56,14 +56,15 @@ const PDF_STATUS_LABEL = { uploading: 'mengupload…', failed: 'gagal', complete
 const INV_ERR_MSG = {
   INVOICE_AUTO_LOCKED: 'Status ini diatur otomatis oleh sistem (upload/hapus PDF).',
   INVOICE_NEED_PDF: 'Belum bisa PAID — upload minimal 1 PDF invoice dulu.',
-  NOT_UNPAID_YET: 'Belum bisa PAID — status harus UNPAID dulu (upload PDF invoice).',
+  NOT_TERBIT_YET: 'Belum bisa ditandai dikirim — upload PDF invoice dulu.',
+  NOT_DIKIRIM_YET: 'Belum bisa PAID — tandai invoice sudah dikirim (DIKIRIM) dulu.',
   PAYMENT_NOTE_REQUIRED: 'Keterangan pembayaran wajib diisi untuk menandai PAID.',
 };
 const invErrMsg = (err, fallback) => INV_ERR_MSG[err?.code] || err?.data?.message || err?.message || fallback;
 
 // Sel upload PDF invoice per baris: pilih -> PUT R2 (progress) -> confirm ->
 // daftar file (unduh/hapus). Aturan kunci: status MENUNGGU INVOICE selalu boleh
-// upload (upload sukses otomatis menaikkan ke UNPAID via backend);
+// upload (upload sukses otomatis menaikkan ke INVOICE TERBIT via backend);
 // di luar itu, 1 kasus = 1 PDF aktif (upload dibuka lagi setelah PDF dihapus).
 // Tombol Unduh/Hapus digate kondisi true/false:
 // aktif hanya bila file berstatus 'completed', selain itu disabled + tooltip.
@@ -104,7 +105,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
     e.target.value = '';
     if (!f || busy) return;
     // Pengaman ganda: input sudah disabled, tapi cegah juga secara logika.
-    // MENUNGGU INVOICE selalu boleh upload agar status bisa naik ke UNPAID;
+    // MENUNGGU INVOICE selalu boleh upload agar status bisa naik ke TERBIT;
     // status lain mengikuti gate server (1 PDF aktif per kasus).
     const isMenunggu = (invoiceStatus || 'MENUNGGU INVOICE') === 'MENUNGGU INVOICE';
     const allowed = isMenunggu || (gate ? gate.canUpload : !files.some((x) => isPdfReady(x.status)));
@@ -132,7 +133,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
       await putXhr(u.url, f, setPct);
       const done = await confirmPdfUpload({ id: u.id });
       notify(`PDF terupload: "${f.name}" (${fmtKB(f.size)}).`, 'success');
-      // Sinkron status invoice otomatis dari backend (UNPAID, kecuali sudah PAID)
+      // Sinkron status invoice otomatis dari backend (TERBIT, kecuali DIKIRIM/PAID)
       if (done?.invoiceStatus) onStatusChange?.(recordUuid, done.invoiceStatus);
       reload();
     } catch (err) {
@@ -250,7 +251,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
     }
   };
 
-  // Upload dibuka bila status MENUNGGU (agar bisa naik ke UNPAID) atau belum
+  // Upload dibuka bila status MENUNGGU (agar bisa naik ke TERBIT) atau belum
   // ada file completed (aturan: 1 kasus = 1 PDF aktif).
   // Tombol aktif kembali otomatis setelah PDF dihapus (gate.canUpload dari server).
   const isMenunggu = (invoiceStatus || 'MENUNGGU INVOICE') === 'MENUNGGU INVOICE';
@@ -424,7 +425,8 @@ const BILL_BADGE = {
 // Warna select status invoice (status kustom → netral)
 const INV_TONE = {
   'MENUNGGU INVOICE': 'border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400',
-  UNPAID: 'border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:border-sky-500/30 dark:text-sky-400',
+  'INVOICE TERBIT': 'border-violet-200 bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:border-violet-500/30 dark:text-violet-400',
+  DIKIRIM: 'border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:border-sky-500/30 dark:text-sky-400',
   PAID: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400',
 };
 
@@ -494,7 +496,8 @@ export default function FinanceAuditPage() {
       total: validatedPool.length,
       totalAmount: validatedPool.reduce((a, c) => a + (+c.charges || 0), 0),
       menunggu: byStatus('MENUNGGU INVOICE').length,
-      unpaid: byStatus('UNPAID').length,
+      terbit: byStatus('INVOICE TERBIT').length,
+      dikirim: byStatus('DIKIRIM').length,
       paid: byStatus('PAID').length,
       outstandingCount: outstanding.length,
       outstandingAmount: outstanding.reduce((a, c) => a + (+c.charges || 0), 0),
@@ -504,7 +507,8 @@ export default function FinanceAuditPage() {
   const kpi = [
     { t: 'Siap Invoice', v: stats.total.toLocaleString('id-ID'), sub: fmtMoney(stats.totalAmount) + ' tervalidasi', color: 'text-brand-600', darkColor: 'dark:text-brand-300', accent: 'from-brand-500 to-brand-300' },
     { t: 'Menunggu Invoice', v: stats.menunggu.toLocaleString('id-ID'), sub: 'kasus', color: 'text-amber-600', darkColor: 'dark:text-amber-400', accent: 'from-amber-500 to-amber-300' },
-    { t: 'Invoice Unpaid', v: stats.unpaid.toLocaleString('id-ID'), sub: 'kasus', color: 'text-sky-600', darkColor: 'dark:text-sky-400', accent: 'from-sky-500 to-sky-300' },
+    { t: 'Invoice Terbit', v: stats.terbit.toLocaleString('id-ID'), sub: 'kasus', color: 'text-violet-600', darkColor: 'dark:text-violet-400', accent: 'from-violet-500 to-violet-300' },
+    { t: 'Dikirim', v: stats.dikirim.toLocaleString('id-ID'), sub: 'menunggu pembayaran', color: 'text-sky-600', darkColor: 'dark:text-sky-400', accent: 'from-sky-500 to-sky-300' },
     { t: 'Paid', v: stats.paid.toLocaleString('id-ID'), sub: `dari ${stats.total} kasus tervalidasi`, color: 'text-emerald-600', darkColor: 'dark:text-emerald-400', accent: 'from-emerald-500 to-emerald-300' },
     { t: 'Total Outstanding', v: fmtMoney(stats.outstandingAmount), sub: `${stats.outstandingCount} kasus belum PAID`, color: 'text-rose-600', darkColor: 'dark:text-rose-400', accent: 'from-rose-500 to-rose-300', size: 'text-[19px]' },
   ];
@@ -533,12 +537,26 @@ export default function FinanceAuditPage() {
   function openPaidModal(uuid) {
     const c = allCases.find((x) => x.recordUuid === uuid);
     const cur = invoiceStatus[uuid] || defaultInvoiceStatus;
-    if (cur !== 'UNPAID') {
-      notify('Belum bisa PAID — status harus UNPAID dulu (upload PDF invoice).', 'err');
+    if (cur !== 'DIKIRIM') {
+      notify('Belum bisa PAID — tandai invoice sudah dikirim (DIKIRIM) dulu.', 'err');
       return;
     }
     setPaidTarget({ uuid, label: c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`, amount: c ? +c.charges || 0 : 0 });
     setPayNote('');
+  }
+
+  // Alur: klik badge INVOICE TERBIT → tandai sudah dikirim (DIKIRIM = menunggu pembayaran).
+  async function markDikirim(uuid) {
+    const c = allCases.find((x) => x.recordUuid === uuid);
+    const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
+    try {
+      await patchInvoice(uuid, 'DIKIRIM');
+      syncInvoiceStatus(uuid, 'DIKIRIM');
+      notify(`Invoice ${label} ditandai sudah dikirim — menunggu pembayaran.`, 'success');
+      recordActivity(`menandai invoice dikirim ${label}`, 'menunggu pembayaran', 'Invoice');
+    } catch (err) {
+      notify(invErrMsg(err, 'Gagal menandai dikirim.'), 'err');
+    }
   }
 
   async function confirmPaid() {
@@ -643,13 +661,15 @@ export default function FinanceAuditPage() {
         <Arrow />
         <FlowPill tone="bg-amber-50 text-amber-700 border-amber-200">Menunggu Invoice</FlowPill>
         <Arrow />
-        <FlowPill tone="bg-sky-50 text-sky-700 border-sky-200">Unpaid</FlowPill>
+        <FlowPill tone="bg-violet-50 text-violet-700 border-violet-200">Invoice Terbit</FlowPill>
+        <Arrow />
+        <FlowPill tone="bg-sky-50 text-sky-700 border-sky-200">Dikirim</FlowPill>
         <Arrow />
         <FlowPill tone="bg-emerald-50 text-emerald-700 border-emerald-200">Paid</FlowPill>
       </div>
 
       {/* KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
         {kpi.map((d, i) => (
           <div key={d.t} className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast">
             <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${d.accent}`} />
@@ -806,25 +826,40 @@ export default function FinanceAuditPage() {
                     {(() => {
                       const cur = invoiceStatus[c.recordUuid] || defaultInvoiceStatus;
                       const pn = payNotes[c.recordUuid];
+                      const tone = INV_TONE[cur] || 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800';
                       return (
                         <div className="w-[180px]">
-                          <span
-                            title={`Status invoice diatur otomatis oleh alur (upload/hapus PDF) — PAID lewat tombol Tandai Paid`}
-                            className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 ${INV_TONE[cur] || 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800'}`}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            {cur}
-                          </span>
-                          {cur === 'UNPAID' && (
+                          {cur === 'INVOICE TERBIT' ? (
                             <button
-                              onClick={() => openPaidModal(c.recordUuid)}
-                              className="mt-1.5 w-full inline-flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg px-2 py-2 shadow-sm shadow-emerald-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                              onClick={() => markDikirim(c.recordUuid)}
+                              title="Klik untuk tandai sudah dikirim ke client"
+                              className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 transition hover:shadow-sm hover:brightness-95 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 ${tone}`}
                             >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              {cur}
+                              <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                               </svg>
-                              Tandai Paid
                             </button>
+                          ) : (
+                            <span title="Status invoice diatur otomatis oleh alur (upload/hapus PDF)" className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 ${tone}`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              {cur}
+                            </span>
+                          )}
+                          {cur === 'DIKIRIM' && (
+                            <>
+                              <p className="mt-1 text-[10px] font-semibold text-slate-400">Menunggu pembayaran…</p>
+                              <button
+                                onClick={() => openPaidModal(c.recordUuid)}
+                                className="mt-1 w-full inline-flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg px-2 py-2 shadow-sm shadow-emerald-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                                Tandai Paid
+                              </button>
+                            </>
                           )}
                           {cur === 'PAID' && pn?.note && (
                             <p className="mt-1.5 text-[11px] leading-snug text-slate-500 dark:text-slate-400" title={`${pn.note}${pn.paidAt ? ` • ${pn.paidAt.slice(0, 10)}` : ''}${pn.paidBy ? ` • ${pn.paidBy}` : ''}`}>
