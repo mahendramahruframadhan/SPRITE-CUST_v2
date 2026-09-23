@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions, menuPerm } from '../hooks/usePermissions.js';
 import { MODULES } from '../config/modules.js';
@@ -12,6 +13,23 @@ export default function AppLayout() {
   const { user, logout } = useAuth();
   const { can } = usePermissions();
   const location = useLocation();
+  // Sidebar off-canvas di layar kecil (R-03): hamburger membuka, overlay /
+  // Escape / klik menu menutup. Desktop (lg+) selalu terlihat seperti semula.
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    function onKey(e) {
+      if (e.key === 'Escape') setNavOpen(false);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [navOpen]);
+
+  // Ganti halaman (termasuk dari dalam) selalu menutup drawer mobile.
+  useEffect(() => {
+    setNavOpen(false);
+  }, [location.pathname]);
 
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
 
@@ -41,8 +59,20 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen">
+      {/* Overlay drawer mobile */}
+      {navOpen && (
+        <button
+          type="button"
+          onClick={() => setNavOpen(false)}
+          aria-label="Tutup navigasi"
+          className="fixed inset-0 z-30 bg-slate-900/50 lg:hidden cursor-default"
+        />
+      )}
       {/* Sidebar */}
-      <aside className="w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed inset-y-0 z-40">
+      <aside
+        id="app-sidebar"
+        className={`w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-200 motion-reduce:transition-none ${navOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      >
         <div className="px-5 py-5 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800">
           <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
             <Icon name="logo" className="w-5 h-5" strokeWidth={2} />
@@ -109,11 +139,23 @@ export default function AppLayout() {
       </aside>
 
       {/* Main */}
-      <main className="ml-64 flex flex-col min-h-screen">
-        <header className="shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 px-4 md:px-5 py-3.5 flex items-center gap-4 z-30 sticky top-0">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{current?.title || 'Dashboard'}</h2>
-            <p className="text-xs text-slate-400">{current?.sub || '—'}</p>
+      <main className="lg:ml-64 flex flex-col min-h-screen">
+        <header className="shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 px-4 md:px-5 py-3.5 flex items-center gap-3 z-30 sticky top-0">
+          <button
+            type="button"
+            onClick={() => setNavOpen((o) => !o)}
+            aria-expanded={navOpen}
+            aria-controls="app-sidebar"
+            aria-label="Buka navigasi"
+            className="lg:hidden w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">{current?.title || 'Dashboard'}</h2>
+            <p className="text-xs text-slate-400 truncate">{current?.sub || '—'}</p>
           </div>
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">

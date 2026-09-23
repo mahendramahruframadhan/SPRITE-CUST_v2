@@ -118,7 +118,7 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
       </div>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-30 w-[300px] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-3 animate-fade-in-fast">
+        <div className="absolute left-0 top-full mt-2 z-30 w-[300px] max-w-[calc(100vw-3rem)] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-3 animate-fade-in-fast">
           <div className="flex items-center justify-between mb-2">
             <button
               type="button"
