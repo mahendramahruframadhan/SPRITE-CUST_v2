@@ -448,6 +448,8 @@ export default function FinanceAuditPage() {
   const [paidTarget, setPaidTarget] = useState(null);
   const [payNote, setPayNote] = useState('');
   const [payBusy, setPayBusy] = useState(false);
+  // Konfirmasi undo PAID (revisi): klik badge PAID membuka konfirmasi inline.
+  const [undoPaidFor, setUndoPaidFor] = useState(null);
 
   // Pastikan kasus tervalidasi punya status invoice default
   useEffect(() => {
@@ -555,6 +557,21 @@ export default function FinanceAuditPage() {
       recordActivity(`menandai invoice dikirim ${label}`, 'menunggu pembayaran', 'Invoice');
     } catch (err) {
       notify(invErrMsg(err, 'Gagal menandai dikirim.'), 'err');
+    }
+  }
+
+  // Mundur satu langkah (revisi): DIKIRIM → INVOICE TERBIT, PAID → DIKIRIM.
+  // Backend mengunci urutan, jadi undo selalu hanya satu tingkat.
+  async function undoStatus(uuid, to, fromLabel) {
+    const c = allCases.find((x) => x.recordUuid === uuid);
+    const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
+    try {
+      await patchInvoice(uuid, to);
+      syncInvoiceStatus(uuid, to);
+      notify(`Status invoice ${label} dikembalikan ke ${to} (revisi).`, 'info');
+      recordActivity(`mengurungkan status invoice ${label}`, `${fromLabel} → ${to} (revisi)`, 'Invoice');
+    } catch (err) {
+      notify(invErrMsg(err, 'Gagal mengurungkan status.'), 'err');
     }
   }
 
@@ -850,6 +867,50 @@ export default function FinanceAuditPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                               </svg>
                             </button>
+                          ) : cur === 'DIKIRIM' ? (
+                            <button
+                              onClick={() => undoStatus(c.recordUuid, 'INVOICE TERBIT', 'DIKIRIM')}
+                              title="Klik untuk urungkan pengiriman (kembali ke INVOICE TERBIT)"
+                              className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 transition hover:shadow-sm hover:brightness-95 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 ${tone}`}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              {cur}
+                              <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                              </svg>
+                            </button>
+                          ) : cur === 'PAID' ? (
+                            undoPaidFor === c.recordUuid ? (
+                              <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5 p-2">
+                                <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-300">Urungkan PAID? Status kembali ke DIKIRIM (revisi).</p>
+                                <div className="mt-1.5 flex gap-1.5">
+                                  <button
+                                    onClick={() => { const u = c.recordUuid; setUndoPaidFor(null); undoStatus(u, 'DIKIRIM', 'PAID'); }}
+                                    className="flex-1 min-h-[32px] text-[10px] font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+                                  >
+                                    Ya, urungkan
+                                  </button>
+                                  <button
+                                    onClick={() => setUndoPaidFor(null)}
+                                    className="flex-1 min-h-[32px] text-[10px] font-bold text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                                  >
+                                    Batal
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setUndoPaidFor(c.recordUuid)}
+                                title="Klik untuk urungkan PAID (kembali ke DIKIRIM, revisi)"
+                                className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 transition hover:shadow-sm hover:brightness-95 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 ${tone}`}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                {cur}
+                                <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                                </svg>
+                              </button>
+                            )
                           ) : (
                             <span title="Status invoice diatur otomatis oleh alur (upload/hapus PDF)" className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 ${tone}`}>
                               <span className="w-1.5 h-1.5 rounded-full bg-current" />

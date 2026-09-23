@@ -54,24 +54,36 @@ export class BillingController {
     const status = String(body.status || '').trim();
     if (!status) throw new HttpException({ code: 'VALIDATION_ERROR', message: 'Status tidak boleh kosong.' }, HttpStatus.BAD_REQUEST);
     const canon = status.toUpperCase();
-    // Kunci total: MENUNGGU & TERBIT murni otomatis (upload/hapus PDF) — manual ditolak.
-    // Status manual yang diizinkan alur:
-    //   DIKIRIM  — dari INVOICE TERBIT (invoice diterbitkan lalu ditandai sudah dikirim)
-    //   PAID     — dari DIKIRIM, wajib ≥1 PDF completed + paymentNote (bukti pembayaran)
+    // Kunci total: MENUNGGU murni otomatis (upload/hapus PDF) — manual ditolak.
+    // Alur dua arah (bisa mundur satu langkah untuk revisi):
+    //   TERBIT  ← otomatis dari upload PDF; manual HANYA undo dari DIKIRIM
+    //   DIKIRIM ← maju dari TERBIT, atau undo dari PAID
+    //   PAID    ← dari DIKIRIM, wajib ≥1 PDF completed + paymentNote
     // Status kustom non-kanonis (buatan admin via Pengaturan) tetap lolos seperti dulu.
-    if (canon === 'MENUNGGU INVOICE' || canon === 'INVOICE TERBIT') {
+    if (canon === 'MENUNGGU INVOICE') {
       throw new HttpException({ code: 'INVOICE_AUTO_LOCKED', message: `Status "${status}" diatur otomatis oleh sistem (upload/hapus PDF) — tidak bisa diubah manual.` }, 422);
     }
     const who = await resolveWho(this.db, req, body.who);
     const cur: any = await this.db.execute(`SELECT status FROM invoice_status WHERE record_uuid='${esc(uuid)}' LIMIT 1` as any);
     const curStatus = String((cur.rows || cur)[0]?.status || 'MENUNGGU INVOICE').toUpperCase();
     if (canon === 'DIKIRIM') {
-      if (curStatus !== 'INVOICE TERBIT' && curStatus !== 'UNPAID' && curStatus !== 'DIKIRIM') {
+      if (curStatus !== 'INVOICE TERBIT' && curStatus !== 'UNPAID' && curStatus !== 'DIKIRIM' && curStatus !== 'PAID') {
         throw new HttpException({ code: 'NOT_TERBIT_YET', message: 'Belum bisa ditandai dikirim — status harus INVOICE TERBIT dulu (upload PDF invoice).' }, 422);
       }
       const nowD = new Date().toISOString();
       await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(uuid)}','${esc(status)}','${nowD}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);
-      await logActivity(this.db, { who, action: `menandai invoice dikirim ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: 'menunggu pembayaran', recordUuid: uuid });
+      const undoFromPaid = curStatus === 'PAID';
+      await logActivity(this.db, { who, action: undoFromPaid ? `mengurungkan PAID ${await caseLabel(this.db, uuid)}` : `menandai invoice dikirim ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: undoFromPaid ? 'kembali ke DIKIRIM (revisi)' : 'menunggu pembayaran', recordUuid: uuid });
+      return { ok: true, recordUuid: uuid, status };
+    }
+    if (canon === 'INVOICE TERBIT') {
+      // Undo satu langkah: hanya dari DIKIRIM (urungkan pengiriman untuk revisi).
+      if (curStatus !== 'DIKIRIM') {
+        throw new HttpException({ code: 'INVOICE_AUTO_LOCKED', message: 'INVOICE TERBIT diatur otomatis oleh sistem (upload PDF) — hanya bisa dikembalikan dari status DIKIRIM (urungkan kirim).' }, 422);
+      }
+      const nowT = new Date().toISOString();
+      await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(uuid)}','${esc(status)}','${nowT}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);
+      await logActivity(this.db, { who, action: `mengurungkan pengiriman ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: 'kembali ke INVOICE TERBIT (revisi)', recordUuid: uuid });
       return { ok: true, recordUuid: uuid, status };
     }
     if (canon === 'PAID') {

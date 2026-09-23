@@ -228,9 +228,10 @@ Tanpa kredensial R2, endpoint tulis balas `R2_NOT_CONFIGURED` (503).
 6. **Otomatisasi status invoice** (4 status, tercatat di `activity_logs` kategori `Invoice`):
    `confirm` sukses → `INVOICE TERBIT` (kecuali `DIKIRIM`/`PAID`, tidak diturunkan);
    hapus PDF terakhir → kembali `MENUNGGU INVOICE` (hanya dari `TERBIT`; `DIKIRIM`/`PAID` tetap).
-   Manual `PATCH /cases/:uuid/invoice` diizinkan alur: `DIKIRIM` dari `INVOICE TERBIT`
-   (ditandai sudah dikirim, menunggu pembayaran) dan `PAID` dari `DIKIRIM` —
-   wajib ≥1 PDF `completed` + `paymentNote` (tersimpan di `payment_note/paid_at/paid_by`).
+    Manual `PATCH /cases/:uuid/invoice` diizinkan alur (dua arah, bisa mundur satu
+    langkah untuk revisi): `DIKIRIM` dari `INVOICE TERBIT` (atau undo dari `PAID`),
+    `INVOICE TERBIT` undo dari `DIKIRIM`, dan `PAID` dari `DIKIRIM` — wajib ≥1 PDF
+    `completed` + `paymentNote` (tersimpan di `payment_note/paid_at/paid_by`).
    `MENUNGGU/TERBIT` manual ditolak `422 INVOICE_AUTO_LOCKED`, `PAID` tanpa PDF ditolak
    `422 INVOICE_NEED_PDF`, tanpa notes ditolak `422 PAYMENT_NOTE_REQUIRED`,
    urutan salah ditolak `422 NOT_TERBIT_YET` / `NOT_DIKIRIM_YET`.
