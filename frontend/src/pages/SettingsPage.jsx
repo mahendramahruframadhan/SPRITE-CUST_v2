@@ -154,11 +154,12 @@ export default function SettingsPage() {
   const [pw2, setPw2] = useState('');
   const [savingPw, setSavingPw] = useState(false);
   const [pwMsg, setPwMsg] = useState(null);
-  // Master status (disharing via backend)
-  const [masters, setMasters] = useState({ auditActions: [], invoiceActions: [] });
+  // Master status (disharing via backend) — hanya Status Validasi; master
+  // status invoice sengaja dihapus karena status invoice kini dikunci alur
+  // (MENUNGGU → UNPAID → PAID) dan tidak boleh dikonfigurasi user.
+  const [masters, setMasters] = useState({ auditActions: [] });
   const [mastersLoading, setMastersLoading] = useState(true);
   const [newAudit, setNewAudit] = useState('');
-  const [newInvoice, setNewInvoice] = useState('');
   const [masterMsg, setMasterMsg] = useState(null);
   const [masterBusy, setMasterBusy] = useState(false);
 
@@ -202,14 +203,12 @@ export default function SettingsPage() {
         if (ignore) return;
         setMasters({
           auditActions: Array.isArray(r?.auditActions) && r.auditActions.length ? r.auditActions : ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'],
-          invoiceActions: Array.isArray(r?.invoiceActions) && r.invoiceActions.length ? r.invoiceActions : ['MENUNGGU INVOICE', 'UNPAID', 'PAID'],
         });
       })
       .catch(() => {
         if (ignore) return;
         setMasters({
           auditActions: ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'],
-          invoiceActions: ['MENUNGGU INVOICE', 'UNPAID', 'PAID'],
         });
       })
       .finally(() => {
@@ -228,7 +227,6 @@ export default function SettingsPage() {
       const r = await putStatusOptions(next);
       setMasters({
         auditActions: r.auditActions || next.auditActions || masters.auditActions,
-        invoiceActions: r.invoiceActions || next.invoiceActions || masters.invoiceActions,
       });
       postLog(user?.name || user?.email, label).catch(() => {});
       setMasterMsg({ kind: 'ok', text: `${label} — tersimpan & berlaku untuk semua user.` });
@@ -578,7 +576,7 @@ export default function SettingsPage() {
 
           {safeTab === 'master' && (
             <div className="max-w-3xl bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-              <SectionHead icon="billing" title="Master Status" desc="Daftar status Billing & Finance — disharing semua user, tersimpan di database" />
+              <SectionHead icon="billing" title="Master Status Validasi" desc="Status Billing & Audit yang bisa dikonfigurasi. Status invoice (MENUNGGU / UNPAID / PAID) dikunci alur dan tidak bisa diubah di sini." />
               {!canEditMaster && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400">
                   Role Anda tidak memiliki akses Billing — daftar hanya bisa dilihat, hubungi admin untuk mengubah.
@@ -587,7 +585,7 @@ export default function SettingsPage() {
               {mastersLoading ? (
                 <p className="text-xs text-slate-400 py-4 text-center">Memuat master status…</p>
               ) : (
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-1 gap-4">
                   <StatusListManager
                     label="Status Validasi"
                     hint="Dipakai di halaman Billing & Audit."
@@ -596,17 +594,6 @@ export default function SettingsPage() {
                     onNewVal={setNewAudit}
                     onAdd={() => addMaster('auditActions', newAudit, setNewAudit)}
                     onDelete={(v) => delMaster('auditActions', v)}
-                    disabled={!canEditMaster}
-                    busy={masterBusy}
-                  />
-                  <StatusListManager
-                    label="Status Invoice"
-                    hint="Dipakai di halaman Finance Audit."
-                    items={masters.invoiceActions}
-                    newVal={newInvoice}
-                    onNewVal={setNewInvoice}
-                    onAdd={() => addMaster('invoiceActions', newInvoice, setNewInvoice)}
-                    onDelete={(v) => delMaster('invoiceActions', v)}
                     disabled={!canEditMaster}
                     busy={masterBusy}
                   />
