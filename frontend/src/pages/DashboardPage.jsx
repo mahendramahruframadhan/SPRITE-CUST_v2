@@ -14,7 +14,8 @@ import {
 } from 'chart.js';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
-import { triggerSync, getSyncLogs, getHealth } from '../lib/api.js';
+import { triggerSync, getSyncLogs, getHealth, getBrandStatuses } from '../lib/api.js';
+import { expiryState } from '../utils/contract.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -92,6 +93,27 @@ export default function DashboardPage() {
   const [lastSync, setLastSync] = useState('');
   const [mockMode, setMockMode] = useState(false);
   const [detailUuid, setDetailUuid] = useState(null);
+  // Kontrak maintenance perlu perhatian: dibaca ringan, gagal diam-diam.
+  const [contracts, setContracts] = useState([]);
+  useEffect(() => {
+    let go = true;
+    getBrandStatuses()
+      .then((r) => {
+        if (go && Array.isArray(r)) setContracts(r);
+      })
+      .catch(() => {});
+    return () => {
+      go = false;
+    };
+  }, []);
+  const attentionContracts = useMemo(
+    () =>
+      contracts
+        .filter((c) => c.type === 'GRATIS' && (expiryState(c.expired_at) === 'soon' || expiryState(c.expired_at) === 'expired'))
+        .sort((a, b) => String(a.expired_at || '9999').localeCompare(String(b.expired_at || '9999')))
+        .slice(0, 3),
+    [contracts]
+  );
 
   // Palet chart terpusat (lib/chartPalette.js) mengikuti tema terang/gelap
   const { theme } = useTheme();
@@ -634,6 +656,36 @@ export default function DashboardPage() {
           </Link>
         </Panel>
       </div>
+
+      {/* ===== KONTRAK MAINTENANCE (hanya bila ada yang perlu perhatian) ===== */}
+      {attentionContracts.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 mt-4">
+          <Panel
+            title="Kontrak Maintenance"
+            desc="Free yang segera habis atau sudah expired"
+            accent="from-amber-400 to-orange-500"
+            badge={`${attentionContracts.length} perlu perhatian`}
+          >
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              {attentionContracts.map((c) => (
+                <li key={c.id} className="flex items-center gap-3 py-2.5">
+                  <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${expiryState(c.expired_at) === 'expired' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'}`}>
+                    {expiryState(c.expired_at) === 'expired' ? 'EXPIRED' : 'SEGERA'}
+                  </span>
+                  <span className="min-w-0 flex-1 text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{c.brand}</span>
+                  <span className="text-xs text-slate-400 whitespace-nowrap tabular-nums">{String(c.expired_at || '-')}</span>
+                </li>
+              ))}
+            </ul>
+            <Link to="/clients" className="mt-4 inline-flex items-center gap-2 text-[13px] font-extrabold text-white bg-slate-900 hover:bg-brand-600 px-4 py-2.5 rounded-xl transition shadow-lg shadow-slate-900/10">
+              Buka Client & Brand
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
+          </Panel>
+        </div>
+      )}
 
       {/* ===== TOP KLIEN + TIM ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">

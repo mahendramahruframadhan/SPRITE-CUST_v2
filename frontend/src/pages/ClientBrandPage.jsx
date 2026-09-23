@@ -12,7 +12,8 @@
 // grid + dark: variant (tailwindcss/docs); pola cegah duplikat per daftar.
 // TODO(backend): sambungkan useClientBrands ke API saat backend siap.
 import { useEffect, useMemo, useState } from 'react';
-import { daysLeft, expiryState, useClientBrands } from '../hooks/useClientBrands.js';
+import { useClientBrands } from '../hooks/useClientBrands.js';
+import { daysLeft, expiryState } from '../utils/contract.js';
 import { useToast } from '../context/ToastContext.jsx';
 
 const INPUT_CLS =
@@ -48,7 +49,7 @@ function initials(name) {
 
 export default function ClientBrandPage() {
   const { notify } = useToast();
-  const { statuses, stats, addStatus, updateStatus, removeStatus, seedExamples, ready, serverOk } = useClientBrands();
+  const { statuses, stats, addStatus, updateStatus, removeStatus, seedExamples, ready, serverOk, retryConnection, clients, addClient, removeClient } = useClientBrands();
   const [brand, setBrand] = useState('');
   const [type, setType] = useState('GRATIS');
   const [expiredAt, setExpiredAt] = useState('');
@@ -58,6 +59,9 @@ export default function ClientBrandPage() {
   const [editBrand, setEditBrand] = useState('');
   const [editExpired, setEditExpired] = useState('');
   const [detailItem, setDetailItem] = useState(null);
+  const [clientBrand, setClientBrand] = useState('');
+  const [clientCompany, setClientCompany] = useState('');
+  const [clientContact, setClientContact] = useState('');
 
   // Tutup menu dengan klik di luar atau Escape; Escape juga menutup modal detail.
   useEffect(() => {
@@ -95,6 +99,8 @@ export default function ClientBrandPage() {
   const expiredCount = statuses.filter((s) => s.type === 'GRATIS' && expiryState(s.expiredAt) === 'expired').length;
   // Penanda jujur: bila backend tak terjangkau, data hanya tersimpan di browser.
   const offTag = serverOk === false ? ' (offline, tersimpan di browser)' : '';
+  // Pesan error server (400/409) ditampilkan apa adanya — bukan sukses palsu.
+  const errMsg = (e) => e?.data?.message || e?.message || 'Gagal, coba lagi.';
 
   function submit(e) {
     e?.preventDefault();
@@ -112,16 +118,28 @@ export default function ClientBrandPage() {
       notify(`${name} sudah ada di daftar ${type === 'GRATIS' ? 'Free' : 'Monthly'}`, 'error');
       return;
     }
-    addStatus({ brand: name, type, expiredAt: type === 'GRATIS' ? expiredAt : '' });
-    setBrand('');
-    if (type === 'GRATIS') setExpiredAt('');
-    notify(`${name} masuk daftar ${type === 'GRATIS' ? 'Free Maintenance' : 'Monthly'}.${offTag}`, 'success');
+    (async () => {
+      try {
+        await addStatus({ brand: name, type, expiredAt: type === 'GRATIS' ? expiredAt : '' });
+        setBrand('');
+        if (type === 'GRATIS') setExpiredAt('');
+        notify(`${name} masuk daftar ${type === 'GRATIS' ? 'Free Maintenance' : 'Monthly'}.${offTag}`, 'success');
+      } catch (err) {
+        notify(errMsg(err), 'error');
+      }
+    })();
   }
 
   function doDelete(item, listLabel) {
-    removeStatus(item.id);
-    setOpenMenuId(null);
-    notify(`${item.brand} dihapus dari ${listLabel}.${offTag}`, 'info');
+    (async () => {
+      try {
+        await removeStatus(item.id);
+        setOpenMenuId(null);
+        notify(`${item.brand} dihapus dari ${listLabel}.${offTag}`, 'info');
+      } catch (err) {
+        notify(errMsg(err), 'error');
+      }
+    })();
   }
 
   function startEdit(item) {
@@ -148,9 +166,45 @@ export default function ClientBrandPage() {
       notify(`${name} sudah ada di daftar`, 'error');
       return;
     }
-    updateStatus(item.id, { brand: name, ...(item.type === 'GRATIS' ? { expiredAt: editExpired } : {}) });
-    setEditingId(null);
-    notify(`${name} diperbarui.${offTag}`, 'success');
+    updateStatus(item.id, { brand: name, ...(item.type === 'GRATIS' ? { expiredAt: editExpired } : {}) })
+      .then(() => {
+        setEditingId(null);
+        notify(`${name} diperbarui.${offTag}`, 'success');
+      })
+      .catch((err) => notify(errMsg(err), 'error'));
+  }
+
+  // Koleksi client baru: ringkas (nama + perusahaan + kontak), tersimpan di
+  // server bila terjangkau dan cadangan lokal bila offline.
+  function submitClient(e) {
+    e?.preventDefault();
+    const name = clientBrand.trim();
+    if (!name) {
+      notify('Isi nama brand dulu', 'error');
+      return;
+    }
+    (async () => {
+      try {
+        await addClient({ brand: name, company: clientCompany.trim(), contact: clientContact.trim() });
+        setClientBrand('');
+        setClientCompany('');
+        setClientContact('');
+        notify(`${name} masuk koleksi client baru.${offTag}`, 'success');
+      } catch (err) {
+        notify(errMsg(err), 'error');
+      }
+    })();
+  }
+
+  function delClient(item) {
+    (async () => {
+      try {
+        await removeClient(item.id);
+        notify(`${item.brand} dihapus dari koleksi.${offTag}`, 'info');
+      } catch (err) {
+        notify(errMsg(err), 'error');
+      }
+    })();
   }
 
   // Menu titik-tiga: satu titik aksi per baris berisi Update dan Hapus.
@@ -332,6 +386,68 @@ export default function ClientBrandPage() {
         </div>
       </section>
 
+      {/* Koleksi client baru */}
+      <section aria-label="Koleksi client baru" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Koleksi client baru</h3>
+            <p className="text-[11px] text-slate-400">Brand yang baru masuk, sebelum dikontrak monthly/gratis.</p>
+          </div>
+          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300">
+            {clients.length}
+          </span>
+        </div>
+        <form onSubmit={submitClient} className="flex flex-col md:flex-row gap-3 md:items-end">
+          <div className="flex-1">
+            <label htmlFor="cc-brand" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Nama brand <span className="text-rose-500">*</span>
+            </label>
+            <input id="cc-brand" value={clientBrand} onChange={(e) => setClientBrand(e.target.value)} placeholder="cth. Kopi Arena" className={`${INPUT_CLS} mt-1.5`} />
+          </div>
+          <div className="flex-1">
+            <label htmlFor="cc-company" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Perusahaan</label>
+            <input id="cc-company" value={clientCompany} onChange={(e) => setClientCompany(e.target.value)} placeholder="cth. PT Arena Ritel" className={`${INPUT_CLS} mt-1.5`} />
+          </div>
+          <div className="md:w-52">
+            <label htmlFor="cc-contact" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Kontak</label>
+            <input id="cc-contact" value={clientContact} onChange={(e) => setClientContact(e.target.value)} placeholder="Email atau WA" className={`${INPUT_CLS} mt-1.5`} />
+          </div>
+          <button
+            type="submit"
+            className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-6 py-2.5 min-h-[44px] rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+          >
+            Tambah
+          </button>
+        </form>
+        {clients.length > 0 && (
+          <ul className="mt-3 divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[220px] overflow-y-auto">
+            {clients.slice(0, 20).map((c) => (
+              <li key={c.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                <span aria-hidden="true" className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 text-white flex items-center justify-center text-[10px] font-bold">
+                  {initials(c.brand)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{c.brand}</p>
+                  {(c.company || c.contact) && (
+                    <p className="text-[11px] text-slate-400 truncate">{[c.company, c.contact].filter(Boolean).join(' · ')}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => delClient(c)}
+                  title="Hapus"
+                  aria-label={`Hapus ${c.brand} dari koleksi`}
+                  className="w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
+                >
+                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916" />
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {/* Tambah cepat */}
       <form
         onSubmit={submit}
@@ -385,7 +501,7 @@ export default function ClientBrandPage() {
         </button>
       </form>
 
-      {/* Cari + contoh */}
+      {/* Cari + contoh + status koneksi */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <input
           value={query}
@@ -394,15 +510,36 @@ export default function ClientBrandPage() {
           aria-label="Cari brand"
           className={`${INPUT_CLS} sm:max-w-xs`}
         />
-        <button
-          onClick={() => {
-            seedExamples();
-            notify(`Contoh data finance dimasukkan (tanpa duplikat).${offTag}`, 'success');
-          }}
-          className="sm:ml-auto min-h-[44px] inline-flex items-center text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-2 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
-        >
-          Isi contoh finance
-        </button>
+        {serverOk === false && (
+          <span className="inline-flex items-center gap-2 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+            Mode offline
+          </span>
+        )}
+        <div className="sm:ml-auto flex items-center gap-2">
+          {serverOk === false && (
+            <button
+              onClick={async () => {
+                const ok = await retryConnection();
+                notify(ok ? 'Tersambung ke server.' : 'Backend belum terjangkau.', ok ? 'success' : 'error');
+              }}
+              className="min-h-[44px] inline-flex items-center text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+            >
+              Coba lagi
+            </button>
+          )}
+          {monthly.length + gratis.length === 0 && (
+            <button
+              onClick={() => {
+                seedExamples().then(() => {
+                  notify(`Contoh data finance dimasukkan (tanpa duplikat).${offTag}`, 'success');
+                }).catch((err) => notify(errMsg(err), 'error'));
+              }}
+              className="min-h-[44px] inline-flex items-center text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-2 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+            >
+              Isi contoh finance
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Dua daftar: monthly dan free, urut expired terdekat */}
