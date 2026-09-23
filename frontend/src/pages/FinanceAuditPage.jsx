@@ -50,17 +50,20 @@ const pdfErrMsg = (err, fallback) => PDF_ERR_MSG[err?.code] || err?.data?.messag
 const PDF_STATUS_LABEL = { uploading: 'mengupload…', failed: 'gagal', completed: 'selesai' };
 
 // Status invoice kanonis yang dikunci sistem (otomatis upload/hapus PDF) —
-// manual dari dropdown ditolak backend 422. PAID satu-satunya yang boleh manual.
-const INV_AUTO_LOCKED = ['MENUNGGU INVOICE', 'INVOICE TERBIT'];
+// manual dari dropdown ditolak backend 422. PAID satu-satunya yang boleh manual,
+// wajib dari UNPAID + keterangan pembayaran (modal Paid).
+const INV_AUTO_LOCKED = ['MENUNGGU INVOICE', 'UNPAID'];
 const INV_ERR_MSG = {
   INVOICE_AUTO_LOCKED: 'Status ini diatur otomatis oleh sistem (upload/hapus PDF) — manual hanya PAID.',
   INVOICE_NEED_PDF: 'Belum bisa PAID — upload minimal 1 PDF invoice dulu.',
+  NOT_UNPAID_YET: 'Belum bisa PAID — status harus UNPAID dulu (upload PDF invoice).',
+  PAYMENT_NOTE_REQUIRED: 'Keterangan pembayaran wajib diisi untuk menandai PAID.',
 };
 const invErrMsg = (err, fallback) => INV_ERR_MSG[err?.code] || err?.data?.message || err?.message || fallback;
 
 // Sel upload PDF invoice per baris: pilih -> PUT R2 (progress) -> confirm ->
 // daftar file (unduh/hapus). Aturan kunci: status MENUNGGU INVOICE selalu boleh
-// upload (upload sukses otomatis menaikkan ke INVOICE TERBIT via backend);
+// upload (upload sukses otomatis menaikkan ke UNPAID via backend);
 // di luar itu, 1 kasus = 1 PDF aktif (upload dibuka lagi setelah PDF dihapus).
 // Tombol Unduh/Hapus digate kondisi true/false:
 // aktif hanya bila file berstatus 'completed', selain itu disabled + tooltip.
@@ -101,7 +104,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
     e.target.value = '';
     if (!f || busy) return;
     // Pengaman ganda: input sudah disabled, tapi cegah juga secara logika.
-    // MENUNGGU INVOICE selalu boleh upload agar status bisa naik ke TERBIT;
+    // MENUNGGU INVOICE selalu boleh upload agar status bisa naik ke UNPAID;
     // status lain mengikuti gate server (1 PDF aktif per kasus).
     const isMenunggu = (invoiceStatus || 'MENUNGGU INVOICE') === 'MENUNGGU INVOICE';
     const allowed = isMenunggu || (gate ? gate.canUpload : !files.some((x) => isPdfReady(x.status)));
@@ -129,7 +132,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
       await putXhr(u.url, f, setPct);
       const done = await confirmPdfUpload({ id: u.id });
       notify(`PDF terupload: "${f.name}" (${fmtKB(f.size)}).`, 'success');
-      // Sinkron status invoice otomatis dari backend (TERBIT, kecuali sudah PAID)
+      // Sinkron status invoice otomatis dari backend (UNPAID, kecuali sudah PAID)
       if (done?.invoiceStatus) onStatusChange?.(recordUuid, done.invoiceStatus);
       reload();
     } catch (err) {
@@ -247,7 +250,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
     }
   };
 
-  // Upload dibuka bila status MENUNGGU (agar bisa naik ke TERBIT) atau belum
+  // Upload dibuka bila status MENUNGGU (agar bisa naik ke UNPAID) atau belum
   // ada file completed (aturan: 1 kasus = 1 PDF aktif).
   // Tombol aktif kembali otomatis setelah PDF dihapus (gate.canUpload dari server).
   const isMenunggu = (invoiceStatus || 'MENUNGGU INVOICE') === 'MENUNGGU INVOICE';
@@ -421,7 +424,7 @@ const BILL_BADGE = {
 // Warna select status invoice (status kustom → netral)
 const INV_TONE = {
   'MENUNGGU INVOICE': 'border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400',
-  'INVOICE TERBIT': 'border-violet-200 bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:border-violet-500/30 dark:text-violet-400',
+  UNPAID: 'border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:border-sky-500/30 dark:text-sky-400',
   PAID: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400',
 };
 
@@ -443,6 +446,12 @@ export default function FinanceAuditPage() {
   const [editValue, setEditValue] = useState('');
   const [editBusy, setEditBusy] = useState(false);
   const [editErr, setEditErr] = useState('');
+  // Bukti pembayaran per kasus dari backend (invoice-map.notes) — tampil di baris PAID.
+  const [payNotes, setPayNotes] = useState({});
+  // Target modal Paid: { uuid, label, amount } + isi keterangan + busy.
+  const [paidTarget, setPaidTarget] = useState(null);
+  const [payNote, setPayNote] = useState('');
+  const [payBusy, setPayBusy] = useState(false);
 
   // Pastikan kasus tervalidasi punya status invoice default
   useEffect(() => {
@@ -457,6 +466,7 @@ export default function FinanceAuditPage() {
       .then((r) => {
         if (!r || typeof r.map !== 'object') return;
         Object.entries(r.map).forEach(([uuid, st]) => syncInvoiceStatus(uuid, st));
+        if (r.notes && typeof r.notes === 'object') setPayNotes(r.notes);
       })
       .catch(() => {});
   }, [syncInvoiceStatus]);
@@ -490,7 +500,7 @@ export default function FinanceAuditPage() {
       total: validatedPool.length,
       totalAmount: validatedPool.reduce((a, c) => a + (+c.charges || 0), 0),
       menunggu: byStatus('MENUNGGU INVOICE').length,
-      terbit: byStatus('INVOICE TERBIT').length,
+      unpaid: byStatus('UNPAID').length,
       paid: byStatus('PAID').length,
       outstandingCount: outstanding.length,
       outstandingAmount: outstanding.reduce((a, c) => a + (+c.charges || 0), 0),
@@ -500,7 +510,7 @@ export default function FinanceAuditPage() {
   const kpi = [
     { t: 'Siap Invoice', v: stats.total.toLocaleString('id-ID'), sub: fmtMoney(stats.totalAmount) + ' tervalidasi', color: 'text-brand-600', darkColor: 'dark:text-brand-300', accent: 'from-brand-500 to-brand-300' },
     { t: 'Menunggu Invoice', v: stats.menunggu.toLocaleString('id-ID'), sub: 'kasus', color: 'text-amber-600', darkColor: 'dark:text-amber-400', accent: 'from-amber-500 to-amber-300' },
-    { t: 'Invoice Terbit', v: stats.terbit.toLocaleString('id-ID'), sub: 'kasus', color: 'text-violet-600', darkColor: 'dark:text-violet-400', accent: 'from-violet-500 to-violet-300' },
+    { t: 'Invoice Unpaid', v: stats.unpaid.toLocaleString('id-ID'), sub: 'kasus', color: 'text-sky-600', darkColor: 'dark:text-sky-400', accent: 'from-sky-500 to-sky-300' },
     { t: 'Paid', v: stats.paid.toLocaleString('id-ID'), sub: `dari ${stats.total} kasus tervalidasi`, color: 'text-emerald-600', darkColor: 'dark:text-emerald-400', accent: 'from-emerald-500 to-emerald-300' },
     { t: 'Total Outstanding', v: fmtMoney(stats.outstandingAmount), sub: `${stats.outstandingCount} kasus belum PAID`, color: 'text-rose-600', darkColor: 'dark:text-rose-400', accent: 'from-rose-500 to-rose-300', size: 'text-[19px]' },
   ];
@@ -524,10 +534,53 @@ export default function FinanceAuditPage() {
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
   // Ubah status invoice manual: hanya PAID yang diizinkan server (422 bila dilanggar).
+  // PAID selalu lewat modal keterangan pembayaran (wajib diisi) — bukan PATCH langsung.
   // Lokal diubah HANYA setelah server sukses — sinkron, bukan optimistic.
+  function openPaidModal(uuid) {
+    const c = allCases.find((x) => x.recordUuid === uuid);
+    const cur = invoiceStatus[uuid] || defaultInvoiceStatus;
+    if (cur !== 'UNPAID') {
+      notify('Belum bisa PAID — status harus UNPAID dulu (upload PDF invoice).', 'err');
+      return;
+    }
+    setPaidTarget({ uuid, label: c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`, amount: c ? +c.charges || 0 : 0 });
+    setPayNote('');
+  }
+
+  async function confirmPaid() {
+    if (!paidTarget || payBusy) return;
+    const note = payNote.trim();
+    if (!note) {
+      notify('Keterangan pembayaran wajib diisi untuk menandai PAID.', 'err');
+      return;
+    }
+    const { uuid, label } = paidTarget;
+    const meta = invoiceMeta[uuid] || {};
+    const invNo = (meta.no || '').trim();
+    setPayBusy(true);
+    try {
+      const r = await patchInvoice(uuid, 'PAID', { paymentNote: note, ...(invNo ? { invoiceNo: invNo } : {}) });
+      syncInvoiceStatus(uuid, 'PAID');
+      setPayNotes((prev) => ({ ...prev, [uuid]: { note, paidAt: new Date().toISOString(), paidBy: user?.name || user?.email || '' } }));
+      setPaidTarget(null);
+      notify(`Status invoice ${label} menjadi PAID.`, 'success');
+      recordActivity(`menandai PAID ${label}`, `${note}${invNo ? ` • no. invoice ${invNo}` : ''}`, 'Invoice');
+    } catch (err) {
+      notify(invErrMsg(err, 'Gagal menandai PAID.'), 'err');
+    } finally {
+      setPayBusy(false);
+    }
+  }
+
   async function handleInvoice(uuid, action) {
     const prev = invoiceStatus[uuid] || defaultInvoiceStatus;
     if (action === prev) return;
+    // PAID wajib lewat modal keterangan — buka modal, dropdown kembali sendiri
+    // karena nilainya terkontrol dari peta status (belum berubah).
+    if (action === 'PAID') {
+      openPaidModal(uuid);
+      return;
+    }
     const c = allCases.find((x) => x.recordUuid === uuid);
     const meta = invoiceMeta[uuid] || {};
     const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
@@ -625,7 +678,7 @@ export default function FinanceAuditPage() {
         <Arrow />
         <FlowPill tone="bg-amber-50 text-amber-700 border-amber-200">Menunggu Invoice</FlowPill>
         <Arrow />
-        <FlowPill tone="bg-violet-50 text-violet-700 border-violet-200">Invoice Terbit</FlowPill>
+        <FlowPill tone="bg-sky-50 text-sky-700 border-sky-200">Unpaid</FlowPill>
         <Arrow />
         <FlowPill tone="bg-emerald-50 text-emerald-700 border-emerald-200">Paid</FlowPill>
       </div>
@@ -788,7 +841,7 @@ export default function FinanceAuditPage() {
                     <select
                       value={invoiceStatus[c.recordUuid] || defaultInvoiceStatus}
                       onChange={(e) => handleInvoice(c.recordUuid, e.target.value)}
-                      title="MENUNGGU/TERBIT otomatis oleh sistem (upload/hapus PDF) — manual hanya PAID"
+                      title="MENUNGGU/UNPAID otomatis oleh sistem (upload/hapus PDF) — manual hanya PAID via tombol/kolom"
                       className={`text-xs font-semibold border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 dark:text-slate-100 max-w-[180px] ${INV_TONE[invoiceStatus[c.recordUuid]] || 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
                       {invoiceActions.map((a) => {
@@ -798,6 +851,31 @@ export default function FinanceAuditPage() {
                         return <option key={a} value={a} disabled={locked}>{a}{locked ? ' (otomatis)' : ''}</option>;
                       })}
                     </select>
+                    {(() => {
+                      const cur = invoiceStatus[c.recordUuid] || defaultInvoiceStatus;
+                      const pn = payNotes[c.recordUuid];
+                      if (cur === 'UNPAID') {
+                        return (
+                          <button
+                            onClick={() => openPaidModal(c.recordUuid)}
+                            className="mt-1.5 w-full max-w-[180px] inline-flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg px-2 py-2 shadow-sm shadow-emerald-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                            Tandai Paid
+                          </button>
+                        );
+                      }
+                      if (cur === 'PAID' && pn?.note) {
+                        return (
+                          <p className="mt-1.5 max-w-[180px] text-[11px] leading-snug text-slate-500 dark:text-slate-400" title={`${pn.note}${pn.paidAt ? ` • ${pn.paidAt.slice(0, 10)}` : ''}${pn.paidBy ? ` • ${pn.paidBy}` : ''}`}>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">Lunas:</span> {pn.note}
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
                   </td>
                   <td className="px-4 py-3.5">
                     <PdfCell recordUuid={c.recordUuid} caseNo={c.no} caseClient={c.client} notify={notify} onStatusChange={syncInvoiceStatus} invoiceStatus={invoiceStatus[c.recordUuid] || defaultInvoiceStatus} />
@@ -1029,6 +1107,59 @@ export default function FinanceAuditPage() {
           />
         );
       })()}
+
+      {/* Modal Tandai Paid: keterangan pembayaran wajib, status jadi PAID hijau */}
+      {paidTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => { if (!payBusy) setPaidTarget(null); }} />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Tandai PAID ${paidTarget.label}`}
+            className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden animate-fade-in-fast"
+          >
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-4 text-white">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white">Pembayaran diterima</p>
+              <h3 className="font-bold truncate" title={paidTarget.label}>{paidTarget.label}</h3>
+              {paidTarget.amount > 0 && (
+                <p className="text-xs text-white/85 tabular-nums">{fmtMoney(paidTarget.amount)}</p>
+              )}
+            </div>
+            <div className="px-5 py-4">
+              <label htmlFor="pay-note" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Keterangan pembayaran <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                id="pay-note"
+                rows={3}
+                value={payNote}
+                onChange={(e) => setPayNote(e.target.value)}
+                placeholder="cth. Transfer BCA 12 Sep, lunas penuh"
+                className="mt-1.5 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition"
+              />
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={confirmPaid}
+                  disabled={payBusy}
+                  className="flex-1 min-h-[44px] inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-bold px-4 rounded-xl shadow-md shadow-emerald-600/25 transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  {payBusy ? 'Menyimpan…' : 'Tandai Paid'}
+                </button>
+                <button
+                  onClick={() => { if (!payBusy) setPaidTarget(null); }}
+                  disabled={payBusy}
+                  className="flex-1 min-h-[44px] inline-flex items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-300 px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

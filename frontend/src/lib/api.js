@@ -89,7 +89,7 @@ export const renameStatusOption = (body) => patch('/config/status-options/rename
 export const getHealth = () => get('/health');
 export const createCase = (body) => post('/cases', body);
 export const patchAudit = (uuid, action) => patch(`/cases/${uuid}/audit`, { action });
-export const patchInvoice = (uuid, status) => patch(`/cases/${uuid}/invoice`, { status });
+export const patchInvoice = (uuid, status, extra = {}) => patch(`/cases/${uuid}/invoice`, { status, ...extra });
 export const getBillingStats = () => get('/billing/stats');
 export const getInvoiceMap = () => get('/billing/invoice-map');
 export const triggerSync = () => post('/sync/trigger', {});

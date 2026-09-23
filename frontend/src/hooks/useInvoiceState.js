@@ -4,7 +4,7 @@ import { getStatusOptions, putStatusOptions, renameStatusOption } from '../lib/a
 // Status invoice Finance Audit — cermin useAuditState.js (billing).
 // Daftar aksi bisa dikonfigurasi user (localStorage `invoiceActions`);
 // peta per-kasus tersimpan di `caseInvoiceStatus` (key lama dipertahankan).
-export const DEFAULT_INVOICE = ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'PAID'];
+export const DEFAULT_INVOICE = ['MENUNGGU INVOICE', 'UNPAID', 'PAID'];
 export const DEFAULT_INVOICE_STATUS = 'MENUNGGU INVOICE';
 
 function loadActions() {

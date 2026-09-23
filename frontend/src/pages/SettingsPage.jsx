@@ -202,14 +202,14 @@ export default function SettingsPage() {
         if (ignore) return;
         setMasters({
           auditActions: Array.isArray(r?.auditActions) && r.auditActions.length ? r.auditActions : ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'],
-          invoiceActions: Array.isArray(r?.invoiceActions) && r.invoiceActions.length ? r.invoiceActions : ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'PAID'],
+          invoiceActions: Array.isArray(r?.invoiceActions) && r.invoiceActions.length ? r.invoiceActions : ['MENUNGGU INVOICE', 'UNPAID', 'PAID'],
         });
       })
       .catch(() => {
         if (ignore) return;
         setMasters({
           auditActions: ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'],
-          invoiceActions: ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'PAID'],
+          invoiceActions: ['MENUNGGU INVOICE', 'UNPAID', 'PAID'],
         });
       })
       .finally(() => {
