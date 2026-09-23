@@ -2,8 +2,11 @@
 // DatePickerInput ke stack repo: Vite + JSX + Tailwind, tanpa deps baru,
 // locale id-ID). UX: ketik bebas (ISO / dd-mm-yyyy / "6 Okt 2026") + tombol
 // kalender membuka grid bulan; ArrowDown membuka, Escape menutup.
+// Root cause fix: popover dirender via portal ke <body> dengan posisi fixed —
+// tidak lagi terpotong overflow-hidden modal/kartu atau tertutup elemen lain.
 // Props: id, value (yyyy-MM-dd), onChange(iso), placeholder.
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { fmtDateLong, parseDateInput } from '../utils/contract.js';
 
 const MONTH_LONG = [
@@ -11,6 +14,7 @@ const MONTH_LONG = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
 ];
 const DAY_HEAD = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+const POP_W = 300;
 
 function startOfMonth(d) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -35,7 +39,9 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(value ? fmtDateLong(value) : '');
   const [month, setMonth] = useState(() => startOfMonth(parseISO(value) || new Date()));
+  const [pos, setPos] = useState(null);
   const rootRef = useRef(null);
+  const popRef = useRef(null);
 
   // Sinkron bila value diubah dari luar (mis. reset form).
   useEffect(() => {
@@ -44,11 +50,38 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
     if (p) setMonth(startOfMonth(p));
   }, [value]);
 
-  // Klik di luar menutup; Escape menutup.
+  // Posisi popover: di bawah input, digeser bila mepet tepi viewport.
+  function updatePos() {
+    const el = rootRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const left = Math.min(Math.max(8, r.left), Math.max(8, window.innerWidth - POP_W - 8));
+    let top = r.bottom + 8;
+    // Bila ruang bawah sempit (< 320px), buka ke atas input.
+    if (window.innerHeight - r.bottom < 320 && r.top > 320) top = r.top - 8;
+    setPos({ left, top, up: top < r.top });
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    updatePos();
+    // Scroll apa pun (termasuk di kontainer bersarang) memperbarui posisi.
+    const onScr = () => updatePos();
+    window.addEventListener('scroll', onScr, true);
+    window.addEventListener('resize', onScr);
+    return () => {
+      window.removeEventListener('scroll', onScr, true);
+      window.removeEventListener('resize', onScr);
+    };
+  }, [open]);
+
+  // Klik di luar (input maupun popover) menutup; Escape menutup.
   useEffect(() => {
     if (!open) return;
     function onDown(e) {
-      if (!rootRef.current?.contains(e.target)) setOpen(false);
+      const t = e.target;
+      if (rootRef.current?.contains(t) || popRef.current?.contains(t)) return;
+      setOpen(false);
     }
     function onKey(e) {
       if (e.key === 'Escape') setOpen(false);
@@ -59,7 +92,7 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open ]);
+  }, [open]);
 
   const selected = parseISO(value);
   const today = new Date();
@@ -117,64 +150,71 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
         </button>
       </div>
 
-      {open && (
-        <div className="absolute left-0 top-full mt-2 z-30 w-[300px] max-w-[calc(100vw-3rem)] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-3 animate-fade-in-fast">
-          <div className="flex items-center justify-between mb-2">
-            <button
-              type="button"
-              onClick={() => shiftMonth(-1)}
-              aria-label="Bulan sebelumnya"
-              className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-              </svg>
-            </button>
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-100" aria-live="polite">
-              {MONTH_LONG[month.getMonth()]} {month.getFullYear()}
-            </p>
-            <button
-              type="button"
-              onClick={() => shiftMonth(1)}
-              aria-label="Bulan berikutnya"
-              className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </button>
-          </div>
-          <div className="grid grid-cols-7 gap-0.5" role="grid" aria-label="Pilih tanggal">
-            {DAY_HEAD.map((d) => (
-              <span key={d} className="h-8 inline-flex items-center justify-center text-[10px] font-bold uppercase text-slate-400">
-                {d}
-              </span>
-            ))}
-            {cells.map((day, i) =>
-              day === null ? (
-                <span key={`b-${i}`} />
-              ) : (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => pick(day)}
-                  aria-label={`${day} ${MONTH_LONG[month.getMonth()]} ${month.getFullYear()}`}
-                  aria-pressed={sameDay(new Date(month.getFullYear(), month.getMonth(), day), selected)}
-                  className={`h-10 rounded-lg text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${
-                    sameDay(new Date(month.getFullYear(), month.getMonth(), day), selected)
-                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/25'
-                      : sameDay(new Date(month.getFullYear(), month.getMonth(), day), today)
-                        ? 'text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-500/50 hover:bg-brand-50 dark:hover:bg-brand-500/10'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  {day}
-                </button>
-              )
-            )}
-          </div>
-        </div>
-      )}
+      {open &&
+        pos &&
+        createPortal(
+          <div
+            ref={popRef}
+            style={{ left: pos.left, top: pos.top, width: POP_W }}
+            className={`fixed z-[70] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-3 animate-fade-in-fast ${pos.up ? 'origin-bottom' : 'origin-top'}`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <button
+                type="button"
+                onClick={() => shiftMonth(-1)}
+                aria-label="Bulan sebelumnya"
+                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100" aria-live="polite">
+                {MONTH_LONG[month.getMonth()]} {month.getFullYear()}
+              </p>
+              <button
+                type="button"
+                onClick={() => shiftMonth(1)}
+                aria-label="Bulan berikutnya"
+                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            </div>
+            <div className="grid grid-cols-7 gap-0.5" role="grid" aria-label="Pilih tanggal">
+              {DAY_HEAD.map((d) => (
+                <span key={d} className="h-8 inline-flex items-center justify-center text-[10px] font-bold uppercase text-slate-400">
+                  {d}
+                </span>
+              ))}
+              {cells.map((day, i) =>
+                day === null ? (
+                  <span key={`b-${i}`} />
+                ) : (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => pick(day)}
+                    aria-label={`${day} ${MONTH_LONG[month.getMonth()]} ${month.getFullYear()}`}
+                    aria-pressed={sameDay(new Date(month.getFullYear(), month.getMonth(), day), selected)}
+                    className={`h-10 rounded-lg text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${
+                      sameDay(new Date(month.getFullYear(), month.getMonth(), day), selected)
+                        ? 'bg-brand-600 text-white shadow-md shadow-brand-600/25'
+                        : sameDay(new Date(month.getFullYear(), month.getMonth(), day), today)
+                          ? 'text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-500/50 hover:bg-brand-50 dark:hover:bg-brand-500/10'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                )
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
