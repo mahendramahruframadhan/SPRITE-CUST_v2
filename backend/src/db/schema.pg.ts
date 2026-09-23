@@ -147,3 +147,40 @@ export const invoicePdfs = pgTable('invoice_pdfs', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at'),
 });
+
+// Koleksi client/brand baru (halaman Client & Brand, frontend-first).
+export const clients = pgTable(
+  'clients',
+  {
+    id: text('id').primaryKey(),
+    brand: text('brand').notNull(),
+    company: text('company'),
+    pic: text('pic'),
+    contact: text('contact'),
+    joinedAt: text('joined_at'),
+    source: text('source'),
+    note: text('note'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at'),
+  },
+  (t) => [index('idx_clients_brand').on(t.brand)],
+);
+
+// Status kontrak brand: MONTHLY (nama saja) vs BARU vs GRATIS + expired.
+// Mirror frontend useClientBrands (localStorage) sebagai sumber kebenaran server.
+export const brandStatuses = pgTable(
+  'brand_statuses',
+  {
+    id: text('id').primaryKey(),
+    brand: text('brand').notNull(),
+    type: text('type').notNull().default('MONTHLY'),
+    startAt: text('start_at'),
+    expiredAt: text('expired_at'),
+    monthlyFee: integer('monthly_fee').default(0),
+    pic: text('pic'),
+    note: text('note'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at'),
+  },
+  (t) => [index('idx_brand_statuses_brand').on(t.brand), index('idx_brand_statuses_type').on(t.type)],
+);

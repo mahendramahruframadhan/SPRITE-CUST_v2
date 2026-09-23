@@ -5,11 +5,11 @@ import { getDb, getMemDb } from './drizzle.service';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
 const ROLE_PERMS: Record<string, Record<string, number>> = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
-  Support: { dashboard: 1, cases: 1, form: 1, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
-  Finance: { dashboard: 1, cases: 0, form: 0, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
+  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
+  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
+  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
 };
 
 export async function initDb() {
@@ -43,6 +43,11 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS role_permissions (role TEXT NOT NULL, module TEXT NOT NULL, allowed INTEGER DEFAULT 0, updated_at TEXT, PRIMARY KEY (role, module));
     CREATE TABLE IF NOT EXISTS activity_logs (id TEXT PRIMARY KEY, who TEXT, action TEXT NOT NULL, category TEXT, detail TEXT, record_uuid TEXT, created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS invoice_pdfs (id TEXT PRIMARY KEY, record_uuid TEXT NOT NULL REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, filename TEXT NOT NULL, storage_key TEXT NOT NULL UNIQUE, size_bytes INTEGER DEFAULT 0, status TEXT NOT NULL DEFAULT 'uploading', uploaded_by TEXT, created_at TEXT NOT NULL, updated_at TEXT);
+    CREATE TABLE IF NOT EXISTS clients (id TEXT PRIMARY KEY, brand TEXT NOT NULL, company TEXT, pic TEXT, contact TEXT, joined_at TEXT, source TEXT, note TEXT, created_at TEXT NOT NULL, updated_at TEXT);
+    CREATE INDEX IF NOT EXISTS idx_clients_brand ON clients(brand);
+    CREATE TABLE IF NOT EXISTS brand_statuses (id TEXT PRIMARY KEY, brand TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'MONTHLY', start_at TEXT, expired_at TEXT, monthly_fee INTEGER DEFAULT 0, pic TEXT, note TEXT, created_at TEXT NOT NULL, updated_at TEXT);
+    CREATE INDEX IF NOT EXISTS idx_brand_statuses_brand ON brand_statuses(brand);
+    CREATE INDEX IF NOT EXISTS idx_brand_statuses_type ON brand_statuses(type);
   `;
 
   if (!isRealPg && mem) {
@@ -194,6 +199,15 @@ export async function initDb() {
         await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','settings',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
       }
     } catch {}
+    // Backfill izin modul 'clients' (halaman Client & Brand) untuk DB lama.
+    // Finance diberi 1 agar tim finance bisa menginput monthly vs maintenance.
+    try {
+      const now = new Date().toISOString();
+      const clientsSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 1, Support: 0, Finance: 1, Viewer: 0 };
+      for (const [role, allowed] of Object.entries(clientsSeed)) {
+        await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','clients',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
+      }
+    } catch {}
     // Seed master status Billing/Finance (dikelola dari Pengaturan) —
     // DO NOTHING agar perubahan admin tidak tertimpa saat restart
     try {
@@ -223,5 +237,50 @@ export async function initDb() {
     }
   } catch (e) {
     console.warn('[db] seed roles skipped', e);
+  }
+
+  // Seed status kontrak finance (mirror frontend SEED_*) bila tabel masih kosong.
+  // Id tetap + DO NOTHING agar restart tidak menduplikasi.
+  try {
+    const countSql = `SELECT COUNT(*) as c FROM brand_statuses`;
+    let c = 0;
+    if (!isRealPg && mem) {
+      c = Number(mem.public.many(countSql)[0]?.c || 0);
+    } else {
+      const res: any = await db.execute(countSql as any);
+      c = Number(res.rows?.[0]?.c ?? res[0]?.c ?? 0);
+    }
+    if (c === 0) {
+      const now = new Date().toISOString();
+      const escSeed = (v: string) => v.replace(/'/g, "''");
+      const seeds: Array<[string, string, string, string]> = [
+        ...['Chambers', 'Inspired', 'SCH', 'Skaters', 'Tendencies', 'Screamous'].map(
+          (b, i): [string, string, string, string] => [`seed-bs-m${i}`, b, 'MONTHLY', ''],
+        ),
+        ...[
+          ['Flora Dera', '2026-10-06'],
+          ['Nusantara Batavia Internasional (NBI)', '2026-10-10'],
+          ['AWW Fashion Kauman (SR)', '2026-12-19'],
+          ['House Of Shopaholic (Solo)', '2027-01-13'],
+          ['Helter', '2027-01-27'],
+          ['Wispie Indonesia Maju', '2027-04-06'],
+          ['Own Store', '2027-04-24'],
+          ['Betterhalf', '2027-05-26'],
+          ['Smith (Modul Produksi)', '2027-06-15'],
+        ].map(([b, exp], i): [string, string, string, string] => [`seed-bs-f${i}`, b, 'GRATIS', exp]),
+      ];
+      let ok = 0;
+      for (const [id, b, t, exp] of seeds) {
+        const sql = `INSERT INTO brand_statuses (id,brand,type,expired_at,created_at,updated_at) VALUES ('${id}','${escSeed(b)}','${t}','${exp}','${now}','${now}') ON CONFLICT (id) DO NOTHING`;
+        try {
+          if (!isRealPg && mem) mem.public.none(sql);
+          else await db.execute(sql as any);
+          ok++;
+        } catch {}
+      }
+      console.log(`[db] seeded ${ok}/${seeds.length} brand_statuses`);
+    }
+  } catch (e) {
+    console.warn('[db] seed brand_statuses skipped', e);
   }
 }

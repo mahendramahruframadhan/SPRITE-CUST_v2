@@ -137,6 +137,13 @@ PUT  /api/roles/permissions {perms}
 GET  /api/roles/logs (30 terakhir) · POST /api/roles/logs {who, action}
 POST /api/ai/chat {messages, connectionId?} → {ok, reply} (proxy AI eksternal + system prompt SPRITE AI + snapshot data; key di app_config `aiConfig`)
 GET  /api/ai/connections → [{id, name, provider, model, active}] (tanpa key, untuk switcher model)
+GET  /api/clients → [{id, brand, company, pic, contact, joined_at, ...}]
+POST /api/clients {brand*, company?, pic?, contact?, joinedAt?, source?, note?} → {ok, data}
+PATCH /api/clients/:id {...} · DELETE /api/clients/:id
+GET  /api/brand-status → [{id, brand, type, expired_at, ...}] (seed 6 Monthly + 9 Free bila kosong)
+POST /api/brand-status {brand*, type: MONTHLY|BARU|GRATIS, expiredAt* bila GRATIS}
+        → {ok, data} · 400 BRAND_REQUIRED/EXPIRED_REQUIRED · 409 BRAND_EXISTS
+PATCH /api/brand-status/:id {brand?, type?, expiredAt?, ...} · DELETE /api/brand-status/:id
 ```
 
 User seed: `admin@revota.id` (`12345`, Super Admin), `rani@revota.id`,
@@ -155,6 +162,7 @@ Super Admin selalu lolos dan barisnya dikunci penuh di `PUT /roles/permissions`.
 | `PATCH …/audit` / `PATCH …/invoice` | `billing` / `finance` |
 | `PUT /api/config` | `cfg` |
 | `/api/users*`, `/api/roles/*` | `roles` |
+| `/api/clients*`, `/api/brand-status*` | `clients` |
 
 `GET` (baca) sengaja terbuka; menu + route frontend difilter oleh
 `usePermissions` + `RequirePerm` dari matriks yang sama.
