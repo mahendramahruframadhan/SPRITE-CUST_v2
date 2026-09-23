@@ -36,3 +36,12 @@ export function sortFreeByExpiry(rows) {
     .slice()
     .sort((a, b) => String(a.expiredAt || '9999').localeCompare(String(b.expiredAt || '9999')));
 }
+
+// Format tanggal cantik Indonesia: "Sen, 6 Okt 2026". Satu sumber untuk
+// halaman Client & Brand dan widget Dashboard agar selalu konsisten.
+export function fmtDateID(s) {
+  if (!s) return '-';
+  const d = new Date(`${s}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return s;
+  return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}

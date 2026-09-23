@@ -15,7 +15,7 @@ import {
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { triggerSync, getSyncLogs, getHealth, getBrandStatuses } from '../lib/api.js';
-import { expiryState } from '../utils/contract.js';
+import { expiryState, fmtDateID } from '../utils/contract.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -673,7 +673,7 @@ export default function DashboardPage() {
                     {expiryState(c.expired_at) === 'expired' ? 'EXPIRED' : 'SEGERA'}
                   </span>
                   <span className="min-w-0 flex-1 text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{c.brand}</span>
-                  <span className="text-xs text-slate-400 whitespace-nowrap tabular-nums">{String(c.expired_at || '-')}</span>
+                  <span className="text-xs text-slate-400 whitespace-nowrap tabular-nums">{fmtDateID(c.expired_at)}</span>
                 </li>
               ))}
             </ul>

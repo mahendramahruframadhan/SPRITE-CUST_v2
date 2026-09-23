@@ -13,23 +13,19 @@
 // TODO(backend): sambungkan useClientBrands ke API saat backend siap.
 import { useEffect, useMemo, useState } from 'react';
 import { useClientBrands } from '../hooks/useClientBrands.js';
-import { daysLeft, expiryState } from '../utils/contract.js';
+import { daysLeft, expiryState, fmtDateID } from '../utils/contract.js';
 import { useToast } from '../context/ToastContext.jsx';
 
 const INPUT_CLS =
   'w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition';
 
+// Input kalender: skema gelap agar popup mengikuti tema + indikator bisa diklik.
+const DATE_CLS = `${INPUT_CLS} dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100`;
+
 const TABS = [
   { id: 'MONTHLY', label: 'Monthly' },
   { id: 'GRATIS', label: 'Free Maintenance' },
 ];
-
-function fmtDateID(s) {
-  if (!s) return '-';
-  const d = new Date(`${s}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return s;
-  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 function fmtLeft(d) {
   if (d === null) return '';
@@ -53,7 +49,6 @@ export default function ClientBrandPage() {
   const [brand, setBrand] = useState('');
   const [type, setType] = useState('GRATIS');
   const [expiredAt, setExpiredAt] = useState('');
-  const [query, setQuery] = useState('');
   const [detailItem, setDetailItem] = useState(null);
   const [modalMode, setModalMode] = useState('view');
   const [editName, setEditName] = useState('');
@@ -69,17 +64,14 @@ export default function ClientBrandPage() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  const q = query.trim().toLowerCase();
-  const match = (s) => !q || String(s.brand).toLowerCase().includes(q);
-
-  const monthly = useMemo(() => statuses.filter((s) => s.type === 'MONTHLY' && match(s)), [statuses, q]);
+  const monthly = useMemo(() => statuses.filter((s) => s.type === 'MONTHLY'), [statuses]);
   const gratis = useMemo(
     () =>
       statuses
-        .filter((s) => s.type === 'GRATIS' && match(s))
+        .filter((s) => s.type === 'GRATIS')
         .slice()
         .sort((a, b) => String(a.expiredAt || '9999').localeCompare(String(b.expiredAt || '9999'))),
-    [statuses, q]
+    [statuses]
   );
 
   const soonCount = statuses.filter((s) => s.type === 'GRATIS' && expiryState(s.expiredAt) === 'soon').length;
@@ -223,11 +215,14 @@ export default function ClientBrandPage() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{item.brand}</span>
-            <span className="mt-0.5 block text-[11px] text-slate-400">
+            <span className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+              <svg className="w-3.5 h-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
               {fmtDateID(item.expiredAt)}
               {st === 'expired' && <span className="text-rose-500 font-bold"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
               {st === 'soon' && <span className="text-amber-600 dark:text-amber-400 font-bold"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
-              {st === 'active' && <span> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
+              {st === 'active' && <span className="text-slate-400"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
             </span>
           </span>
           {st === 'expired' ? (
@@ -320,7 +315,7 @@ export default function ClientBrandPage() {
             <label htmlFor="cb-exp" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Expired <span className="text-rose-500">*</span>
             </label>
-            <input id="cb-exp" type="date" value={expiredAt} onChange={(e) => setExpiredAt(e.target.value)} className={`${INPUT_CLS} mt-1.5`} />
+            <input id="cb-exp" type="date" value={expiredAt} onChange={(e) => setExpiredAt(e.target.value)} className={`${DATE_CLS} mt-1.5`} />
           </div>
         )}
         <button
@@ -334,26 +329,14 @@ export default function ClientBrandPage() {
         </button>
       </form>
 
-      {/* Cari + contoh + status koneksi */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <div className="relative sm:max-w-xs">
-          <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari brand..."
-            aria-label="Cari brand"
-            className={`${INPUT_CLS} pl-10`}
-          />
-        </div>
+      {/* Status koneksi + contoh */}
+      <div className="flex flex-wrap items-center gap-2">
         {serverOk === false && (
           <span className="inline-flex items-center gap-2 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
             Mode offline
           </span>
         )}
-        <div className="sm:ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           {serverOk === false && (
             <button
               onClick={async () => {
@@ -489,7 +472,7 @@ export default function ClientBrandPage() {
                       type="date"
                       value={editDate}
                       onChange={(e) => setEditDate(e.target.value)}
-                      className={`${INPUT_CLS} mt-1.5`}
+                      className={`${DATE_CLS} mt-1.5`}
                     />
                     <p className="mt-1.5 text-[11px] text-slate-400">Tanggal terakhir kontrak gratis berlaku.</p>
                   </div>
@@ -519,7 +502,14 @@ export default function ClientBrandPage() {
                     <>
                       <div className="flex items-center justify-between gap-3">
                         <dt className="text-xs font-semibold text-slate-400">Expired sampai</dt>
-                        <dd className="font-bold text-slate-800 dark:text-slate-100">{fmtDateID(detailItem.expiredAt)}</dd>
+                        <dd>
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
+                            <svg className="w-3.5 h-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                            </svg>
+                            {fmtDateID(detailItem.expiredAt)}
+                          </span>
+                        </dd>
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <dt className="text-xs font-semibold text-slate-400">Sisa kontrak</dt>

@@ -2,7 +2,7 @@
 // Jalankan: npm test
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { daysLeft, expiryState, isDupe, normalizeBrand, sortFreeByExpiry } from '../src/utils/contract.js';
+import { daysLeft, expiryState, isDupe, normalizeBrand, sortFreeByExpiry, fmtDateID } from '../src/utils/contract.js';
 
 const iso = (d) => d.toISOString().slice(0, 10);
 const today = new Date();
@@ -48,5 +48,13 @@ describe('contract utils', () => {
   it('normalizeBrand memangkas spasi', () => {
     assert.equal(normalizeBrand('  Kopi Arena '), 'Kopi Arena');
     assert.equal(normalizeBrand(null), '');
+  });
+
+  it('fmtDateID: cantik Indonesia + aman untuk kosong/rusak', () => {
+    const out = fmtDateID('2026-10-06');
+    assert.ok(out.includes('Okt') && out.includes('2026'), out);
+    assert.equal(fmtDateID(''), '-');
+    assert.equal(fmtDateID(null), '-');
+    assert.equal(fmtDateID('bukan-tanggal'), 'bukan-tanggal');
   });
 });
