@@ -58,10 +58,29 @@ export function expiryState(expiredAt) {
   return 'active';
 }
 
+function buildSeedStatuses() {
+  const now = new Date().toISOString();
+  return [
+    ...SEED_MONTHLY.map((brand, i) => ({ id: `seed-monthly-${i}`, brand, type: 'MONTHLY', createdAt: now, updatedAt: now })),
+    ...SEED_FREE.map(({ brand, expiredAt }, i) => ({ id: `seed-free-${i}`, brand, type: 'GRATIS', expiredAt, createdAt: now, updatedAt: now })),
+  ];
+}
+
 export function useClientBrands() {
   // Lazy init agar baca localStorage sekali (pola Context7 react).
+  // Contoh finance langsung jadi isi awal saat browser belum pernah menyimpan;
+  // data pengguna yang sudah ada (termasuk array kosong) tetap dihormati.
   const [clients, setClients] = useState(() => loadLS(CLIENT_KEY, []));
-  const [statuses, setStatuses] = useState(() => loadLS(STATUS_KEY, []));
+  const [statuses, setStatuses] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STATUS_KEY);
+      if (raw === null) return buildSeedStatuses();
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : buildSeedStatuses();
+    } catch {
+      return buildSeedStatuses();
+    }
+  });
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
