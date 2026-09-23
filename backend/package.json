@@ -12,6 +12,7 @@
     "start": "node dist/main.js",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test \"test/**/*.test.ts\"",
     "setup": "node -e \"const fs=require('fs');if(!fs.existsSync('.env')){fs.copyFileSync('.env.example','.env');console.log('.env dibuat dari .env.example')}else{console.log('.env sudah ada, tidak ditimpa')}\"",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",

@@ -98,6 +98,8 @@ Postgres asli, selain itu → `pg-mem`.
 | `SHEET_ID` / `SHEET_GID_DATA` / `SHEET_GID_CONFIG` | `1dJKS7…` / `1535609154` / `0` | Google Sheet sumber |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | kosong | Kosong → `SHEETS_MOCK=true` (tanpa Google API) |
 | `SHEETS_MOCK` | `true` | `false` = baca/tulis Sheet asli |
+| `SKIP_SEED` | kosong | `true` = DDL saja, tanpa seed apa pun |
+| `SKIP_FINANCE_SEED` | kosong | `true` = lewati seed 15 contoh kontrak finance |
 
 ## API
 

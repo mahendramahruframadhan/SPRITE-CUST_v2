@@ -62,6 +62,18 @@ export async function initDb() {
     }
   }
 
+  // Defense-in-depth: cegah duplikat brand+tipe di level DB (cek aplikasi di
+  // service tetap dipakai untuk pesan 409 yang ramah). Best-effort: engine
+  // lama bisa menolak index ekspresi — kegagalan dicatat, boot tetap lanjut.
+  try {
+    const uq = `CREATE UNIQUE INDEX IF NOT EXISTS uq_brand_statuses_brand_type ON brand_statuses (lower(brand), type)`;
+    if (!isRealPg && mem) mem.public.none(uq);
+    else await db.execute(uq as any);
+    console.log('[db] unique index brand_statuses ok');
+  } catch (e: any) {
+    console.warn('[db] unique index brand_statuses skipped (lanjut tanpa constraint)', e?.message || e);
+  }
+
   // Mode kosong: SKIP_SEED=true → hanya DDL, tanpa seed/backfill.
   // Dipakai saat pengosongan DB sebelum inject dari Sheet live terbaru,
   // agar restart tidak mengembalikan 2034 kasus + 6 user lama.
@@ -240,7 +252,12 @@ export async function initDb() {
   }
 
   // Seed status kontrak finance (mirror frontend SEED_*) bila tabel masih kosong.
-  // Id tetap + DO NOTHING agar restart tidak menduplikasi.
+  // Id tetap + DO NOTHING agar restart tidak menduplikasi. Opt-out produksi:
+  // SKIP_FINANCE_SEED=true (data contoh tidak ikut ke deploy baru).
+  if (process.env.SKIP_FINANCE_SEED === 'true') {
+    console.log('[db] SKIP_FINANCE_SEED=true — seed brand_statuses dilewati');
+    return;
+  }
   try {
     const countSql = `SELECT COUNT(*) as c FROM brand_statuses`;
     let c = 0;
