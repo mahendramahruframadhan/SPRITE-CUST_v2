@@ -7,6 +7,7 @@ import { useAuditState, DEFAULT_ACTIONS } from '../hooks/useAuditState.js';
 import { recordActivity } from '../lib/activity.js';
 import { useToast } from '../context/ToastContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
+import BrandCombobox from '../components/BrandCombobox.jsx';
 
 const BILL_BADGE = {
   FREE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
@@ -501,14 +502,11 @@ export default function BillingPage() {
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Date Until</label>
               <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setMonth(''); }} className={filterCls} />
             </div>
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Brand</label>
-              <select value={brand} onChange={(e) => setBrand(e.target.value)} className={`${filterCls} min-w-[200px]`}>
-                <option value="">Semua Brand</option>
-                {brands.map((b) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
+            <div className="min-w-[200px]">
+              <label htmlFor="bil-brand" className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Brand</label>
+              <div className="mt-1">
+                <BrandCombobox id="bil-brand" value={brand} onChange={setBrand} options={brands} placeholder="Cari brand…" accent="amber" />
+              </div>
             </div>
             <button
               onClick={() => {
