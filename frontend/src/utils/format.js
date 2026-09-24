@@ -27,6 +27,11 @@ export function statusMeta(s) {
     : { label: 'Dalam Proses', cls: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' };
 }
 
+// Label tampil status invoice: nilai backend/logika tetap 'DIKIRIM'/'PAID',
+// yang dirender ke user dipetakan ke 'TERKIRIM'/'SUDAH DIBAYAR'.
+// Satu sumber — dipakai semua halaman agar kosakata konsisten.
+export const invLabel = (s) => (s === 'DIKIRIM' ? 'TERKIRIM' : s === 'PAID' ? 'SUDAH DIBAYAR' : s);
+
 // Warna label Module (satu sumber untuk semua tabel):
 // DISTRIBUSI = hijau, SHOP = biru, PRODUKSI = coklat, sisanya netral.
 export function moduleTone(m) {

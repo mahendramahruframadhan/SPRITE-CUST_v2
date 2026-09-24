@@ -20,7 +20,7 @@ import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
-import { billingTone } from '../utils/format.js';
+import { billingTone, invLabel } from '../utils/format.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 ChartJS.register(
@@ -860,7 +860,7 @@ export default function DashboardPage() {
             ['Tipe Support', detailCase.supportType || '-'],
             ['Charges', detailCase.charges > 0 ? fmtRp(detailCase.charges) : '-'],
             ['Status Validasi', caseAuditStatus[detailCase.recordUuid] || 'BELUM DIVALIDASI'],
-            ['Status Invoice', invoiceStatus[detailCase.recordUuid] || 'MENUNGGU INVOICE'],
+            ['Status Invoice', invLabel(invoiceStatus[detailCase.recordUuid] || 'MENUNGGU INVOICE')],
           ]},
         ] : []}
         notes={{ label: 'Completion Notes', text: detailCase?.completionNotes }}

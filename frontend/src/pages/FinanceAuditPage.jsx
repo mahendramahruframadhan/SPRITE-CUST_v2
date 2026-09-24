@@ -8,7 +8,7 @@ import { recordActivity } from '../lib/activity.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
 import { useToast } from '../context/ToastContext.jsx';
-import { fmtDate8, moduleTone, billingTone } from '../utils/format.js';
+import { fmtDate8, moduleTone, billingTone, invLabel } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
@@ -55,9 +55,8 @@ const PDF_STATUS_LABEL = { uploading: 'mengupload…', failed: 'gagal', complete
 // tidak ada dropdown; status murni dikendalikan alur (upload/hapus PDF otomatis)
 // dan PAID lewat tombol PAID (modal keterangan). INV_TONE tetap dipakai
 // untuk pewarnaan badge baca-saja.
-// Label tampil status invoice: nilai backend/logika tetap 'DIKIRIM'/'PAID',
-// yang dirender ke user dipetakan via invLabel() ke 'TERKIRIM'/'SUDAH DIBAYAR'.
-const invLabel = (s) => (s === 'DIKIRIM' ? 'TERKIRIM' : s === 'PAID' ? 'SUDAH DIBAYAR' : s);
+// Label tampil status invoice: invLabel() terpusat di utils/format.js
+// (nilai backend/logika tetap 'DIKIRIM'/'PAID').
 const INV_ERR_MSG = {
   INVOICE_AUTO_LOCKED: 'Status ini diatur otomatis oleh sistem (upload/hapus PDF).',
   INVOICE_NEED_PDF: 'Belum bisa PAID — upload minimal 1 PDF invoice dulu.',
