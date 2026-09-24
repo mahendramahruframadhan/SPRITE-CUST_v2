@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
-import { esc } from '../db/sql';
+import { SessionGuard } from '../auth/session.guard';
 
 export const maskKey = (k: string) => (!k ? '' : k.length <= 4 ? '••••' : `••••${k.slice(-4)}`);
 
@@ -98,9 +98,8 @@ export class AiController {
 
   // Daftar koneksi untuk switcher model (tanpa key!) — user login mana pun boleh lihat.
   @Get('connections')
-  async connections(@Headers('x-user-email') email: string) {
-    const who = String(email || '').toLowerCase().trim();
-    if (!who) return [];
+  @UseGuards(SessionGuard)
+  async connections() {
     try {
       const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConnections'` as any);
       const row = (r.rows || r)[0];
@@ -114,13 +113,11 @@ export class AiController {
     }
   }
 
+  // Chat AI (berbiaya per request) — wajib login (SessionGuard memvalidasi
+  // token + status aktif), tanpa cek modul agar semua role bisa memakai.
   @Post('chat')
-  async chat(@Body() body: any, @Headers('x-user-email') email: string) {
-    const who = String(email || '').toLowerCase().trim();
-    if (!who) return { ok: false, error: 'login dulu' };
-    const u: any = await this.db.execute(`SELECT active FROM "user" WHERE lower(email)='${esc(who)}' LIMIT 1` as any);
-    const row = (u.rows || u)[0];
-    if (!row || !Number(row.active ?? 1)) return { ok: false, error: 'akun tidak dikenal/dinonaktifkan' };
+  @UseGuards(SessionGuard)
+  async chat(@Body() body: any) {
 
     const cfg = await this.pickConnection(body.connectionId);
     const apiKey = String(cfg?.apiKey || '');
