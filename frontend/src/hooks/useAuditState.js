@@ -65,6 +65,14 @@ export function useAuditState() {
     patchAudit(uuid, action).catch(() => {}); // backend sumber kebenaran; localStorage tetap cache instan
   }, []);
 
+  // Sinkron lokal SAJA dari kebenaran backend (dipakai menutup celah basi
+  // antar-browser: validasi dari tab lain) — tanpa PATCH balik agar tak
+  // duplikat request. Pola yang sama dengan syncInvoiceStatus.
+  const syncAuditStatus = useCallback((uuid, status) => {
+    if (!uuid || !status) return;
+    setCaseAuditStatus((prev) => (prev[uuid] === status ? prev : { ...prev, [uuid]: status }));
+  }, []);
+
   const addAction = useCallback((val) => {
     const v = String(val || '').trim().replace(/\s+/g, ' ').slice(0, 40).toUpperCase();
     if (!v) return;
@@ -135,5 +143,5 @@ export function useAuditState() {
     return r;
   }, []);
 
-  return { auditActions, caseAuditStatus, defaultAuditStatus, updateAudit, addAction, removeAction, renameAuditAction };
+  return { auditActions, caseAuditStatus, defaultAuditStatus, updateAudit, syncAuditStatus, addAction, removeAction, renameAuditAction };
 }

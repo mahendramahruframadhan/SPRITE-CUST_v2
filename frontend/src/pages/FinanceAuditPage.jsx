@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
-import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, getInvoiceMap } from '../lib/api.js';
+import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, getInvoiceMap, getAuditMap } from '../lib/api.js';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
@@ -432,7 +432,7 @@ const INV_TONE = {
 export default function FinanceAuditPage() {
   const { notify } = useToast();
   const { user } = useAuth();
-  const { caseAuditStatus } = useAuditState();
+  const { caseAuditStatus, syncAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
   const { invoiceActions, invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
   const [from, setFrom] = useState('');
@@ -457,6 +457,8 @@ export default function FinanceAuditPage() {
 
   // A+P3. Sinkron status invoice dari backend (sumber kebenaran otomasi upload/hapus):
   // saat halaman dimuat + tiap jendela kembali fokus (tutup sisa celah basi antar-tab).
+  // Status validasi ikut disinkron dari audit-map agar pool kasus tervalidasi
+  // tidak basi bila divalidasi dari browser lain.
   const syncFromServer = useCallback(() => {
     getInvoiceMap()
       .then((r) => {
@@ -465,7 +467,13 @@ export default function FinanceAuditPage() {
         if (r.notes && typeof r.notes === 'object') setPayNotes(r.notes);
       })
       .catch(() => {});
-  }, [syncInvoiceStatus]);
+    getAuditMap()
+      .then((r) => {
+        if (!r || typeof r.map !== 'object') return;
+        Object.entries(r.map).forEach(([uuid, st]) => syncAuditStatus(uuid, st));
+      })
+      .catch(() => {});
+  }, [syncInvoiceStatus, syncAuditStatus]);
 
   useEffect(() => {
     syncFromServer();

@@ -37,6 +37,18 @@ export class BillingController {
     }
     return { ok: true, map, notes };
   }
+  // Peta status validasi per kasus — dipakai frontend menyinkronkan tampilan lokal
+  // dengan kebenaran backend (validasi dari browser lain) saat halaman dimuat.
+  // Baca terbuka seperti GET lain.
+  @Get('billing/audit-map')
+  async auditMap() {
+    const r: any = await this.db.execute(`SELECT record_uuid, action FROM audit_status` as any);
+    const map: Record<string, string> = {};
+    for (const x of (r.rows || r || [])) {
+      if (x && (x.record_uuid || x.recorduuid) && x.action) map[x.record_uuid || x.recorduuid] = x.action;
+    }
+    return { ok: true, map };
+  }
   @Patch('cases/:uuid/audit')
   @UseGuards(PermGuard)
   @Perm('billing')

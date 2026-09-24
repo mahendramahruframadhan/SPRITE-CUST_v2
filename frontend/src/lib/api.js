@@ -92,6 +92,7 @@ export const patchAudit = (uuid, action) => patch(`/cases/${uuid}/audit`, { acti
 export const patchInvoice = (uuid, status, extra = {}) => patch(`/cases/${uuid}/invoice`, { status, ...extra });
 export const getBillingStats = () => get('/billing/stats');
 export const getInvoiceMap = () => get('/billing/invoice-map');
+export const getAuditMap = () => get('/billing/audit-map');
 export const triggerSync = () => post('/sync/trigger', {});
 export const getSyncLogs = () => get('/sync/logs');
 export const signIn = (email, password) => post('/auth/sign-in/email', { email, password });

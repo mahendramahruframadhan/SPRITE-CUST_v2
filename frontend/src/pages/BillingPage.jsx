@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useRangedCases } from '../hooks/useCases.js';
+import { getAuditMap } from '../lib/api.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { fmtDate8, moduleTone, billingTone } from '../utils/format.js';
 import { useAuditState, DEFAULT_ACTIONS } from '../hooks/useAuditState.js';
@@ -42,7 +43,7 @@ function ExpandableText({ text }) {
 
 export default function BillingPage() {
   const { notify } = useToast();
-  const { auditActions, caseAuditStatus, defaultAuditStatus, updateAudit, addAction, removeAction, renameAuditAction } = useAuditState();
+  const { auditActions, caseAuditStatus, defaultAuditStatus, updateAudit, syncAuditStatus, addAction, removeAction, renameAuditAction } = useAuditState();
   // Filter bulan langsung ke backend: month -> from/to (YYYY-MM-DD) -> WHERE date_issue.
   // Default = bulan berjalan (otomatis ikut kalender). Kosong = semua tanggal.
   const monthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -230,6 +231,23 @@ export default function BillingPage() {
   useEffect(() => {
     setPage(1);
   }, [cat, q, from, to, brand, perPage]);
+
+  // Sinkron status validasi dari backend (sumber kebenaran; tutup celah basi
+  // antar-browser): saat halaman dimuat + tiap jendela kembali fokus.
+  const syncFromServer = useCallback(() => {
+    getAuditMap()
+      .then((r) => {
+        if (!r || typeof r.map !== 'object') return;
+        Object.entries(r.map).forEach(([uuid, st]) => syncAuditStatus(uuid, st));
+      })
+      .catch(() => {});
+  }, [syncAuditStatus]);
+
+  useEffect(() => {
+    syncFromServer();
+    window.addEventListener('focus', syncFromServer);
+    return () => window.removeEventListener('focus', syncFromServer);
+  }, [syncFromServer]);
 
   const totalPages = Math.max(1, Math.ceil(items.length / perPage));
   const safePage = Math.min(page, totalPages);
