@@ -9,7 +9,7 @@ import DatePickerInput from '../components/DatePickerInput.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
-import { moduleTone, billingTone, invLabel } from '../utils/tones.js';
+import { moduleTone, billingTone, invLabel, invoiceTone } from '../utils/tones.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
@@ -54,8 +54,8 @@ const PDF_STATUS_LABEL = { uploading: 'mengupload…', failed: 'gagal', complete
 
 // Alasan (R-31): status invoice tidak lagi bisa diubah user secara manual —
 // tidak ada dropdown; status murni dikendalikan alur (upload/hapus PDF otomatis)
-// dan PAID lewat tombol PAID (modal keterangan). INV_TONE tetap dipakai
-// untuk pewarnaan badge baca-saja.
+// dan PAID lewat tombol PAID (modal keterangan). invoiceTone() terpusat
+// di utils/tones.js dipakai untuk pewarnaan badge baca-saja.
 // Label tampil status invoice: invLabel() terpusat di utils/format.js
 // (nilai backend/logika tetap 'DIKIRIM'/'PAID').
 const INV_ERR_MSG = {
@@ -421,14 +421,8 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
   );
 }
 
-// Warna badge billing status: billingTone() terpusat di utils/format.js.
-// Warna select status invoice (status kustom → netral)
-const INV_TONE = {
-  'MENUNGGU INVOICE': 'border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400',
-  'INVOICE TERBIT': 'border-violet-200 bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:border-violet-500/30 dark:text-violet-400',
-  DIKIRIM: 'border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:border-sky-500/30 dark:text-sky-400',
-  PAID: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400',
-};
+// Warna badge billing status & status invoice: billingTone()/invoiceTone()
+// terpusat di utils/tones.js.
 
 export default function FinanceAuditPage() {
   const { notify } = useToast();
@@ -856,7 +850,7 @@ export default function FinanceAuditPage() {
                     {(() => {
                       const cur = invoiceStatus[c.recordUuid] || defaultInvoiceStatus;
                       const pn = payNotes[c.recordUuid];
-                      const tone = INV_TONE[cur] || 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800';
+                      const tone = invoiceTone(cur);
                       return (
                         <div className="w-[180px]">
                           {cur === 'INVOICE TERBIT' ? (
