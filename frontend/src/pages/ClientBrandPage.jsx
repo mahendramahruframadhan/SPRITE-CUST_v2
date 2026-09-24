@@ -214,13 +214,13 @@ export default function ClientBrandPage() {
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{item.brand}</span>
             <span className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-              <svg className="w-3.5 h-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+              <svg className="w-3.5 h-3.5 shrink-0 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
               </svg>
               {fmtDateID(item.expiredAt)}
               {st === 'expired' && <span className="text-rose-500 font-bold"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
               {st === 'soon' && <span className="text-amber-600 dark:text-amber-400 font-bold"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
-              {st === 'active' && <span className="text-slate-500"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
+              {st === 'active' && <span className="text-slate-500 dark:text-slate-400"> · {fmtLeft(daysLeft(item.expiredAt))}</span>}
             </span>
           </span>
           {st === 'expired' ? (
@@ -277,7 +277,7 @@ export default function ClientBrandPage() {
         className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex flex-col md:flex-row gap-3 md:items-end shadow-sm"
       >
         <div className="flex-1">
-          <label htmlFor="cb-brand" className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+          <label htmlFor="cb-brand" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
             Nama brand <span className="text-rose-500">*</span>
           </label>
           <input
@@ -289,7 +289,7 @@ export default function ClientBrandPage() {
           />
         </div>
         <div>
-          <span id="cb-type-label" className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Masuk ke</span>
+          <span id="cb-type-label" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Masuk ke</span>
           <div className="flex mt-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 p-1 gap-1" role="group" aria-labelledby="cb-type-label">
             {TABS.map((t) => (
               <button
@@ -310,7 +310,7 @@ export default function ClientBrandPage() {
         </div>
         {type === 'GRATIS' && (
           <div className="md:w-72">
-            <label htmlFor="cb-exp" className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+            <label htmlFor="cb-exp" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
               Expired <span className="text-rose-500">*</span>
             </label>
             <div className="mt-1.5">
@@ -375,14 +375,14 @@ export default function ClientBrandPage() {
           <header className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">Support Monthly</h3>
-              <p className="text-[11px] text-slate-500">Brand berlangganan bulanan</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Brand berlangganan bulanan</p>
             </div>
             <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20">
               {monthly.length}
             </span>
           </header>
           {monthly.length === 0 ? (
-            <p className="px-4 py-8 text-center text-xs text-slate-500">Belum ada. Ketik nama lalu Tambah ke Monthly.</p>
+            <p className="px-4 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada. Ketik nama lalu Tambah ke Monthly.</p>
           ) : (
             <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto">
               {monthly.map((it) => <MonthlyRow key={it.id} item={it} />)}
@@ -394,7 +394,7 @@ export default function ClientBrandPage() {
           <header className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">Kontrak Free Maintenance</h3>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 {expiredCount > 0 ? `${expiredCount} expired` : 'Urut dari expired terdekat'}
                 {soonCount > 0 && ` · ${soonCount} segera habis`}
               </p>
@@ -404,7 +404,7 @@ export default function ClientBrandPage() {
             </span>
           </header>
           {gratis.length === 0 ? (
-            <p className="px-4 py-8 text-center text-xs text-slate-500">Belum ada. Pilih Free Maintenance dan isi tanggal expired.</p>
+            <p className="px-4 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada. Pilih Free Maintenance dan isi tanggal expired.</p>
           ) : (
             <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto">
               {gratis.map((it) => <FreeRow key={it.id} item={it} />)}
@@ -413,7 +413,7 @@ export default function ClientBrandPage() {
         </section>
       </div>
 
-      <p className="text-[11px] text-slate-500">Tersimpan otomatis di browser ini. Backend disambungkan nanti tanpa mengubah tampilan.</p>
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">Tersimpan otomatis di browser ini. Backend disambungkan nanti tanpa mengubah tampilan.</p>
 
       {/* Modal detail: dibuka dari baris mana pun; berisi detail + Update + Hapus */}
       {detailItem && (
@@ -451,7 +451,7 @@ export default function ClientBrandPage() {
             {modalMode === 'edit' ? (
               <div className="px-5 py-4 space-y-4">
                 <div>
-                  <label htmlFor="dm-name" className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                  <label htmlFor="dm-name" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                     Nama brand <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -464,13 +464,13 @@ export default function ClientBrandPage() {
                 </div>
                 {detailItem.type === 'GRATIS' && (
                   <div>
-                    <label htmlFor="dm-exp" className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                    <label htmlFor="dm-exp" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                       Expired sampai <span className="text-rose-500">*</span>
                     </label>
                     <div className="mt-1.5">
                       <DatePickerInput id="dm-exp" value={editDate} onChange={setEditDate} />
                     </div>
-                    <p className="mt-1.5 text-[11px] text-slate-500">Tanggal terakhir kontrak gratis berlaku.</p>
+                    <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">Tanggal terakhir kontrak gratis berlaku.</p>
                   </div>
                 )}
                 <div className="flex gap-2 pt-1">
@@ -497,10 +497,10 @@ export default function ClientBrandPage() {
                   {detailItem.type === 'GRATIS' ? (
                     <>
                       <div className="flex items-center justify-between gap-3">
-                        <dt className="text-xs font-semibold text-slate-500">Expired sampai</dt>
+                        <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">Expired sampai</dt>
                         <dd>
                           <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
-                            <svg className="w-3.5 h-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                            <svg className="w-3.5 h-3.5 shrink-0 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                             </svg>
                             {fmtDateID(detailItem.expiredAt)}
@@ -508,11 +508,11 @@ export default function ClientBrandPage() {
                         </dd>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <dt className="text-xs font-semibold text-slate-500">Sisa kontrak</dt>
+                        <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">Sisa kontrak</dt>
                         <dd className="font-bold text-slate-800 dark:text-slate-100">{fmtLeft(daysLeft(detailItem.expiredAt)) || '-'}</dd>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <dt className="text-xs font-semibold text-slate-500">Status</dt>
+                        <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">Status</dt>
                         <dd>
                           {expiryState(detailItem.expiredAt) === 'expired' && (
                             <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20">EXPIRED</span>
@@ -529,16 +529,16 @@ export default function ClientBrandPage() {
                   ) : (
                     <>
                       <div className="flex items-center justify-between gap-3">
-                        <dt className="text-xs font-semibold text-slate-500">Tipe</dt>
+                        <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">Tipe</dt>
                         <dd>
                           <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20">MONTHLY</span>
                         </dd>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <dt className="text-xs font-semibold text-slate-500">Tercatat sejak</dt>
+                        <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">Tercatat sejak</dt>
                         <dd className="font-bold text-slate-800 dark:text-slate-100">{fmtDateID(String(detailItem.createdAt || '').slice(0, 10))}</dd>
                       </div>
-                      <p className="text-[11px] text-slate-500">Berlangganan bulanan, tanpa tanggal expired.</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Berlangganan bulanan, tanpa tanggal expired.</p>
                     </>
                   )}
                 </dl>

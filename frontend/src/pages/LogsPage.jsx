@@ -187,9 +187,9 @@ export default function LogsPage({ bare = false }) {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3">
           <h3 className="font-bold text-slate-900 dark:text-white">Riwayat Aktivitas</h3>
-          <span className="text-xs text-slate-500">{loading ? 'Memuat…' : `${items.length} aktivitas`}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">{loading ? 'Memuat…' : `${items.length} aktivitas`}</span>
           <div className="ml-auto relative">
-            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
             <input
@@ -237,7 +237,7 @@ export default function LogsPage({ bare = false }) {
               })}
               {!loading && paged.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500 text-sm">
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
                     Belum ada aktivitas tercatat — ubah status di Billing / Finance, atau tambah kasus baru.
                   </td>
                 </tr>
@@ -246,7 +246,7 @@ export default function LogsPage({ bare = false }) {
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 bg-slate-50/60 dark:bg-slate-800/40">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
           <span>
             Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} aktivitas
           </span>

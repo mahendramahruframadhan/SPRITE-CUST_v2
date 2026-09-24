@@ -272,7 +272,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
         htmlFor={inputId}
         aria-disabled={uploadDisabled}
         title={canUpload ? 'Upload PDF invoice' : 'Upload dinonaktifkan — PDF sudah terupload. Hapus PDF untuk upload ulang.'}
-        className={`inline-flex flex-1 min-w-0 items-center justify-center gap-2 text-[12px] font-extrabold rounded-xl px-3 py-2 transition ${uploadDisabled ? 'cursor-not-allowed text-slate-500 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700' : 'cursor-pointer text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-sm shadow-emerald-600/25 hover:shadow-md'}`}
+        className={`inline-flex flex-1 min-w-0 items-center justify-center gap-2 text-[12px] font-extrabold rounded-xl px-3 py-2 transition ${uploadDisabled ? 'cursor-not-allowed text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700' : 'cursor-pointer text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-sm shadow-emerald-600/25 hover:shadow-md'}`}
       >
         <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -285,7 +285,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
         disabled={histBusy}
         title="Riwayat invoice, validasi & PDF kasus ini"
         aria-label="Riwayat invoice, validasi dan PDF kasus ini"
-        className="shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 p-2 text-slate-500 shadow-sm transition hover:text-brand-600 dark:hover:text-brand-300 hover:border-brand-200 dark:hover:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10 hover:shadow-md disabled:opacity-50 disabled:cursor-wait"
+        className="shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 p-2 text-slate-500 dark:text-slate-400 shadow-sm transition hover:text-brand-600 dark:hover:text-brand-300 hover:border-brand-200 dark:hover:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10 hover:shadow-md disabled:opacity-50 disabled:cursor-wait"
       >
         {histBusy ? (
           <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -329,7 +329,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-[11px] font-bold text-slate-700 dark:text-slate-200" title={f.filename}>{f.filename}</p>
-                  <p className="text-[10px] font-semibold text-slate-500 tabular-nums">
+                  <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
                     {fmtKB(f.sizeBytes)}{!ready ? ` · ${statusLabel}` : ''}
                   </p>
                 </div>
@@ -380,7 +380,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
                     onClick={() => setDeleteTarget(f)}
                     title={ready ? `Hapus ${f.filename}` : `Hapus ${f.filename} (${statusLabel}, belum selesai)`}
                     aria-label={`Hapus ${f.filename}`}
-                    className={`${iconBtn} text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10`}
+                    className={`${iconBtn} text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -394,7 +394,7 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
         </ul>
       ) : (
         // Sebelum ada upload: status kosong yang elegan
-        <div className="mt-1.5 flex w-full items-center gap-1.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 px-2 py-1.5 text-slate-500">
+        <div className="mt-1.5 flex w-full items-center gap-1.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 px-2 py-1.5 text-slate-500 dark:text-slate-400">
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
           </svg>
@@ -696,7 +696,7 @@ export default function FinanceAuditPage() {
 
       {/* Alur kerja */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm px-4 py-3 flex flex-wrap items-center gap-x-2 gap-y-2 text-[11px] font-bold animate-fade-in-fast">
-        <span className="text-slate-500 uppercase tracking-[0.14em]">Alur:</span>
+        <span className="text-slate-500 dark:text-slate-400 uppercase tracking-[0.14em]">Alur:</span>
         <Link to="/billing" className="text-brand-600 hover:text-brand-700 hover:underline uppercase tracking-wide">Billing & Audit</Link>
         <Arrow />
         <FlowPill tone="bg-amber-50 text-amber-700 border-amber-200">Menunggu Invoice</FlowPill>
@@ -715,9 +715,9 @@ export default function FinanceAuditPage() {
             <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${d.accent}`} />
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.12em] truncate">{d.t}</p>
+                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] truncate">{d.t}</p>
                 <p className={`mt-2 ${d.size || 'text-[22px]'} leading-tight font-extrabold tracking-tight tabular-nums ${d.color} ${d.darkColor || ''}`}>{d.v}</p>
-                <p className="mt-1.5 text-xs font-medium text-slate-500 truncate">{d.sub}</p>
+                <p className="mt-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 truncate">{d.sub}</p>
               </div>
               <span className={`w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br ${d.accent} flex items-center justify-center`}>
                 <span className="w-2.5 h-2.5 rounded-full bg-white" aria-hidden="true" />
@@ -732,7 +732,7 @@ export default function FinanceAuditPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Filter Data</h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {loading ? 'Memuat dari backend…' : <>Menampilkan <span className="font-bold text-emerald-600">{filtered.length}</span> dari {validatedPool.length} kasus tervalidasi</>}
             </p>
           </div>
@@ -745,25 +745,25 @@ export default function FinanceAuditPage() {
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-[230px]">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Date From</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Date From</label>
             <div className="mt-1">
               <DatePickerInput id="fin-from" value={from} onChange={setFromLogged} placeholder="Semua tanggal" />
             </div>
           </div>
           <div className="w-[230px]">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Date Until</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Date Until</label>
             <div className="mt-1">
               <DatePickerInput id="fin-to" value={to} onChange={setToLogged} placeholder="Semua tanggal" />
             </div>
           </div>
           <div className="min-w-[200px]">
-            <label htmlFor="fin-brand" className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Brand</label>
+            <label htmlFor="fin-brand" className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Brand</label>
             <div className="mt-1">
               <BrandCombobox id="fin-brand" value={brand} onChange={setBrandLogged} options={brands} placeholder="Cari brand…" />
             </div>
           </div>
           <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Status Invoice</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Status Invoice</label>
             <select value={invFilter} onChange={(e) => setInvFilterLogged(e.target.value)} className={`${filterCls} min-w-[180px] mt-1`}>
               <option value="">Semua</option>
               {invoiceActions.map((a) => (
@@ -785,7 +785,7 @@ export default function FinanceAuditPage() {
             </span>
             <div>
               <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Kasus Tervalidasi — Siap Invoice</h3>
-              <p className="text-xs text-slate-500">{loading ? 'Memuat dari backend…' : `${filtered.length} kasus · total ${fmtMoney(total)}`}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{loading ? 'Memuat dari backend…' : `${filtered.length} kasus · total ${fmtMoney(total)}`}</p>
             </div>
           </div>
           <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5 tabular-nums">
@@ -817,7 +817,7 @@ export default function FinanceAuditPage() {
                 const bs = (c.billingStatus || '').trim() || '-';
                 return (
                 <tr key={c.recordUuid} className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition">
-                  <td className="px-6 py-3.5 text-slate-500 tabular-nums">{c.no}</td>
+                  <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no}</td>
                   <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
                     <span className="font-bold text-slate-800 dark:text-slate-100">{c.client}</span>
@@ -840,7 +840,7 @@ export default function FinanceAuditPage() {
                   </td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
                     <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${moduleTone(c.module)}`}>{c.module || '-'}</span>
-                    {c.subModule && <span className="mt-1 block text-[10px] text-slate-500 font-medium">{c.subModule}</span>}
+                    {c.subModule && <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-400 font-medium">{c.subModule}</span>}
                   </td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
                     <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[bs] || 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'}`}>
@@ -920,7 +920,7 @@ export default function FinanceAuditPage() {
                           )}
                           {cur === 'DIKIRIM' && (
                             <>
-                              <p className="mt-1 text-[10px] font-semibold text-slate-500">Menunggu pembayaran…</p>
+                              <p className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">Menunggu pembayaran…</p>
                               <button
                                 onClick={() => openPaidModal(c.recordUuid)}
                                 className="mt-1 w-full inline-flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg px-2 py-2 shadow-sm shadow-emerald-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
@@ -968,7 +968,7 @@ export default function FinanceAuditPage() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="px-6 py-12 text-center text-slate-500 text-sm">
+                  <td colSpan={13} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
                     Belum ada kasus tervalidasi — validasi dulu kasus di menu{' '}
                     <Link to="/billing" className="font-semibold text-emerald-600 hover:underline">
                       Billing &amp; Audit
@@ -979,7 +979,7 @@ export default function FinanceAuditPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2 justify-between text-xs text-slate-500 bg-slate-50/60 dark:bg-slate-800/40">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2 justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
           <span>
             Hanya kasus <span className="font-bold text-emerald-600 dark:text-emerald-400">VALID - SIAP INVOICE</span> dari Billing & Audit yang tampil di halaman ini
           </span>
@@ -1049,7 +1049,7 @@ export default function FinanceAuditPage() {
               )}
             </div>
             <div className="px-5 py-4">
-              <label htmlFor="pay-note" className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+              <label htmlFor="pay-note" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Keterangan pembayaran <span className="text-rose-500">*</span>
               </label>
               <textarea

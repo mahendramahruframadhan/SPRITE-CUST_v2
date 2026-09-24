@@ -27,7 +27,7 @@ function RequirePerm({ module, children }) {
   if (!can(module)) {
     if (module === 'dashboard') {
       return (
-        <div className="px-8 py-12 text-sm text-slate-500">
+        <div className="px-8 py-12 text-sm text-slate-500 dark:text-slate-400">
           Role <span className="font-bold text-slate-700">{role}</span> tidak punya akses
           ke modul mana pun. Minta Super Admin mengatur izin di halaman Hak Akses.
         </div>

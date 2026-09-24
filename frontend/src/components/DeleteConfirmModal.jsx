@@ -50,7 +50,7 @@ export default function DeleteConfirmModal({ file, busy = false, onCancel, onCon
             </svg>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-bold text-slate-700 dark:text-slate-200" title={file.filename}>{file.filename}</p>
-              {file.sizeLabel && <p className="text-[11px] font-semibold text-slate-500 tabular-nums">{file.sizeLabel}</p>}
+              {file.sizeLabel && <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">{file.sizeLabel}</p>}
             </div>
           </div>
           <div className="mt-4 flex items-center justify-end gap-2">

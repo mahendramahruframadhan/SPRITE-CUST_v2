@@ -207,7 +207,7 @@ export default function SignUpPage() {
               <h1 className="text-xl font-bold text-slate-900 dark:text-white">
                 {firstRun ? 'Buat akun Super Admin pertama' : 'Daftar akun baru'}
               </h1>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Langkah {step + 1} dari {STEPS.length} — {STEPS[step].title}
               </p>
               <div className="h-1.5 bg-slate-100 rounded-full mt-3 overflow-hidden" role="progressbar" aria-valuenow={step + 1} aria-valuemin={1} aria-valuemax={STEPS.length} aria-label="Progres pendaftaran">
@@ -265,7 +265,7 @@ export default function SignUpPage() {
                     />
                     {errors.email
                       ? <p id="reg-email-error" className="text-xs text-rose-600 mt-1">{errors.email}</p>
-                      : <p id="reg-email-hint" className="text-[11px] text-slate-500 mt-1">Dipakai untuk login dan header identitas <code className="font-mono">x-user-email</code> ke backend.</p>}
+                      : <p id="reg-email-hint" className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Dipakai untuk login dan header identitas <code className="font-mono">x-user-email</code> ke backend.</p>}
                   </div>
                 </div>
               )}
@@ -308,7 +308,7 @@ export default function SignUpPage() {
                         onClick={() => setShowPw((v) => !v)}
                         aria-pressed={showPw}
                         aria-label={showPw ? 'Sembunyikan password' : 'Tampilkan password'}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
                           {showPw
@@ -319,7 +319,7 @@ export default function SignUpPage() {
                     </div>
                     {errors.password
                       ? <p id="reg-password-hint" className="text-xs text-rose-600 mt-1">{errors.password}</p>
-                      : <p id="reg-password-hint" className="text-[11px] text-slate-500 mt-1">Boleh paste dari password manager. Minimal 5 karakter.</p>}
+                      : <p id="reg-password-hint" className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Boleh paste dari password manager. Minimal 5 karakter.</p>}
                     {values.password && (
                       <div id="reg-password-strength" className="mt-2" aria-live="polite">
                         <div className="flex gap-1" aria-hidden="true">
@@ -350,7 +350,7 @@ export default function SignUpPage() {
                         onClick={() => setShowConfirm((v) => !v)}
                         aria-pressed={showConfirm}
                         aria-label={showConfirm ? 'Sembunyikan konfirmasi password' : 'Tampilkan konfirmasi password'}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
                           {showConfirm
@@ -368,15 +368,15 @@ export default function SignUpPage() {
                 <div className="space-y-4">
                   <dl className="border border-slate-200 dark:border-slate-700 rounded-xl divide-y divide-slate-100 dark:divide-slate-800 text-sm overflow-hidden">
                     <div className="flex items-center justify-between gap-4 px-4 py-3">
-                      <dt className="text-xs font-semibold text-slate-500">Nama</dt>
+                      <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">Nama</dt>
                       <dd className="text-sm font-semibold text-slate-800 dark:text-slate-100 text-right truncate">{values.name}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-4 px-4 py-3">
-                      <dt className="text-xs font-semibold text-slate-500">Email</dt>
+                      <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">Email</dt>
                       <dd className="text-sm font-semibold text-slate-800 dark:text-slate-100 text-right truncate">{normalizeEmail(values.email)}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-4 px-4 py-3">
-                      <dt className="text-xs font-semibold text-slate-500">Role awal</dt>
+                      <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">Role awal</dt>
                       <dd>
                         <span className={`inline-flex items-center text-[11px] font-bold rounded-full px-2.5 py-1 ${firstRun ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'text-brand-700 bg-brand-50 border border-brand-100 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/20'}`}>
                           {firstRun ? 'Super Admin (akun pertama)' : 'Viewer'}
@@ -384,7 +384,7 @@ export default function SignUpPage() {
                       </dd>
                     </div>
                   </dl>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                     Dengan mendaftar, akun tunduk pada matriks izin di halaman Hak Akses.
                     Super Admin selalu memiliki semua akses; role lain mengikuti izin modul yang berlaku saat itu juga.
                   </p>
@@ -422,7 +422,7 @@ export default function SignUpPage() {
               </div>
             </form>
 
-            <p className="text-center text-xs text-slate-500 mt-6">
+            <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-6">
               Sudah punya akun?{' '}
               <Link to="/login" className="font-semibold text-brand-600 dark:text-brand-300 hover:underline">
                 Login
@@ -430,7 +430,7 @@ export default function SignUpPage() {
             </p>
           </div>
         </div>
-        <p className="text-center text-[11px] text-slate-500 mt-4">
+        <p className="text-center text-[11px] text-slate-500 dark:text-slate-400 mt-4">
           Kontrak backend: <code className="font-mono">src/features/register/BACKEND_CONTRACT.md</code> — terimplementasi di <code className="font-mono">backend/src/setup/</code>.
         </p>
       </div>

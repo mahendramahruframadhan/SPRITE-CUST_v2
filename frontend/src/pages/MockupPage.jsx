@@ -193,9 +193,9 @@ export default function MockupPage() {
           <div key={d.t} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">{d.t}</p>
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{d.t}</p>
                 <p className={`mt-2 text-3xl font-extrabold ${KPI_STYLE[d.color].text}`}>{d.v}</p>
-                <p className="mt-1 text-xs text-slate-500 font-medium">{d.sub}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">{d.sub}</p>
               </div>
               <div className={`w-11 h-11 rounded-xl ${KPI_STYLE[d.color].box} flex items-center justify-center`}>
                 <KpiIcon color={d.color} />
@@ -210,7 +210,7 @@ export default function MockupPage() {
         <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="mb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Tren Kasus per Minggu</h3>
-            <p className="text-xs text-slate-500">Berdasarkan nomor minggu pada sheet</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Berdasarkan nomor minggu pada sheet</p>
           </div>
           <div className="h-72">
             <Line data={charts.trend} options={axisOpt} />
@@ -219,7 +219,7 @@ export default function MockupPage() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="mb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Distribusi Modul</h3>
-            <p className="text-xs text-slate-500">Kasus berdasarkan modul</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Kasus berdasarkan modul</p>
           </div>
           <div className="h-72">
             <Doughnut data={charts.module} options={legendRight} />
@@ -231,7 +231,7 @@ export default function MockupPage() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="mb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Status Billing</h3>
-            <p className="text-xs text-slate-500">FREE / MONTHLY / ON-CALL</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">FREE / MONTHLY / ON-CALL</p>
           </div>
           <div className="h-64">
             <Pie data={charts.billing} options={legendBottom} />
@@ -240,7 +240,7 @@ export default function MockupPage() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="mb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Top PIC / Assign To</h3>
-            <p className="text-xs text-slate-500">Jumlah kasus ditangani per petugas</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Jumlah kasus ditangani per petugas</p>
           </div>
           <div className="h-64">
             <Bar data={charts.pic} options={axisOpt} />
@@ -253,11 +253,11 @@ export default function MockupPage() {
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-end gap-3">
           <div>
             <h3 className="font-bold text-slate-900 dark:text-white">Daftar Kasus Dukungan</h3>
-            <p className="text-xs text-slate-500">Klik baris untuk lihat detail lengkap</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Klik baris untuk lihat detail lengkap</p>
           </div>
           <div className="ml-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2 w-full xl:w-auto">
             <div className="relative">
-              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
               <input
@@ -327,7 +327,7 @@ export default function MockupPage() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-6 py-12 text-center text-slate-500 text-sm">
+                  <td colSpan={12} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
                     Tidak ada data yang cocok
                   </td>
                 </tr>
@@ -335,7 +335,7 @@ export default function MockupPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
           Menampilkan {filtered.length} dari {cases.length} kasus
         </div>
       </div>
@@ -400,7 +400,7 @@ function MockupDetailModal({ item, onClose }) {
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{item.issue}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -409,13 +409,13 @@ function MockupDetailModal({ item, onClose }) {
         <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
           {fields.map(([k, v]) => (
             <div key={k}>
-              <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">{k}</p>
+              <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{k}</p>
               <p className={`mt-0.5 text-slate-800 dark:text-slate-100 ${k === 'Completion Notes' ? 'leading-relaxed' : ''}`}>{v}</p>
             </div>
           ))}
         </div>
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl">
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
             RECORD_UUID: <span className="font-mono text-slate-600 dark:text-slate-300">{item.recordUuid}</span>
           </p>
         </div>

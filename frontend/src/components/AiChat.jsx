@@ -263,13 +263,13 @@ export default function AiChat() {
                   m.from === 'user' ? 'bg-brand-600 text-white rounded-br-md' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-bl-md'
                 }`}>
                   {m.text}
-                  {m.local && <span className="block mt-1 text-[10px] text-slate-500">· mode lokal (AI eksternal belum aktif)</span>}
+                  {m.local && <span className="block mt-1 text-[10px] text-slate-500 dark:text-slate-400">· mode lokal (AI eksternal belum aktif)</span>}
                 </p>
               </div>
             ))}
             {typing && (
               <div className="flex justify-start">
-                <p className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 text-[13px] px-3 py-2 rounded-2xl rounded-bl-md motion-safe:animate-pulse">mengetik…</p>
+                <p className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[13px] px-3 py-2 rounded-2xl rounded-bl-md motion-safe:animate-pulse">mengetik…</p>
               </div>
             )}
           </div>

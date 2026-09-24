@@ -79,7 +79,7 @@ export default function AppLayout() {
           </div>
           <div>
             <h1 className="font-bold text-slate-900 dark:text-white leading-tight text-sm">Pusat Data Bantuan</h1>
-            <p className="text-[11px] text-slate-500">Sinkron dari Google Sheets</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Sinkron dari Google Sheets</p>
           </div>
         </div>
 
@@ -90,7 +90,7 @@ export default function AppLayout() {
               return (
                 <p
                   key={`g-${i}`}
-                  className={`px-5 ${m.group === 'Menu Utama' ? '' : 'pt-5'} pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-600`}
+                  className={`px-5 ${m.group === 'Menu Utama' ? '' : 'pt-5'} pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400`}
                 >
                   {m.group}
                 </p>
@@ -113,7 +113,7 @@ export default function AppLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{user.name}</p>
-              <p className="text-[11px] text-slate-500 truncate">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                 {user.role} · {user.email}
               </p>
             </div>
@@ -122,7 +122,7 @@ export default function AppLayout() {
                 to="/settings"
                 title="Pengaturan"
                 aria-label="Pengaturan akun"
-                className="shrink-0 text-slate-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-800 rounded-lg p-2 transition"
+                className="shrink-0 text-slate-500 dark:text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-800 rounded-lg p-2 transition"
               >
                 <Icon name="settings" className="w-5 h-5" strokeWidth={1.8} />
               </NavLink>
@@ -147,7 +147,7 @@ export default function AppLayout() {
             aria-expanded={navOpen}
             aria-controls="app-sidebar"
             aria-label="Buka navigasi"
-            className="lg:hidden w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+            className="lg:hidden w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -155,7 +155,7 @@ export default function AppLayout() {
           </button>
           <div className="min-w-0">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">{current?.title || 'Dashboard'}</h2>
-            <p className="text-xs text-slate-500 truncate">{current?.sub || '—'}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{current?.sub || '—'}</p>
           </div>
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">

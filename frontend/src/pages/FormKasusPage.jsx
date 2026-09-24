@@ -256,7 +256,7 @@ export default function FormKasusPage() {
           </Field>
           <Field label="Charges (Rp)">
             <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">Rp</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 dark:text-slate-400">Rp</span>
               <input
                 type="number"
                 min="0"

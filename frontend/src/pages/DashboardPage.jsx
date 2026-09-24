@@ -383,7 +383,7 @@ export default function DashboardPage() {
     { title: 'Billing & Audit', to: '/billing', icon: 'billing', metric: fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0)) + ' tagihan', desc: 'ON-CALL: ' + fmtNum(billMap['ON-CALL'] || 0) + ' · MONTHLY: ' + fmtNum(billMap['MONTHLY'] || 0), grad: 'from-amber-400 to-orange-500', soft: 'bg-amber-50 text-amber-600' },
     { title: 'Finance Audit', to: '/finance', icon: 'finance', metric: fmtRp(totalCharge), desc: 'total nilai charges yang tercatat', grad: 'from-emerald-400 to-teal-600', soft: 'bg-emerald-50 text-emerald-600' },
     { title: 'Konfigurasi Sheet', to: '/cfg', icon: 'cfg', metric: priceRefs + ' paket', desc: 'referensi price list yang dipakai kasus', grad: 'from-violet-500 to-purple-600', soft: 'bg-violet-50 text-violet-600' },
-    { title: 'HR Report', to: '/hrreport', icon: 'report', metric: Object.keys(moduleMap).length + ' modul', desc: Object.keys(teamPerf).length + ' petugas · ' + Object.keys(chanMap).length + ' channel aktif', grad: 'from-slate-500 to-slate-700', soft: 'bg-slate-100 text-slate-600' },
+    { title: 'HR Report', to: '/hrreport', icon: 'report', metric: Object.keys(moduleMap).length + ' modul', desc: Object.keys(teamPerf).length + ' petugas · ' + Object.keys(chanMap).length + ' channel aktif', grad: 'from-slate-500 to-slate-700', soft: 'bg-slate-100 text-slate-600 dark:text-slate-400' },
   ];
 
   const paidPct = TOTAL > 0 ? ((paidCases.length / TOTAL) * 100).toFixed(1) : '0.0';
@@ -514,7 +514,7 @@ export default function DashboardPage() {
                 <FeatureIcon name={f.icon} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-[0.12em] truncate">{f.title}</span>
+                <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] truncate">{f.title}</span>
                 <span className="block text-[13px] font-extrabold text-slate-900 dark:text-white truncate">{f.metric}</span>
               </span>
               <svg className="w-3.5 h-3.5 shrink-0 text-slate-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
@@ -549,7 +549,7 @@ export default function DashboardPage() {
             <Doughnut data={billingData} options={doughnutOpt} />
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-10">
                 <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{fmtNum(billTotal)}</p>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">kasus</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">kasus</p>
             </div>
           </div>
         </Panel>
@@ -603,7 +603,7 @@ export default function DashboardPage() {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </span>
                 <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Tidak ada outstanding</p>
-              <p className="text-xs text-slate-500">Semua invoice sudah PAID. Kerja bagus!</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Semua invoice sudah PAID. Kerja bagus!</p>
             </div>
           ) : (
             <div className="h-64">
@@ -630,7 +630,7 @@ export default function DashboardPage() {
           <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-100 p-5">
             <p className="text-[11px] font-bold text-rose-400 uppercase tracking-[0.14em]">Total Outstanding</p>
             <p className="mt-1 text-[32px] leading-none font-extrabold text-slate-900 dark:text-white tracking-tight tabular-nums">{fmtRp(outstanding.amount)}</p>
-            <p className="mt-2 text-xs text-slate-500 font-medium">{fmtNum(outstanding.count)} kasus · {fmtRp(outstanding.amount)}</p>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 font-medium">{fmtNum(outstanding.count)} kasus · {fmtRp(outstanding.amount)}</p>
           </div>
           <div className="mt-5 space-y-4">
             {outstanding.top.slice(0, 3).map(([brand, amount]) => (
@@ -645,7 +645,7 @@ export default function DashboardPage() {
               </div>
             ))}
             {outstanding.top.length === 0 && (
-              <p className="text-xs text-slate-500">Belum ada data outstanding.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Belum ada data outstanding.</p>
             )}
           </div>
           <Link to="/finance" className="mt-5 inline-flex items-center gap-2 text-[13px] font-extrabold text-white bg-slate-900 hover:bg-brand-600 px-4 py-2.5 rounded-xl transition shadow-lg shadow-slate-900/10">
@@ -673,7 +673,7 @@ export default function DashboardPage() {
                     {expiryState(c.expired_at) === 'expired' ? 'EXPIRED' : 'SEGERA'}
                   </span>
                   <span className="min-w-0 flex-1 text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{c.brand}</span>
-                  <span className="text-xs text-slate-500 whitespace-nowrap tabular-nums">{fmtDateID(c.expired_at)}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">{fmtDateID(c.expired_at)}</span>
                 </li>
               ))}
             </ul>
@@ -716,7 +716,7 @@ export default function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-slate-700 dark:text-slate-200 text-[13px] truncate">{t.name}</span>
-                      <span className="text-[11px] text-slate-500 font-bold whitespace-nowrap">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-bold whitespace-nowrap">
                         {fmtNum(t.count)} · {fmtRp(t.charge)}
                       </span>
                     </div>
@@ -730,7 +730,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-            {teamPerf.length === 0 && <p className="text-xs text-slate-500">Belum ada data tim.</p>}
+            {teamPerf.length === 0 && <p className="text-xs text-slate-500 dark:text-slate-400">Belum ada data tim.</p>}
           </div>
         </Panel>
       </div>
@@ -744,7 +744,7 @@ export default function DashboardPage() {
             </span>
             <div>
               <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Kasus Terbaru</h3>
-              <p className="text-xs text-slate-500">10 kasus terakhir dari Google Sheets</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">10 kasus terakhir dari Google Sheets</p>
             </div>
           </div>
           <Link to="/kasus" className="inline-flex items-center gap-1.5 text-[13px] font-extrabold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2.5 rounded-xl transition shadow-lg shadow-brand-600/25">
@@ -781,12 +781,12 @@ export default function DashboardPage() {
                     title="Klik untuk lihat detail kasus"
                     className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-brand-50/50 dark:hover:bg-slate-800 transition cursor-pointer"
                   >
-                    <td className="pl-6 pr-2 py-3.5 text-xs text-slate-500 tabular-nums">{c.no || '-'}</td>
+                    <td className="pl-6 pr-2 py-3.5 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{c.no || '-'}</td>
                     <td className="px-3 py-3.5 text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap tabular-nums">{fmtDate(c.dateIssue)}</td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
                       <span className="min-w-0">
                         <span className="block font-bold text-slate-800 dark:text-slate-100 truncate">{c.client || '-'}</span>
-                        {c.channelTicket && <span className="block text-[10px] text-slate-500 font-medium">via {c.channelTicket}</span>}
+                        {c.channelTicket && <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-medium">via {c.channelTicket}</span>}
                       </span>
                     </td>
                     <td className="px-3 py-3.5">
@@ -806,7 +806,7 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
                       <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-full px-2.5 py-1">{c.module || '-'}</span>
-                      {c.subModule && <span className="mt-1 block text-[10px] text-slate-500 font-medium">{c.subModule}</span>}
+                      {c.subModule && <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-400 font-medium">{c.subModule}</span>}
                     </td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
                       <span className="flex items-center gap-2">
@@ -815,11 +815,11 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[bs] || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[bs] || 'bg-slate-100 text-slate-500 dark:text-slate-400 border-slate-200'}`}>
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />{bs}
                       </span>
-                      {c.billingCategory && <span className="mt-1 block text-[10px] text-slate-500 font-medium">{c.billingCategory}</span>}
-                      <span className={`mt-1 block text-[10px] font-bold ${isValid ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      {c.billingCategory && <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-400 font-medium">{c.billingCategory}</span>}
+                      <span className={`mt-1 block text-[10px] font-bold ${isValid ? 'text-emerald-600' : 'text-slate-500 dark:text-slate-400'}`}>
                         {isValid ? '● Tervalidasi' : '○ Belum validasi'}
                       </span>
                     </td>
@@ -830,7 +830,7 @@ export default function DashboardPage() {
                 );
               })}
               {recent.length === 0 && (
-                <tr><td colSpan={8} className="px-6 py-10 text-center text-sm text-slate-500">Belum ada data kasus.</td></tr>
+                <tr><td colSpan={8} className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">Belum ada data kasus.</td></tr>
               )}
             </tbody>
           </table>
@@ -870,7 +870,7 @@ export default function DashboardPage() {
         onClose={() => setDetailUuid(null)}
       />
 
-      <p className="text-center text-[11px] text-slate-500 pb-4">Dashboard diperbarui {lastUpdated} · sumber Google Sheets via backend</p>
+      <p className="text-center text-[11px] text-slate-500 dark:text-slate-400 pb-4">Dashboard diperbarui {lastUpdated} · sumber Google Sheets via backend</p>
     </div>
   );
 }
@@ -886,9 +886,9 @@ function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, value
       <div aria-hidden="true" className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${grad} opacity-[.08] rounded-full blur-2xl group-hover:opacity-[.18] transition`} />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.12em] truncate">{title}</p>
+          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] truncate">{title}</p>
           <p className={`mt-2 ${valueSize} leading-tight font-extrabold tracking-tight tabular-nums text-slate-900 dark:text-white ${valueCls}`}>{value}</p>
-          <p className="mt-2 text-[12px] font-medium text-slate-500 truncate">{sub}</p>
+          <p className="mt-2 text-[12px] font-medium text-slate-500 dark:text-slate-400 truncate">{sub}</p>
         </div>
         <div className={`w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br ${grad} text-white flex items-center justify-center shadow-lg`}>
           <FeatureIcon name={icon} />
@@ -915,7 +915,7 @@ function Panel({ title, desc, children, className = '', delay, accent = 'from-br
             </span>
             <div className="min-w-0">
               <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">{title}</h3>
-              <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{desc}</p>
             </div>
           </div>
           {badge && (

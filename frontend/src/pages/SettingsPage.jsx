@@ -15,7 +15,7 @@ const ROLE_BADGE = {
   'Admin CS': 'bg-sky-50 text-sky-600 border-sky-200',
   Support: 'bg-emerald-50 text-emerald-600 border-emerald-200',
   Finance: 'bg-amber-50 text-amber-600 border-amber-200',
-  Viewer: 'bg-slate-100 text-slate-500 border-slate-200',
+  Viewer: 'bg-slate-100 text-slate-500 dark:text-slate-400 border-slate-200',
 };
 
 const TABS = [
@@ -44,7 +44,7 @@ function SectionHead({ icon, title, desc }) {
       </div>
       <div>
         <h3 className="font-bold text-slate-900 dark:text-white text-sm">{title}</h3>
-        <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{desc}</p>
       </div>
     </div>
   );
@@ -55,7 +55,7 @@ function Field({ label, hint, error, children }) {
     <div>
       <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</label>
       <div className="mt-1.5">{children}</div>
-      {hint && !error && <p className="text-[11px] text-slate-500 mt-1.5">{hint}</p>}
+      {hint && !error && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">{hint}</p>}
       {error && (
         <p role="alert" className="text-[11px] text-rose-600 font-medium mt-1.5">
           {error}
@@ -87,7 +87,7 @@ function StatusListManager({ label, hint, items, newVal, onNewVal, onAdd, onDele
     <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3">
       <div>
         <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{label}</p>
-        <p className="text-[11px] text-slate-500 mt-0.5">{hint}</p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{hint}</p>
       </div>
       <ul className="space-y-1.5">
         {items.map((s) => (
@@ -336,9 +336,9 @@ export default function SettingsPage() {
         </div>
         <div className="min-w-0">
           <h2 className="text-lg font-extrabold text-slate-900 dark:text-white truncate">{name || 'Pengguna'}</h2>
-          <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
           <span
-            className={`inline-block mt-1.5 text-[10px] font-bold border rounded-full px-2 py-0.5 ${ROLE_BADGE[role] || 'bg-slate-100 text-slate-500 border-slate-200'}`}
+            className={`inline-block mt-1.5 text-[10px] font-bold border rounded-full px-2 py-0.5 ${ROLE_BADGE[role] || 'bg-slate-100 text-slate-500 dark:text-slate-400 border-slate-200'}`}
           >
             {role}
           </span>
@@ -370,7 +370,7 @@ export default function SettingsPage() {
                   <span className={`block text-sm font-bold whitespace-nowrap ${active ? 'text-white' : 'text-slate-800 dark:text-slate-100'}`}>
                     {t.label}
                   </span>
-                  <span className={`hidden lg:block text-[11px] truncate ${active ? 'text-brand-100' : 'text-slate-500'}`}>
+                  <span className={`hidden lg:block text-[11px] truncate ${active ? 'text-brand-100' : 'text-slate-500 dark:text-slate-400'}`}>
                     {t.desc}
                   </span>
                 </span>
@@ -507,7 +507,7 @@ export default function SettingsPage() {
                         <span className="mt-3 flex items-center justify-between gap-2">
                           <span>
                             <span className="block text-sm font-bold text-slate-800 dark:text-slate-100">{o.label}</span>
-                            <span className="block text-[11px] text-slate-500 mt-0.5">{o.desc}</span>
+                            <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{o.desc}</span>
                           </span>
                           {activeTheme && (
                             <span className="w-6 h-6 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0" aria-hidden="true">
@@ -521,7 +521,7 @@ export default function SettingsPage() {
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Pilihan tersimpan otomatis dan langsung berlaku di semua halaman.
                 </p>
               </div>
@@ -555,7 +555,7 @@ export default function SettingsPage() {
                         <span className="mt-1.5 block text-sm font-bold text-slate-800 dark:text-slate-100">
                           {FONT_SIZES[o.id].label}
                         </span>
-                        <span className="block text-[11px] text-slate-500 mt-0.5">{FONT_SIZES[o.id].px}</span>
+                        <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{FONT_SIZES[o.id].px}</span>
                         {active && (
                           <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center" aria-hidden="true">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
@@ -567,7 +567,7 @@ export default function SettingsPage() {
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   {FONT_SIZES[fontSize]?.desc} — berlaku ke seluruh aplikasi dan tersimpan otomatis.
                 </p>
               </div>
@@ -583,7 +583,7 @@ export default function SettingsPage() {
                 </p>
               )}
               {mastersLoading ? (
-                <p className="text-xs text-slate-500 py-4 text-center">Memuat master status…</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 py-4 text-center">Memuat master status…</p>
               ) : (
                 <div className="grid md:grid-cols-1 gap-4">
                   <StatusListManager
@@ -625,7 +625,7 @@ export default function SettingsPage() {
                     </span>
                     <div className="min-w-0">
                       <p className={`text-sm font-semibold truncate ${m.allowed ? 'text-slate-800 dark:text-slate-100' : 'text-slate-500'}`}>{m.title}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{m.sub}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{m.sub}</p>
                     </div>
                   </li>
                 ))}

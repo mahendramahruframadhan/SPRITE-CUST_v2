@@ -163,7 +163,7 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
                 type="button"
                 onClick={() => shiftMonth(-1)}
                 aria-label="Bulan sebelumnya"
-                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -176,7 +176,7 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
                 type="button"
                 onClick={() => shiftMonth(1)}
                 aria-label="Bulan berikutnya"
-                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -185,7 +185,7 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
             </div>
             <div className="grid grid-cols-7 gap-0.5" role="grid" aria-label="Pilih tanggal">
               {DAY_HEAD.map((d) => (
-                <span key={d} className="h-8 inline-flex items-center justify-center text-[10px] font-bold uppercase text-slate-500">
+                <span key={d} className="h-8 inline-flex items-center justify-center text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
                   {d}
                 </span>
               ))}
