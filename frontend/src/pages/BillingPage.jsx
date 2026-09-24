@@ -10,6 +10,8 @@ import { recordActivity } from '../lib/activity.js';
 import { useToast } from '../context/ToastContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
+import FilterLabel from '../components/FilterLabel.jsx';
+import { useFilters } from '../hooks/useFilters.js';
 
 // Ukuran angka menyesuaikan panjang nominal penuh (22px normal, mengecil bila miliaran)
 const moneySize = (v) => {
@@ -55,17 +57,15 @@ export default function BillingPage() {
     const p = (n) => String(n).padStart(2, '0');
     return { from: `${y}-${p(m)}-01`, to: `${y}-${p(m)}-${last}` };
   };
-  const [month, setMonth] = useState(() => monthKey());
-  const [from, setFrom] = useState(() => rangeOfMonth(monthKey()).from);
-  const [to, setTo] = useState(() => rangeOfMonth(monthKey()).to);
+  const [filters, setFilter, resetFilterValues, setManyFilters] = useFilters({
+    month: monthKey(), from: rangeOfMonth(monthKey()).from, to: rangeOfMonth(monthKey()).to, brand: '',
+  });
+  const { month, from, to, brand } = filters;
   const { cases: allCases, loading } = useRangedCases(from, to);
   const applyMonth = (ym) => {
-    setMonth(ym);
     const r = rangeOfMonth(ym);
-    setFrom(r.from);
-    setTo(r.to);
+    setManyFilters({ month: ym, from: r.from, to: r.to });
   };
-  const [brand, setBrand] = useState('');
   const [cat, setCat] = useState('ON-CALL');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
@@ -494,7 +494,7 @@ export default function BillingPage() {
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Bulan</label>
+              <FilterLabel>Bulan</FilterLabel>
               <div className="flex items-center gap-2">
                 <input type="month" value={month} onChange={(e) => applyMonth(e.target.value)} className={filterCls} />
                 <button
@@ -508,26 +508,21 @@ export default function BillingPage() {
               </div>
             </div>
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Date From</label>
-              <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setMonth(''); }} className={filterCls} />
+              <FilterLabel>Date From</FilterLabel>
+              <input type="date" value={from} onChange={(e) => setManyFilters({ from: e.target.value, month: '' })} className={filterCls} />
             </div>
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Date Until</label>
-              <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setMonth(''); }} className={filterCls} />
+              <FilterLabel>Date Until</FilterLabel>
+              <input type="date" value={to} onChange={(e) => setManyFilters({ to: e.target.value, month: '' })} className={filterCls} />
             </div>
             <div className="min-w-[200px]">
-              <label htmlFor="bil-brand" className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Brand</label>
+              <FilterLabel htmlFor="bil-brand">Brand</FilterLabel>
               <div className="mt-1">
-                <BrandCombobox id="bil-brand" value={brand} onChange={setBrand} options={brands} placeholder="Cari brand…" accent="amber" />
+                <BrandCombobox id="bil-brand" value={brand} onChange={(v) => setFilter('brand', v)} options={brands} placeholder="Cari brand…" accent="amber" />
               </div>
             </div>
             <button
-              onClick={() => {
-                setMonth('');
-                setFrom('');
-                setTo('');
-                setBrand('');
-              }}
+              onClick={() => resetFilterValues()}
               className="text-[13px] font-bold text-slate-500 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2.5 rounded-xl transition"
             >
               Reset

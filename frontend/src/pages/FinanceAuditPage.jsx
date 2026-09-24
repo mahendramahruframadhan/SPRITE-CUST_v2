@@ -7,6 +7,8 @@ import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
+import FilterLabel from '../components/FilterLabel.jsx';
+import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { moduleTone, billingTone, invLabel, invoiceTone } from '../utils/tones.js';
@@ -430,10 +432,8 @@ export default function FinanceAuditPage() {
   const { caseAuditStatus, syncAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
   const { invoiceActions, invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [brand, setBrand] = useState('');
-  const [invFilter, setInvFilter] = useState('');
+  const [filters, setFilter, resetFilterValues] = useFilters({ from: '', to: '', brand: '', invFilter: '' });
+  const { from, to, brand, invFilter } = filters;
   const [detailUuid, setDetailUuid] = useState(null);
   // Bukti pembayaran per kasus dari backend (invoice-map.notes) — tampil di baris SUDAH DIBAYAR.
   const [payNotes, setPayNotes] = useState({});
@@ -632,27 +632,21 @@ export default function FinanceAuditPage() {
   }
 
   // Catat setiap interaksi filter ke riwayat aktivitas (user + perubahan).
-  // Hanya dicatat bila nilai benar-benar berubah, agar tidak spam saat ketik.
-  function logFilter(label, prev, next) {
-    if (prev === next) return;
-    recordActivity(`filter Finance Audit: ${label}`, `${prev || '(semua)'} → ${next || '(semua)'}`, 'Filter');
+  // setFilter mengembalikan null bila nilai sama — tidak spam saat ketik.
+  function setLogged(key, label, v) {
+    const r = setFilter(key, v);
+    if (r) recordActivity(`filter Finance Audit: ${label}`, `${r.prev || '(semua)'} → ${r.next || '(semua)'}`, 'Filter');
   }
-  function setFromLogged(v) { logFilter('Date From', from, v); setFrom(v); }
-  function setToLogged(v) { logFilter('Date Until', to, v); setTo(v); }
-  function setBrandLogged(v) { logFilter('Brand', brand, v); setBrand(v); }
-  function setInvFilterLogged(v) { logFilter('Status Invoice', invFilter, v); setInvFilter(v); }
+  function setFromLogged(v) { setLogged('from', 'Date From', v); }
+  function setToLogged(v) { setLogged('to', 'Date Until', v); }
+  function setBrandLogged(v) { setLogged('brand', 'Brand', v); }
+  function setInvFilterLogged(v) { setLogged('invFilter', 'Status Invoice', v); }
   function resetFilters() {
     if (from || to || brand || invFilter) {
       recordActivity('filter Finance Audit: reset', `Date From ${from || '-'}, Date Until ${to || '-'}, Brand ${brand || '-'}, Status ${invFilter || '-'}`, 'Filter');
     }
-    setFrom('');
-    setTo('');
-    setBrand('');
-    setInvFilter('');
+    resetFilterValues();
   }
-
-  const filterCls =
-    'mt-1 block text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
 
   return (
     <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
@@ -742,25 +736,25 @@ export default function FinanceAuditPage() {
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-[230px]">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Date From</label>
+            <FilterLabel>Date From</FilterLabel>
             <div className="mt-1">
               <DatePickerInput id="fin-from" value={from} onChange={setFromLogged} placeholder="Semua tanggal" />
             </div>
           </div>
           <div className="w-[230px]">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Date Until</label>
+            <FilterLabel>Date Until</FilterLabel>
             <div className="mt-1">
               <DatePickerInput id="fin-to" value={to} onChange={setToLogged} placeholder="Semua tanggal" />
             </div>
           </div>
           <div className="min-w-[200px]">
-            <label htmlFor="fin-brand" className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Brand</label>
+            <FilterLabel htmlFor="fin-brand">Brand</FilterLabel>
             <div className="mt-1">
               <BrandCombobox id="fin-brand" value={brand} onChange={setBrandLogged} options={brands} placeholder="Cari brand…" />
             </div>
           </div>
           <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Status Invoice</label>
+            <FilterLabel>Status Invoice</FilterLabel>
             <select value={invFilter} onChange={(e) => setInvFilterLogged(e.target.value)} className={`${filterCls} min-w-[180px] mt-1`}>
               <option value="">Semua</option>
               {invoiceActions.map((a) => (

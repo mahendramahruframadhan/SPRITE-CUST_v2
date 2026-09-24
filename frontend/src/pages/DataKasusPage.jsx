@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { useFilters } from '../hooks/useFilters.js';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 import { moduleTone, billingTone } from '../utils/tones.js';
 
@@ -31,7 +32,7 @@ const emptyFilters = () => ({
 export default function DataKasusPage() {
   const { notify } = useToast();
   const { cases: allCases, loading, error, reload } = useCases();
-  const [filters, setFilters] = useState(emptyFilters);
+  const [filters, setOneFilter, resetFilters] = useFilters(emptyFilters());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [detail, setDetail] = useState(null); // kasus yang sedang dibuka
@@ -159,7 +160,7 @@ export default function DataKasusPage() {
                 type="text"
                 placeholder={d.placeholder}
                 value={filters[d.id]}
-                onChange={(e) => setFilters({ ...filters, [d.id]: e.target.value })}
+                onChange={(e) => setOneFilter(d.id, e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
               />
             </div>
@@ -167,7 +168,7 @@ export default function DataKasusPage() {
             <select
               key={d.id}
               value={filters[d.id]}
-              onChange={(e) => setFilters({ ...filters, [d.id]: e.target.value })}
+              onChange={(e) => setOneFilter(d.id, e.target.value)}
               className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             >
               <option value="">{d.label}</option>
@@ -180,13 +181,13 @@ export default function DataKasusPage() {
               key={d.id}
               type="date"
               value={filters[d.id]}
-              onChange={(e) => setFilters({ ...filters, [d.id]: e.target.value })}
+              onChange={(e) => setOneFilter(d.id, e.target.value)}
               className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             />
           )
         )}
         <button
-          onClick={() => setFilters(emptyFilters())}
+          onClick={() => resetFilters()}
           className="text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
           Reset Filter
