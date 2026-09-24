@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
@@ -5,20 +6,32 @@ import { FontSizeProvider } from './context/FontSizeContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { usePermissions } from './hooks/usePermissions.js';
 import AppLayout from './components/AppLayout.jsx';
-import LoginPage from './pages/LoginPage.jsx';
-import SignUpPage from './pages/SignUpPage.jsx';
-import DashboardPage from './pages/DashboardPage.jsx';
-import DataKasusPage from './pages/DataKasusPage.jsx';
-import MockupPage from './pages/MockupPage.jsx';
-import FormKasusPage from './pages/FormKasusPage.jsx';
-import ClientBrandPage from './pages/ClientBrandPage.jsx';
-import HrReportPage from './pages/HrReportPage.jsx';
-import SheetConfigPage from './pages/SheetConfigPage.jsx';
-import BillingPage from './pages/BillingPage.jsx';
-import FinanceAuditPage from './pages/FinanceAuditPage.jsx';
-import RolesPage from './pages/RolesPage.jsx';
-import LogsPage from './pages/LogsPage.jsx';
-import SettingsPage from './pages/SettingsPage.jsx';
+
+// Code-splitting per halaman: bundle awal hanya memuat shell + login;
+// halaman diunduh saat route dibuka (lihat warning chunk Vite sebelumnya).
+const LoginPage = lazy(() => import('./pages/LoginPage.jsx'));
+const SignUpPage = lazy(() => import('./pages/SignUpPage.jsx'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'));
+const DataKasusPage = lazy(() => import('./pages/DataKasusPage.jsx'));
+const MockupPage = lazy(() => import('./pages/MockupPage.jsx'));
+const FormKasusPage = lazy(() => import('./pages/FormKasusPage.jsx'));
+const ClientBrandPage = lazy(() => import('./pages/ClientBrandPage.jsx'));
+const HrReportPage = lazy(() => import('./pages/HrReportPage.jsx'));
+const SheetConfigPage = lazy(() => import('./pages/SheetConfigPage.jsx'));
+const BillingPage = lazy(() => import('./pages/BillingPage.jsx'));
+const FinanceAuditPage = lazy(() => import('./pages/FinanceAuditPage.jsx'));
+const RolesPage = lazy(() => import('./pages/RolesPage.jsx'));
+const LogsPage = lazy(() => import('./pages/LogsPage.jsx'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage.jsx'));
+
+// Fallback transisi antar-halaman (satu gaya, tanpa spinner dekoratif).
+function PageFallback() {
+  return (
+    <div className="px-8 py-12 text-sm text-slate-500 dark:text-slate-400" role="status" aria-label="Memuat halaman">
+      Memuat halaman…
+    </div>
+  );
+}
 
 // Penjaga route per modul izin (matriks diatur di /roles, Super Admin selalu lolos).
 // Akses langsung via URL ke modul terlarang → kembali ke dashboard.
@@ -45,6 +58,7 @@ export default function App() {
         <FontSizeProvider>
         <ToastProvider>
         <BrowserRouter>
+        <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
@@ -68,6 +82,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>
+        </Suspense>
         </BrowserRouter>
         </ToastProvider>
         </FontSizeProvider>
