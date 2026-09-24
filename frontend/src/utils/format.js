@@ -36,7 +36,7 @@ export function moduleTone(m) {
     case 'SHOP':
       return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20';
     case 'PRODUKSI':
-      return 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/10 dark:text-amber-500 dark:border-amber-500/30';
+      return 'bg-[#92400e]/10 text-[#92400e] border-[#92400e]/25 dark:bg-[#fbbf24]/10 dark:text-[#fbbf24] dark:border-[#fbbf24]/30';
     default:
       return 'bg-slate-100 text-slate-600 border-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
   }

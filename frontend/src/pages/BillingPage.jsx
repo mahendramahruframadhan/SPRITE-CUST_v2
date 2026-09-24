@@ -2,18 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useRangedCases } from '../hooks/useCases.js';
 import { useTheme } from '../context/ThemeContext.jsx';
-import { fmtDate8, moduleTone } from '../utils/format.js';
+import { fmtDate8, moduleTone, billingTone } from '../utils/format.js';
 import { useAuditState, DEFAULT_ACTIONS } from '../hooks/useAuditState.js';
 import { recordActivity } from '../lib/activity.js';
 import { useToast } from '../context/ToastContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
-
-const BILL_BADGE = {
-  FREE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
-  'ON-CALL': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
-  MONTHLY: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20',
-};
 
 // Ukuran angka menyesuaikan panjang nominal penuh (22px normal, mengecil bila miliaran)
 const moneySize = (v) => {
@@ -606,7 +600,7 @@ export default function BillingPage() {
                     {c.subModule && <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-400 font-medium">{c.subModule}</span>}
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${BILL_BADGE[c.billingStatus] || 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'}`}>
+                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${billingTone(c.billingStatus)}`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />{c.billingStatus || '-'}
                     </span>
                   </td>
@@ -856,7 +850,7 @@ export default function BillingPage() {
         title={detailCase?.client || '-'}
         chips={detailCase ? [
           { text: detailCase.module || '-', className: 'bg-white/15 border-white/20' },
-          { text: detailCase.billingStatus || '-', className: BILL_BADGE[detailCase.billingStatus] || 'bg-white/15 border-white/20' },
+          { text: detailCase.billingStatus || '-', className: detailCase.billingStatus ? billingTone(detailCase.billingStatus) : 'bg-white/15 border-white/20' },
           ...(detailCase.billingStatus !== 'FREE'
             ? [{ text: caseAuditStatus[detailCase.recordUuid] || defaultAuditStatus, className: 'bg-amber-300/90 text-amber-900 border-transparent' }]
             : []),

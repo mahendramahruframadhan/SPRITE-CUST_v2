@@ -67,7 +67,6 @@ export default function BrandCombobox({ id, value, onChange, options = [], place
     if (!open) return;
     const ix = visibleItems.findIndex((o) => o.value === value);
     setActiveIdx(ix >= 0 ? ix : 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Jaga opsi aktif tetap terlihat saat navigasi keyboard.

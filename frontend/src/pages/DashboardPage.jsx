@@ -20,6 +20,7 @@ import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
+import { billingTone } from '../utils/format.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 ChartJS.register(
@@ -65,11 +66,7 @@ const countBy = (arr, fn) => {
 const topEntries = (obj, n) =>
   Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n || Infinity);
 
-const BILL_BADGE = {
-  FREE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
-  'ON-CALL': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
-  MONTHLY: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20',
-};
+// Warna badge billing status: billingTone() terpusat di utils/format.js.
 
 function greeting() {
   const h = new Date().getHours();
@@ -815,7 +812,7 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 ${BILL_BADGE[bs] || 'bg-slate-100 text-slate-500 dark:text-slate-400 border-slate-200'}`}>
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 ${billingTone(bs)}`}>
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />{bs}
                       </span>
                       {c.billingCategory && <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-400 font-medium">{c.billingCategory}</span>}
@@ -844,7 +841,7 @@ export default function DashboardPage() {
         title={detailCase?.client || '-'}
         chips={detailCase ? [
           { text: detailCase.module || '-', className: 'bg-white/15 border-white/20' },
-          { text: detailCase.billingStatus || '-', className: BILL_BADGE[detailCase.billingStatus] || 'bg-white/15 border-white/20' },
+          { text: detailCase.billingStatus || '-', className: detailCase.billingStatus ? billingTone(detailCase.billingStatus) : 'bg-white/15 border-white/20' },
           { text: caseAuditStatus[detailCase.recordUuid] || 'BELUM DIVALIDASI', className: 'bg-amber-300/90 text-amber-900 border-transparent' },
         ] : []}
         sections={detailCase ? [
