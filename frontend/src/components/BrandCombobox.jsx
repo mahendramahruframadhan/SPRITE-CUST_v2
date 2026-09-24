@@ -50,6 +50,32 @@ export default function BrandCombobox({ id, value, onChange, options = [], place
     return options.filter((o) => String(o).toLowerCase().includes(q));
   }, [options, text]);
 
+  // Daftar terlihat untuk navigasi keyboard: opsi "Semua" + hasil filter.
+  const visibleItems = useMemo(
+    () => [{ value: '', label: 'Semua Brand' }, ...results.map((o) => ({ value: o, label: String(o) }))],
+    [results]
+  );
+  const [activeIdx, setActiveIdx] = useState(0);
+  const actIdx = Math.max(0, Math.min(activeIdx, visibleItems.length - 1));
+
+  function moveActive(delta) {
+    setActiveIdx((i) => (i + delta + visibleItems.length) % visibleItems.length);
+  }
+
+  // Saat daftar dibuka, sorot opsi yang sedang terpilih (atau "Semua").
+  useEffect(() => {
+    if (!open) return;
+    const ix = visibleItems.findIndex((o) => o.value === value);
+    setActiveIdx(ix >= 0 ? ix : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Jaga opsi aktif tetap terlihat saat navigasi keyboard.
+  useEffect(() => {
+    if (!open) return;
+    document.getElementById(`${id}-opt-${actIdx}`)?.scrollIntoView({ block: 'nearest' });
+  }, [open, actIdx, id]);
+
   // Posisi popover: di bawah input, digeser bila mepet tepi viewport.
   function updatePos() {
     const el = rootRef.current;
@@ -122,17 +148,27 @@ export default function BrandCombobox({ id, value, onChange, options = [], place
           role="combobox"
           aria-expanded={open}
           aria-controls={open ? `${id}-listbox` : undefined}
+          aria-activedescendant={open ? `${id}-opt-${actIdx}` : undefined}
           aria-autocomplete="list"
           value={text}
           onChange={(e) => {
             setText(e.target.value);
             if (!open) setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') {
               e.preventDefault();
-              setOpen(true);
+              if (!open) setOpen(true);
+              else moveActive(1);
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              if (open) moveActive(-1);
+            } else if (e.key === 'Enter') {
+              if (open && visibleItems[actIdx]) {
+                e.preventDefault();
+                pick(visibleItems[actIdx].value);
+              }
             }
           }}
           placeholder={placeholder}
@@ -181,35 +217,31 @@ export default function BrandCombobox({ id, value, onChange, options = [], place
               aria-label="Daftar brand"
               className="max-h-60 overflow-y-auto scrollbar-thin py-1"
             >
-              <li role="option" aria-selected={value === ''}>
-                <button
-                  type="button"
-                  onClick={() => pick('')}
-                  className={`w-full text-left text-sm rounded-xl px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset ${t.focusItem} ${
-                    value === ''
-                      ? `${t.active} font-bold`
-                      : 'font-semibold text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Semua Brand
-                </button>
-              </li>
-              {results.map((o) => (
-                <li key={o} role="option" aria-selected={value === o}>
-                  <button
-                    type="button"
-                    onClick={() => pick(o)}
-                    title={o}
-                    className={`w-full text-left text-sm rounded-xl px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset ${t.focusItem} ${
-                      value === o
-                        ? `${t.active} font-bold`
-                        : `text-slate-700 dark:text-slate-200 ${t.hoverItem}`
-                    }`}
-                  >
-                    <span className="block truncate">{o}</span>
-                  </button>
-                </li>
-              ))}
+              {visibleItems.map((o, i) => {
+                const isSel = value === o.value;
+                const isAct = i === actIdx && !isSel;
+                return (
+                  <li key={o.value === '' ? '__all' : o.value} id={`${id}-opt-${i}`} role="option" aria-selected={isSel}>
+                    <button
+                      type="button"
+                      onClick={() => pick(o.value)}
+                      onMouseEnter={() => setActiveIdx(i)}
+                      title={o.label}
+                      className={`w-full text-left text-sm rounded-xl px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset ${t.focusItem} ${
+                        isSel
+                          ? `${t.active} font-bold`
+                          : isAct
+                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold'
+                            : o.value === ''
+                              ? 'font-semibold text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                              : `text-slate-700 dark:text-slate-200 ${t.hoverItem}`
+                      }`}
+                    >
+                      <span className="block truncate">{o.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
               {results.length === 0 && (
                 <li className="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-300">
                   Tidak ada brand yang cocok dengan “{text.trim()}”.
