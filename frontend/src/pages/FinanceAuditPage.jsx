@@ -52,13 +52,16 @@ const PDF_STATUS_LABEL = { uploading: 'mengupload…', failed: 'gagal', complete
 
 // Alasan (R-31): status invoice tidak lagi bisa diubah user secara manual —
 // tidak ada dropdown; status murni dikendalikan alur (upload/hapus PDF otomatis)
-// dan PAID lewat tombol Tandai Paid (modal keterangan). INV_TONE tetap dipakai
+// dan PAID lewat tombol PAID (modal keterangan). INV_TONE tetap dipakai
 // untuk pewarnaan badge baca-saja.
+// Label tampil status invoice: nilai backend/logika tetap 'DIKIRIM',
+// yang dirender ke user dipetakan ke 'TERKIRIM' via invLabel().
+const invLabel = (s) => (s === 'DIKIRIM' ? 'TERKIRIM' : s);
 const INV_ERR_MSG = {
   INVOICE_AUTO_LOCKED: 'Status ini diatur otomatis oleh sistem (upload/hapus PDF).',
   INVOICE_NEED_PDF: 'Belum bisa PAID — upload minimal 1 PDF invoice dulu.',
   NOT_TERBIT_YET: 'Belum bisa ditandai dikirim — upload PDF invoice dulu.',
-  NOT_DIKIRIM_YET: 'Belum bisa PAID — tandai invoice sudah dikirim (DIKIRIM) dulu.',
+  NOT_DIKIRIM_YET: 'Belum bisa PAID — tandai invoice sudah terkirim (TERKIRIM) dulu.',
   PAYMENT_NOTE_REQUIRED: 'Keterangan pembayaran wajib diisi untuk menandai PAID.',
 };
 const invErrMsg = (err, fallback) => INV_ERR_MSG[err?.code] || err?.data?.message || err?.message || fallback;
@@ -510,7 +513,7 @@ export default function FinanceAuditPage() {
     { t: 'Siap Invoice', v: stats.total.toLocaleString('id-ID'), sub: fmtMoney(stats.totalAmount) + ' tervalidasi', color: 'text-brand-600', darkColor: 'dark:text-brand-300', accent: 'from-brand-500 to-brand-300' },
     { t: 'Menunggu Invoice', v: stats.menunggu.toLocaleString('id-ID'), sub: 'kasus', color: 'text-amber-600', darkColor: 'dark:text-amber-400', accent: 'from-amber-500 to-amber-300' },
     { t: 'Invoice Terbit', v: stats.terbit.toLocaleString('id-ID'), sub: 'kasus', color: 'text-violet-600', darkColor: 'dark:text-violet-400', accent: 'from-violet-500 to-violet-300' },
-    { t: 'Dikirim', v: stats.dikirim.toLocaleString('id-ID'), sub: 'menunggu pembayaran', color: 'text-sky-600', darkColor: 'dark:text-sky-400', accent: 'from-sky-500 to-sky-300' },
+    { t: 'Terkirim', v: stats.dikirim.toLocaleString('id-ID'), sub: 'menunggu pembayaran', color: 'text-sky-600', darkColor: 'dark:text-sky-400', accent: 'from-sky-500 to-sky-300' },
     { t: 'Paid', v: stats.paid.toLocaleString('id-ID'), sub: `dari ${stats.total} kasus tervalidasi`, color: 'text-emerald-600', darkColor: 'dark:text-emerald-400', accent: 'from-emerald-500 to-emerald-300' },
     { t: 'Total Outstanding', v: fmtMoney(stats.outstandingAmount), sub: `${stats.outstandingCount} kasus belum PAID`, color: 'text-rose-600', darkColor: 'dark:text-rose-400', accent: 'from-rose-500 to-rose-300', size: 'text-[19px]' },
   ];
@@ -539,24 +542,24 @@ export default function FinanceAuditPage() {
     const c = allCases.find((x) => x.recordUuid === uuid);
     const cur = invoiceStatus[uuid] || defaultInvoiceStatus;
     if (cur !== 'DIKIRIM') {
-      notify('Belum bisa PAID — tandai invoice sudah dikirim (DIKIRIM) dulu.', 'err');
+      notify('Belum bisa PAID — tandai invoice sudah terkirim (TERKIRIM) dulu.', 'err');
       return;
     }
     setPaidTarget({ uuid, label: c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`, amount: c ? +c.charges || 0 : 0 });
     setPayNote('');
   }
 
-  // Alur: klik badge INVOICE TERBIT → tandai sudah dikirim (DIKIRIM = menunggu pembayaran).
+  // Alur: klik badge INVOICE TERBIT → tandai sudah terkirim (DIKIRIM = menunggu pembayaran).
   async function markDikirim(uuid) {
     const c = allCases.find((x) => x.recordUuid === uuid);
     const label = c ? `kasus #${c.no} (${c.client})` : `kasus ${String(uuid).slice(0, 8)}`;
     try {
       await patchInvoice(uuid, 'DIKIRIM');
       syncInvoiceStatus(uuid, 'DIKIRIM');
-      notify(`Invoice ${label} ditandai sudah dikirim — menunggu pembayaran.`, 'success');
-      recordActivity(`menandai invoice dikirim ${label}`, 'menunggu pembayaran', 'Invoice');
+      notify(`Invoice ${label} ditandai sudah terkirim — menunggu pembayaran.`, 'success');
+      recordActivity(`menandai invoice terkirim ${label}`, 'menunggu pembayaran', 'Invoice');
     } catch (err) {
-      notify(invErrMsg(err, 'Gagal menandai dikirim.'), 'err');
+      notify(invErrMsg(err, 'Gagal menandai terkirim.'), 'err');
     }
   }
 
@@ -568,7 +571,7 @@ export default function FinanceAuditPage() {
     try {
       await patchInvoice(uuid, to);
       syncInvoiceStatus(uuid, to);
-      notify(`Status invoice ${label} dikembalikan ke ${to} (revisi).`, 'info');
+      notify(`Status invoice ${label} dikembalikan ke ${invLabel(to)} (revisi).`, 'info');
       recordActivity(`mengurungkan status invoice ${label}`, `${fromLabel} → ${to} (revisi)`, 'Invoice');
     } catch (err) {
       notify(invErrMsg(err, 'Gagal mengurungkan status.'), 'err');
@@ -699,7 +702,7 @@ export default function FinanceAuditPage() {
         <Arrow />
         <FlowPill tone="bg-violet-50 text-violet-700 border-violet-200">Invoice Terbit</FlowPill>
         <Arrow />
-        <FlowPill tone="bg-sky-50 text-sky-700 border-sky-200">Dikirim</FlowPill>
+        <FlowPill tone="bg-sky-50 text-sky-700 border-sky-200">Terkirim</FlowPill>
         <Arrow />
         <FlowPill tone="bg-emerald-50 text-emerald-700 border-emerald-200">Paid</FlowPill>
       </div>
@@ -766,7 +769,7 @@ export default function FinanceAuditPage() {
             <select value={invFilter} onChange={(e) => setInvFilterLogged(e.target.value)} className={`${filterCls} min-w-[180px] mt-1`}>
               <option value="">Semua</option>
               {invoiceActions.map((a) => (
-                <option key={a} value={a}>{a}</option>
+                <option key={a} value={a}>{invLabel(a)}</option>
               ))}
             </select>
           </div>
@@ -858,11 +861,11 @@ export default function FinanceAuditPage() {
                           {cur === 'INVOICE TERBIT' ? (
                             <button
                               onClick={() => markDikirim(c.recordUuid)}
-                              title="Klik untuk tandai sudah dikirim ke client"
+                              title="Klik untuk tandai sudah terkirim ke client"
                               className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 transition hover:shadow-sm hover:brightness-95 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 ${tone}`}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                              {cur}
+                              {invLabel(cur)}
                               <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                               </svg>
@@ -874,7 +877,7 @@ export default function FinanceAuditPage() {
                               className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 transition hover:shadow-sm hover:brightness-95 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 ${tone}`}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                              {cur}
+                              {invLabel(cur)}
                               <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
                               </svg>
@@ -882,7 +885,7 @@ export default function FinanceAuditPage() {
                           ) : cur === 'PAID' ? (
                             undoPaidFor === c.recordUuid ? (
                               <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5 p-2">
-                                <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-300">Urungkan PAID? Status kembali ke DIKIRIM (revisi).</p>
+                                <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-300">Urungkan PAID? Status kembali ke TERKIRIM (revisi).</p>
                                 <div className="mt-1.5 flex gap-1.5">
                                   <button
                                     onClick={() => { const u = c.recordUuid; setUndoPaidFor(null); undoStatus(u, 'DIKIRIM', 'PAID'); }}
@@ -901,11 +904,11 @@ export default function FinanceAuditPage() {
                             ) : (
                               <button
                                 onClick={() => setUndoPaidFor(c.recordUuid)}
-                                title="Klik untuk urungkan PAID (kembali ke DIKIRIM, revisi)"
+                                title="Klik untuk urungkan PAID (kembali ke TERKIRIM, revisi)"
                                 className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 transition hover:shadow-sm hover:brightness-95 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 ${tone}`}
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                                {cur}
+                                {invLabel(cur)}
                                 <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
                                 </svg>
@@ -914,7 +917,7 @@ export default function FinanceAuditPage() {
                           ) : (
                             <span title="Status invoice diatur otomatis oleh alur (upload/hapus PDF)" className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 ${tone}`}>
                               <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                              {cur}
+                              {invLabel(cur)}
                             </span>
                           )}
                           {cur === 'DIKIRIM' && (
@@ -927,7 +930,7 @@ export default function FinanceAuditPage() {
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                 </svg>
-                                Tandai Paid
+                                PAID
                               </button>
                             </>
                           )}
@@ -1001,7 +1004,7 @@ export default function FinanceAuditPage() {
             chips={d ? [
               { text: d.module || '-', className: 'bg-white/15 border-white/20' },
               { text: d.billingStatus || '-', className: 'bg-white/15 border-white/20' },
-              { text: invStatus, className: 'bg-amber-300/90 text-amber-900 border-transparent' },
+              { text: invLabel(invStatus), className: 'bg-amber-300/90 text-amber-900 border-transparent' },
             ] : []}
             sections={d ? [
               { title: 'Informasi Kasus', rows: [
@@ -1019,7 +1022,7 @@ export default function FinanceAuditPage() {
                 ['Tipe Support', d.supportType || '-'],
                 ['Charges', fmtMoney(d.charges)],
                 ['Status Validasi', VALID_TAG],
-                ['Status Invoice', invStatus],
+                ['Status Invoice', invLabel(invStatus)],
                 ['No. Invoice', meta.no || '-'],
                 ['Keterangan', meta.note || '-'],
               ]},
@@ -1030,7 +1033,7 @@ export default function FinanceAuditPage() {
         );
       })()}
 
-      {/* Modal Tandai Paid: keterangan pembayaran wajib, status jadi PAID hijau */}
+      {/* Modal PAID: keterangan pembayaran wajib, status jadi PAID hijau */}
       {paidTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => { if (!payBusy) setPaidTarget(null); }} />
@@ -1068,7 +1071,7 @@ export default function FinanceAuditPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
-                  {payBusy ? 'Menyimpan…' : 'Tandai Paid'}
+                  {payBusy ? 'Menyimpan…' : 'PAID'}
                 </button>
                 <button
                   onClick={() => { if (!payBusy) setPaidTarget(null); }}
