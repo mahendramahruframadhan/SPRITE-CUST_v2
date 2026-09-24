@@ -293,7 +293,7 @@ export default function AiChat() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Tanya soal data kasus…"
               aria-label="Tulis pesan untuk asisten AI"
-              className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus-visible:ring-brand-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
+              className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus-visible:ring-brand-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
             />
             <button className="bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-4 font-bold transition" aria-label="Kirim">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

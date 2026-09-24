@@ -113,7 +113,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="nama@perusahaan.id"
-                  className="w-full pl-10 pr-3 py-2.5 text-sm bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-400 focus:bg-white/90 dark:focus:bg-slate-800 transition placeholder:text-slate-500 text-slate-800 dark:text-slate-100"
+                  className="w-full pl-10 pr-3 py-2.5 text-sm bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-400 focus:bg-white/90 dark:focus:bg-slate-800 transition placeholder:text-slate-500 dark:placeholder:text-slate-400 text-slate-800 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -131,7 +131,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-3 py-2.5 text-sm bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-400 focus:bg-white/90 dark:focus:bg-slate-800 transition placeholder:text-slate-500 text-slate-800 dark:text-slate-100"
+                  className="w-full pl-10 pr-3 py-2.5 text-sm bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-400 focus:bg-white/90 dark:focus:bg-slate-800 transition placeholder:text-slate-500 dark:placeholder:text-slate-400 text-slate-800 dark:text-slate-100"
                 />
               </div>
             </div>

@@ -18,7 +18,7 @@ import DatePickerInput from '../components/DatePickerInput.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const INPUT_CLS =
-  'w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition';
+  'w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
 
 const TABS = [
   { id: 'MONTHLY', label: 'Monthly' },

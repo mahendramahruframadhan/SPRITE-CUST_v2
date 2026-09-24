@@ -950,7 +950,7 @@ export default function FinanceAuditPage() {
                       placeholder="No. invoice"
                       value={meta.no || ''}
                       onChange={(e) => updateInvoiceMeta(c.recordUuid, { no: e.target.value })}
-                      className="text-xs font-mono border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 w-[130px]"
+                      className="text-xs font-mono border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 w-[130px]"
                     />
                   </td>
                   <td className="px-4 py-3.5">
@@ -960,7 +960,7 @@ export default function FinanceAuditPage() {
                       title={meta.note || ''}
                       value={meta.note || ''}
                       onChange={(e) => updateInvoiceMeta(c.recordUuid, { note: e.target.value })}
-                      className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 w-[160px]"
+                      className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 w-[160px]"
                     />
                   </td>
                 </tr>
@@ -1058,7 +1058,7 @@ export default function FinanceAuditPage() {
                 value={payNote}
                 onChange={(e) => setPayNote(e.target.value)}
                 placeholder="cth. Transfer BCA 12 Sep, lunas penuh"
-                className="mt-1.5 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition"
+                className="mt-1.5 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition"
               />
               <div className="mt-3 flex gap-2">
                 <button

@@ -594,7 +594,7 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
             onChange={(e) => { setVal(e.target.value); setErr(''); }}
             list={suggestions.length ? listId : undefined}
             placeholder={placeholder}
-            className="w-full border-2 border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
+            className="w-full border-2 border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
           />
           {suggestions.length > 0 && (
             <datalist id={listId}>

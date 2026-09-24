@@ -457,7 +457,7 @@ export default function RolesPage({ bare = false }) {
                 placeholder="Cari nama atau email..."
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
               />
             </div>
             <select value={fRole} onChange={(e) => setFRole(e.target.value)} className={inputCls}>
@@ -788,7 +788,7 @@ export default function RolesPage({ bare = false }) {
                   type="text"
                   value={modal.name}
                   onChange={(e) => setModal({ ...modal, name: e.target.value })}
-                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
+                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
                 />
               </div>
               <div>
@@ -797,7 +797,7 @@ export default function RolesPage({ bare = false }) {
                   type="email"
                   value={modal.email}
                   onChange={(e) => setModal({ ...modal, email: e.target.value })}
-                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
+                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
                 />
               </div>
               <div>
@@ -805,7 +805,7 @@ export default function RolesPage({ bare = false }) {
                 <select
                   value={modal.role}
                   onChange={(e) => setModal({ ...modal, role: e.target.value })}
-                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
+                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
                 >
                   {ROLES.map((r) => (
                     <option key={r}>{r}</option>
@@ -822,7 +822,7 @@ export default function RolesPage({ bare = false }) {
                     value={modal.password || ''}
                     onChange={(e) => setModal({ ...modal, password: e.target.value })}
                     placeholder="Min. 5 karakter — tersimpan di backend"
-                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
+                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
                   />
                 </div>
               )}
@@ -834,7 +834,7 @@ export default function RolesPage({ bare = false }) {
                     value={modal.password || ''}
                     onChange={(e) => setModal({ ...modal, password: e.target.value })}
                     placeholder="Kosongkan bila tidak diubah"
-                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
+                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
                   />
                 </div>
               )}

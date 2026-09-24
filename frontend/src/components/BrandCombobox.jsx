@@ -137,7 +137,7 @@ export default function BrandCombobox({ id, value, onChange, options = [], place
           }}
           placeholder={placeholder}
           autoComplete="off"
-          className={`min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-16 focus:outline-none focus:ring-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition ${t.ring}`}
+          className={`min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-16 focus:outline-none focus:ring-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition ${t.ring}`}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
           {text && (

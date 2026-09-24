@@ -135,7 +135,7 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
           }}
           placeholder={placeholder}
           autoComplete="off"
-          className="min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition"
+          className="min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition"
         />
         <button
           type="button"

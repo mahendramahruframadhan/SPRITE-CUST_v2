@@ -41,7 +41,7 @@ const INITIAL = {
 };
 
 const INPUT_CLS =
-  'mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition';
+  'mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
 
 function Field({ label, required, children }) {
   return (
@@ -263,7 +263,7 @@ export default function FormKasusPage() {
                 value={form.charges}
                 onChange={set('charges')}
                 placeholder="0"
-                className="pl-8 pr-3 py-2.5 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
+                className="pl-8 pr-3 py-2.5 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
               />
             </div>
             <p className="text-[10px] text-brand-600 dark:text-brand-300 mt-1 cursor-pointer hover:underline" onClick={autoFillCharges}>

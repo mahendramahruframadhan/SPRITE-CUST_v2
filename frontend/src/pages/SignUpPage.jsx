@@ -28,7 +28,7 @@ const STEPS = [
 const STRENGTH_BAR = ['bg-rose-400', 'bg-amber-400', 'bg-yellow-400', 'bg-emerald-400', 'bg-emerald-500'];
 
 const inputCls = (invalid) =>
-  `w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 transition bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 ${
+  `w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 transition bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 ${
     invalid
       ? 'border-rose-300 focus:ring-rose-500/30 focus:border-rose-400'
       : 'border-slate-200 dark:border-slate-700 focus:ring-brand-500/40 focus:border-brand-400'
