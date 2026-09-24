@@ -1,11 +1,16 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { initDb } from './db/init';
+import { validateConfig } from './config/validate';
+
+const log = new Logger('Bootstrap');
 
 async function bootstrap() {
   // ponytail: pg-mem in-memory — no Docker. Seed 2034 cases from frontend/src/data/cases.js
   await initDb();
+  validateConfig();
 
   const app = await NestFactory.create(AppModule);
   const port = Number(process.env.PORT) || 5005;
@@ -30,10 +35,10 @@ async function bootstrap() {
   // ponytail: AuthController (email/password cocok dengan user seed) menangani
   // /api/auth/* di semua env. Handler Better Auth asli tidak di-mount karena
   // expressApp.all terdaftar sebelum route Nest (shadowing) + password seed plaintext.
-  console.log('[backend] Auth via AuthController — POST /api/auth/sign-in/email {email,password}');
+  log.log('Auth via AuthController — POST /api/auth/sign-in/email {email,password}');
 
   await app.listen(port, '0.0.0.0');
-  console.log(`[backend] listening on http://localhost:${port}/api — health: /api/health`);
-  console.log(`[backend] Better Auth at /api/auth/* — frontend: ${frontendUrl}`);
+  log.log(`listening on http://localhost:${port}/api — health: /api/health`);
+  log.log(`Better Auth at /api/auth/* — frontend: ${frontendUrl}`);
 }
 bootstrap();
