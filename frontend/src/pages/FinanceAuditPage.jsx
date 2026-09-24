@@ -54,9 +54,9 @@ const PDF_STATUS_LABEL = { uploading: 'mengupload…', failed: 'gagal', complete
 // tidak ada dropdown; status murni dikendalikan alur (upload/hapus PDF otomatis)
 // dan PAID lewat tombol PAID (modal keterangan). INV_TONE tetap dipakai
 // untuk pewarnaan badge baca-saja.
-// Label tampil status invoice: nilai backend/logika tetap 'DIKIRIM',
-// yang dirender ke user dipetakan ke 'TERKIRIM' via invLabel().
-const invLabel = (s) => (s === 'DIKIRIM' ? 'TERKIRIM' : s);
+// Label tampil status invoice: nilai backend/logika tetap 'DIKIRIM'/'PAID',
+// yang dirender ke user dipetakan via invLabel() ke 'TERKIRIM'/'SUDAH DIBAYAR'.
+const invLabel = (s) => (s === 'DIKIRIM' ? 'TERKIRIM' : s === 'PAID' ? 'SUDAH DIBAYAR' : s);
 const INV_ERR_MSG = {
   INVOICE_AUTO_LOCKED: 'Status ini diatur otomatis oleh sistem (upload/hapus PDF).',
   INVOICE_NEED_PDF: 'Belum bisa PAID — upload minimal 1 PDF invoice dulu.',
@@ -445,13 +445,13 @@ export default function FinanceAuditPage() {
   const [brand, setBrand] = useState('');
   const [invFilter, setInvFilter] = useState('');
   const [detailUuid, setDetailUuid] = useState(null);
-  // Bukti pembayaran per kasus dari backend (invoice-map.notes) — tampil di baris PAID.
+  // Bukti pembayaran per kasus dari backend (invoice-map.notes) — tampil di baris SUDAH DIBAYAR.
   const [payNotes, setPayNotes] = useState({});
   // Target modal Paid: { uuid, label, amount } + isi keterangan + busy.
   const [paidTarget, setPaidTarget] = useState(null);
   const [payNote, setPayNote] = useState('');
   const [payBusy, setPayBusy] = useState(false);
-  // Konfirmasi undo PAID (revisi): klik badge PAID membuka konfirmasi inline.
+  // Konfirmasi undo SUDAH DIBAYAR (revisi): klik badge SUDAH DIBAYAR membuka konfirmasi inline.
   const [undoPaidFor, setUndoPaidFor] = useState(null);
 
   // Pastikan kasus tervalidasi punya status invoice default
@@ -514,8 +514,8 @@ export default function FinanceAuditPage() {
     { t: 'Menunggu Invoice', v: stats.menunggu.toLocaleString('id-ID'), sub: 'kasus', color: 'text-amber-600', darkColor: 'dark:text-amber-400', accent: 'from-amber-500 to-amber-300' },
     { t: 'Invoice Terbit', v: stats.terbit.toLocaleString('id-ID'), sub: 'kasus', color: 'text-violet-600', darkColor: 'dark:text-violet-400', accent: 'from-violet-500 to-violet-300' },
     { t: 'Terkirim', v: stats.dikirim.toLocaleString('id-ID'), sub: 'menunggu pembayaran', color: 'text-sky-600', darkColor: 'dark:text-sky-400', accent: 'from-sky-500 to-sky-300' },
-    { t: 'Paid', v: stats.paid.toLocaleString('id-ID'), sub: `dari ${stats.total} kasus tervalidasi`, color: 'text-emerald-600', darkColor: 'dark:text-emerald-400', accent: 'from-emerald-500 to-emerald-300' },
-    { t: 'Total Outstanding', v: fmtMoney(stats.outstandingAmount), sub: `${stats.outstandingCount} kasus belum PAID`, color: 'text-rose-600', darkColor: 'dark:text-rose-400', accent: 'from-rose-500 to-rose-300', size: 'text-[19px]' },
+    { t: 'Sudah Dibayar', v: stats.paid.toLocaleString('id-ID'), sub: `dari ${stats.total} kasus tervalidasi`, color: 'text-emerald-600', darkColor: 'dark:text-emerald-400', accent: 'from-emerald-500 to-emerald-300' },
+    { t: 'Total Outstanding', v: fmtMoney(stats.outstandingAmount), sub: `${stats.outstandingCount} kasus belum dibayar`, color: 'text-rose-600', darkColor: 'dark:text-rose-400', accent: 'from-rose-500 to-rose-300', size: 'text-[19px]' },
   ];
 
   const filtered = useMemo(() => {
@@ -594,8 +594,8 @@ export default function FinanceAuditPage() {
       syncInvoiceStatus(uuid, 'PAID');
       setPayNotes((prev) => ({ ...prev, [uuid]: { note, paidAt: new Date().toISOString(), paidBy: user?.name || user?.email || '' } }));
       setPaidTarget(null);
-      notify(`Status invoice ${label} menjadi PAID.`, 'success');
-      recordActivity(`menandai PAID ${label}`, `${note}${invNo ? ` • no. invoice ${invNo}` : ''}`, 'Invoice');
+      notify(`Status invoice ${label} menjadi SUDAH DIBAYAR.`, 'success');
+      recordActivity(`menandai SUDAH DIBAYAR ${label}`, `${note}${invNo ? ` • no. invoice ${invNo}` : ''}`, 'Invoice');
     } catch (err) {
       notify(invErrMsg(err, 'Gagal menandai PAID.'), 'err');
     } finally {
@@ -615,7 +615,7 @@ export default function FinanceAuditPage() {
         const m = invoiceMeta[c.recordUuid] || {};
         return [
           c.no, c.dateIssue, c.client, c.picName, c.issue, c.module, c.billingStatus, c.billingCategory,
-          c.supportType, c.charges, caseAuditStatus[c.recordUuid] || '', invoiceStatus[c.recordUuid] || '',
+          c.supportType, c.charges, caseAuditStatus[c.recordUuid] || '', invLabel(invoiceStatus[c.recordUuid] || ''),
           m.no || '', m.note || '',
           c.completionNotes, c.recordUuid,
         ]
@@ -676,7 +676,7 @@ export default function FinanceAuditPage() {
               Finance Audit
             </h1>
             <p className="mt-2 text-sm text-white/75 max-w-xl leading-relaxed">
-              {stats.total} kasus tervalidasi siap invoice · outstanding <span className="font-bold text-white tabular-nums">{fmtMoney(stats.outstandingAmount)}</span> · {stats.paid} sudah PAID.
+              {stats.total} kasus tervalidasi siap invoice · outstanding <span className="font-bold text-white tabular-nums">{fmtMoney(stats.outstandingAmount)}</span> · {stats.paid} sudah dibayar.
             </p>
           </div>
           <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
@@ -704,7 +704,7 @@ export default function FinanceAuditPage() {
         <Arrow />
         <FlowPill tone="bg-sky-50 text-sky-700 border-sky-200">Terkirim</FlowPill>
         <Arrow />
-        <FlowPill tone="bg-emerald-50 text-emerald-700 border-emerald-200">Paid</FlowPill>
+        <FlowPill tone="bg-emerald-50 text-emerald-700 border-emerald-200">Sudah Dibayar</FlowPill>
       </div>
 
       {/* KPI */}
@@ -885,7 +885,7 @@ export default function FinanceAuditPage() {
                           ) : cur === 'PAID' ? (
                             undoPaidFor === c.recordUuid ? (
                               <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5 p-2">
-                                <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-300">Urungkan PAID? Status kembali ke TERKIRIM (revisi).</p>
+                                <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-300">Urungkan SUDAH DIBAYAR? Status kembali ke TERKIRIM (revisi).</p>
                                 <div className="mt-1.5 flex gap-1.5">
                                   <button
                                     onClick={() => { const u = c.recordUuid; setUndoPaidFor(null); undoStatus(u, 'DIKIRIM', 'PAID'); }}
@@ -904,7 +904,7 @@ export default function FinanceAuditPage() {
                             ) : (
                               <button
                                 onClick={() => setUndoPaidFor(c.recordUuid)}
-                                title="Klik untuk urungkan PAID (kembali ke TERKIRIM, revisi)"
+                                title="Klik untuk urungkan SUDAH DIBAYAR (kembali ke TERKIRIM, revisi)"
                                 className={`inline-flex w-full items-center justify-center gap-1.5 text-[11px] font-bold border rounded-lg px-2 py-1.5 transition hover:shadow-sm hover:brightness-95 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 ${tone}`}
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
@@ -1033,7 +1033,7 @@ export default function FinanceAuditPage() {
         );
       })()}
 
-      {/* Modal PAID: keterangan pembayaran wajib, status jadi PAID hijau */}
+      {/* Modal PAID: keterangan pembayaran wajib, status jadi SUDAH DIBAYAR (hijau) */}
       {paidTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => { if (!payBusy) setPaidTarget(null); }} />
