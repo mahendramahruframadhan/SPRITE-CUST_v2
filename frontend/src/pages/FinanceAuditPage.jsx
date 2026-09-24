@@ -6,6 +6,7 @@ import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
+import BrandCombobox from '../components/BrandCombobox.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8, moduleTone } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
@@ -755,14 +756,11 @@ export default function FinanceAuditPage() {
               <DatePickerInput id="fin-to" value={to} onChange={setToLogged} placeholder="Semua tanggal" />
             </div>
           </div>
-          <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Brand</label>
-            <select value={brand} onChange={(e) => setBrandLogged(e.target.value)} className={`${filterCls} min-w-[200px] mt-1`}>
-              <option value="">Semua Brand</option>
-              {brands.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+          <div className="min-w-[200px]">
+            <label htmlFor="fin-brand" className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Brand</label>
+            <div className="mt-1">
+              <BrandCombobox id="fin-brand" value={brand} onChange={setBrandLogged} options={brands} placeholder="Cari brand…" />
+            </div>
           </div>
           <div>
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Status Invoice</label>
