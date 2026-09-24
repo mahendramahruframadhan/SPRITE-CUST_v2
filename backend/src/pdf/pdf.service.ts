@@ -4,6 +4,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, Delete
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/drizzle.service';
+import { esc } from '../db/sql';
 import { logActivity } from '../logs/activity';
 
 // Penyimpanan PDF invoice di Cloudflare R2 (S3-compatible).
@@ -15,7 +16,6 @@ const MAX_BYTES = MAX_MB * 1024 * 1024;
 const URL_TTL = 300; // 5 menit
 const STUCK_MINUTES = Number(process.env.PDF_STUCK_MINUTES || 30);
 
-const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 const fail = (code: string, message: string, status = HttpStatus.BAD_REQUEST) => {
   throw new HttpException({ code, message }, status);
 };

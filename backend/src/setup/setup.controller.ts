@@ -4,15 +4,16 @@ import * as crypto from 'crypto';
 import { getDb } from '../db/drizzle.service';
 import { logActivity } from '../logs/activity';
 import { validateRegistration } from '../auth/register.validation';
+import { esc, rowsOf } from '../db/sql';
 
 // Registrasi AKUN PERTAMA instalasi (kontrak: frontend/src/features/register/BACKEND_CONTRACT.md).
 // - GET  /api/setup/status      → { firstRun, userCount } (publik, tanpa auth)
 // - POST /api/setup/first-admin → { user } role Super Admin (HANYA saat userCount === 0)
 // Setelah 1 user ada, POST selalu 409 ALREADY_INITIALIZED. Role dikunci di
 // server — body.role dari client selalu diabaikan.
-const rowsOf = (r: any): any[] => r?.rows || r || [];
-// Lihat auth.controller: string mentah + esc() agar jalan di pg-mem maupun Postgres asli.
-const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
+
+// Lihat db/sql.ts: string mentah + esc() terpusat agar jalan di pg-mem
+// maupun Postgres asli.
 
 // Throttle sederhana in-memory: max 10 POST /setup/first-admin per menit per IP.
 const firstAdminHits = new Map<string, number[]>();

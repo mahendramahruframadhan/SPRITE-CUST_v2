@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Headers } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
+import { esc } from '../db/sql';
 
-const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 export const maskKey = (k: string) => (!k ? '' : k.length <= 4 ? '••••' : `••••${k.slice(-4)}`);
 
 // Konfigurasi SPRITE AI — asisten resmi project SPRITE-CUST_v2 (diatur pemilik,

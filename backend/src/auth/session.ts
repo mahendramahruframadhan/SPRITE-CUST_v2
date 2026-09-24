@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import { esc, rowsOf } from '../db/sql';
 
 // Sesi token server-side (tabel `session`, sudah ada di DDL initDb).
 // Alur: sign-in memverifikasi password → createSession menyimpan token acak +
@@ -6,11 +7,6 @@ import * as crypto from 'crypto';
 // request → PermGuard memvalidasi TOKEN (bukan email) sebelum cek role.
 // Tanpa token valid → 403. Header x-user-email tidak lagi dipercaya untuk
 // otorisasi (tetap dikirim frontend untuk kompatibilitas display).
-// Gaya raw-string + esc() mengikuti codebase (pg-mem tidak mendukung sql-tag
-// berparameter — lihat catatan di auth.controller.ts).
-const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
-const rowsOf = (r: any): any[] => r?.rows || r || [];
-
 export const SESSION_TTL_MS = 7 * 24 * 3600 * 1000;
 
 // Satu user = satu sesi aktif (login baru mengusir sesi lama).

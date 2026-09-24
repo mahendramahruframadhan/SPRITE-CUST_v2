@@ -4,6 +4,7 @@ import { getDb } from '../db/drizzle.service';
 import { SheetsService } from '../sheets/sheets.service';
 import { logActivity } from '../logs/activity';
 import * as crypto from 'crypto';
+import { esc } from '../db/sql';
 
 // Field yang ikut di-hash untuk deteksi perubahan baris
 const HASH_FIELDS = ['no','dateIssue','startDate','finishDate','client','picName','module','subModule','location','issue','assignTo','status','supportCategory','billingStatus','billingCategory','refPriceList','channelTicket','supportType','charges','completionNotes','groupKpi','groupKpiDesc','month','weeknum'];
@@ -65,11 +66,11 @@ export class SyncService {
           continue; // sama persis → lewati, hemat waktu
         }
         const sets = cols.map((k) => `${k}=EXCLUDED.${k}`).join(',');
-        await this.db.execute(`INSERT INTO assistance_records (record_uuid,no,date_issue,start_date,finish_date,client,pic_name,module,sub_module,location,issue,assign_to,status,support_category,billing_status,billing_category,ref_price_list,channel_ticket,support_type,charges,completion_notes,group_kpi,group_kpi_desc,month,weeknum,updated_at) VALUES ('${r.recordUuid}','${r.no}','${r.dateIssue}','${r.startDate}','${r.finishDate}','${r.client.replace(/'/g,"''")}','${(r.picName||'').replace(/'/g,"''")}','${r.module}','${r.subModule}','${(r.location||'').replace(/'/g,"''")}','${(r.issue||'').replace(/'/g,"''")}','${r.assignTo}','${r.status}','${r.supportCategory}','${r.billingStatus}','${r.billingCategory}','${r.refPriceList}','${r.channelTicket}','${r.supportType}',${Number(r.charges)||0},'${(r.completionNotes||'').replace(/'/g,"''")}','${r.groupKpi}','${r.groupKpiDesc}','${r.month}','${r.weeknum}','${startedAt}') ON CONFLICT (record_uuid) DO UPDATE SET no=EXCLUDED.no,date_issue=EXCLUDED.date_issue,start_date=EXCLUDED.start_date,finish_date=EXCLUDED.finish_date,${sets},updated_at=EXCLUDED.updated_at` as any);
+        await this.db.execute(`INSERT INTO assistance_records (record_uuid,no,date_issue,start_date,finish_date,client,pic_name,module,sub_module,location,issue,assign_to,status,support_category,billing_status,billing_category,ref_price_list,channel_ticket,support_type,charges,completion_notes,group_kpi,group_kpi_desc,month,weeknum,updated_at) VALUES ('${esc(r.recordUuid)}','${esc(r.no)}','${esc(r.dateIssue)}','${esc(r.startDate)}','${esc(r.finishDate)}','${esc(r.client)}','${esc(r.picName)}','${esc(r.module)}','${esc(r.subModule)}','${esc(r.location)}','${esc(r.issue)}','${esc(r.assignTo)}','${esc(r.status)}','${esc(r.supportCategory)}','${esc(r.billingStatus)}','${esc(r.billingCategory)}','${esc(r.refPriceList)}','${esc(r.channelTicket)}','${esc(r.supportType)}',${Number(r.charges)||0},'${esc(r.completionNotes)}','${esc(r.groupKpi)}','${esc(r.groupKpiDesc)}','${esc(r.month)}','${esc(r.weeknum)}','${startedAt}') ON CONFLICT (record_uuid) DO UPDATE SET no=EXCLUDED.no,date_issue=EXCLUDED.date_issue,start_date=EXCLUDED.start_date,finish_date=EXCLUDED.finish_date,${sets},updated_at=EXCLUDED.updated_at` as any);
         n++;
       }
       try {
-        const hv = JSON.stringify({ updatedAt: startedAt, hashes: nextHashes }).replace(/'/g, "''");
+        const hv = esc(JSON.stringify({ updatedAt: startedAt, hashes: nextHashes }));
         await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('syncHashes','${hv}','${startedAt}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
       } catch (e) {
         this.logger.warn('Simpan syncHashes gagal: ' + (e as any)?.message);
@@ -79,7 +80,7 @@ export class SyncService {
       await logActivity(this.db, { who: 'Sistem', action: 'sinkronisasi Google Sheets selesai', category: 'Sinkron', detail: `${n} baris baru/berubah, ${unchanged} sama (${readRows} dibaca, sumber: ${source}${tab ? `, tab ${tab}` : ''})` });
       return { ok: true, rows: n, readRows, skippedRows, unchanged, tab, startedAt, finishedAt, durationMs: Date.now() - startedMs };
     } catch (e: any) {
-      await this.db.execute(`UPDATE sync_logs SET finished_at='${new Date().toISOString()}', status='failed', error_message='${String(e.message||e).replace(/'/g,"''")}' WHERE id='${id}'` as any);
+      await this.db.execute(`UPDATE sync_logs SET finished_at='${new Date().toISOString()}', status='failed', error_message='${esc(String(e.message||e))}' WHERE id='${id}'` as any);
       throw e;
     } finally {
       this.running = false;

@@ -1,5 +1,6 @@
 import { Controller, Get, Put, Patch, Body, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
+import { esc } from '../db/sql';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { maskKey } from '../ai/ai.controller';
 import * as fs from 'fs';
@@ -91,7 +92,7 @@ export class ConfigController {
         }
       } catch {}
     }
-    const val = JSON.stringify(incoming).replace(/'/g,"''");
+    const val = esc(JSON.stringify(incoming));
     await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${new Date().toISOString()}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
     return { ok:true, key: k };
   }
@@ -126,7 +127,7 @@ export class ConfigController {
     for (const k of ['auditActions', 'invoiceActions'] as const) {
       if (body?.[k] === undefined) continue;
       const list = cleanStatusList(body[k], DEFAULT_STATUS_OPTIONS[k]);
-      const val = JSON.stringify(list).replace(/'/g, "''");
+      const val = esc(JSON.stringify(list));
       await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${new Date().toISOString()}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
       out[k] = list;
     }
@@ -163,12 +164,11 @@ export class ConfigController {
     }
 
     const next = list.map((a) => (a === from ? to : a));
-    const val = JSON.stringify(next).replace(/'/g, "''");
+    const val = esc(JSON.stringify(next));
     const now = new Date().toISOString();
     await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${scope}','${val}','${now}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
 
     // Migrasi status per-kasus agar tidak yatim (orphan).
-    const esc = (s: string) => s.replace(/'/g, "''");
     const target = scope === 'auditActions'
       ? { table: 'audit_status', col: 'action' }
       : { table: 'invoice_status', col: 'status' };

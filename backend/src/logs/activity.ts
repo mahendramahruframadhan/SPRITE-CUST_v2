@@ -1,7 +1,6 @@
 import * as crypto from 'crypto';
 import { resolveSessionUser } from '../auth/session';
-
-const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
+import { esc } from '../db/sql';
 
 export interface ActivityInput {
   who?: string;

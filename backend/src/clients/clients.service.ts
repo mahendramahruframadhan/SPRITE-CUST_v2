@@ -1,6 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/drizzle.service';
+import { esc } from '../db/sql';
 import { logActivity } from '../logs/activity';
 import { checkClientInput, checkStatusInput, ContractError } from './contract.validation';
 
@@ -8,7 +9,6 @@ import { checkClientInput, checkStatusInput, ContractError } from './contract.va
 // Context7 nestjs: controller tipis + service Injectable; validasi input di
 // service (bukan cuma client). Gaya repo: raw SQL + esc() seperti pdf/cases.
 // Tulis dijaga PermGuard modul 'clients'; baca (GET) sengaja terbuka.
-const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 
 const fail = (code: string, message: string, status = HttpStatus.BAD_REQUEST) => {
   throw new HttpException({ code, message }, status);

@@ -2,8 +2,7 @@ import { Controller, Patch, Param, Body, Get, Req, UseGuards, HttpException, Htt
 import { getDb } from '../db/drizzle.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { logActivity, resolveWho, caseLabel } from '../logs/activity';
-
-const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
+import { esc } from '../db/sql';
 
 @Controller()
 export class BillingController {
@@ -55,7 +54,7 @@ export class BillingController {
   async audit(@Param('uuid') uuid: string, @Body() body: any, @Req() req: any) {
     const action = body.action || body.status;
     if (!action) return { ok:false, error:'action required' };
-    await this.db.execute(`INSERT INTO audit_status (record_uuid,action,updated_at) VALUES ('${uuid.replace(/'/g,"''")}','${action.replace(/'/g,"''")}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET action=EXCLUDED.action, updated_at=EXCLUDED.updated_at` as any);
+    await this.db.execute(`INSERT INTO audit_status (record_uuid,action,updated_at) VALUES ('${esc(uuid)}','${esc(action)}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET action=EXCLUDED.action, updated_at=EXCLUDED.updated_at` as any);
     await logActivity(this.db, { who: await resolveWho(this.db, req, body.who), action: `mengubah status validasi ${await caseLabel(this.db, uuid)}`, category: 'Validasi', detail: `menjadi ${action}`, recordUuid: uuid });
     return { ok:true, recordUuid: uuid, action };
   }
@@ -116,7 +115,7 @@ export class BillingController {
       await logActivity(this.db, { who, action: `menandai SUDAH DIBAYAR ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `${paymentNote}${invNo ? ` • no. invoice ${invNo}` : ''}`, recordUuid: uuid });
       return { ok: true, recordUuid: uuid, status, paymentNote };
     }
-    await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${uuid.replace(/'/g,"''")}','${status.replace(/'/g,"''")}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);
+    await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(uuid)}','${esc(status)}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);
     const invNo = String(body.invoiceNo || body.no || '').trim();
     await logActivity(this.db, { who: await resolveWho(this.db, req, body.who), action: `mengubah status invoice ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `menjadi ${status}${invNo ? ` • no. invoice ${invNo}` : ''}`, recordUuid: uuid });
     return { ok:true, recordUuid: uuid, status };

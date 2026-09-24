@@ -3,17 +3,16 @@ import { getDb } from '../db/drizzle.service';
 import * as crypto from 'crypto';
 import { pickRole, validateRegistration } from './register.validation';
 import { createSession, destroySession, resolveSessionUser } from './session';
+import { esc, rowsOf } from '../db/sql';
 
 // ponytail: local fallback auth (pg-mem) — Better Auth's drizzle pg adapter has timestamp type mismatch with pg-mem, so we provide minimal email/password auth that mimics Better Auth API shape. When DATABASE_URL is real postgres, main.ts mounts real Better Auth handler instead.
 //
 // Alur registrasi: daftar (POST sign-up/email ATAU setup/first-admin untuk akun
 // pertama) HANYA menyimpan ke DB. Login dilakukan terpisah di /login via
 // POST sign-in/email — frontend mengarahkan ke sana sesudah daftar berhasil.
-const rowsOf = (r: any): any[] => r?.rows || r || [];
 // pg-mem: db.execute hanya andal dengan string mentah — sql-tag berparameter
-// memicu "getTypeParser is not supported" di adapter pg-mem. Gaya string mentah
-// + esc() sama dengan roles.controller & initDb; jalan di pg-mem maupun Postgres asli.
-const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
+// memicu "getTypeParser is not supported" di adapter pg-mem. Escaping lewat
+// helper terpusat db/sql.ts; jalan di pg-mem maupun Postgres asli.
 
 // Peminta dari token sesi (pola yang sama dengan PermGuard).
 // Hanya Super Admin boleh menentukan role akun baru (dipakai form tambah

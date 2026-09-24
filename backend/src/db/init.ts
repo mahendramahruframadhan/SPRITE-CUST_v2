@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { getDb, getMemDb } from './drizzle.service';
+import { esc } from './sql';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
 const ROLE_PERMS: Record<string, Record<string, number>> = {
@@ -106,7 +107,6 @@ export async function initDb() {
         let ok = 0;
         for (const r of arr) {
           if (!r.recordUuid) continue;
-          const esc = (v: any) => String(v || '').replace(/'/g, "''");
           const sql = `INSERT INTO assistance_records (record_uuid,no,date_issue,start_date,finish_date,client,pic_name,module,sub_module,location,issue,assign_to,status,support_category,billing_status,billing_category,ref_price_list,channel_ticket,support_type,charges,completion_notes,group_kpi,group_kpi_desc,month,weeknum) VALUES ('${esc(r.recordUuid)}','${esc(r.no)}','${esc(r.dateIssue)}','${esc(r.startDate)}','${esc(r.finishDate)}','${esc(r.client)}','${esc(r.picName)}','${esc(r.module)}','${esc(r.subModule)}','${esc(r.location)}','${esc(r.issue)}','${esc(r.assignTo)}','${esc(r.status)}','${esc(r.supportCategory)}','${esc(r.billingStatus)}','${esc(r.billingCategory)}','${esc(r.refPriceList)}','${esc(r.channelTicket)}','${esc(r.supportType)}',${Number(r.charges) || 0},'${esc(r.completionNotes)}','${esc(r.groupKpi)}','${esc(r.groupKpiDesc)}','${esc(r.month)}','${esc(r.weeknum)}') ON CONFLICT (record_uuid) DO NOTHING`;
           try {
             if (!isRealPg && mem) mem.public.none(sql);
@@ -203,7 +203,7 @@ export async function initDb() {
             mapped.splice(i >= 0 ? i + 1 : mapped.length, 0, 'DIKIRIM');
           }
           if (JSON.stringify(mapped) !== JSON.stringify(arr)) {
-            await q(`UPDATE app_config SET value='${JSON.stringify(mapped).replace(/'/g, "''")}', updated_at='${new Date().toISOString()}' WHERE key='invoiceActions'`);
+            await q(`UPDATE app_config SET value='${esc(JSON.stringify(mapped))}', updated_at='${new Date().toISOString()}' WHERE key='invoiceActions'`);
             console.log('[db] migrated invoiceActions → TERBIT + DIKIRIM');
           }
         }
@@ -258,7 +258,7 @@ export async function initDb() {
         invoiceActions: ['MENUNGGU INVOICE', 'INVOICE TERBIT', 'DIKIRIM', 'PAID'],
       };
       for (const [k, arr] of Object.entries(statusSeeds)) {
-        const val = JSON.stringify(arr).replace(/'/g, "''");
+        const val = esc(JSON.stringify(arr));
         await q(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${now}') ON CONFLICT (key) DO NOTHING`);
       }
     } catch {}
@@ -298,7 +298,6 @@ export async function initDb() {
     }
     if (c === 0) {
       const now = new Date().toISOString();
-      const escSeed = (v: string) => v.replace(/'/g, "''");
       const seeds: Array<[string, string, string, string]> = [
         ...['Chambers', 'Inspired', 'SCH', 'Skaters', 'Tendencies', 'Screamous'].map(
           (b, i): [string, string, string, string] => [`seed-bs-m${i}`, b, 'MONTHLY', ''],
@@ -317,7 +316,7 @@ export async function initDb() {
       ];
       let ok = 0;
       for (const [id, b, t, exp] of seeds) {
-        const sql = `INSERT INTO brand_statuses (id,brand,type,expired_at,created_at,updated_at) VALUES ('${id}','${escSeed(b)}','${t}','${exp}','${now}','${now}') ON CONFLICT (id) DO NOTHING`;
+        const sql = `INSERT INTO brand_statuses (id,brand,type,expired_at,created_at,updated_at) VALUES ('${id}','${esc(b)}','${t}','${exp}','${now}','${now}') ON CONFLICT (id) DO NOTHING`;
         try {
           if (!isRealPg && mem) mem.public.none(sql);
           else await db.execute(sql as any);

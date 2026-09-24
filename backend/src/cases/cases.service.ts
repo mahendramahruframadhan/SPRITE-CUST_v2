@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
+import { esc } from '../db/sql';
 import { SheetsService } from '../sheets/sheets.service';
 import * as crypto from 'crypto';
 
@@ -20,7 +21,6 @@ export class CasesService {
     const from = (q.from || q.dateFrom || '').replace(/-/g, '');
     const to = (q.to || q.dateTo || '').replace(/-/g, '');
 
-    const esc = (v: string) => String(v).replace(/'/g, "''");
     const wheres: string[] = [];
     if (module) wheres.push(`module = '${esc(module)}'`);
     if (status) wheres.push(`status = '${esc(status)}'`);
@@ -52,11 +52,11 @@ export class CasesService {
   }
 
   async findOne(recordUuid: string) {
-    const res: any = await this.db.execute(`SELECT * FROM assistance_records WHERE record_uuid = '${recordUuid.replace(/'/g,"''")}'` as any);
+    const res: any = await this.db.execute(`SELECT * FROM assistance_records WHERE record_uuid = '${esc(recordUuid)}'` as any);
     const row = (res.rows || res)[0];
     if (!row) return null;
-    const auditRes: any = await this.db.execute(`SELECT action FROM audit_status WHERE record_uuid='${recordUuid.replace(/'/g,"''")}'` as any);
-    const invRes: any = await this.db.execute(`SELECT status FROM invoice_status WHERE record_uuid='${recordUuid.replace(/'/g,"''")}'` as any);
+    const auditRes: any = await this.db.execute(`SELECT action FROM audit_status WHERE record_uuid='${esc(recordUuid)}'` as any);
+    const invRes: any = await this.db.execute(`SELECT status FROM invoice_status WHERE record_uuid='${esc(recordUuid)}'` as any);
     const m = (r:any)=>({
       no: r.no, dateIssue: r.date_issue, startDate: r.start_date, finishDate: r.finish_date,
       client: r.client, picName: r.pic_name, module: r.module, subModule: r.sub_module,
@@ -84,7 +84,7 @@ export class CasesService {
     };
     if (!row.client || !row.issue || !row.dateIssue) throw new Error('client, issue, dateIssue required');
     await this.sheets.appendCase(row);
-    await this.db.execute(`INSERT INTO assistance_records (record_uuid,no,date_issue,start_date,finish_date,client,pic_name,module,sub_module,location,issue,assign_to,status,support_category,billing_status,billing_category,ref_price_list,channel_ticket,support_type,charges,completion_notes,group_kpi,group_kpi_desc,month,weeknum,updated_at) VALUES ('${row.recordUuid}','${row.no}','${row.dateIssue}','${row.startDate}','${row.finishDate}','${row.client.replace(/'/g,"''")}','${row.picName.replace(/'/g,"''")}','${row.module}','${row.subModule}','${row.location.replace(/'/g,"''")}','${row.issue.replace(/'/g,"''")}','${row.assignTo}','${row.status}','${row.supportCategory}','${row.billingStatus}','${row.billingCategory}','${row.refPriceList}','${row.channelTicket}','${row.supportType}',${row.charges},'${row.completionNotes.replace(/'/g,"''")}','${row.groupKpi}','${row.groupKpiDesc}','${row.month}','${row.weeknum}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET client=EXCLUDED.client, issue=EXCLUDED.issue, updated_at=EXCLUDED.updated_at` as any);
+    await this.db.execute(`INSERT INTO assistance_records (record_uuid,no,date_issue,start_date,finish_date,client,pic_name,module,sub_module,location,issue,assign_to,status,support_category,billing_status,billing_category,ref_price_list,channel_ticket,support_type,charges,completion_notes,group_kpi,group_kpi_desc,month,weeknum,updated_at) VALUES ('${esc(row.recordUuid)}','${esc(row.no)}','${esc(row.dateIssue)}','${esc(row.startDate)}','${esc(row.finishDate)}','${esc(row.client)}','${esc(row.picName)}','${esc(row.module)}','${esc(row.subModule)}','${esc(row.location)}','${esc(row.issue)}','${esc(row.assignTo)}','${esc(row.status)}','${esc(row.supportCategory)}','${esc(row.billingStatus)}','${esc(row.billingCategory)}','${esc(row.refPriceList)}','${esc(row.channelTicket)}','${esc(row.supportType)}',${Number(row.charges) || 0},'${esc(row.completionNotes)}','${esc(row.groupKpi)}','${esc(row.groupKpiDesc)}','${esc(row.month)}','${esc(row.weeknum)}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET client=EXCLUDED.client, issue=EXCLUDED.issue, updated_at=EXCLUDED.updated_at` as any);
     return row;
   }
 

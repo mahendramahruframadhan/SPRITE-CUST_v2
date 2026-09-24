@@ -2,6 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, SetMetadata } from '@nestjs/
 import { Reflector } from '@nestjs/core';
 import { getDb } from '../db/drizzle.service';
 import { resolveSessionUser } from './session';
+import { esc } from '../db/sql';
 
 export const Perm = (module: string) => SetMetadata('permModule', module);
 
@@ -26,7 +27,6 @@ export class PermGuard implements CanActivate {
     if (!u) return false;
     const role = u.role || 'Viewer';
     if (role === 'Super Admin') return true;
-    const esc = (v: string) => v.replace(/'/g, "''");
     const p: any = await this.db.execute(`SELECT allowed FROM role_permissions WHERE role='${esc(role)}' AND module='${esc(mod)}'` as any);
     return Number((p.rows || p)[0]?.allowed || 0) === 1;
   }
