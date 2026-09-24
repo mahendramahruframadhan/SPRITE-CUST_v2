@@ -1,54 +1,19 @@
-// SearchSelect: dropdown searchable generik untuk filter (adaptasi pola shadcn
+// BrandCombobox: filter brand gaya combobox searchable (adaptasi pola shadcn
 // Combobox ke stack repo: Vite + JSX + Tailwind, tanpa deps baru, tanpa
 // lucide — ikon SVG inline seperti komponen lain). UX: ketik untuk cari,
 // ArrowDown/klik tombol membuka daftar, Escape/klik di luar menutup,
-// tombol × mengembalikan ke opsi "semua".
-// Daftar dirender via portal ke <body> dengan posisi fixed — tidak terpotong
-// overflow kartu/filter atau tertutup elemen lain (pola DatePickerInput).
-// Props: id, value ('' = semua), onChange(value), options (string[] atau
-// { value, label }[] — label yang tampil & dicari, value yang disimpan),
-// placeholder, allLabel, emptyText, countNoun, accent ('emerald' default,
-// selaras filter Finance; 'brand' untuk halaman lain).
+// tombol × mengembalikan ke "Semua Brand".
+// Root cause fix: daftar dirender via portal ke <body> dengan posisi fixed —
+// tidak terpotong overflow kartu/filter atau tertutup elemen lain (pola yang
+// sama dengan DatePickerInput).
+// Props: id, value ('' = semua), onChange(value), options (string[]),
+// placeholder.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-const ACCENT = {
-  emerald: {
-    ring: 'focus:ring-emerald-500/40 focus:border-emerald-300',
-    hoverItem: 'hover:bg-emerald-50 dark:hover:bg-emerald-500/10',
-    hoverIcon: 'hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10',
-    active: 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25',
-    focusItem: 'focus-visible:ring-emerald-500/60',
-  },
-  brand: {
-    ring: 'focus:ring-brand-500/40 focus:border-brand-300',
-    hoverItem: 'hover:bg-brand-50 dark:hover:bg-brand-500/10',
-    hoverIcon: 'hover:text-brand-600 dark:hover:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10',
-    active: 'bg-brand-600 text-white shadow-md shadow-brand-600/25',
-    focusItem: 'focus-visible:ring-brand-500/60',
-  },
-};
-
 const POP_W = 260;
 
-function normOptions(options) {
-  return (options || []).map((o) =>
-    typeof o === 'string' ? { value: o, label: o } : { value: o.value, label: o.label ?? o.value }
-  );
-}
-
-export default function SearchSelect({
-  id,
-  value,
-  onChange,
-  options = [],
-  placeholder = 'Cari…',
-  allLabel = 'Semua',
-  emptyText = 'Tidak ada yang cocok.',
-  countNoun = 'opsi',
-  accent = 'emerald',
-}) {
-  const t = ACCENT[accent] || ACCENT.emerald;
+export default function BrandCombobox({ id, value, onChange, options = [], placeholder = 'Semua Brand' }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(value || '');
   const [pos, setPos] = useState(null);
@@ -56,22 +21,16 @@ export default function SearchSelect({
   const popRef = useRef(null);
   const inputRef = useRef(null);
 
-  const items = useMemo(() => normOptions(options), [options]);
-  const currentLabel = useMemo(
-    () => items.find((o) => o.value === value)?.label ?? value ?? '',
-    [items, value]
-  );
-
   // Sinkron bila value diubah dari luar (mis. reset filter).
   useEffect(() => {
-    setText(items.find((o) => o.value === value)?.label ?? value ?? '');
-  }, [items, value]);
+    setText(value || '');
+  }, [value]);
 
   const results = useMemo(() => {
     const q = text.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((o) => String(o.label).toLowerCase().includes(q));
-  }, [items, text]);
+    if (!q) return options;
+    return options.filter((o) => String(o).toLowerCase().includes(q));
+  }, [options, text]);
 
   // Posisi popover: di bawah input, digeser bila mepet tepi viewport.
   function updatePos() {
@@ -100,17 +59,17 @@ export default function SearchSelect({
   // Klik di luar (input maupun popover) menutup; Escape menutup.
   useEffect(() => {
     if (!open) return;
-    function reset() {
-      setOpen(false);
-      setText(currentLabel);
-    }
     function onDown(e) {
       const t = e.target;
       if (rootRef.current?.contains(t) || popRef.current?.contains(t)) return;
-      reset();
+      setOpen(false);
+      setText(value || '');
     }
     function onKey(e) {
-      if (e.key === 'Escape') reset();
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setText(value || '');
+      }
     }
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
@@ -118,10 +77,11 @@ export default function SearchSelect({
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open, currentLabel]);
+  }, [open, value]);
 
   function pick(v) {
     onChange(v);
+    setText(v);
     setOpen(false);
     inputRef.current?.blur();
   }
@@ -159,15 +119,15 @@ export default function SearchSelect({
           }}
           placeholder={placeholder}
           autoComplete="off"
-          className={`min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-16 focus:outline-none focus:ring-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition ${t.ring}`}
+          className="min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-16 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition"
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
           {text && (
             <button
               type="button"
               onClick={clear}
-              aria-label={`Kembalikan ke ${allLabel.toLowerCase()}`}
-              title={allLabel}
+              aria-label="Kembalikan ke semua brand"
+              title="Semua brand"
               className="w-7 h-7 inline-flex items-center justify-center rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
@@ -179,8 +139,8 @@ export default function SearchSelect({
             type="button"
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
-            aria-label="Buka daftar pilihan"
-            className={`w-7 h-7 inline-flex items-center justify-center rounded-lg text-slate-500 transition focus-visible:outline-none focus-visible:ring-2 ${t.hoverIcon} ${t.focusItem}`}
+            aria-label="Buka daftar brand"
+            className="w-7 h-7 inline-flex items-center justify-center rounded-lg text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
           >
             <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -200,46 +160,46 @@ export default function SearchSelect({
             <ul
               id={`${id}-listbox`}
               role="listbox"
-              aria-label={placeholder}
+              aria-label="Daftar brand"
               className="max-h-60 overflow-y-auto scrollbar-thin py-1"
             >
               <li role="option" aria-selected={value === ''}>
                 <button
                   type="button"
                   onClick={() => pick('')}
-                  className={`w-full text-left text-sm rounded-xl px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset ${t.focusItem} ${
+                  className={`w-full text-left text-sm rounded-xl px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500/60 ${
                     value === ''
-                      ? `${t.active} font-bold`
-                      : `font-semibold text-slate-500 dark:text-slate-300 ${t.hoverItem}`
+                      ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/25'
+                      : 'font-semibold text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  {allLabel}
+                  Semua Brand
                 </button>
               </li>
               {results.map((o) => (
-                <li key={o.value} role="option" aria-selected={value === o.value}>
+                <li key={o} role="option" aria-selected={value === o}>
                   <button
                     type="button"
-                    onClick={() => pick(o.value)}
-                    title={o.label}
-                    className={`w-full text-left text-sm rounded-xl px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset ${t.focusItem} ${
-                      value === o.value
-                        ? `${t.active} font-bold`
-                        : `text-slate-700 dark:text-slate-200 ${t.hoverItem}`
+                    onClick={() => pick(o)}
+                    title={o}
+                    className={`w-full text-left text-sm rounded-xl px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500/60 ${
+                      value === o
+                        ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/25'
+                        : 'text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
                     }`}
                   >
-                    <span className="block truncate">{o.label}</span>
+                    <span className="block truncate">{o}</span>
                   </button>
                 </li>
               ))}
               {results.length === 0 && (
                 <li className="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-300">
-                  {emptyText}
+                  Tidak ada brand yang cocok dengan “{text.trim()}”.
                 </li>
               )}
             </ul>
             <p className="px-3 py-1.5 text-[11px] text-slate-500 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800 tabular-nums">
-              {results.length} dari {items.length} {countNoun}
+              {results.length} dari {options.length} brand
             </p>
           </div>,
           document.body

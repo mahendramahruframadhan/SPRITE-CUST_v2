@@ -6,7 +6,7 @@ import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
-import SearchSelect from '../components/SearchSelect.jsx';
+import BrandCombobox from '../components/BrandCombobox.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8, moduleTone } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
@@ -654,6 +654,9 @@ export default function FinanceAuditPage() {
     setInvFilter('');
   }
 
+  const filterCls =
+    'mt-1 block text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
+
   return (
     <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
       {/* ===== HERO ===== */}
@@ -756,32 +759,17 @@ export default function FinanceAuditPage() {
           <div className="min-w-[200px]">
             <label htmlFor="fin-brand" className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Brand</label>
             <div className="mt-1">
-              <SearchSelect
-                id="fin-brand"
-                value={brand}
-                onChange={setBrandLogged}
-                options={brands}
-                placeholder="Cari brand…"
-                allLabel="Semua Brand"
-                emptyText={brand.trim() ? `Tidak ada brand yang cocok dengan “${brand.trim()}”.` : 'Tidak ada brand yang cocok.'}
-                countNoun="brand"
-              />
+              <BrandCombobox id="fin-brand" value={brand} onChange={setBrandLogged} options={brands} placeholder="Cari brand…" />
             </div>
           </div>
-          <div className="min-w-[200px]">
-            <label htmlFor="fin-status" className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Status Invoice</label>
-            <div className="mt-1">
-              <SearchSelect
-                id="fin-status"
-                value={invFilter}
-                onChange={setInvFilterLogged}
-                options={invoiceActions.map((a) => ({ value: a, label: invLabel(a) }))}
-                placeholder="Cari status…"
-                allLabel="Semua"
-                emptyText="Tidak ada status yang cocok."
-                countNoun="status"
-              />
-            </div>
+          <div>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Status Invoice</label>
+            <select value={invFilter} onChange={(e) => setInvFilterLogged(e.target.value)} className={`${filterCls} min-w-[180px] mt-1`}>
+              <option value="">Semua</option>
+              {invoiceActions.map((a) => (
+                <option key={a} value={a}>{invLabel(a)}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
