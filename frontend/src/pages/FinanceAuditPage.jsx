@@ -756,7 +756,11 @@ export default function FinanceAuditPage() {
           </div>
           <div>
             <FilterLabel>Status Invoice</FilterLabel>
-            <select value={invFilter} onChange={(e) => setInvFilterLogged(e.target.value)} className={`${filterCls} min-w-[180px] mt-1`}>
+            <select
+              value={invFilter}
+              onChange={(e) => setInvFilterLogged(e.target.value)}
+              className="mt-1 min-w-[180px] min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition"
+            >
               <option value="">Semua</option>
               {invoiceActions.map((a) => (
                 <option key={a} value={a}>{invLabel(a)}</option>
