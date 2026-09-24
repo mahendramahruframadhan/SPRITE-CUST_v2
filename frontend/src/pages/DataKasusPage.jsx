@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useFilters } from '../hooks/useFilters.js';
+import { Pill, EmptyRow } from '../components/DataTable.jsx';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 import { moduleTone, billingTone } from '../utils/tones.js';
 
@@ -231,7 +232,7 @@ export default function DataKasusPage() {
                     <td className="px-4 py-3.5 font-extrabold text-slate-900 dark:text-white">{c.client}</td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.picName || '-'}</td>
                     <td className="px-4 py-3.5">
-                      <span className={`text-xs font-bold border px-2 py-1 rounded-full whitespace-nowrap ${moduleTone(c.module)}`}>{c.module || '-'}</span>
+                      <Pill size="sm" tone={moduleTone(c.module)}>{c.module || '-'}</Pill>
                     </td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.subModule || '-'}</td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.location || '-'}</td>
@@ -241,9 +242,7 @@ export default function DataKasusPage() {
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${s.cls}`}>{s.label}</span>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-bold border rounded-full px-2 py-1 whitespace-nowrap ${billingTone(c.billingStatus)}`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />{c.billingStatus || '-'}
-                      </span>
+                      <Pill size="sm" dot tone={billingTone(c.billingStatus)}>{c.billingStatus || '-'}</Pill>
                     </td>
                     <td className="px-4 py-3.5 text-right font-medium text-slate-700 dark:text-slate-200 tabular-nums">{fmtMoney(c.charges)}</td>
                     <td className="px-6 py-3.5 text-center">
@@ -258,11 +257,7 @@ export default function DataKasusPage() {
                 );
               })}
               {pageItems.length === 0 && (
-                <tr>
-                  <td colSpan={13} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
-                    Tidak ada data yang cocok
-                  </td>
-                </tr>
+                <EmptyRow colSpan={13}>Tidak ada data yang cocok</EmptyRow>
               )}
             </tbody>
           </table>

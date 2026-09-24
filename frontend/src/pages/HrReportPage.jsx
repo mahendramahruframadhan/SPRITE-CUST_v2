@@ -3,6 +3,7 @@ import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { moduleTone } from '../utils/tones.js';
+import { Pill, EmptyRow } from '../components/DataTable.jsx';
 
 const normKpi = (k) => (k || '').trim() || 'TANPA KATEGORI';
 
@@ -389,11 +390,7 @@ export default function HrReportPage() {
                   );
                 })}
                 {picList.length === 0 && (
-                  <tr>
-                    <td colSpan={KPI_COLS.length + 2} className="px-4 py-10 text-center text-slate-500 dark:text-slate-400 text-sm">
-                      Tidak ada data pada periode ini
-                    </td>
-                  </tr>
+                  <EmptyRow colSpan={KPI_COLS.length + 2} compact>Tidak ada data pada periode ini</EmptyRow>
                 )}
               </tbody>
               <tfoot>
@@ -437,7 +434,7 @@ export default function HrReportPage() {
                     <td className="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap text-xs tabular-nums">{fmtDate8(c.dateIssue)}</td>
                     <td className="px-4 py-2.5 font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{c.client || '-'}</td>
                     <td className="px-4 py-2.5">
-                      <span className={`text-[10px] font-bold border rounded-full px-2 py-0.5 whitespace-nowrap ${moduleTone(c.module)}`}>{c.module || '-'}</span>
+                      <Pill size="xs" tone={moduleTone(c.module)}>{c.module || '-'}</Pill>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{c.subModule || '-'}</td>
                     <td className="px-4 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-100 min-w-[220px]" title={c.issue}>{c.issue || '-'}</td>
@@ -447,11 +444,7 @@ export default function HrReportPage() {
                   </tr>
                 ))}
                 {detailRows.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
-                      Tidak ada ticket pada periode & filter ini
-                    </td>
-                  </tr>
+                  <EmptyRow colSpan={7}>Tidak ada ticket pada periode & filter ini</EmptyRow>
                 )}
               </tbody>
             </table>

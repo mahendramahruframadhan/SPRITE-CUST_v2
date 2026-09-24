@@ -11,6 +11,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
 import FilterLabel from '../components/FilterLabel.jsx';
+import { Pill, EmptyRow } from '../components/DataTable.jsx';
 import { useFilters } from '../hooks/useFilters.js';
 
 // Ukuran angka menyesuaikan panjang nominal penuh (22px normal, mengecil bila miliaran)
@@ -610,13 +611,11 @@ export default function BillingPage() {
                   </td>
                   <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{c.picName || c.assignTo || '-'}</td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
-                    <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${moduleTone(c.module)}`}>{c.module || '-'}</span>
+                    <Pill tone={moduleTone(c.module)}>{c.module || '-'}</Pill>
                     {c.subModule && <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-400 font-medium">{c.subModule}</span>}
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${billingTone(c.billingStatus)}`}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />{c.billingStatus || '-'}
-                    </span>
+                    <Pill dot tone={billingTone(c.billingStatus)}>{c.billingStatus || '-'}</Pill>
                   </td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
                     <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2.5 py-1 whitespace-nowrap">{c.billingCategory || '-'}</span>
@@ -661,11 +660,7 @@ export default function BillingPage() {
                 </tr>
               ))}
               {items.length === 0 && (
-                <tr>
-                  <td colSpan={12} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
-                    Tidak ada data {cat} yang cocok dengan filter
-                  </td>
-                </tr>
+                <EmptyRow colSpan={12}>Tidak ada data {cat} yang cocok dengan filter</EmptyRow>
               )}
             </tbody>
           </table>

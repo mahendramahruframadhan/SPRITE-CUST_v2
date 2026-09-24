@@ -4,6 +4,7 @@ import { useCases } from '../hooks/useCases.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { CHART, chartTheme } from '../lib/chartPalette.js';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
+import { EmptyRow } from '../components/DataTable.jsx';
 
 const iso8now = () => {
   const d = new Date();
@@ -326,11 +327,7 @@ export default function MockupPage() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={12} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
-                    Tidak ada data yang cocok
-                  </td>
-                </tr>
+                <EmptyRow colSpan={12}>Tidak ada data yang cocok</EmptyRow>
               )}
             </tbody>
           </table>

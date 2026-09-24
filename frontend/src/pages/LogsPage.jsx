@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getLogs } from '../lib/api.js';
 import { readLocalActivity } from '../lib/activity.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { EmptyRow } from '../components/DataTable.jsx';
 
 const CATS = ['Semua', 'Penambahan', 'Validasi', 'Invoice', 'Pengguna', 'Konfigurasi', 'Sinkron', 'Lainnya'];
 
@@ -236,11 +237,9 @@ export default function LogsPage({ bare = false }) {
                 );
               })}
               {!loading && paged.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
-                    Belum ada aktivitas tercatat — ubah status di Billing / Finance, atau tambah kasus baru.
-                  </td>
-                </tr>
+                <EmptyRow colSpan={4}>
+                  Belum ada aktivitas tercatat — ubah status di Billing / Finance, atau tambah kasus baru.
+                </EmptyRow>
               )}
             </tbody>
           </table>

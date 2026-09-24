@@ -22,6 +22,7 @@ import { useTheme } from '../context/ThemeContext.jsx';
 import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
 import { billingTone, invLabel } from '../utils/tones.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
+import { Pill, EmptyRow } from '../components/DataTable.jsx';
 
 ChartJS.register(
   CategoryScale,
@@ -812,9 +813,7 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-3 py-3.5 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 ${billingTone(bs)}`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />{bs}
-                      </span>
+                      <Pill dot tone={billingTone(bs)}>{bs}</Pill>
                       {c.billingCategory && <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-400 font-medium">{c.billingCategory}</span>}
                       <span className={`mt-1 block text-[10px] font-bold ${isValid ? 'text-emerald-600' : 'text-slate-500 dark:text-slate-400'}`}>
                         {isValid ? '● Tervalidasi' : '○ Belum validasi'}
@@ -827,7 +826,7 @@ export default function DashboardPage() {
                 );
               })}
               {recent.length === 0 && (
-                <tr><td colSpan={8} className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">Belum ada data kasus.</td></tr>
+                <EmptyRow colSpan={8} compact>Belum ada data kasus.</EmptyRow>
               )}
             </tbody>
           </table>

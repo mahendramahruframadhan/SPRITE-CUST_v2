@@ -8,6 +8,7 @@ import { recordActivity } from '../lib/activity.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
 import FilterLabel from '../components/FilterLabel.jsx';
+import { Pill, EmptyRow } from '../components/DataTable.jsx';
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
@@ -830,15 +831,15 @@ export default function FinanceAuditPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
-                    <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${moduleTone(c.module)}`}>{c.module || '-'}</span>
+                    <Pill tone={moduleTone(c.module)}>{c.module || '-'}</Pill>
                     {c.subModule && <span className="mt-1 block text-[10px] text-slate-500 dark:text-slate-400 font-medium">{c.subModule}</span>}
                   </td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
-                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 ${billingTone(bs)}`}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />{bs}
-                    </span>
+                    <Pill dot tone={billingTone(bs)}>{bs}</Pill>
                   </td>
-                  <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{c.billingCategory || '-'}</td>
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    <Pill tone="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700">{c.billingCategory || '-'}</Pill>
+                  </td>
                   <td className={`px-4 py-3.5 text-right tabular-nums whitespace-nowrap ${+c.charges > 0 ? 'font-extrabold text-amber-700 dark:text-amber-400' : 'font-semibold text-slate-300 dark:text-slate-600'}`}>{fmtMoney(c.charges)}</td>
                   <td className="px-4 py-3.5">
                     {(() => {
@@ -958,14 +959,12 @@ export default function FinanceAuditPage() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={13} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
-                    Belum ada kasus tervalidasi — validasi dulu kasus di menu{' '}
-                    <Link to="/billing" className="font-semibold text-emerald-600 hover:underline">
-                      Billing &amp; Audit
-                    </Link>
-                  </td>
-                </tr>
+                <EmptyRow colSpan={13}>
+                  Belum ada kasus tervalidasi — validasi dulu kasus di menu{' '}
+                  <Link to="/billing" className="font-semibold text-emerald-600 hover:underline">
+                    Billing &amp; Audit
+                  </Link>
+                </EmptyRow>
               )}
             </tbody>
           </table>
