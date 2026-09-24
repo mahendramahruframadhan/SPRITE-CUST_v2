@@ -10,6 +10,7 @@
 // placeholder, accent ('emerald' default selaras Finance; 'amber' selaras Billing).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { usePopover } from '../hooks/usePopover.js';
 
 const POP_W = 260;
 
@@ -32,11 +33,16 @@ const ACCENT = {
 
 export default function BrandCombobox({ id, value, onChange, options = [], placeholder = 'Semua Brand', accent = 'emerald' }) {
   const t = ACCENT[accent] || ACCENT.emerald;
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState(value || '');
-  const [pos, setPos] = useState(null);
-  const rootRef = useRef(null);
-  const popRef = useRef(null);
+  // Tutup via klik-luar/Escape mengembalikan teks ke nilai terpilih.
+  const { open, setOpen, pos, rootRef, popRef } = usePopover({
+    width: POP_W,
+    minSpace: 280,
+    onDismiss: () => {
+      setOpen(false);
+      setText(value || '');
+    },
+  });
   const inputRef = useRef(null);
 
   // Sinkron bila value diubah dari luar (mis. reset filter).
@@ -74,53 +80,6 @@ export default function BrandCombobox({ id, value, onChange, options = [], place
     if (!open) return;
     document.getElementById(`${id}-opt-${actIdx}`)?.scrollIntoView({ block: 'nearest' });
   }, [open, actIdx, id]);
-
-  // Posisi popover: di bawah input, digeser bila mepet tepi viewport.
-  function updatePos() {
-    const el = rootRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const w = Math.max(POP_W, r.width);
-    const left = Math.min(Math.max(8, r.left), Math.max(8, window.innerWidth - w - 8));
-    let top = r.bottom + 8;
-    if (window.innerHeight - r.bottom < 280 && r.top > 280) top = r.top - 8;
-    setPos({ left, top, width: w, up: top < r.top });
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    updatePos();
-    const onScr = () => updatePos();
-    window.addEventListener('scroll', onScr, true);
-    window.addEventListener('resize', onScr);
-    return () => {
-      window.removeEventListener('scroll', onScr, true);
-      window.removeEventListener('resize', onScr);
-    };
-  }, [open]);
-
-  // Klik di luar (input maupun popover) menutup; Escape menutup.
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e) {
-      const t = e.target;
-      if (rootRef.current?.contains(t) || popRef.current?.contains(t)) return;
-      setOpen(false);
-      setText(value || '');
-    }
-    function onKey(e) {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        setText(value || '');
-      }
-    }
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, value]);
 
   function pick(v) {
     onChange(v);

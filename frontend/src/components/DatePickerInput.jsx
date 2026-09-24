@@ -5,9 +5,10 @@
 // Root cause fix: popover dirender via portal ke <body> dengan posisi fixed —
 // tidak lagi terpotong overflow-hidden modal/kartu atau tertutup elemen lain.
 // Props: id, value (yyyy-MM-dd), onChange(iso), placeholder.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtDateLong, parseDateInput } from '../utils/contract.js';
+import { usePopover } from '../hooks/usePopover.js';
 
 const MONTH_LONG = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -36,12 +37,9 @@ function sameDay(a, b) {
 }
 
 export default function DatePickerInput({ id, value, onChange, placeholder = 'cth. 6 Okt 2026' }) {
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState(value ? fmtDateLong(value) : '');
   const [month, setMonth] = useState(() => startOfMonth(parseISO(value) || new Date()));
-  const [pos, setPos] = useState(null);
-  const rootRef = useRef(null);
-  const popRef = useRef(null);
+  const { open, setOpen, pos, rootRef, popRef } = usePopover({ width: POP_W, minSpace: 320 });
 
   // Sinkron bila value diubah dari luar (mis. reset form).
   useEffect(() => {
@@ -49,50 +47,6 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
     const p = parseISO(value);
     if (p) setMonth(startOfMonth(p));
   }, [value]);
-
-  // Posisi popover: di bawah input, digeser bila mepet tepi viewport.
-  function updatePos() {
-    const el = rootRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const left = Math.min(Math.max(8, r.left), Math.max(8, window.innerWidth - POP_W - 8));
-    let top = r.bottom + 8;
-    // Bila ruang bawah sempit (< 320px), buka ke atas input.
-    if (window.innerHeight - r.bottom < 320 && r.top > 320) top = r.top - 8;
-    setPos({ left, top, up: top < r.top });
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    updatePos();
-    // Scroll apa pun (termasuk di kontainer bersarang) memperbarui posisi.
-    const onScr = () => updatePos();
-    window.addEventListener('scroll', onScr, true);
-    window.addEventListener('resize', onScr);
-    return () => {
-      window.removeEventListener('scroll', onScr, true);
-      window.removeEventListener('resize', onScr);
-    };
-  }, [open]);
-
-  // Klik di luar (input maupun popover) menutup; Escape menutup.
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e) {
-      const t = e.target;
-      if (rootRef.current?.contains(t) || popRef.current?.contains(t)) return;
-      setOpen(false);
-    }
-    function onKey(e) {
-      if (e.key === 'Escape') setOpen(false);
-    }
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
 
   const selected = parseISO(value);
   const today = new Date();
