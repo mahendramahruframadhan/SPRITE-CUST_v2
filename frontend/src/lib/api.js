@@ -1,16 +1,18 @@
 // Lapisan API frontend → backend NestJS.
 // Context7 /vitejs/vite: hanya var berprefix VITE_ yang terekspos via import.meta.env.
 // Default '/api' (di-proxy vite.config.js ke backend) → tanpa config & bebas CORS saat dev.
+import { get as storageGet, set as storageSet, remove as storageRemove } from './storage.js';
+
 export const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 // Token sesi (diisi saat login, dikirim sebagai x-auth-token di setiap request).
 // Backend (PermGuard) HANYA memvalidasi token ini untuk endpoint tulis —
 // x-user-email tidak lagi dipercaya untuk otorisasi.
-export const getAuthToken = () => localStorage.getItem('authToken') || '';
-export const setAuthToken = (t) => (t ? localStorage.setItem('authToken', t) : localStorage.removeItem('authToken'));
+export const getAuthToken = () => storageGet('authToken', '');
+export const setAuthToken = (t) => (t ? storageSet('authToken', t) : storageRemove('authToken'));
 
 async function req(path, opts = {}) {
-  const headers = { 'Content-Type': 'application/json', 'x-user-email': localStorage.getItem('userEmail') || '' };
+  const headers = { 'Content-Type': 'application/json', 'x-user-email': storageGet('userEmail', '') };
   const token = getAuthToken();
   if (token) headers['x-auth-token'] = token;
   const res = await fetch(`${API_BASE}${path}`, {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { patchAudit, getStatusOptions, putStatusOptions, renameStatusOption } from '../lib/api.js';
+import { getJSON, set as storageSet } from '../lib/storage.js';
 
 // Status validasi Billing & Audit — dibagikan ke Finance Audit via localStorage
 export const DEFAULT_ACTIONS = ['BELUM DIVALIDASI', 'VALID - SIAP INVOICE', 'PERLU DICEK ULANG'];
@@ -12,17 +13,19 @@ const MIGRATE_ACTION = {
 };
 
 function loadActions() {
-  let arr = JSON.parse(localStorage.getItem('auditActions')) || [...DEFAULT_ACTIONS];
+  let arr = getJSON('auditActions', [...DEFAULT_ACTIONS]);
+  if (!Array.isArray(arr) || !arr.length) return [...DEFAULT_ACTIONS];
   arr = [...new Set(arr.map((a) => MIGRATE_ACTION[a] || a))];
   return arr;
 }
 
 function loadCaseStatus() {
-  const st = JSON.parse(localStorage.getItem('caseAuditStatus')) || {};
-  Object.keys(st).forEach((k) => {
-    st[k] = MIGRATE_ACTION[st[k]] || st[k];
+  const st = getJSON('caseAuditStatus', {});
+  const out = st && typeof st === 'object' ? st : {};
+  Object.keys(out).forEach((k) => {
+    out[k] = MIGRATE_ACTION[out[k]] || out[k];
   });
-  return st;
+  return out;
 }
 
 export function useAuditState() {
@@ -38,11 +41,11 @@ export function useAuditState() {
     : (auditActions[0] || DEFAULT_AUDIT_STATUS);
 
   useEffect(() => {
-    localStorage.setItem('auditActions', JSON.stringify(auditActions));
+    storageSet('auditActions', auditActions);
   }, [auditActions]);
 
   useEffect(() => {
-    localStorage.setItem('caseAuditStatus', JSON.stringify(caseAuditStatus));
+    storageSet('caseAuditStatus', caseAuditStatus);
   }, [caseAuditStatus]);
 
   // Daftar master dari backend (DB, disharing semua user); localStorage tetap cache/fallback

@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_CONFIG } from '../data/sheetConfig.js';
 import { getConfig, putConfig } from '../lib/api.js';
+import { getJSON, set as storageSet } from '../lib/storage.js';
 
 const LS_KEY = 'sheetConfig';
 
 function loadCfg() {
-  try {
-    const v = JSON.parse(localStorage.getItem(LS_KEY));
-    if (v && Array.isArray(v.brands)) return v;
-  } catch (e) {
-    /* abaikan */
-  }
+  const v = getJSON(LS_KEY, null);
+  if (v && Array.isArray(v.brands)) return v;
   return structuredClone(DEFAULT_CONFIG);
 }
 
@@ -70,7 +67,7 @@ export default function SheetConfigPage() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(cfg));
+    storageSet(LS_KEY, cfg);
     if (!synced.current) return;
     const t = setTimeout(() => {
       putConfig(cfg).catch(() => {});

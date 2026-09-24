@@ -12,6 +12,7 @@ import {
   patchBrandStatus,
 } from '../lib/api.js';
 import { expiryState } from '../utils/contract.js';
+import { getJSON, set as storageSet } from '../lib/storage.js';
 
 const STATUS_KEY = 'sprite.brandStatus.v1';
 
@@ -20,20 +21,12 @@ function uid() {
 }
 
 function readLS(key) {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key));
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  const parsed = getJSON(key, []);
+  return Array.isArray(parsed) ? parsed : [];
 }
 
 function writeLS(key, val) {
-  try {
-    localStorage.setItem(key, JSON.stringify(val));
-  } catch {
-    // Kuota penuh / mode privat: state memori tetap jalan.
-  }
+  storageSet(key, val); // gagal diam (kuota/mode privat): state memori tetap jalan
 }
 
 export const STATUS_TYPES = ['MONTHLY', 'BARU', 'GRATIS'];
@@ -92,20 +85,9 @@ function isDupeErr(e) {
 
 export function useClientBrands() {
   const [statuses, setStatuses] = useState(() => {
-    const raw = (() => {
-      try {
-        return localStorage.getItem(STATUS_KEY);
-      } catch {
-        return '[]';
-      }
-    })();
-    if (raw === null) return buildSeedStatuses();
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : buildSeedStatuses();
-    } catch {
-      return buildSeedStatuses();
-    }
+    const parsed = getJSON(STATUS_KEY, null);
+    if (parsed === null || parsed === undefined) return buildSeedStatuses();
+    return Array.isArray(parsed) ? parsed : buildSeedStatuses();
   });
   const [ready, setReady] = useState(false);
   // null = belum tahu, true = backend terjangkau, false = mode offline lokal.

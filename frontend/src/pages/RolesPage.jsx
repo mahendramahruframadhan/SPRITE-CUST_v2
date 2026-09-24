@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { DEFAULT_PERMS } from '../hooks/usePermissions.js';
 import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog, getConfig, putConfig, chatAi } from '../lib/api.js';
+import { getJSON, set as storageSet } from '../lib/storage.js';
 
 // Koneksi AI eksternal (OpenAI-compatible) — key di backend, browser terima versi mask
 const DEFAULT_AI = { provider: 'gemini', baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.0-flash', apiKey: '' };
@@ -53,12 +54,8 @@ const SEED_LOGS = [
 ];
 
 function loadLS(key, fallback) {
-  try {
-    const v = JSON.parse(localStorage.getItem(key));
-    return v || structuredClone(fallback);
-  } catch (e) {
-    return structuredClone(fallback);
-  }
+  const v = getJSON(key, null);
+  return v || structuredClone(fallback);
 }
 
 const initials = (name) =>
@@ -95,9 +92,9 @@ export default function RolesPage({ bare = false }) {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem('appUsers', JSON.stringify(users));
-    localStorage.setItem('appPerms', JSON.stringify(perms));
-    localStorage.setItem('appLogs', JSON.stringify(logs));
+    storageSet('appUsers', users);
+    storageSet('appPerms', perms);
+    storageSet('appLogs', logs);
   }, [users, perms, logs]);
 
   // Muat dari backend sekali saat mount; lokal sebagai fallback offline

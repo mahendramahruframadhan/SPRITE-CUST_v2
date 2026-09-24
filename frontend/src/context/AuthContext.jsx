@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { signIn as apiSignIn, signOut as apiSignOut, getSession, getAuthToken, setAuthToken } from '../lib/api.js';
+import { get, set as storageSet, remove as storageRemove } from '../lib/storage.js';
 
 // Role per email (backend menyimpan user tanpa role) + akun demo yang di-seed backend
 // (password awal: password123 — lihat backend/src/db/init.ts)
@@ -16,18 +17,16 @@ const AuthContext = createContext(null);
 function readSession() {
   // Sesi lama (tanpa token) dianggap kedaluwarsa — user login ulang sekali
   // untuk mendapatkan token sesi (wajib untuk endpoint tulis sejak P1-3).
-  if (!localStorage.getItem('loggedIn') || !getAuthToken()) return null;
+  if (get('loggedIn') !== 'true' || !getAuthToken()) return null;
   return {
-    email: localStorage.getItem('userEmail') || '',
-    name: localStorage.getItem('userName') || 'Pengguna',
-    role: localStorage.getItem('userRole') || 'Viewer',
+    email: get('userEmail', ''),
+    name: get('userName', 'Pengguna'),
+    role: get('userRole', 'Viewer'),
   };
 }
 
 function clearSession() {
-  ['loggedIn', 'userEmail', 'userName', 'userRole'].forEach((k) =>
-    localStorage.removeItem(k)
-  );
+  storageRemove('loggedIn', 'userEmail', 'userName', 'userRole');
   setAuthToken('');
 }
 
@@ -43,7 +42,7 @@ export function AuthProvider({ children }) {
   // Validasi token ke backend saat boot (mis. backend restart pg-mem atau
   // token dicabut) — token tak valid = paksa login ulang, bukan state basi.
   useEffect(() => {
-    if (!localStorage.getItem('loggedIn') || !getAuthToken()) return;
+    if (get('loggedIn') !== 'true' || !getAuthToken()) return;
     let ignore = false;
     getSession()
       .then((r) => {
@@ -81,10 +80,10 @@ export function AuthProvider({ children }) {
           name: r.user.name || key.split('@')[0],
           role: r.user.role || MOCK_USERS[key]?.role || 'Viewer',
         };
-        localStorage.setItem('loggedIn', 'true');
-        localStorage.setItem('userEmail', key);
-        localStorage.setItem('userName', u.name);
-        localStorage.setItem('userRole', u.role);
+        storageSet('loggedIn', 'true');
+        storageSet('userEmail', key);
+        storageSet('userName', u.name);
+        storageSet('userRole', u.role);
         setAuthToken(r.token);
         const session = { email: key, name: u.name, role: u.role };
         setUser(session);

@@ -14,6 +14,7 @@
 // UI tetap bisa dipakai. Mode demo offline: ?demo=1.
 
 import { API_BASE, signUp as apiSignUp, getAuthToken } from '../../lib/api.js';
+import { get, set as storageSet } from '../../lib/storage.js';
 import { normalizeEmail } from './validation.js';
 
 const FIRST_RUN_KEY = 'sprite_first_run_done';
@@ -24,7 +25,7 @@ async function tryJson(path, opts) {
     res = await fetch(`${API_BASE}${path}`, {
       headers: {
         'Content-Type': 'application/json',
-        'x-user-email': localStorage.getItem('userEmail') || '',
+        'x-user-email': get('userEmail', ''),
         ...(getAuthToken() ? { 'x-auth-token': getAuthToken() } : {}),
       },
       ...opts,
@@ -81,7 +82,7 @@ function isDemoMode() {
  */
 export async function getSetupStatus() {
   if (isDemoMode()) {
-    const done = localStorage.getItem(FIRST_RUN_KEY) === 'true';
+    const done = get(FIRST_RUN_KEY) === 'true';
     return { firstRun: !done, userCount: done ? 1 : 0, source: 'demo' };
   }
   try {
@@ -118,7 +119,7 @@ export async function registerFirstAccount({ name, email, password }) {
   };
   if (isDemoMode()) {
     await new Promise((r) => setTimeout(r, 600));
-    localStorage.setItem(FIRST_RUN_KEY, 'true');
+    storageSet(FIRST_RUN_KEY, 'true');
     return {
       user: { ...payload, role: 'Super Admin', id: 'demo-first-admin' },
       source: 'demo',
@@ -129,7 +130,7 @@ export async function registerFirstAccount({ name, email, password }) {
       method: 'POST',
       body: payload,
     });
-    localStorage.setItem(FIRST_RUN_KEY, 'true');
+    storageSet(FIRST_RUN_KEY, 'true');
     return { user: r.user || r, source: 'backend' };
   } catch (err) {
     if (err?.code === 'ENDPOINT_NOT_IMPLEMENTED') {

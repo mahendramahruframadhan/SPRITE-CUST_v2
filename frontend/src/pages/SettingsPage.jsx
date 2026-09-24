@@ -6,6 +6,7 @@ import { useFontSize, FONT_SIZES } from '../context/FontSizeContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { NAV_MODULES } from '../config/modules.js';
 import Icon from '../components/Icon.jsx';
+import { set as storageSet } from '../lib/storage.js';
 import RolesPage from './RolesPage.jsx';
 import LogsPage from './LogsPage.jsx';
 import { getUsers, patchUser, setUserPassword, postLog, getStatusOptions, putStatusOptions } from '../lib/api.js';
@@ -281,7 +282,7 @@ export default function SettingsPage() {
     setSavingProfile(true);
     try {
       await patchUser(myId, { name: v });
-      localStorage.setItem('userName', v);
+      storageSet('userName', v);
       window.dispatchEvent(new Event('storage')); // segarkan nama di sidebar
       postLog(v, 'memperbarui nama profil').catch(() => {});
       setProfileMsg({ kind: 'ok', text: 'Nama profil berhasil disimpan.' });

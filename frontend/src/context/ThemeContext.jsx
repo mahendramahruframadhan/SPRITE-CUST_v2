@@ -1,15 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { get, set } from '../lib/storage.js';
 
 const ThemeContext = createContext(null);
 const LS_KEY = 'theme'; // 'light' | 'dark'
 
 function initialTheme() {
-  try {
-    const saved = localStorage.getItem(LS_KEY);
-    if (saved === 'light' || saved === 'dark') return saved;
-  } catch {
-    /* abaikan */
-  }
+  const saved = get(LS_KEY);
+  if (saved === 'light' || saved === 'dark') return saved;
   if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
     return 'dark';
   }
@@ -23,11 +20,7 @@ export function ThemeProvider({ children }) {
     const root = document.documentElement;
     root.classList.toggle('dark', theme === 'dark');
     root.style.colorScheme = theme;
-    try {
-      localStorage.setItem(LS_KEY, theme);
-    } catch {
-      /* abaikan */
-    }
+    set(LS_KEY, theme);
   }, [theme]);
 
   return (

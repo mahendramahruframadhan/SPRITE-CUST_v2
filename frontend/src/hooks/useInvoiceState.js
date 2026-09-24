@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getStatusOptions, putStatusOptions, renameStatusOption } from '../lib/api.js';
+import { getJSON, set as storageSet } from '../lib/storage.js';
 
 // Status invoice Finance Audit — alur terkunci 4 status (tidak bisa dikonfigurasi
 // user): MENUNGGU INVOICE → INVOICE TERBIT (otomatis upload PDF) → DIKIRIM
@@ -20,33 +21,25 @@ function normalizeActions(arr) {
 }
 
 function loadActions() {
-  try {
-    const arr = JSON.parse(localStorage.getItem('invoiceActions'));
-    if (Array.isArray(arr) && arr.length) return normalizeActions(arr);
-  } catch {}
+  const arr = getJSON('invoiceActions', null);
+  if (Array.isArray(arr) && arr.length) return normalizeActions(arr);
   return [...DEFAULT_INVOICE];
 }
 
 function loadCaseStatus() {
-  try {
-    const map = JSON.parse(localStorage.getItem('caseInvoiceStatus')) || {};
-    for (const k of Object.keys(map)) {
-      if (String(map[k]).toUpperCase() === 'UNPAID') map[k] = 'INVOICE TERBIT';
-    }
-    return map;
-  } catch {
-    return {};
+  const map = getJSON('caseInvoiceStatus', {});
+  const out = map && typeof map === 'object' ? map : {};
+  for (const k of Object.keys(out)) {
+    if (String(out[k]).toUpperCase() === 'UNPAID') out[k] = 'INVOICE TERBIT';
   }
+  return out;
 }
 
 // Meta per-invoice yang diisi tim finance: nomor invoice, tanggal terbit,
 // tanggal paid, dan keterangan. Key: recordUuid (localStorage `caseInvoiceMeta`).
 function loadMeta() {
-  try {
-    return JSON.parse(localStorage.getItem('caseInvoiceMeta')) || {};
-  } catch {
-    return {};
-  }
+  const v = getJSON('caseInvoiceMeta', {});
+  return v && typeof v === 'object' ? v : {};
 }
 
 export function useInvoiceState() {
@@ -63,15 +56,15 @@ export function useInvoiceState() {
     : (invoiceActions[0] || DEFAULT_INVOICE_STATUS);
 
   useEffect(() => {
-    localStorage.setItem('invoiceActions', JSON.stringify(invoiceActions));
+    storageSet('invoiceActions', invoiceActions);
   }, [invoiceActions]);
 
   useEffect(() => {
-    localStorage.setItem('caseInvoiceStatus', JSON.stringify(invoiceStatus));
+    storageSet('caseInvoiceStatus', invoiceStatus);
   }, [invoiceStatus]);
 
   useEffect(() => {
-    localStorage.setItem('caseInvoiceMeta', JSON.stringify(invoiceMeta));
+    storageSet('caseInvoiceMeta', invoiceMeta);
   }, [invoiceMeta]);
 
   // Daftar master dari backend (DB); dinormalisasi agar kosakata lama

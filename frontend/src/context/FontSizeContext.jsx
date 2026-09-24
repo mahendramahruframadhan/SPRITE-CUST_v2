@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { get, set } from '../lib/storage.js';
 
 // Ukuran font global aplikasi — diskala via root font-size (rem),
 // jadi seluruh utility Tailwind ikut membesar/mengecil proporsional.
@@ -12,12 +13,8 @@ const FontSizeContext = createContext(null);
 const LS_KEY = 'fontSize'; // 'small' | 'medium' | 'large'
 
 function initialFontSize() {
-  try {
-    const saved = localStorage.getItem(LS_KEY);
-    if (saved && FONT_SIZES[saved]) return saved;
-  } catch {
-    /* abaikan */
-  }
+  const saved = get(LS_KEY);
+  if (saved && FONT_SIZES[saved]) return saved;
   return 'medium';
 }
 
@@ -28,11 +25,7 @@ export function FontSizeProvider({ children }) {
     const root = document.documentElement;
     root.style.fontSize = FONT_SIZES[fontSize]?.px || '16px';
     root.dataset.fontsize = fontSize;
-    try {
-      localStorage.setItem(LS_KEY, fontSize);
-    } catch {
-      /* abaikan */
-    }
+    set(LS_KEY, fontSize);
   }, [fontSize]);
 
   return (

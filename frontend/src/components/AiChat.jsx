@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
 import { chatAi, getAiConnections } from '../lib/api.js';
+import { get, set as storageSet, remove as storageRemove } from '../lib/storage.js';
 import { fmtMoney } from '../utils/format.js';
 
 // Asisten AI lokal — menjawab dari data kasus backend (tanpa API AI eksternal).
@@ -136,13 +137,7 @@ export default function AiChat() {
   ]);
   // Switcher model sekali klik — daftar dari backend, pilihan tersimpan lokal
   const [conns, setConns] = useState([]);
-  const [connId, setConnId] = useState(() => {
-    try {
-      return localStorage.getItem('aiConnId') || '';
-    } catch {
-      return '';
-    }
-  });
+  const [connId, setConnId] = useState(() => get('aiConnId', ''));
   const bodyRef = useRef(null);
   const timer = useRef(null);
 
@@ -185,10 +180,8 @@ export default function AiChat() {
 
   function pickConn(id) {
     setConnId(id);
-    try {
-      if (id) localStorage.setItem('aiConnId', id);
-      else localStorage.removeItem('aiConnId');
-    } catch {}
+    if (id) storageSet('aiConnId', id);
+    else storageRemove('aiConnId');
     const hit = conns.find((c) => c.id === id);
     setMsgs((m) => [...m, {
       from: 'bot',

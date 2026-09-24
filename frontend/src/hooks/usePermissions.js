@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getPerms } from '../lib/api.js';
+import { getJSON, set as storageSet } from '../lib/storage.js';
 
 // Matriks default — cermin backend src/db/init.ts ROLE_PERMS. Super Admin
 // selalu penuh (dikunci backend + bypass di can()).
@@ -32,11 +33,8 @@ export const ROUTE_PERM = {
 export const menuPerm = (menuId) => (menuId === 'kasus' ? 'cases' : menuId);
 
 function loadLS() {
-  try {
-    return JSON.parse(localStorage.getItem('appPerms')) || structuredClone(DEFAULT_PERMS);
-  } catch {
-    return structuredClone(DEFAULT_PERMS);
-  }
+  const v = getJSON('appPerms', null);
+  return v && typeof v === 'object' ? v : structuredClone(DEFAULT_PERMS);
 }
 
 // Cache modul agar semua guard/menu berbagi 1x fetch
@@ -61,7 +59,7 @@ export function usePermissions() {
       .then((r) => {
         if (!ignore && r && r.perms && Object.keys(r.perms).length) {
           setPerms(r.perms);
-          localStorage.setItem('appPerms', JSON.stringify(r.perms));
+          storageSet('appPerms', r.perms);
         }
       })
       .catch(() => {});
