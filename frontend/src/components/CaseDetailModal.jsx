@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { moduleTone } from '../utils/format.js';
+import { moduleTone } from '../utils/tones.js';
 
 // Popup detail kasus bersama (dipakai Billing & Finance Audit & Dashboard).
 // c: data kasus | chips: [{ text, className }] | rows: [[label, value]] flat

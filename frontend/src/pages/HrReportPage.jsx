@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { fmtDate8, moduleTone } from '../utils/format.js';
+import { fmtDate8 } from '../utils/format.js';
+import { moduleTone } from '../utils/tones.js';
 
 const normKpi = (k) => (k || '').trim() || 'TANPA KATEGORI';
 

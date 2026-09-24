@@ -27,40 +27,6 @@ export function statusMeta(s) {
     : { label: 'Dalam Proses', cls: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' };
 }
 
-// Label tampil status invoice: nilai backend/logika tetap 'DIKIRIM'/'PAID',
-// yang dirender ke user dipetakan ke 'TERKIRIM'/'SUDAH DIBAYAR'.
-// Satu sumber — dipakai semua halaman agar kosakata konsisten.
-export const invLabel = (s) => (s === 'DIKIRIM' ? 'TERKIRIM' : s === 'PAID' ? 'SUDAH DIBAYAR' : s);
-
-// Warna label Module (satu sumber untuk semua tabel):
-// DISTRIBUSI = hijau, SHOP = biru, PRODUKSI = coklat, sisanya netral.
-export function moduleTone(m) {
-  switch (String(m || '').toUpperCase()) {
-    case 'DISTRIBUSI':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20';
-    case 'SHOP':
-      return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20';
-    case 'PRODUKSI':
-      return 'bg-[#92400e]/10 text-[#92400e] border-[#92400e]/25 dark:bg-[#fbbf24]/10 dark:text-[#fbbf24] dark:border-[#fbbf24]/30';
-    default:
-      return 'bg-slate-100 text-slate-600 border-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
-  }
-}
-
-// Warna label Status Billing (satu sumber untuk semua tabel).
-export function billingTone(s) {
-  switch (String(s || '').toUpperCase()) {
-    case 'FREE':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20';
-    case 'ON-CALL':
-      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20';
-    case 'MONTHLY':
-      return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20';
-    default:
-      return 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
-  }
-}
-
 // "recordUuid" -> "Record Uuid"
 export function prettyKey(k) {
   return k

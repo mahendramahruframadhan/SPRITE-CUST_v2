@@ -20,7 +20,7 @@ import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
-import { billingTone, invLabel } from '../utils/format.js';
+import { billingTone, invLabel } from '../utils/tones.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 
 ChartJS.register(
