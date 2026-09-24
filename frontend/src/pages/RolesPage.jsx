@@ -449,7 +449,7 @@ export default function RolesPage({ bare = false }) {
         <section className="space-y-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap items-center gap-3 animate-fade-in-fast">
             <div className="relative flex-1 min-w-[220px]">
-              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
               <input
@@ -457,7 +457,7 @@ export default function RolesPage({ bare = false }) {
                 placeholder="Cari nama atau email..."
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
               />
             </div>
             <select value={fRole} onChange={(e) => setFRole(e.target.value)} className={inputCls}>
@@ -476,7 +476,7 @@ export default function RolesPage({ bare = false }) {
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-fade-in-fast">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/70 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                <tr className="bg-slate-50 dark:bg-slate-800/70 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 dark:border-slate-700">
                   <th className="px-6 py-3.5">Pengguna</th>
                   <th className="px-6 py-3.5">Role</th>
                   <th className="px-6 py-3.5">Login Terakhir</th>
@@ -494,7 +494,7 @@ export default function RolesPage({ bare = false }) {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">{u.name}</p>
-                          <p className="text-xs text-slate-400 truncate">{u.email}</p>
+                          <p className="text-xs text-slate-500 truncate">{u.email}</p>
                         </div>
                       </div>
                     </td>
@@ -513,7 +513,7 @@ export default function RolesPage({ bare = false }) {
                             className={`absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-all ${u.active ? 'left-[21px]' : 'left-[3px]'}`}
                           />
                         </button>
-                        <span className={`text-xs font-semibold ${u.active ? 'text-emerald-600' : 'text-slate-400'}`}>
+                        <span className={`text-xs font-semibold ${u.active ? 'text-emerald-600' : 'text-slate-500'}`}>
                           {u.active ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </div>
@@ -521,7 +521,7 @@ export default function RolesPage({ bare = false }) {
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => openUserModal(u.id)}
-                        className="p-2 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-500/10 text-slate-400 hover:text-brand-600 transition"
+                        className="p-2 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-500/10 text-slate-500 hover:text-brand-600 transition"
                         title="Edit"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -530,7 +530,7 @@ export default function RolesPage({ bare = false }) {
                       </button>
                       <button
                         onClick={() => deleteUser(u.id)}
-                        className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition"
+                        className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 hover:text-rose-500 transition"
                         title="Hapus"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -543,7 +543,7 @@ export default function RolesPage({ bare = false }) {
               </tbody>
             </table>
             {filteredUsers.length === 0 && (
-              <div className="px-6 py-12 text-center text-sm text-slate-400">Tidak ada pengguna yang cocok dengan filter.</div>
+              <div className="px-6 py-12 text-center text-sm text-slate-500">Tidak ada pengguna yang cocok dengan filter.</div>
             )}
           </div>
         </section>
@@ -556,10 +556,10 @@ export default function RolesPage({ bare = false }) {
             {roleCards.map(({ r, i, count, modCount }) => (
               <div key={r} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 animate-fade-in-fast">
                 <span className={`inline-block text-[11px] font-bold border rounded-full px-2.5 py-1 ${ROLE_STYLE[r]}`}>{r}</span>
-                <p className="mt-2.5 text-[11px] text-slate-400 leading-relaxed min-h-[32px]">{ROLE_DESC[r]}</p>
+                <p className="mt-2.5 text-[11px] text-slate-500 leading-relaxed min-h-[32px]">{ROLE_DESC[r]}</p>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-700 dark:text-slate-200">{count} pengguna</span>
-                  <span className="text-slate-400">{modCount}/{MODULES.length} modul</span>
+                  <span className="text-slate-500">{modCount}/{MODULES.length} modul</span>
                 </div>
               </div>
             ))}
@@ -569,7 +569,7 @@ export default function RolesPage({ bare = false }) {
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white">Matriks Izin Modul</h3>
-                <p className="text-xs text-slate-400">Centang modul yang boleh diakses setiap role</p>
+                <p className="text-xs text-slate-500">Centang modul yang boleh diakses setiap role</p>
               </div>
               <button
                 onClick={savePerms}
@@ -584,7 +584,7 @@ export default function RolesPage({ bare = false }) {
             <div className="overflow-x-auto scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/70 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                  <tr className="bg-slate-50 dark:bg-slate-800/70 text-[11px] font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 dark:border-slate-700">
                     <th className="px-6 py-3.5 text-left">Modul</th>
                     {ROLES.map((r) => (
                       <th key={r} className="px-4 py-3.5 text-center">{r}</th>
@@ -596,7 +596,7 @@ export default function RolesPage({ bare = false }) {
                     <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/70 transition">
                       <td className="px-6 py-3.5">
                         <p className="font-semibold text-slate-800 dark:text-slate-100">{m.name}</p>
-                        <p className="text-[11px] text-slate-400">{m.desc}</p>
+                        <p className="text-[11px] text-slate-500">{m.desc}</p>
                       </td>
                       {ROLES.map((r) => {
                         const locked = r === 'Super Admin';
@@ -618,7 +618,7 @@ export default function RolesPage({ bare = false }) {
                 </tbody>
               </table>
             </div>
-            <p className="px-6 py-3 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+            <p className="px-6 py-3 text-[11px] text-slate-500 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
               * Super Admin selalu memiliki akses penuh dan tidak dapat diubah.
             </p>
           </div>
@@ -657,8 +657,8 @@ export default function RolesPage({ bare = false }) {
                     {c.active && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">DIPAKAI</span>}
                     {c.hasKey && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">KEY ●</span>}
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5 font-mono">{c.provider} · {c.model}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{c.baseURL}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 font-mono">{c.provider} · {c.model}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{c.baseURL}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   {c.active && (
@@ -688,7 +688,7 @@ export default function RolesPage({ bare = false }) {
             </div>
           ))}
           {conns.length === 0 && !showAiForm && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-10 text-center text-sm text-slate-400">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-10 text-center text-sm text-slate-500">
               Belum ada AI terdaftar — klik <span className="font-bold">+ Tambah AI</span>.
             </div>
           )}
@@ -760,7 +760,7 @@ export default function RolesPage({ bare = false }) {
                   <p className="text-sm text-slate-700 dark:text-slate-200">
                     <span className="font-bold">{l.who}</span> {l.act}
                   </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{fmtLogTime(l.time)}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">{fmtLogTime(l.time)}</p>
                 </li>
               ))}
             </ol>
@@ -775,7 +775,7 @@ export default function RolesPage({ bare = false }) {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in-fast">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h3 className="font-bold text-slate-900 dark:text-white">{modal.id ? 'Edit Pengguna' : 'Tambah Pengguna'}</h3>
-              <button onClick={() => setModal(null)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+              <button onClick={() => setModal(null)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -788,7 +788,7 @@ export default function RolesPage({ bare = false }) {
                   type="text"
                   value={modal.name}
                   onChange={(e) => setModal({ ...modal, name: e.target.value })}
-                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
                 />
               </div>
               <div>
@@ -797,7 +797,7 @@ export default function RolesPage({ bare = false }) {
                   type="email"
                   value={modal.email}
                   onChange={(e) => setModal({ ...modal, email: e.target.value })}
-                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
                 />
               </div>
               <div>
@@ -805,7 +805,7 @@ export default function RolesPage({ bare = false }) {
                 <select
                   value={modal.role}
                   onChange={(e) => setModal({ ...modal, role: e.target.value })}
-                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                  className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
                 >
                   {ROLES.map((r) => (
                     <option key={r}>{r}</option>
@@ -822,7 +822,7 @@ export default function RolesPage({ bare = false }) {
                     value={modal.password || ''}
                     onChange={(e) => setModal({ ...modal, password: e.target.value })}
                     placeholder="Min. 5 karakter — tersimpan di backend"
-                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
                   />
                 </div>
               )}
@@ -834,7 +834,7 @@ export default function RolesPage({ bare = false }) {
                     value={modal.password || ''}
                     onChange={(e) => setModal({ ...modal, password: e.target.value })}
                     placeholder="Kosongkan bila tidak diubah"
-                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                    className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
                   />
                 </div>
               )}
@@ -878,12 +878,12 @@ export default function RolesPage({ bare = false }) {
   );
 }
 
-function StatCard({ title, value, sub, valueCls = '', subCls = 'text-slate-400', delay }) {
+function StatCard({ title, value, sub, valueCls = '', subCls = 'text-slate-500', delay }) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
+          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">{title}</p>
           <p className={`mt-2 text-3xl font-extrabold text-slate-900 dark:text-white ${valueCls}`}>{value}</p>
           <p className={`mt-1 text-xs font-medium ${subCls}`}>{sub}</p>
         </div>

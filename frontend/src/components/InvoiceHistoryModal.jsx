@@ -68,7 +68,7 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-5 py-4">
           {history.length === 0 ? (
-            <p className="text-center text-[13px] font-semibold text-slate-400 py-8">Belum ada riwayat tercatat.</p>
+            <p className="text-center text-[13px] font-semibold text-slate-500 py-8">Belum ada riwayat tercatat.</p>
           ) : (
             <ol className="relative space-y-4 before:absolute before:left-[5px] before:top-1.5 before:bottom-1.5 before:w-px before:bg-slate-200 dark:before:bg-slate-700">
               {history.map((h, i) => {
@@ -78,7 +78,7 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
                     <span aria-hidden="true" className={`absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full border-2 ${auto ? 'bg-violet-100 border-violet-400 dark:bg-violet-500/20' : 'bg-emerald-100 border-emerald-500 dark:bg-emerald-500/20'} `} />
                     <p className="text-[12px] font-bold text-slate-700 dark:text-slate-200 leading-snug">{h.action}</p>
                     {h.detail && <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 break-words">{h.detail}</p>}
-                    <p className="mt-1 text-[10px] font-semibold text-slate-400 tabular-nums">
+                    <p className="mt-1 text-[10px] font-semibold text-slate-500 tabular-nums">
                       {h.who} · {fmtTime(h.createdAt)}
                       {h.category && <span className={`ml-1.5 rounded-full px-1.5 py-px ${catStyle(h.category)}`}>{h.category}</span>}
                       {auto && <span className="ml-1.5 rounded-full bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-300 px-1.5 py-px">otomatis</span>}

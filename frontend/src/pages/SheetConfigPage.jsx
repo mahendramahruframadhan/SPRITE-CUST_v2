@@ -226,7 +226,7 @@ export default function SheetConfigPage() {
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 px-2 pb-1 text-[11px]">
           <span className="font-extrabold text-slate-700 dark:text-slate-200">{activeTab.label}</span>
-          <span className="text-slate-400">— {activeTab.desc}</span>
+          <span className="text-slate-500">— {activeTab.desc}</span>
           <span className="font-semibold text-violet-600 dark:text-violet-400">Dipakai di: {activeTab.used}</span>
         </div>
       </div>
@@ -310,7 +310,7 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
         <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{title}</h3>
         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full px-2.5 py-0.5 tabular-nums">{arr.length} item</span>
       </div>
-      <p className="text-[11px] text-slate-400 mb-4">{desc}</p>
+      <p className="text-[11px] text-slate-500 mb-4">{desc}</p>
       <form
         className="flex gap-2 mb-1.5"
         onSubmit={(e) => {
@@ -347,7 +347,7 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
               onClick={() => {
                 if (confirm(`Hapus "${v}" dari daftar?`)) onDel(i);
               }}
-              className="w-4 h-4 rounded-full text-slate-400 hover:text-white hover:bg-rose-500 flex items-center justify-center transition"
+              className="w-4 h-4 rounded-full text-slate-500 hover:text-white hover:bg-rose-500 flex items-center justify-center transition"
             >
               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -391,7 +391,7 @@ function TabPricelist({ cfg, patch }) {
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <th className="px-6 py-2.5 text-left">Billing Category</th>
                   <th className="px-4 py-2.5 text-right">Tariff (Rp)</th>
                   <th className="px-4 py-2.5 text-left">Support Type</th>
@@ -414,7 +414,7 @@ function TabPricelist({ cfg, patch }) {
                             c.pricelist[p._i].tariff = n;
                           }, 'Tariff ' + p.billingCategory + ' = Rp ' + n.toLocaleString('id-ID'));
                         }}
-                        className={`${CFG_INPUT} !w-32 text-right font-bold tabular-nums ${p.tariff ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400'}`}
+                        className={`${CFG_INPUT} !w-32 text-right font-bold tabular-nums ${p.tariff ? 'text-slate-800 dark:text-slate-100' : 'text-slate-500'}`}
                       />
                     </td>
                     <td className="px-4 py-2.5">
@@ -443,7 +443,7 @@ function TabPricelist({ cfg, patch }) {
                           if (confirm(`Hapus "${p.billingCategory}" dari ${p.version}?`))
                             patch((c) => c.pricelist.splice(p._i, 1), 'Baris dihapus');
                         }}
-                        className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition"
+                        className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 hover:text-rose-500 transition"
                         title="Hapus baris"
                       >
                         <TrashIcon />
@@ -489,7 +489,7 @@ function TabBcMap({ cfg, patch }) {
       <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
         <div>
           <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">Mapping BILLING CATEGORY → SUPPORT TYPE</h3>
-          <p className="text-[11px] text-slate-400">Sesuai 2 kolom pertama di sheet — menentukan tipe support otomatis dari kategori billing</p>
+          <p className="text-[11px] text-slate-500">Sesuai 2 kolom pertama di sheet — menentukan tipe support otomatis dari kategori billing</p>
         </div>
         <button onClick={() => setAddingBc(true)} className="text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl px-3 py-2 transition">
           + Tambah Mapping
@@ -497,7 +497,7 @@ function TabBcMap({ cfg, patch }) {
       </div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+          <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
             <th className="px-6 py-2.5 text-left">Billing Category</th>
             <th className="px-4 py-2.5 text-left">Support Type</th>
             <th className="px-4 py-2.5 text-center w-16">Aksi</th>
@@ -528,7 +528,7 @@ function TabBcMap({ cfg, patch }) {
                     if (confirm(`Hapus mapping "${b.billingCategory}"?`))
                       patch((c) => c.billingCategoryMap.splice(i, 1), 'Mapping dihapus');
                   }}
-                  className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition"
+                  className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-500 hover:text-rose-500 transition"
                 >
                   <TrashIcon />
                 </button>
@@ -583,7 +583,7 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
       >
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-violet-50/80 to-white dark:from-slate-800 dark:to-slate-900">
           <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">{title}</h3>
-          {desc && <p className="text-xs text-slate-400 mt-0.5">{desc}</p>}
+          {desc && <p className="text-xs text-slate-500 mt-0.5">{desc}</p>}
         </div>
         <div className="px-6 py-4">
           <input
@@ -594,7 +594,7 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
             onChange={(e) => { setVal(e.target.value); setErr(''); }}
             list={suggestions.length ? listId : undefined}
             placeholder={placeholder}
-            className="w-full border-2 border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+            className="w-full border-2 border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
           />
           {suggestions.length > 0 && (
             <datalist id={listId}>
@@ -605,7 +605,7 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
           )}
           {err
             ? <p className="mt-2 text-xs font-semibold text-rose-600">{err}</p>
-            : <p className="mt-2 text-[11px] text-slate-400">Otomatis UPPERCASE.{suggestions.length > 0 ? ' Ketik untuk mencari dari saran.' : ''}</p>}
+            : <p className="mt-2 text-[11px] text-slate-500">Otomatis UPPERCASE.{suggestions.length > 0 ? ' Ketik untuk mencari dari saran.' : ''}</p>}
           <div className="mt-4 flex justify-end gap-2">
             <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-500 hover:bg-slate-100 px-4 py-2.5 rounded-xl transition">
               Batal
@@ -626,11 +626,11 @@ function RoTable({ title, desc, head, children }) {
     <div className="card overflow-hidden">
       <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800">
         <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{title}</h3>
-        <p className="text-[11px] text-slate-400">{desc}</p>
+        <p className="text-[11px] text-slate-500">{desc}</p>
       </div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+          <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
             {head.map((h) => (
               <th key={h} className="px-5 py-2 text-left">{h}</th>
             ))}
@@ -680,14 +680,14 @@ function TabCalendar({ cfg }) {
         </RoTable>
         <div className="card p-5">
           <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">WEEKNUM & YEAR</h3>
-          <p className="text-[11px] text-slate-400 mb-3">Nomor minggu dan tahun yang dikenali sheet</p>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Weeknum (1–{cfg.weeknums.length})</p>
+          <p className="text-[11px] text-slate-500 mb-3">Nomor minggu dan tahun yang dikenali sheet</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">Weeknum (1–{cfg.weeknums.length})</p>
           <div className="flex flex-wrap gap-1 max-h-36 overflow-y-auto scrollbar-thin mb-4">
             {cfg.weeknums.map((w) => (
               <span key={w} className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded px-1.5 py-0.5">{w}</span>
             ))}
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Year</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">Year</p>
           <div className="flex flex-wrap gap-1.5">
             {cfg.years.map((y) => (
               <span key={y} className="text-[11px] font-bold bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 border border-brand-100 dark:border-brand-500/20 rounded-full px-3 py-1">{y}</span>
@@ -715,9 +715,9 @@ function TabHeaders({ cfg }) {
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div>
             <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">Mapping Kolom Sheet Master ({cfg.headerMapping.length} kolom)</h3>
-            <p className="text-[11px] text-slate-400">HEADER NAME (nama internal) · COL NO (posisi kolom) · DEF_HEADERS_NAME (judul tampilan)</p>
+            <p className="text-[11px] text-slate-500">HEADER NAME (nama internal) · COL NO (posisi kolom) · DEF_HEADERS_NAME (judul tampilan)</p>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full px-3 py-1">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 rounded-full px-3 py-1">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
@@ -727,7 +727,7 @@ function TabHeaders({ cfg }) {
         <div className="overflow-y-auto scrollbar-thin max-h-[520px]">
           <table className="w-full text-sm">
             <thead className="sticky top-0">
-              <tr className="bg-slate-50 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-700">
+              <tr className="bg-slate-50 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 dark:border-slate-700">
                 <th className="px-6 py-2.5 text-left bg-slate-50 dark:bg-slate-800">Header Name</th>
                 <th className="px-4 py-2.5 text-left bg-slate-50 dark:bg-slate-800">Col No</th>
                 <th className="px-4 py-2.5 text-left bg-slate-50 dark:bg-slate-800">Def Headers Name</th>
@@ -770,11 +770,11 @@ function TabAi({ agents, onToggle }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-slate-900 dark:text-white text-sm">{a.name}</h3>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${a.enabled ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${a.enabled ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
                 {a.enabled ? 'AKTIF' : 'NONAKTIF'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">{a.desc}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{a.desc}</p>
           </div>
         </div>
       ))}

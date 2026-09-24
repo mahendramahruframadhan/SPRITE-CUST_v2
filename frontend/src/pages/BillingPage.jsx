@@ -387,9 +387,9 @@ export default function BillingPage() {
             <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${d.accent}`} />
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] truncate">{d.t}</p>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.12em] truncate">{d.t}</p>
                 <p className={`mt-2 ${d.money ? moneySize(d.v) : 'text-[28px]'} leading-tight font-extrabold tracking-tight tabular-nums ${d.color} ${d.darkColor || ''}`}>{d.v}</p>
-                <p className="mt-1.5 text-xs font-medium text-slate-400 truncate">{d.sub}</p>
+                <p className="mt-1.5 text-xs font-medium text-slate-500 truncate">{d.sub}</p>
               </div>
               <span className={`w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br ${d.accent} text-white flex items-center justify-center shadow-lg`}>
                 <KpiIcon name={d.icon} />
@@ -431,9 +431,9 @@ export default function BillingPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
             <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Kategori Billing</h3>
-            <p className="text-xs text-slate-400">Pilih kategori untuk memfilter tabel di bawah</p>
+            <p className="text-xs text-slate-500">Pilih kategori untuk memfilter tabel di bawah</p>
           </div>
-          <p className="text-xs text-slate-400 tabular-nums">
+          <p className="text-xs text-slate-500 tabular-nums">
             Total <span className="font-extrabold text-slate-900 dark:text-white">{fmtMoney((catStats[cat] || {}).amount || 0)}</span>
             {' '}• {((catStats[cat] || {}).count || 0).toLocaleString('id-ID')} kasus {cat}
           </p>
@@ -460,7 +460,7 @@ export default function BillingPage() {
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm font-extrabold tracking-wide">{c}</span>
-                  <span className={`block text-[11px] font-medium truncate ${active ? 'text-white/85' : 'text-slate-400'}`}>
+                  <span className={`block text-[11px] font-medium truncate ${active ? 'text-white/85' : 'text-slate-500'}`}>
                     {s.count.toLocaleString('id-ID')} kasus • {fmtMoney(s.amount)}
                   </span>
                 </span>
@@ -480,7 +480,7 @@ export default function BillingPage() {
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Bulan</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Bulan</label>
               <div className="flex items-center gap-2">
                 <input type="month" value={month} onChange={(e) => applyMonth(e.target.value)} className={filterCls} />
                 <button
@@ -494,15 +494,15 @@ export default function BillingPage() {
               </div>
             </div>
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Date From</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Date From</label>
               <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setMonth(''); }} className={filterCls} />
             </div>
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Date Until</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Date Until</label>
               <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setMonth(''); }} className={filterCls} />
             </div>
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Brand</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Brand</label>
               <select value={brand} onChange={(e) => setBrand(e.target.value)} className={`${filterCls} min-w-[200px]`}>
                 <option value="">Semua Brand</option>
                 {brands.map((b) => (
@@ -521,7 +521,7 @@ export default function BillingPage() {
             >
               Reset
             </button>
-            <div className="ml-auto text-xs text-slate-400">
+            <div className="ml-auto text-xs text-slate-500">
               Periode:{' '}
               <span className="font-semibold text-slate-600 dark:text-slate-300">
                 {from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal'}
@@ -539,11 +539,11 @@ export default function BillingPage() {
             </span>
             <div>
               <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Detail Kasus — {cat}</h3>
-              <p className="text-xs text-slate-400">{items.length} kasus · total {fmtMoney(grandTotal)}</p>
+              <p className="text-xs text-slate-500">{items.length} kasus · total {fmtMoney(grandTotal)}</p>
             </div>
           </div>
           <div className="ml-auto relative">
-            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
             <input
@@ -551,7 +551,7 @@ export default function BillingPage() {
               placeholder="Cari kasus..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="pl-9 pr-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition"
+              className="pl-9 pr-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition"
             />
           </div>
         </div>
@@ -559,7 +559,7 @@ export default function BillingPage() {
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-sm min-w-[1240px]">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
                 <th className="px-6 py-3 font-bold" title="Nomor kasus">No</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap" title="Tanggal issue (tahun-bulan-tanggal)">Tgl Issue</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap" title="Nama brand / client">Brand</th>
@@ -577,7 +577,7 @@ export default function BillingPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {paged.map((c) => (
                 <tr key={c.recordUuid} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-amber-50/50 dark:hover:bg-slate-800 transition">
-                  <td className="px-6 py-3.5 text-slate-400 tabular-nums">{c.no || '-'}</td>
+                  <td className="px-6 py-3.5 text-slate-500 tabular-nums">{c.no || '-'}</td>
                   <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
                     <span className="flex items-center gap-2.5">
@@ -605,7 +605,7 @@ export default function BillingPage() {
                   <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{c.picName || c.assignTo || '-'}</td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
                     <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${moduleTone(c.module)}`}>{c.module || '-'}</span>
-                    {c.subModule && <span className="mt-1 block text-[10px] text-slate-400 font-medium">{c.subModule}</span>}
+                    {c.subModule && <span className="mt-1 block text-[10px] text-slate-500 font-medium">{c.subModule}</span>}
                   </td>
                   <td className="px-4 py-3.5">
                     <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${BILL_BADGE[c.billingStatus] || 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'}`}>
@@ -648,7 +648,7 @@ export default function BillingPage() {
                           );
                         })()
                     ) : (
-                      <span className="text-xs text-slate-400">-</span>
+                      <span className="text-xs text-slate-500">-</span>
                     )}
                   </td>
                   <td className="px-6 py-3.5"><ExpandableText text={c.completionNotes} /></td>
@@ -656,7 +656,7 @@ export default function BillingPage() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-6 py-12 text-center text-slate-400 text-sm">
+                  <td colSpan={12} className="px-6 py-12 text-center text-slate-500 text-sm">
                     Tidak ada data {cat} yang cocok dengan filter
                   </td>
                 </tr>
@@ -664,7 +664,7 @@ export default function BillingPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 bg-slate-50/60 dark:bg-slate-800/40">
           <span className="tabular-nums">
             Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} data
           </span>
@@ -718,9 +718,9 @@ export default function BillingPage() {
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-50/80 to-white dark:from-slate-800 dark:to-slate-900">
               <div>
                 <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Master Status Validasi</h3>
-                <p className="text-xs text-slate-400">Kelola opsi status validasi</p>
+                <p className="text-xs text-slate-500">Kelola opsi status validasi</p>
               </div>
-              <button onClick={() => setMasterOpen(false)} aria-label="Tutup" className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
+              <button onClick={() => setMasterOpen(false)} aria-label="Tutup" className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -787,7 +787,7 @@ export default function BillingPage() {
                         <>
                           <span className="min-w-0">
                             <span className="block text-sm text-slate-700 dark:text-slate-200 font-bold truncate">{a}</span>
-                            <span className="block text-[10px] text-slate-400 font-medium">
+                            <span className="block text-[10px] text-slate-500 font-medium">
                               {DEFAULT_ACTIONS.includes(a) ? 'Default' : 'Kustom'} · dipakai {used} kasus
                             </span>
                           </span>
@@ -842,7 +842,7 @@ export default function BillingPage() {
                   placeholder="Status validasi baru..."
                   value={newAction}
                   onChange={(e) => setNewAction(e.target.value)}
-                  className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                  className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
                 />
                 <button className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 rounded-lg transition">Tambah</button>
               </form>
@@ -915,7 +915,7 @@ function ChartPanel({ title, desc, children, accent = 'from-brand-500 to-violet-
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">{title}</h3>
-            <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
           </div>
           {badge && (
             <span className="shrink-0 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-full px-2.5 py-1 whitespace-nowrap tabular-nums">{badge}</span>
@@ -930,7 +930,7 @@ function ChartPanel({ title, desc, children, accent = 'from-brand-500 to-violet-
 function SummaryBox({ label, value, cls }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-3 text-center">
-      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
+      <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">{label}</p>
       <p className={`text-xl font-extrabold ${cls}`}>{value}</p>
     </div>
   );

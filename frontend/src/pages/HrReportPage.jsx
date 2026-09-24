@@ -34,7 +34,7 @@ const KPI_BADGE = {
   'ON-DEMAND': 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
   'CUSTOM DEV': 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
   '• SYSTEM UPDATE': 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
-  'TANPA KATEGORI': 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700',
+  'TANPA KATEGORI': 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700',
 };
 
 function KpiBadge({ k }) {
@@ -73,7 +73,7 @@ function FilterField({ label, icon, children }) {
     <div className="min-w-0">
       <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</label>
       <div className="relative mt-1.5">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden="true">
           {icon}
         </span>
         {children}
@@ -286,7 +286,7 @@ export default function HrReportPage() {
               </FilterField>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-semibold text-slate-400 mr-1">Cepat:</span>
+              <span className="text-[11px] font-semibold text-slate-500 mr-1">Cepat:</span>
               {[
                 { id: '7', label: '7 Hari' },
                 { id: '30', label: '30 Hari' },
@@ -323,7 +323,7 @@ export default function HrReportPage() {
           {/* Ringkasan periode */}
           <div className="shrink-0 xl:w-64 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 p-4 flex xl:flex-col flex-row flex-wrap items-center xl:items-stretch gap-3">
             <div className="min-w-0 flex-1 xl:flex-none">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Periode Laporan</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Periode Laporan</p>
               <p className="mt-1 text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug">{rangeLabel}</p>
               {pic && (
                 <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
@@ -344,7 +344,7 @@ export default function HrReportPage() {
         <div className="px-8 py-6 border-b-2 border-slate-800 dark:border-slate-700">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-300">Revota — Customer Support</p>
           <h1 className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-white">Support Div - HR Report</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Periode <span className="font-semibold text-slate-600 dark:text-slate-300">{reportPeriod}</span> · Dibuat: {generatedAt}
           </p>
         </div>
@@ -358,7 +358,7 @@ export default function HrReportPage() {
           <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                <tr className="bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                   <th className="px-4 py-2.5 text-left">Assign To</th>
                   {KPI_COLS.map((k) => (
                     <th key={k} className="px-3 py-2.5 text-center" title={k}>
@@ -389,7 +389,7 @@ export default function HrReportPage() {
                 })}
                 {picList.length === 0 && (
                   <tr>
-                    <td colSpan={KPI_COLS.length + 2} className="px-4 py-10 text-center text-slate-400 text-sm">
+                    <td colSpan={KPI_COLS.length + 2} className="px-4 py-10 text-center text-slate-500 text-sm">
                       Tidak ada data pada periode ini
                     </td>
                   </tr>
@@ -447,7 +447,7 @@ export default function HrReportPage() {
                 ))}
                 {detailRows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400 text-sm">
+                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500 text-sm">
                       Tidak ada ticket pada periode & filter ini
                     </td>
                   </tr>
@@ -455,7 +455,7 @@ export default function HrReportPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex items-center justify-between text-xs text-slate-400">
+          <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex items-center justify-between text-xs text-slate-500">
             <span>Menampilkan {detailRows.length} dari {allCases.length} ticket{pic ? ` · PIC: ${pic}` : ''}</span>
             <span>Sumber: Google Sheets (sinkron)</span>
           </div>

@@ -93,7 +93,7 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
           )}
           {notes && (
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">{notes.label}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">{notes.label}</p>
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap break-words">{notes.text || '-'}</p>
             </div>
           )}
@@ -112,7 +112,7 @@ function DetailRow({ label, value }) {
   const isModule = label === 'Module';
   return (
     <div className={`border-b pb-2.5 ${hl ? 'border-brand-200 dark:border-brand-500/30 bg-brand-50/50 dark:bg-brand-500/5 rounded-t-lg px-2 -mx-2' : 'border-slate-100 dark:border-slate-800'}`}>
-      <dt className={`text-[10px] font-bold uppercase tracking-widest ${hl ? 'text-brand-600 dark:text-brand-300' : 'text-slate-400'}`}>{label}</dt>
+      <dt className={`text-[10px] font-bold uppercase tracking-widest ${hl ? 'text-brand-600 dark:text-brand-300' : 'text-slate-500'}`}>{label}</dt>
       <dd className={`mt-0.5 text-sm break-words ${hl ? 'font-bold text-slate-900 dark:text-white' : 'font-semibold text-slate-800 dark:text-slate-100'}`}>
         {isModule && value && value !== '-' ? (
           <span className={`inline-block text-[11px] font-bold border rounded-full px-2.5 py-1 ${moduleTone(value)}`}>{value}</span>

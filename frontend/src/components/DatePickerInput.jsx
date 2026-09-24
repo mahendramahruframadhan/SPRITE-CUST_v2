@@ -135,7 +135,7 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
           }}
           placeholder={placeholder}
           autoComplete="off"
-          className="min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition"
+          className="min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition"
         />
         <button
           type="button"
@@ -185,7 +185,7 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
             </div>
             <div className="grid grid-cols-7 gap-0.5" role="grid" aria-label="Pilih tanggal">
               {DAY_HEAD.map((d) => (
-                <span key={d} className="h-8 inline-flex items-center justify-center text-[10px] font-bold uppercase text-slate-400">
+                <span key={d} className="h-8 inline-flex items-center justify-center text-[10px] font-bold uppercase text-slate-500">
                   {d}
                 </span>
               ))}

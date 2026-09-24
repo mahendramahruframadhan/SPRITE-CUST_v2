@@ -41,7 +41,7 @@ const INITIAL = {
 };
 
 const INPUT_CLS =
-  'mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition';
+  'mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition';
 
 function Field({ label, required, children }) {
   return (
@@ -256,14 +256,14 @@ export default function FormKasusPage() {
           </Field>
           <Field label="Charges (Rp)">
             <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">Rp</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">Rp</span>
               <input
                 type="number"
                 min="0"
                 value={form.charges}
                 onChange={set('charges')}
                 placeholder="0"
-                className="pl-8 pr-3 py-2.5 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                className="pl-8 pr-3 py-2.5 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500"
               />
             </div>
             <p className="text-[10px] text-brand-600 dark:text-brand-300 mt-1 cursor-pointer hover:underline" onClick={autoFillCharges}>
