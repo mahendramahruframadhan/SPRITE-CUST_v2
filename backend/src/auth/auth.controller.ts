@@ -2,6 +2,7 @@ import { Controller, Post, Body, Req, Res, Get, HttpCode, HttpException, HttpSta
 import { getDb } from '../db/drizzle.service';
 import * as crypto from 'crypto';
 import { pickRole, validateRegistration } from './register.validation';
+import { createSession, destroySession, resolveSessionUser } from './session';
 
 // ponytail: local fallback auth (pg-mem) — Better Auth's drizzle pg adapter has timestamp type mismatch with pg-mem, so we provide minimal email/password auth that mimics Better Auth API shape. When DATABASE_URL is real postgres, main.ts mounts real Better Auth handler instead.
 //
@@ -14,15 +15,13 @@ const rowsOf = (r: any): any[] => r?.rows || r || [];
 // + esc() sama dengan roles.controller & initDb; jalan di pg-mem maupun Postgres asli.
 const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 
-// Role peminta dari header x-user-email (pola yang sama dengan PermGuard).
+// Peminta dari token sesi (pola yang sama dengan PermGuard).
 // Hanya Super Admin boleh menentukan role akun baru (dipakai form tambah
 // pengguna di /roles); pendaftar mandiri selalu Viewer.
 async function requesterIsSuperAdmin(db: any, req: any): Promise<boolean> {
   try {
-    const email = String(req?.headers?.['x-user-email'] || '').toLowerCase().trim();
-    if (!email) return false;
-    const r: any = await db.execute(`SELECT role FROM "user" WHERE lower(email) = '${esc(email)}' LIMIT 1` as any);
-    return rowsOf(r)[0]?.role === 'Super Admin';
+    const u = await resolveSessionUser(db, req);
+    return u?.role === 'Super Admin';
   } catch {
     return false;
   }
@@ -80,19 +79,25 @@ export class AuthController {
     const row = rowsOf(r)[0];
     if (!row || row.password !== password) return { error: 'invalid credentials' };
     if (!Number(row.active ?? 1)) return { error: 'akun dinonaktifkan' };
-    const token = `mock_${row.id}_${Date.now()}`;
-    // set cookie like Better Auth does
+    // Token sesi server-side (disimpan di tabel session, kedaluwarsa 7 hari).
+    // Frontend wajib mengirimnya via header x-auth-token di setiap request tulis.
+    const token = await createSession(this.db, row.id);
+    // set cookie seperti Better Auth (kompatibilitas klien lama)
     res.cookie?.('better-auth.session_token', token, { httpOnly: true, path: '/' });
     return { user: { id: row.id, name: row.name, email: row.email, role: row.role || 'Viewer' }, token };
   }
 
   @Post('sign-out')
-  async signOut() {
+  async signOut(@Body() body: any, @Req() req: any) {
+    const token = String(body?.token || req?.headers?.['x-auth-token'] || '');
+    await destroySession(this.db, token);
     return { ok: true };
   }
 
   @Get('session')
   async session(@Req() req: any) {
-    return { user: (req as any).user || null };
+    const u = await resolveSessionUser(this.db, req);
+    if (!u) return { user: null };
+    return { user: { id: u.id, name: u.name, email: u.email, role: u.role || 'Viewer' } };
   }
 }

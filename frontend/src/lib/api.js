@@ -3,10 +3,18 @@
 // Default '/api' (di-proxy vite.config.js ke backend) → tanpa config & bebas CORS saat dev.
 export const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+// Token sesi (diisi saat login, dikirim sebagai x-auth-token di setiap request).
+// Backend (PermGuard) HANYA memvalidasi token ini untuk endpoint tulis —
+// x-user-email tidak lagi dipercaya untuk otorisasi.
+export const getAuthToken = () => localStorage.getItem('authToken') || '';
+export const setAuthToken = (t) => (t ? localStorage.setItem('authToken', t) : localStorage.removeItem('authToken'));
+
 async function req(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', 'x-user-email': localStorage.getItem('userEmail') || '' };
+  const token = getAuthToken();
+  if (token) headers['x-auth-token'] = token;
   const res = await fetch(`${API_BASE}${path}`, {
-    // x-user-email = identitas untuk PermGuard backend (diisi saat login)
-    headers: { 'Content-Type': 'application/json', 'x-user-email': localStorage.getItem('userEmail') || '' },
+    headers,
     ...opts,
     ...(opts.body && typeof opts.body !== 'string' ? { body: JSON.stringify(opts.body) } : {}),
   });
@@ -97,7 +105,8 @@ export const triggerSync = () => post('/sync/trigger', {});
 export const getSyncLogs = () => get('/sync/logs');
 export const signIn = (email, password) => post('/auth/sign-in/email', { email, password });
 export const signUp = (email, password, name, role) => post('/auth/sign-up/email', { email, password, name, role });
-export const signOut = () => post('/auth/sign-out', {});
+export const signOut = () => post('/auth/sign-out', { token: getAuthToken() });
+export const getSession = () => get('/auth/session');
 export const getUsers = () => get('/users');
 export const patchUser = (id, body) => patch(`/users/${id}`, body);
 export const deleteUser = (id) => req(`/users/${id}`, { method: 'DELETE' });

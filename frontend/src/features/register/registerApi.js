@@ -13,7 +13,7 @@
 // ENDPOINT_NOT_IMPLEMENTED), akun pertama fallback ke sign-up reguler agar
 // UI tetap bisa dipakai. Mode demo offline: ?demo=1.
 
-import { API_BASE, signUp as apiSignUp } from '../../lib/api.js';
+import { API_BASE, signUp as apiSignUp, getAuthToken } from '../../lib/api.js';
 import { normalizeEmail } from './validation.js';
 
 const FIRST_RUN_KEY = 'sprite_first_run_done';
@@ -22,7 +22,11 @@ async function tryJson(path, opts) {
   let res;
   try {
     res = await fetch(`${API_BASE}${path}`, {
-      headers: { 'Content-Type': 'application/json', 'x-user-email': localStorage.getItem('userEmail') || '' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-email': localStorage.getItem('userEmail') || '',
+        ...(getAuthToken() ? { 'x-auth-token': getAuthToken() } : {}),
+      },
       ...opts,
       ...(opts?.body && typeof opts.body !== 'string'
         ? { body: JSON.stringify(opts.body) }

@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import { resolveSessionUser } from '../auth/session';
 
 const esc = (v: any) => String(v ?? '').replace(/'/g, "''");
 
@@ -30,10 +31,14 @@ export async function logActivity(db: any, input: ActivityInput): Promise<void> 
   }
 }
 
-// Nama pelaku dari header x-user-email → nama user di DB; fallback ke email.
+// Nama pelaku: utama dari token sesi (anti-spoofing atribusi), fallback ke
+// header x-user-email → nama user di DB, terakhir ke email mentah.
 export async function resolveWho(db: any, req: any, fallback?: string): Promise<string> {
   try {
     if (fallback && String(fallback).trim()) return String(fallback).slice(0, 120);
+    const u = await resolveSessionUser(db, req);
+    if (u?.name) return String(u.name).slice(0, 120);
+    if (u?.email) return String(u.email).slice(0, 120);
     const email = String(req?.headers?.['x-user-email'] || '').toLowerCase().trim();
     if (!email) return 'Admin';
     const r: any = await db.execute(`SELECT name FROM "user" WHERE lower(email)='${esc(email)}' LIMIT 1` as any);
