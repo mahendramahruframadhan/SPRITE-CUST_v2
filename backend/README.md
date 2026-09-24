@@ -101,6 +101,34 @@ Postgres asli, selain itu → `pg-mem`.
 | `SKIP_SEED` | kosong | `true` = DDL saja, tanpa seed apa pun |
 | `SKIP_FINANCE_SEED` | kosong | `true` = lewati seed 15 contoh kontrak finance |
 
+## Kontrak API
+
+Bentuk **error** sudah terstandar untuk SEMUA endpoint (via `GlobalExceptionFilter`
+di `src/common/http-exception.filter.ts`):
+
+```
+{ "ok": false, "code": "NOT_DIKIRIM_YET", "message": "…", "statusCode": 422 }
+```
+
+- `code` — mesin-readable (`SESSION_EXPIRED`, `EMAIL_TAKEN`, `INVOICE_NEED_PDF`, …);
+  frontend memetakan `code` → pesan ramah lokal.
+- `message` — selalu ada (fallback bahasa Indonesia), aman ditampilkan ke user.
+- `401` = sesi tak valid (frontend: bersihkan sesi + arahkan login ulang);
+  `403` = sesi valid tapi modul tak diizinkan; `422` = validasi bisnis.
+
+Bentuk **sukses** masih per-endpoint (bertahap menuju `{ok:true,data}`):
+
+| Endpoint | Bentuk sukses |
+| --- | --- |
+| `GET /cases` | `{ data[], total, page, limit, totalPages }` |
+| `GET /billing/*-map`, `/stats` | `{ ok:true, map / auditCounts / … }` |
+| `PATCH /cases/:uuid/*` | `{ ok:true, recordUuid, … }` |
+| `POST /auth/sign-in/email` | `{ user, token }` · gagal kredensial → `{ error }` (200) |
+| List lain (`/users`, `/clients`, …) | array langsung |
+
+Aturan menulis endpoint baru: error bisnis WAJIB `throw new HttpException({code,message}, status)`
+(lihat `billing.controller.ts`); jangan mengembalikan objek `{ok:false,error}` manual.
+
 ## API
 
 ```

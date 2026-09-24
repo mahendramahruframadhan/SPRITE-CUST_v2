@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { initDb } from './db/init';
 import { validateConfig } from './config/validate';
+import { GlobalExceptionFilter } from './common/http-exception.filter';
 
 const log = new Logger('Bootstrap');
 
@@ -13,6 +14,8 @@ async function bootstrap() {
   validateConfig();
 
   const app = await NestFactory.create(AppModule);
+  // Satu bentuk error untuk semua endpoint: {ok:false,code,message,statusCode}.
+  app.useGlobalFilters(new GlobalExceptionFilter());
   const port = Number(process.env.PORT) || 5005;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
