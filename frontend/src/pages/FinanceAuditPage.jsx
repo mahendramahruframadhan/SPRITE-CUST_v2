@@ -7,7 +7,7 @@ import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { recordActivity } from '../lib/activity.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
 import { useToast } from '../context/ToastContext.jsx';
-import { fmtDate8 } from '../utils/format.js';
+import { fmtDate8, moduleTone } from '../utils/format.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
@@ -820,14 +820,14 @@ export default function FinanceAuditPage() {
                 return (
                 <tr key={c.recordUuid} className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition">
                   <td className="px-6 py-3.5 text-slate-400 tabular-nums">{c.no}</td>
-                  <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 font-semibold whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                  <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
                     <span className="font-bold text-slate-800 dark:text-slate-100">{c.client}</span>
                   </td>
                   <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{c.picName || '-'}</td>
                   <td className="px-4 py-3.5">
                     <div className="min-w-[200px] max-w-[300px]">
-                      <p className="text-slate-500 dark:text-slate-300 text-xs line-clamp-2">{c.issue || '-'}</p>
+                      <p className="font-medium text-slate-800 dark:text-slate-100 text-xs line-clamp-2">{c.issue || '-'}</p>
                       <button
                         type="button"
                         onClick={() => setDetailUuid(c.recordUuid)}
@@ -841,7 +841,7 @@ export default function FinanceAuditPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
-                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-full px-2.5 py-1">{c.module}</span>
+                    <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 whitespace-nowrap ${moduleTone(c.module)}`}>{c.module || '-'}</span>
                     {c.subModule && <span className="mt-1 block text-[10px] text-slate-400 font-medium">{c.subModule}</span>}
                   </td>
                   <td className="px-4 py-3.5 whitespace-nowrap">

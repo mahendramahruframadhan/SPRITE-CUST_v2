@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
+import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField, moduleTone, billingTone } from '../utils/format.js';
 
 const FILTER_DEFS = [
   { id: 'fKeyword', type: 'text', placeholder: 'Cari client / pic / issue...' },
@@ -225,20 +225,24 @@ export default function DataKasusPage() {
                 return (
                   <tr key={c.recordUuid} className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-brand-50/50 dark:hover:bg-slate-800 transition">
                     <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no}</td>
-                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
-                    <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100">{c.client}</td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                    <td className="px-4 py-3.5 font-extrabold text-slate-900 dark:text-white">{c.client}</td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.picName || '-'}</td>
                     <td className="px-4 py-3.5">
-                      <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium px-2 py-1 rounded-full">{c.module}</span>
+                      <span className={`text-xs font-bold border px-2 py-1 rounded-full whitespace-nowrap ${moduleTone(c.module)}`}>{c.module || '-'}</span>
                     </td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.subModule || '-'}</td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.location || '-'}</td>
-                    <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 max-w-xs truncate" title={c.issue}>{c.issue}</td>
+                    <td className="px-4 py-3.5 font-medium text-slate-800 dark:text-slate-100 max-w-xs truncate" title={c.issue}>{c.issue}</td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.assignTo || '-'}</td>
                     <td className="px-4 py-3.5">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${s.cls}`}>{s.label}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.billingStatus || '-'}</td>
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-bold border rounded-full px-2 py-1 whitespace-nowrap ${billingTone(c.billingStatus)}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />{c.billingStatus || '-'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3.5 text-right font-medium text-slate-700 dark:text-slate-200 tabular-nums">{fmtMoney(c.charges)}</td>
                     <td className="px-6 py-3.5 text-center">
                       <button
@@ -326,6 +330,8 @@ function CaseDetailModal({ item, onClose }) {
 
   const s = statusMeta(item.status);
   const keys = Object.keys(item);
+  // Kolom yang di-highlight: tanggal, brand, issue, billing category, module.
+  const HL_KEYS = new Set(['dateIssue', 'client', 'issue', 'billingCategory', 'module']);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -354,7 +360,11 @@ function CaseDetailModal({ item, onClose }) {
                   {keys.map((k) => (
                     <th
                       key={k}
-                      className="px-4 py-2 text-left align-top text-[11px] font-semibold uppercase tracking-wider text-slate-400 border border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70 min-w-[140px]"
+                      className={`px-4 py-2 text-left align-top text-[11px] font-semibold uppercase tracking-wider border min-w-[140px] ${
+                        HL_KEYS.has(k)
+                          ? 'text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-500/30 bg-brand-50 dark:bg-brand-500/10'
+                          : 'text-slate-400 border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70'
+                      }`}
                     >
                       {prettyKey(k)}
                     </th>
@@ -365,14 +375,23 @@ function CaseDetailModal({ item, onClose }) {
                 <tr>
                   {keys.map((k) => {
                     const v = fmtField(k, item[k]);
+                    const hl = HL_KEYS.has(k);
                     return (
                       <td
                         key={k}
-                        className={`px-4 py-3 align-top border border-slate-100 dark:border-slate-800 whitespace-pre-wrap break-words min-w-[140px] ${
-                          k === 'charges' ? 'text-right font-semibold text-slate-800 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'
-                        } ${k === 'completionNotes' ? 'max-w-[320px]' : ''}`}
+                        className={`px-4 py-3 align-top border whitespace-pre-wrap break-words min-w-[140px] ${
+                          k === 'charges' ? 'text-right font-semibold text-slate-800 dark:text-slate-100' : ''
+                        } ${k === 'completionNotes' ? 'max-w-[320px]' : ''} ${
+                          hl
+                            ? 'border-brand-200 dark:border-brand-500/30 bg-brand-50/50 dark:bg-brand-500/5 font-bold text-slate-900 dark:text-white'
+                            : 'border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                        }`}
                       >
-                        {v}
+                        {k === 'module' && item[k] ? (
+                          <span className={`text-xs font-bold border px-2 py-1 rounded-full whitespace-nowrap ${moduleTone(item[k])}`}>{v}</span>
+                        ) : (
+                          v
+                        )}
                       </td>
                     );
                   })}

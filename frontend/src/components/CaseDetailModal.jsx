@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
+import { moduleTone } from '../utils/format.js';
 
 // Popup detail kasus bersama (dipakai Billing & Finance Audit & Dashboard).
 // c: data kasus | chips: [{ text, className }] | rows: [[label, value]] flat
 // | sections: [{ title, rows: [[label, value]] }] (opsional, dikelompokkan) | notes: { label, text }
+// Baris berlabel Tgl Issue / Brand / Module / Kategori Billing di-highlight
+// (latar brand + nilai tegas; Module sebagai pill berwarna via moduleTone).
 export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [], sections = null, notes = null, onClose }) {
   const closeRef = useRef(null);
 
@@ -75,10 +78,7 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
                   </p>
                   <dl className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-3">
                     {s.rows.map(([k, v]) => (
-                      <div key={k} className="border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                        <dt className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{k}</dt>
-                        <dd className="mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">{v}</dd>
-                      </div>
+                      <DetailRow key={k} label={k} value={v} />
                     ))}
                   </dl>
                 </section>
@@ -87,10 +87,7 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
           ) : rows.length > 0 && (
             <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
               {rows.map(([k, v]) => (
-                <div key={k} className="border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                  <dt className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{k}</dt>
-                  <dd className="mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">{v}</dd>
-                </div>
+                <DetailRow key={k} label={k} value={v} />
               ))}
             </dl>
           )}
@@ -102,6 +99,27 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Satu baris label–nilai; baris highlight (tanggal/brand/module/kategori
+// billing) tampil dengan aksen brand, Module sebagai pill berwarna.
+const HL_LABELS = new Set(['Tgl Issue', 'Brand', 'Module', 'Kategori Billing']);
+
+function DetailRow({ label, value }) {
+  const hl = HL_LABELS.has(label);
+  const isModule = label === 'Module';
+  return (
+    <div className={`border-b pb-2.5 ${hl ? 'border-brand-200 dark:border-brand-500/30 bg-brand-50/50 dark:bg-brand-500/5 rounded-t-lg px-2 -mx-2' : 'border-slate-100 dark:border-slate-800'}`}>
+      <dt className={`text-[10px] font-bold uppercase tracking-widest ${hl ? 'text-brand-600 dark:text-brand-300' : 'text-slate-400'}`}>{label}</dt>
+      <dd className={`mt-0.5 text-sm break-words ${hl ? 'font-bold text-slate-900 dark:text-white' : 'font-semibold text-slate-800 dark:text-slate-100'}`}>
+        {isModule && value && value !== '-' ? (
+          <span className={`inline-block text-[11px] font-bold border rounded-full px-2.5 py-1 ${moduleTone(value)}`}>{value}</span>
+        ) : (
+          value
+        )}
+      </dd>
     </div>
   );
 }

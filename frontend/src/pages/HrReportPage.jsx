@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { fmtDate8 } from '../utils/format.js';
+import { fmtDate8, moduleTone } from '../utils/format.js';
 
 const normKpi = (k) => (k || '').trim() || 'TANPA KATEGORI';
 
@@ -433,13 +433,13 @@ export default function HrReportPage() {
                 {detailRows.map((c, idx) => (
                   <tr key={`${c.recordUuid || 'noid'}-${idx}`} className="hover:bg-brand-50/40 dark:hover:bg-slate-800 transition">
                     <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{(c.assignTo || '').trim() || '-'}</td>
-                    <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs tabular-nums">{fmtDate8(c.dateIssue)}</td>
-                    <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">{c.client || '-'}</td>
+                    <td className="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap text-xs tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                    <td className="px-4 py-2.5 font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{c.client || '-'}</td>
                     <td className="px-4 py-2.5">
-                      <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full px-2 py-0.5 whitespace-nowrap">{c.module || '-'}</span>
+                      <span className={`text-[10px] font-bold border rounded-full px-2 py-0.5 whitespace-nowrap ${moduleTone(c.module)}`}>{c.module || '-'}</span>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{c.subModule || '-'}</td>
-                    <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300 min-w-[220px]" title={c.issue}>{c.issue || '-'}</td>
+                    <td className="px-4 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-100 min-w-[220px]" title={c.issue}>{c.issue || '-'}</td>
                     <td className="px-4 py-2.5">
                       <KpiBadge k={normKpi(c.groupKpi)} />
                     </td>
