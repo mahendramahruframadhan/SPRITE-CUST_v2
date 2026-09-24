@@ -12,6 +12,7 @@ import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
 import FilterLabel from '../components/FilterLabel.jsx';
 import { Pill, EmptyRow } from '../components/DataTable.jsx';
+import { withViewTransition } from '../hooks/useViewTransitionLocation.js';
 import { useFilters } from '../hooks/useFilters.js';
 
 // Ukuran angka menyesuaikan panjang nominal penuh (22px normal, mengecil bila miliaran)
@@ -74,6 +75,10 @@ export default function BillingPage() {
   const [masterOpen, setMasterOpen] = useState(false);
   const [newAction, setNewAction] = useState('');
   const [detailUuid, setDetailUuid] = useState(null);
+  // Buka/tutup modal detail dalam view transition — judul modal (case-title-vt)
+  // morph dari sel issue baris yang diklik (nama hanya aktif pada baris tsb).
+  const openDetail = (uuid) => withViewTransition(() => setDetailUuid(uuid));
+  const closeDetail = () => withViewTransition(() => setDetailUuid(null));
   const [editingAction, setEditingAction] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [editBusy, setEditBusy] = useState(false);
@@ -596,10 +601,10 @@ export default function BillingPage() {
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="min-w-[220px] max-w-[320px]">
-                        <p className="text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2">{c.issue || '-'}</p>
+                        <p className={`text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2${detailUuid === c.recordUuid ? ' case-title-vt' : ''}`}>{c.issue || '-'}</p>
                       <button
                         type="button"
-                        onClick={() => setDetailUuid(c.recordUuid)}
+                        onClick={() => openDetail(c.recordUuid)}
                         className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-600 dark:text-brand-300 hover:text-brand-700 bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-100 dark:border-brand-500/20 rounded-lg px-2.5 py-1 transition"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -883,7 +888,7 @@ export default function BillingPage() {
           ]},
         ] : []}
         notes={{ label: 'Completion Notes', text: detailCase?.completionNotes }}
-        onClose={() => setDetailUuid(null)}
+        onClose={closeDetail}
       />
     </div>
   );

@@ -6,6 +6,7 @@ import { FontSizeProvider } from './context/FontSizeContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { usePermissions } from './hooks/usePermissions.js';
 import AppLayout from './components/AppLayout.jsx';
+import { useViewTransitionLocation } from './hooks/useViewTransitionLocation.js';
 
 // Code-splitting per halaman: bundle awal hanya memuat shell + login;
 // halaman diunduh saat route dibuka (lihat warning chunk Vite sebelumnya).
@@ -52,6 +53,7 @@ function RequirePerm({ module, children }) {
 }
 
 export default function App() {
+  const displayLocation = useViewTransitionLocation();
   return (
     <AuthProvider>
       <ThemeProvider>
@@ -59,7 +61,7 @@ export default function App() {
         <ToastProvider>
         <BrowserRouter>
         <Suspense fallback={<PageFallback />}>
-        <Routes>
+        <Routes location={displayLocation}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/register" element={<SignUpPage />} />

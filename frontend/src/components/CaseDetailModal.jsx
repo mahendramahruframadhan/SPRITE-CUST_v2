@@ -35,7 +35,7 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-brand-200">{kicker}</p>
-              <h3 id="case-detail-title" className="mt-1 text-xl font-extrabold truncate">
+              <h3 id="case-detail-title" className="case-title-vt mt-1 text-xl font-extrabold truncate">
                 {title}
               </h3>
               {chips.length > 0 && (

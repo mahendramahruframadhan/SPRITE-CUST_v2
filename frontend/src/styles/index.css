@@ -1,4 +1,5 @@
 @import './tokens.css';
+@import './view-transitions.css';
 
 @tailwind base;
 @tailwind components;

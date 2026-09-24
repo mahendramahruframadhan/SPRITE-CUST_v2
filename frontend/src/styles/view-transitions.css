@@ -1,0 +1,71 @@
+/* ===== View Transitions antar halaman (View Transitions API, native) =====
+   Gaya: soft crossfade + subtle slide (Linear/Stripe-like). HANYA opacity +
+   transform (translate/scale) agar komposit murah dan tidak lag.
+   Browser tanpa support: pseudo-elements tidak dikenali → halaman tukar
+   instan (fallback alami). prefers-reduced-motion → animasi dimatikan. */
+
+:root {
+  --vt-dur: 400ms;
+  --vt-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- 1) Crossfade default (hanya opacity) --- */
+::view-transition-old(root) {
+  animation: vt-root-out var(--vt-dur) var(--vt-ease) both;
+}
+::view-transition-new(root) {
+  animation: vt-root-in var(--vt-dur) var(--vt-ease) both;
+}
+@keyframes vt-root-out {
+  to { opacity: 0; }
+}
+@keyframes vt-root-in {
+  from { opacity: 0; }
+}
+
+/* --- 2) Subtle slide: maju = baru masuk dari kanan, mundur = sebaliknya --- */
+html[data-vt-dir='forward']::view-transition-old(root) { animation-name: vt-out-left; }
+html[data-vt-dir='forward']::view-transition-new(root) { animation-name: vt-in-right; }
+html[data-vt-dir='back']::view-transition-old(root) { animation-name: vt-out-right; }
+html[data-vt-dir='back']::view-transition-new(root) { animation-name: vt-in-left; }
+@keyframes vt-out-left {
+  to { opacity: 0; transform: translateX(-16px); }
+}
+@keyframes vt-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+}
+@keyframes vt-out-right {
+  to { opacity: 0; transform: translateX(16px); }
+}
+@keyframes vt-in-left {
+  from { opacity: 0; transform: translateX(-16px); }
+}
+
+/* --- 3) Shared element: judul kasus morph baris tabel → modal detail --- */
+/* Kelas dipasang di elemen sumber (baris) SAAT aktif + di judul modal
+   (case-title unik per snapshot — morphing otomatis oleh browser). */
+.case-title-vt {
+  view-transition-name: case-title;
+}
+::view-transition-old(case-title) {
+  animation: vt-shared-out var(--vt-dur) var(--vt-ease) both;
+}
+::view-transition-new(case-title) {
+  animation: vt-shared-in var(--vt-dur) var(--vt-ease) both;
+}
+@keyframes vt-shared-out {
+  to { opacity: 0; }
+}
+@keyframes vt-shared-in {
+  from { opacity: 0; transform: scale(0.96); }
+}
+
+/* --- Hormati prefers-reduced-motion: tanpa animasi sama sekali --- */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  ::view-transition-old(case-title),
+  ::view-transition-new(case-title) {
+    animation: none !important;
+  }
+}
