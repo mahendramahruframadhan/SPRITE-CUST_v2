@@ -45,6 +45,13 @@ export default function LoginPage() {
       // Hapus state dari history agar banner tidak muncul lagi saat refresh.
       window.history.replaceState({}, '');
     }
+    // Datang dari redirect sesi kedaluwarsa (api.js) — beri tahu user sekali.
+    try {
+      if (sessionStorage.getItem('sessionExpired') === '1') {
+        sessionStorage.removeItem('sessionExpired');
+        setError('Sesi berakhir — silakan login lagi.');
+      }
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

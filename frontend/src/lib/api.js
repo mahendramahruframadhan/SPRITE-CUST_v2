@@ -11,6 +11,9 @@ export const API_BASE = import.meta.env.VITE_API_URL || '/api';
 export const getAuthToken = () => storageGet('authToken', '');
 export const setAuthToken = (t) => (t ? storageSet('authToken', t) : storageRemove('authToken'));
 
+// Anti-redirect-ganda bila banyak request 401 bersamaan.
+let redirectingToLogin = false;
+
 async function req(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json', 'x-user-email': storageGet('userEmail', '') };
   const token = getAuthToken();
@@ -20,9 +23,27 @@ async function req(path, opts = {}) {
     ...opts,
     ...(opts.body && typeof opts.body !== 'string' ? { body: JSON.stringify(opts.body) } : {}),
   });
+  if (res.status === 401) {
+    // Sesi mati/dicabut (backend: SESSION_EXPIRED) — bersihkan sesi basi,
+    // arahkan login ulang SEKALI (anti-loop bila sudah di /login), lalu
+    // lempar error ramah agar pemanggil tak lanjut dengan state basi.
+    storageRemove('loggedIn', 'userEmail', 'userName', 'userRole', 'authToken');
+    try {
+      sessionStorage.setItem('sessionExpired', '1');
+    } catch {}
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login') && !redirectingToLogin) {
+      redirectingToLogin = true;
+      window.location.href = '/login';
+    }
+    const err = new Error('Sesi berakhir — silakan login lagi.');
+    err.status = 401;
+    err.code = 'SESSION_EXPIRED';
+    throw err;
+  }
   if (!res.ok) {
     // Teruskan pesan backend (mis. { code: 'EMAIL_TAKEN', message }) agar
     // halaman (registrasi, roles) bisa menampilkan alasan yang tepat.
+    // 403 di sini = sesi VALID tapi modul tak diizinkan (bukan sesi mati).
     let data = null;
     try {
       data = await res.json();

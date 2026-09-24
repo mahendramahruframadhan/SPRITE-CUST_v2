@@ -32,10 +32,10 @@ describe('auth session (P1-3)', () => {
     assert.equal(await guard.canActivate(guardCtx(reqWith(r.token)) as any), true);
   });
 
-  it('email tanpa token DITOLAK guard (tutup spoofing)', async () => {
+  it('tanpa token / token ngawur → 401 (frontend mengarah login ulang)', async () => {
     const guard = new PermGuard(reflectorStub as any);
-    assert.equal(await guard.canActivate(guardCtx(reqWith(undefined, 'sa@revota.id')) as any), false);
-    assert.equal(await guard.canActivate(guardCtx(reqWith('token-ngawur')) as any), false);
+    await assert.rejects(() => guard.canActivate(guardCtx(reqWith(undefined, 'sa@revota.id')) as any), (e: any) => e?.status === 401 && e?.response?.code === 'SESSION_EXPIRED');
+    await assert.rejects(() => guard.canActivate(guardCtx(reqWith('token-ngawur')) as any), (e: any) => e?.status === 401);
   });
 
   it('role tanpa izin modul DITOLAK, Super Admin lolos', async () => {
