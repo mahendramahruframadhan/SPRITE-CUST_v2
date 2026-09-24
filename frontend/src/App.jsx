@@ -34,6 +34,37 @@ function PageFallback() {
   );
 }
 
+// Routes dibungkus komponen ini agar hook view-transition (yang memakai
+// useLocation) berjalan DI DALAM <BrowserRouter>.
+function AnimatedRoutes() {
+  const displayLocation = useViewTransitionLocation();
+  return (
+    <Routes location={displayLocation}>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignUpPage />} />
+      <Route path="/register" element={<SignUpPage />} />
+
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<RequirePerm module="dashboard"><DashboardPage /></RequirePerm>} />
+        <Route path="/kasus" element={<RequirePerm module="cases"><DataKasusPage /></RequirePerm>} />
+        <Route path="/mockup" element={<RequirePerm module="mockup"><MockupPage /></RequirePerm>} />
+        <Route path="/form" element={<RequirePerm module="form"><FormKasusPage /></RequirePerm>} />
+        <Route path="/clients" element={<RequirePerm module="clients"><ClientBrandPage /></RequirePerm>} />
+        <Route path="/hrreport" element={<RequirePerm module="hrreport"><HrReportPage /></RequirePerm>} />
+        {/* /master & /pricelist dialihkan ke /cfg oleh AppLayout */}
+        <Route path="/cfg" element={<RequirePerm module="cfg"><SheetConfigPage /></RequirePerm>} />
+        <Route path="/billing" element={<RequirePerm module="billing"><BillingPage /></RequirePerm>} />
+        <Route path="/finance" element={<RequirePerm module="finance"><FinanceAuditPage /></RequirePerm>} />
+        <Route path="/roles" element={<RequirePerm module="roles"><RolesPage /></RequirePerm>} />
+        <Route path="/logs" element={<RequirePerm module="logs"><LogsPage /></RequirePerm>} />
+        <Route path="/settings" element={<RequirePerm module="settings"><SettingsPage /></RequirePerm>} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
 // Penjaga route per modul izin (matriks diatur di /roles, Super Admin selalu lolos).
 // Akses langsung via URL ke modul terlarang → kembali ke dashboard.
 function RequirePerm({ module, children }) {
@@ -53,7 +84,6 @@ function RequirePerm({ module, children }) {
 }
 
 export default function App() {
-  const displayLocation = useViewTransitionLocation();
   return (
     <AuthProvider>
       <ThemeProvider>
@@ -61,29 +91,7 @@ export default function App() {
         <ToastProvider>
         <BrowserRouter>
         <Suspense fallback={<PageFallback />}>
-        <Routes location={displayLocation}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
-          <Route path="/register" element={<SignUpPage />} />
-
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<RequirePerm module="dashboard"><DashboardPage /></RequirePerm>} />
-            <Route path="/kasus" element={<RequirePerm module="cases"><DataKasusPage /></RequirePerm>} />
-            <Route path="/mockup" element={<RequirePerm module="mockup"><MockupPage /></RequirePerm>} />
-            <Route path="/form" element={<RequirePerm module="form"><FormKasusPage /></RequirePerm>} />
-            <Route path="/clients" element={<RequirePerm module="clients"><ClientBrandPage /></RequirePerm>} />
-            <Route path="/hrreport" element={<RequirePerm module="hrreport"><HrReportPage /></RequirePerm>} />
-            {/* /master & /pricelist dialihkan ke /cfg oleh AppLayout */}
-            <Route path="/cfg" element={<RequirePerm module="cfg"><SheetConfigPage /></RequirePerm>} />
-            <Route path="/billing" element={<RequirePerm module="billing"><BillingPage /></RequirePerm>} />
-            <Route path="/finance" element={<RequirePerm module="finance"><FinanceAuditPage /></RequirePerm>} />
-            <Route path="/roles" element={<RequirePerm module="roles"><RolesPage /></RequirePerm>} />
-            <Route path="/logs" element={<RequirePerm module="logs"><LogsPage /></RequirePerm>} />
-            <Route path="/settings" element={<RequirePerm module="settings"><SettingsPage /></RequirePerm>} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Route>
-        </Routes>
+          <AnimatedRoutes />
         </Suspense>
         </BrowserRouter>
         </ToastProvider>
