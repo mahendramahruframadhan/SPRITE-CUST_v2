@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
+import { Button } from '../components/ui/Button.jsx';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -126,13 +127,14 @@ function StatusListManager({ label, hint, items, newVal, onNewVal, onAdd, onDele
           maxLength={40}
           className={`${inputCls} flex-1`}
         />
-        <button
+        <Button
+          varian="primer"
           type="submit"
           disabled={disabled || busy}
-          className="shrink-0 min-h-[44px] inline-flex items-center text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition"
+          className="shrink-0"
         >
           {busy ? '…' : 'Tambah'}
-        </button>
+        </Button>
       </form>
     </div>
   );
@@ -406,13 +408,13 @@ export default function SettingsPage() {
                   </Field>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button
+                  <Button
+                    varian="primer"
                     type="submit"
                     disabled={!canManage || savingProfile}
-                    className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 min-h-[44px] rounded-lg transition"
                   >
                     {savingProfile ? 'Menyimpan…' : 'Simpan Profil'}
-                  </button>
+                  </Button>
                   <Notice kind={profileMsg?.kind}>{profileMsg?.text}</Notice>
                 </div>
               </form>
@@ -448,13 +450,13 @@ export default function SettingsPage() {
                   </Field>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button
+                  <Button
+                    varian="primer"
                     type="submit"
                     disabled={!canManage || savingPw}
-                    className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 min-h-[44px] rounded-lg transition"
                   >
                     {savingPw ? 'Menyimpan…' : 'Ubah Password'}
-                  </button>
+                  </Button>
                   <Notice kind={pwMsg?.kind}>{pwMsg?.text}</Notice>
                 </div>
               </form>
