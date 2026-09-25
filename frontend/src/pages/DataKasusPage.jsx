@@ -5,6 +5,8 @@ import { useToast } from '../context/ToastContext.jsx';
 import { useFilters } from '../hooks/useFilters.js';
 import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
+// Catatan migrasi Task 2: tombol mikro dalam baris tabel disengaja tetap
+// mentah (pengecualian tercatat).
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 import { moduleTone, billingTone } from '../utils/tones.js';
 
@@ -143,7 +145,7 @@ export default function DataKasusPage() {
       {error && (
         <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-5 py-3 text-xs text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3">
           <span>Backend tidak terjangkau ({error}). Pastikan backend jalan di port 5005.</span>
-          <button onClick={refresh} className="font-bold hover:underline shrink-0 min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60">Coba lagi</button>
+          <Button variant="link" onClick={refresh} className="font-bold shrink-0 min-h-[44px] focus-visible:ring-rose-500/60">Coba lagi</Button>
         </div>
       )}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
@@ -183,12 +185,12 @@ export default function DataKasusPage() {
             />
           )
         )}
-        <button
+        <Button
+          variant="ghost"
           onClick={() => resetFilters()}
-          className="text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 py-2 min-h-[44px] rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
           Reset Filter
-        </button>
+        </Button>
       </div>
 
       {/* Table */}
@@ -314,39 +316,42 @@ export default function DataKasusPage() {
             <span>baris per halaman</span>
           </div>
           <div className="flex items-center gap-1 overflow-x-auto max-w-full scrollbar-thin">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
               aria-label="Halaman sebelumnya"
-              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 font-bold disabled:opacity-50"
             >
               ‹
-            </button>
+            </Button>
             {pageNums.map((n, i) =>
               n === '…' ? (
                 <span key={`e-${i}`} className="px-2 text-slate-500 dark:text-slate-400">…</span>
               ) : (
-                <button
+                <Button
                   key={n}
+                  variant={n === page ? 'primary' : 'secondary'}
+                  size="sm"
                   onClick={() => setPage(n)}
-                  className={`shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                    n === page
-                      ? 'bg-brand-600 text-white'
-                      : 'border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
+                  aria-current={n === page ? 'page' : undefined}
+                  className="shrink-0 font-bold"
                 >
                   {n}
-                </button>
+                </Button>
               )
             )}
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
               aria-label="Halaman berikutnya"
-              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 font-bold disabled:opacity-50"
             >
               ›
-            </button>
+            </Button>
           </div>
         </div>
       </Reveal>
@@ -381,11 +386,11 @@ function CaseDetailModal({ item, onClose }) {
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{item.issue}</p>
           </div>
-          <button onClick={onClose} aria-label="Tutup detail" className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Tutup detail" className="shrink-0">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 overflow-x-auto scrollbar-thin px-6 py-5">

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Reveal } from '../components/Reveal.jsx';
+import { Button } from '../components/ui/Button.jsx';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { triggerSync, getSyncLogs, getHealth, getBrandStatuses } from '../lib/api.js';
@@ -425,26 +426,28 @@ export default function DashboardPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white">Sinkronisasi</p>
               <p className="mt-1 text-sm font-bold">{lastSync ? `Terakhir: ${lastSync}` : 'Belum pernah sinkron sesi ini'}</p>
               <div className="mt-4 grid grid-cols-1 gap-2.5">
-                <button
+                <Button
+                  variant="primary"
                   onClick={syncAndReload}
                   disabled={syncing}
-                  className="inline-flex items-center justify-center gap-2.5 bg-white text-brand-700 text-sm font-extrabold px-4 py-3 min-h-[44px] rounded-2xl shadow-lg hover:bg-brand-50 hover:shadow-xl transition active:scale-[.98] disabled:opacity-70 disabled:cursor-wait focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                  className="gap-2.5 bg-white text-brand-700 font-extrabold rounded-2xl shadow-lg hover:bg-brand-50 hover:shadow-xl active:scale-[.98] disabled:opacity-70 focus-visible:ring-white/80"
                 >
                   <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                   </svg>
                   {!syncing ? 'Sinkron & Muat Ulang' : syncStage === 'sync' ? '1/2 Sinkron Sheets…' : '2/2 Memuat Data…'}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={refresh}
                   disabled={spinning || syncing}
-                  className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98] disabled:opacity-60"
+                  className="text-[13px] text-white/90 bg-white/10 hover:bg-white/20 border-white/15 rounded-2xl active:scale-[.98] disabled:opacity-60"
                 >
                   <svg className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                   </svg>
                   Muat ulang tampilan
-                </button>
+                </Button>
               </div>
               {syncMsg && (
                 <p className={`mt-3 text-[12px] font-semibold leading-relaxed rounded-xl px-3 py-2 border ${syncErr ? 'text-rose-100 bg-rose-500/20 border-rose-300/30' : 'text-emerald-100 bg-emerald-400/15 border-emerald-200/25'}`}>
@@ -462,7 +465,7 @@ export default function DashboardPage() {
       {error && (
         <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-5 py-3.5 text-[13px] text-rose-700 dark:text-rose-300 flex items-center justify-between shadow-sm animate-fade-in-fast">
           <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-rose-500" /> Backend tidak terjangkau ({error}).</span>
-          <button onClick={refresh} className="font-bold hover:underline shrink-0 ml-4 min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60">Coba lagi</button>
+          <Button variant="link" onClick={refresh} className="font-bold shrink-0 ml-4 min-h-[44px] focus-visible:ring-rose-500/60">Coba lagi</Button>
         </div>
       )}
 
