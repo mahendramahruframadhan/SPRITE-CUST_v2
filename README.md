@@ -258,6 +258,13 @@ Invoke-RestMethod http://localhost:5005/api/sync/logs | Select-Object -First 1  
 - [`frontend/README.md`](frontend/README.md) — struktur, route, lapisan API.
 - `.local/pusat-data-bantuan-PRD.md` — Product Requirements Document.
 
+## ✨ Revamp Frontend 2026-09 — ✅ selesai (17 commit di `main`)
+
+Seluruh frontend dirombak bertahap: AppShell (sidebar collapsible + drawer swipe),
+10 halaman responsif + motion, lalu polish (skeleton loading, reduced-motion,
+jaring fokus). Logic & data tidak diubah. Rincian per tahap + cara cek:
+[`frontend/README.md`](frontend/README.md) (bagian Revamp Frontend).
+
 ## 🚧 Progres review 2026-09-22 (branch `dev/20260921-pdf-sync`)
 
 Hasil review kerjaan PDF invoice + status invoice otomatis. Status: ✅ selesai dikerjakan.
