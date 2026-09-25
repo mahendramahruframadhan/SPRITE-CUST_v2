@@ -14,6 +14,7 @@ import BrandCombobox from '../components/BrandCombobox.jsx';
 import FilterLabel from '../components/FilterLabel.jsx';
 import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
 import { withViewTransition } from '../hooks/useViewTransitionLocation.js';
 import { useFilters } from '../hooks/useFilters.js';
 
@@ -85,6 +86,7 @@ export default function BillingPage() {
   const [editValue, setEditValue] = useState('');
   const [editBusy, setEditBusy] = useState(false);
   const [editErr, setEditErr] = useState('');
+  const [hapusStatus, setHapusStatus] = useState(null); // nama status menunggu konfirmasi hapus
 
   // Palet chart mengikuti tema (terang/gelap)
   const { theme } = useTheme();
@@ -815,13 +817,7 @@ export default function BillingPage() {
                             </button>
                             {DEFAULT_ACTIONS.includes(a) ? null : (
                               <button
-                                onClick={() => {
-                                  if (confirm(`Yakin hapus status "${a}"? ${used} kasus yang menggunakannya akan kembali ke status default.`)) {
-                                    removeAction(a);
-                                    recordActivity(`menghapus status validasi "${a}"`, 'kasus terkait kembali ke status default', 'Konfigurasi');
-                                    notify(`Status "${a}" dihapus.`, 'success');
-                                  }
-                                }}
+                                onClick={() => setHapusStatus(a)}
                                 className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"
                               >
                                 Hapus
@@ -835,6 +831,21 @@ export default function BillingPage() {
                 })}
               </ul>
               {editErr && <p className="mt-1 text-xs font-semibold text-rose-600">{editErr}</p>}
+              {hapusStatus && (
+                <DeleteConfirmModal
+                  title={`Hapus "${hapusStatus}"?`}
+                  message={`${Object.values(caseAuditStatus).filter((s) => s === hapusStatus).length} kasus yang menggunakannya akan kembali ke status default.`}
+                  itemLabel={hapusStatus}
+                  onCancel={() => setHapusStatus(null)}
+                  onConfirm={() => {
+                    const a = hapusStatus;
+                    setHapusStatus(null);
+                    removeAction(a);
+                    recordActivity(`menghapus status validasi "${a}"`, 'kasus terkait kembali ke status default', 'Konfigurasi');
+                    notify(`Status "${a}" dihapus.`, 'success');
+                  }}
+                />
+              )}
               <form
                 className="mt-4 flex gap-2"
                 onSubmit={(e) => {
