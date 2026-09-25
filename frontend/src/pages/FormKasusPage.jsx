@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
+import { Button } from '../components/ui/Button.jsx';
 import { masters as fallbackMasters, priceListData as fallbackPrices } from '../data/masters.js';
 import { createCase, getMasters } from '../lib/api.js';
 import { recordActivity } from '../lib/activity.js';
@@ -157,22 +158,15 @@ export default function FormKasusPage() {
     <div className="page">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <button
-          onClick={resetForm}
-          className="text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 py-2 min-h-[44px] rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-        >
+        <Button varian="teks" onClick={resetForm}>
           Reset
-        </button>
-        <button
-          onClick={saveForm}
-          disabled={saving}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2 min-h-[44px] rounded-lg shadow-md shadow-brand-600/25 transition disabled:opacity-60"
-        >
+        </Button>
+        <Button varian="primer" onClick={saveForm} disabled={saving}>
           <svg className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          {saving ? 'Menyimpan…' : 'Simpan ke Backend'}
-        </button>
+                  {saving ? 'Menyimpan…' : 'Simpan ke Backend'}
+                </Button>
       </div>
 
       <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-6">
