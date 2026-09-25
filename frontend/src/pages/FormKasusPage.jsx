@@ -275,13 +275,14 @@ export default function FormKasusPage() {
                 className="pl-8 pr-3 py-2.5 min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
               />
             </div>
-            <button
+            <Button
+              variant="link"
               type="button"
               onClick={autoFillCharges}
-              className="text-[11px] font-semibold text-brand-600 dark:text-brand-300 mt-1.5 hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+              className="text-[11px] font-semibold mt-1.5"
             >
               Isi otomatis dari price list
-            </button>
+            </Button>
           </Field>
         </div>
 
