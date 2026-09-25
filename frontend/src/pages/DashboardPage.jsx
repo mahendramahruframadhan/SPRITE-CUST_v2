@@ -485,7 +485,7 @@ export default function DashboardPage() {
       {error && (
         <div className="bg-white border border-rose-200 rounded-2xl px-5 py-3.5 text-[13px] text-rose-700 flex items-center justify-between shadow-sm animate-fade-in-fast">
           <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-rose-500" /> Backend tidak terjangkau ({error}).</span>
-          <button onClick={refresh} className="font-bold hover:underline shrink-0 ml-4 min-h-[44px] inline-flex items-center">Coba lagi</button>
+          <button onClick={refresh} className="font-bold hover:underline shrink-0 ml-4 min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60">Coba lagi</button>
         </div>
       )}
 
