@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
@@ -239,19 +240,34 @@ export default function HrReportPage() {
   }
 
   const dateCls =
-    'block w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition [color-scheme:light] dark:[color-scheme:dark]';
+    'block w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition [color-scheme:light] dark:[color-scheme:dark]';
 
   const presetBtn = (active) =>
-    `text-xs font-bold px-3.5 py-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+    `min-h-[44px] inline-flex items-center text-xs font-bold px-3.5 py-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
       active
         ? 'bg-brand-600 border-brand-600 text-white shadow-md shadow-brand-600/25'
         : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
     }`;
 
+// R-31: reveal sekali saat kartu masuk viewport = orientasi scroll (MOTION 2).
+function Reveal({ children, className = '' }) {
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+  return (
+    <div className="page">
       {/* Filter */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 animate-fade-in-fast">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
         <div className="flex flex-col xl:flex-row gap-4">
           <div className="flex-1 min-w-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -307,13 +323,13 @@ export default function HrReportPage() {
               <span className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" aria-hidden="true" />
               <button
                 onClick={() => { setPic(''); setFrom(''); setTo(''); }}
-                className="text-xs font-bold text-slate-500 dark:text-slate-300 px-3.5 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="min-h-[44px] inline-flex items-center text-xs font-bold text-slate-500 dark:text-slate-300 px-3.5 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 Reset
               </button>
               <button
                 onClick={exportCSV}
-                className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-3.5 py-2 rounded-full transition"
+                className="min-h-[44px] inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-3.5 py-2 rounded-full transition"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -338,12 +354,12 @@ export default function HrReportPage() {
             </span>
           </div>
         </div>
-      </div>
+      </Reveal>
 
       {/* Report paper */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fade-in-fast">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {/* Header laporan */}
-        <div className="px-8 py-6 border-b-2 border-slate-800 dark:border-slate-700">
+        <div className="px-5 sm:px-8 py-6 border-b-2 border-slate-800 dark:border-slate-700">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-300">Revota — Customer Support</p>
           <h1 className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-white">Support Div - HR Report</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -358,10 +374,11 @@ export default function HrReportPage() {
             <p className="text-[11px] text-slate-300 mt-0.5">Laporan komprehensif berdasarkan tim & kategori Group KPI</p>
           </div>
           <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full text-sm">
+            {/* R-31: kolom Assign To sticky agar matriks tetap terbaca saat geser di HP */}
+            <table className="w-full text-sm min-w-[720px]">
               <thead>
                 <tr className="bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                  <th className="px-4 py-2.5 text-left">Assign To</th>
+                  <th className="px-4 py-2.5 text-left sticky left-0 bg-slate-100 dark:bg-slate-800">Assign To</th>
                   {KPI_COLS.map((k) => (
                     <th key={k} className="px-3 py-2.5 text-center" title={k}>
                       {k.replace('• ', '').replace('REQUEST', 'REQ.')}
@@ -375,7 +392,7 @@ export default function HrReportPage() {
                   const total = KPI_COLS.reduce((s, k) => s + (byPic[p][k] || 0), 0);
                   return (
                     <tr key={p} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-                      <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100">{p}</td>
+                      <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100 sticky left-0 bg-white dark:bg-slate-900">{p}</td>
                       {KPI_COLS.map((k) => (
                         <td key={k} className={`px-3 py-3 text-center tabular-nums ${byPic[p][k] ? 'font-semibold text-slate-700 dark:text-slate-200' : 'text-slate-300 dark:text-slate-600'}`}>
                           {byPic[p][k] || 0}
@@ -395,7 +412,7 @@ export default function HrReportPage() {
               </tbody>
               <tfoot>
                 <tr className="bg-slate-800 text-white text-sm">
-                  <td className="px-4 py-3 font-extrabold">TOTAL KESELURUHAN</td>
+                  <td className="px-4 py-3 font-extrabold sticky left-0 bg-slate-800">TOTAL KESELURUHAN</td>
                   {KPI_COLS.map((k) => (
                     <td key={k} className="px-3 py-3 text-center font-bold">{grand[k]}</td>
                   ))}
@@ -405,20 +422,20 @@ export default function HrReportPage() {
             </table>
           </div>
         </div>
-      </div>
+      </Reveal>
 
       {/* Detail Ticket — kartu terpisah agar ada jarak dari rekap */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-fade-in-fast">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div>
-          <div className="px-6 py-4 bg-brand-700 text-white">
+          <div className="px-5 sm:px-6 py-4 bg-brand-700 text-white">
             <h3 className="font-bold text-sm">LAPORAN DETAIL TICKET & ISSUE</h3>
             <p className="text-[11px] text-brand-200 mt-0.5">Data komprehensif log aktivitas per anggota tim</p>
           </div>
           <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[860px]">
               <thead>
                 <tr className="bg-brand-50 dark:bg-brand-500/10 text-[10px] font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300 border-b border-brand-100 dark:border-brand-500/20">
-                  <th className="px-4 py-2.5 text-left">Assign To</th>
+                  <th className="px-4 py-2.5 text-left sticky left-0 bg-brand-50 dark:bg-slate-900">Assign To</th>
                   <th className="px-4 py-2.5 text-left">Date Issue</th>
                   <th className="px-4 py-2.5 text-left">Client</th>
                   <th className="px-4 py-2.5 text-left">Module</th>
@@ -430,7 +447,7 @@ export default function HrReportPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {detailRows.map((c, idx) => (
                   <tr key={`${c.recordUuid || 'noid'}-${idx}`} className="hover:bg-brand-50/40 dark:hover:bg-slate-800 transition">
-                    <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{(c.assignTo || '').trim() || '-'}</td>
+                    <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap sticky left-0 bg-white dark:bg-slate-900">{(c.assignTo || '').trim() || '-'}</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap text-xs tabular-nums">{fmtDate8(c.dateIssue)}</td>
                     <td className="px-4 py-2.5 font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{c.client || '-'}</td>
                     <td className="px-4 py-2.5">
@@ -449,12 +466,12 @@ export default function HrReportPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div className="px-5 sm:px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-wrap items-center gap-x-4 gap-y-1 justify-between text-xs text-slate-500 dark:text-slate-400">
             <span>Menampilkan {detailRows.length} dari {allCases.length} ticket{pic ? ` · PIC: ${pic}` : ''}</span>
             <span>Sumber: Google Sheets (sinkron)</span>
           </div>
         </div>
-      </div>
+      </Reveal>
     </div>
   );
 }
