@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { FontSizeProvider } from './context/FontSizeContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
+import { ConfirmProvider } from './components/ui/ConfirmProvider.jsx';
 import { usePermissions } from './hooks/usePermissions.js';
 import AppLayout from './components/AppLayout.jsx';
 import { useViewTransitionLocation } from './hooks/useViewTransitionLocation.js';
@@ -89,11 +90,13 @@ export default function App() {
       <ThemeProvider>
         <FontSizeProvider>
         <ToastProvider>
+        <ConfirmProvider>
         <BrowserRouter>
         <Suspense fallback={<PageFallback />}>
           <AnimatedRoutes />
         </Suspense>
         </BrowserRouter>
+        </ConfirmProvider>
         </ToastProvider>
         </FontSizeProvider>
       </ThemeProvider>
