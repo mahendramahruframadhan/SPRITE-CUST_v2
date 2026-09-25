@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, MOCK_USERS } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import Icon from '../components/Icon.jsx';
+import { Button } from '../components/ui/Button.jsx';
 import { GradientWave } from '../components/ui/gradient-wave.jsx';
 
 // Palet gradien mengikuti warna brand (biru-ungu indigo) agar selaras
@@ -142,9 +143,10 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-            <button
+            <Button
+              variant="primary"
               type="submit"
-              className="group w-full bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white text-sm font-bold py-3 rounded-xl shadow-lg shadow-brand-600/30 transition-all active:scale-[0.98]"
+              className="w-full bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 font-bold py-3 shadow-lg shadow-brand-600/30 active:scale-[0.98]"
             >
               <span className="inline-flex items-center gap-1.5">
                 Login
@@ -154,7 +156,7 @@ export default function LoginPage() {
                   strokeWidth={2.5}
                 />
               </span>
-            </button>
+            </Button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-white/70 dark:border-slate-700">
@@ -163,6 +165,7 @@ export default function LoginPage() {
             </p>
             <div className="flex flex-wrap justify-center gap-1.5">
               {Object.entries(MOCK_USERS).map(([em, u]) => (
+                /* eslint-disable-next-line react/forbid-elements -- pil demo akun (batas visual wajar, tercatat) */
                 <button
                   key={em}
                   onClick={() => fillLogin(em)}
