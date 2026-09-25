@@ -426,7 +426,7 @@ export default function DashboardPage() {
             <h1 className="mt-4 text-2xl sm:text-3xl lg:text-[34px] font-extrabold tracking-tight leading-tight">
               {greeting()}, ini ringkasan operasionalmu.
             </h1>
-            <p className="mt-2 text-sm sm:text-[15px] text-white/75 max-w-xl leading-relaxed">
+            <p className="mt-2 text-sm sm:text-[15px] text-white/90 max-w-xl leading-relaxed">
               {fmtNum(TOTAL)} kasus dari {uniqueClients} klien · {fmtNum(paidCases.length)} berbayar · outstanding {fmtRp(outstanding.amount)}. Data diperbarui {lastUpdated}.
             </p>
             <div className="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
@@ -451,7 +451,7 @@ export default function DashboardPage() {
                 <button
                   onClick={syncAndReload}
                   disabled={syncing}
-                  className="inline-flex items-center justify-center gap-2.5 bg-white text-brand-700 text-sm font-extrabold px-4 py-3 rounded-2xl shadow-lg hover:bg-brand-50 hover:shadow-xl transition active:scale-[.98] disabled:opacity-70 disabled:cursor-wait focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                  className="inline-flex items-center justify-center gap-2.5 bg-white text-brand-700 text-sm font-extrabold px-4 py-3 min-h-[44px] rounded-2xl shadow-lg hover:bg-brand-50 hover:shadow-xl transition active:scale-[.98] disabled:opacity-70 disabled:cursor-wait focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
                 >
                   <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -461,7 +461,7 @@ export default function DashboardPage() {
                 <button
                   onClick={refresh}
                   disabled={spinning || syncing}
-                  className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 rounded-2xl transition active:scale-[.98] disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98] disabled:opacity-60"
                 >
                   <svg className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -485,7 +485,7 @@ export default function DashboardPage() {
       {error && (
         <div className="bg-white border border-rose-200 rounded-2xl px-5 py-3.5 text-[13px] text-rose-700 flex items-center justify-between shadow-sm animate-fade-in-fast">
           <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-rose-500" /> Backend tidak terjangkau ({error}).</span>
-          <button onClick={refresh} className="font-bold hover:underline shrink-0 ml-4">Coba lagi</button>
+          <button onClick={refresh} className="font-bold hover:underline shrink-0 ml-4 min-h-[44px] inline-flex items-center">Coba lagi</button>
         </div>
       )}
 
@@ -506,7 +506,7 @@ export default function DashboardPage() {
               key={f.title}
               to={f.to}
               title={`${f.title} — ${f.desc}`}
-              className="group flex min-w-[178px] flex-1 items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="group flex min-w-[178px] flex-1 items-center gap-3 rounded-xl px-3 py-2 min-h-[44px] hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <span className={`w-9 h-9 shrink-0 rounded-lg ${f.soft} flex items-center justify-center`}>
                 <FeatureIcon name={f.icon} />
@@ -646,7 +646,7 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-500 dark:text-slate-400">Belum ada data outstanding.</p>
             )}
           </div>
-          <Link to="/finance" className="mt-5 inline-flex items-center gap-2 text-[13px] font-extrabold text-white bg-slate-900 hover:bg-brand-600 px-4 py-2.5 rounded-xl transition shadow-lg shadow-slate-900/10">
+          <Link to="/finance" className="mt-5 inline-flex items-center gap-2 text-[13px] font-extrabold text-white bg-slate-900 hover:bg-brand-600 px-4 py-2.5 min-h-[44px] rounded-xl transition shadow-lg shadow-slate-900/10">
             Buka Finance Audit
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -675,7 +675,7 @@ export default function DashboardPage() {
                 </li>
               ))}
             </ul>
-            <Link to="/clients" className="mt-4 inline-flex items-center gap-2 text-[13px] font-extrabold text-white bg-slate-900 hover:bg-brand-600 px-4 py-2.5 rounded-xl transition shadow-lg shadow-slate-900/10">
+            <Link to="/clients" className="mt-4 inline-flex items-center gap-2 text-[13px] font-extrabold text-white bg-slate-900 hover:bg-brand-600 px-4 py-2.5 min-h-[44px] rounded-xl transition shadow-lg shadow-slate-900/10">
               Buka Client & Brand
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -745,7 +745,7 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-500 dark:text-slate-400">10 kasus terakhir dari Google Sheets</p>
             </div>
           </div>
-          <Link to="/kasus" className="inline-flex items-center gap-1.5 text-[13px] font-extrabold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2.5 rounded-xl transition shadow-lg shadow-brand-600/25">
+          <Link to="/kasus" className="inline-flex items-center gap-1.5 text-[13px] font-extrabold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2.5 min-h-[44px] rounded-xl transition shadow-lg shadow-brand-600/25">
             Lihat Semua Data
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
