@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
-import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
+import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
 import { DEFAULT_CONFIG } from '../data/sheetConfig.js';
 import { getConfig, putConfig } from '../lib/api.js';
 import { getJSON, set as storageSet } from '../lib/storage.js';
@@ -155,9 +155,17 @@ export default function SheetConfigPage() {
     setToast('JSON config di-download untuk backend');
   }
 
-  const [konfirmReset, setKonfirmReset] = useState(false);
-  function resetConfig() {
-    setKonfirmReset(false);
+  const confirm = useConfirm();
+  // Aksi paling destruktif: wajib ketik ulang RESET (diuji di data dummy dulu).
+  async function resetConfig() {
+    const ok = await confirm({
+      title: 'Kembalikan ke default?',
+      description: 'SEMUA konfigurasi kembali seperti sheet. Perubahan lokal akan hilang.',
+      variant: 'danger',
+      confirmLabel: 'Ya, Reset',
+      requireTypedConfirmation: 'RESET',
+    });
+    if (!ok) return;
     setCfg(structuredClone(DEFAULT_CONFIG));
     setToast('Konfigurasi dikembalikan ke default sheet');
   }
@@ -196,7 +204,7 @@ export default function SheetConfigPage() {
               Export JSON (Backend)
             </button>
             <button
-              onClick={() => setKonfirmReset(true)}
+              onClick={() => resetConfig()}
               className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98]"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
@@ -292,16 +300,6 @@ export default function SheetConfigPage() {
         {tab === 'ai' && <TabAi agents={agents} onToggle={toggleAgent} />}
       </Reveal>
 
-      {konfirmReset && (
-        <DeleteConfirmModal
-          title="Kembalikan ke default?"
-          message="SEMUA konfigurasi kembali seperti sheet. Perubahan lokal akan hilang."
-          itemLabel="Seluruh konfigurasi sheet"
-          onCancel={() => setKonfirmReset(false)}
-          onConfirm={resetConfig}
-        />
-      )}
-
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-xl animate-fade-in-fast">
@@ -316,7 +314,7 @@ export default function SheetConfigPage() {
 function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700', onAdd, onDel }) {
   const [val, setVal] = useState('');
   const [err, setErr] = useState('');
-  const [hapus, setHapus] = useState(null); // { v, i } menunggu konfirmasi hapus
+  const confirm = useConfirm();
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-1">
@@ -358,7 +356,15 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
               type="button"
               title="Hapus"
               aria-label={`Hapus ${v}`}
-              onClick={() => setHapus({ v, i })}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: `Hapus "${v}"?`,
+                  description: 'Item dihapus dari daftar.',
+                  variant: 'danger',
+                  confirmLabel: 'Ya, Hapus',
+                });
+                if (ok) onDel(i);
+              }}
               className="w-8 h-8 shrink-0 rounded-full text-slate-500 dark:text-slate-400 hover:text-white hover:bg-rose-500 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -368,15 +374,6 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
           </span>
         ))}
       </div>
-      {hapus && (
-        <DeleteConfirmModal
-          title={`Hapus "${hapus.v}"?`}
-          message="Item dihapus dari daftar."
-          itemLabel={hapus.v}
-          onCancel={() => setHapus(null)}
-          onConfirm={() => { onDel(hapus.i); setHapus(null); }}
-        />
-      )}
     </div>
   );
 }
@@ -384,7 +381,7 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
 /* ===== Tab Pricelist ===== */
 function TabPricelist({ cfg, patch }) {
   const [addingVersion, setAddingVersion] = useState(null);
-  const [hapusBaris, setHapusBaris] = useState(null); // baris pricelist menunggu konfirmasi hapus
+  const confirm = useConfirm();
   const versions = useMemo(
     () => [...new Set(cfg.pricelist.map((p) => p.version))].sort(),
     [cfg.pricelist]
@@ -462,7 +459,15 @@ function TabPricelist({ cfg, patch }) {
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       <button
-                        onClick={() => setHapusBaris(p)}
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: `Hapus "${p.billingCategory}"?`,
+                            description: `Baris dihapus dari ${p.version}.`,
+                            variant: 'danger',
+                            confirmLabel: 'Ya, Hapus',
+                          });
+                          if (ok) patch((c) => c.pricelist.splice(p._i, 1), 'Baris dihapus');
+                        }}
                         className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
                         title="Hapus baris"
                         aria-label={`Hapus ${p.billingCategory}`}
@@ -478,19 +483,6 @@ function TabPricelist({ cfg, patch }) {
           </div>
         );
       })}
-      {hapusBaris && (
-        <DeleteConfirmModal
-          title={`Hapus "${hapusBaris.billingCategory}"?`}
-          message={`Baris dihapus dari ${hapusBaris.version}.`}
-          itemLabel={hapusBaris.billingCategory}
-          onCancel={() => setHapusBaris(null)}
-          onConfirm={() => {
-            const p = hapusBaris;
-            setHapusBaris(null);
-            patch((c) => c.pricelist.splice(p._i, 1), 'Baris dihapus');
-          }}
-        />
-      )}
       {addingVersion && (
         <PromptModal
           title={`Tambah Baris — ${addingVersion}`}
@@ -514,7 +506,7 @@ function TabPricelist({ cfg, patch }) {
 /* ===== Tab Billing Category Map ===== */
 function TabBcMap({ cfg, patch }) {
   const [addingBc, setAddingBc] = useState(false);
-  const [hapusMap, setHapusMap] = useState(null); // { cat, i } menunggu konfirmasi hapus
+  const confirm = useConfirm();
   const suggestions = useMemo(() => {
     const mapped = new Set(cfg.billingCategoryMap.map((b) => b.billingCategory));
     return [...new Set(cfg.pricelist.map((p) => p.billingCategory))].filter((x) => !mapped.has(x)).sort();
@@ -561,7 +553,15 @@ function TabBcMap({ cfg, patch }) {
               </td>
               <td className="px-4 py-2.5 text-center">
                 <button
-                  onClick={() => setHapusMap({ cat: b.billingCategory, i })}
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: `Hapus mapping "${b.billingCategory}"?`,
+                      description: 'Pasangan billing category dihapus dari mapping.',
+                      variant: 'danger',
+                      confirmLabel: 'Ya, Hapus',
+                    });
+                    if (ok) patch((c) => c.billingCategoryMap.splice(i, 1), 'Mapping dihapus');
+                  }}
                   aria-label={`Hapus mapping ${b.billingCategory}`}
                   className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
                 >
@@ -573,20 +573,7 @@ function TabBcMap({ cfg, patch }) {
           </tbody>
         </table>
         </div>
-        {hapusMap && (
-        <DeleteConfirmModal
-          title={`Hapus mapping "${hapusMap.cat}"?`}
-          message="Pasangan billing category dihapus dari mapping."
-          itemLabel={hapusMap.cat}
-          onCancel={() => setHapusMap(null)}
-          onConfirm={() => {
-            const h = hapusMap;
-            setHapusMap(null);
-            patch((c) => c.billingCategoryMap.splice(h.i, 1), 'Mapping dihapus');
-          }}
-        />
-      )}
-      {addingBc && (
+        {addingBc && (
         <PromptModal
           title="Tambah Mapping"
           desc="Pasangan billing category baru dengan support type default C."
