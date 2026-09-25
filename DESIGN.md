@@ -1,7 +1,7 @@
 # DESIGN.md: Arah visual SPRITE-CUST (Pusat Data Bantuan, Revota)
 
 Sumber arah: brand ungu Revota yang sudah live (keputusan owner, bukan temuan baru).
-Dial: **ENERGY 2 / RHYTHM 2 / MOTION 1**.
+Dial: **ENERGY 2 / RHYTHM 2 / MOTION 2** (MOTION naik 1→2 atas persetujuan owner 2026-09-25 untuk revamp; R-37 tercatat).
 
 ## Identitas
 
@@ -21,7 +21,10 @@ Dial: **ENERGY 2 / RHYTHM 2 / MOTION 1**.
   (R-10: ≤4 elemen beralasan fungsi; tidak di chip hero karena blur di atas
   gradien pekat = no-op visual).
 - Animasi: satu transisi mount per section (`animate-fade-in-fast`), tanpa
-  cascade delay per kartu (R-19: orientasi, bukan dekorasi).
+  cascade delay per kartu (R-19: orientasi, bukan dekorasi). MOTION 2 menambah:
+  drawer sidebar pegas + swipe-to-close, reveal section, layout animation
+  (pegas tunggal stiffness 380/damping 38; alasan R-31: gerak fisik cepat
+  tanpa memantul berlebihan).
 - Kartu metrik identik = perbandingan setara (R-14: alasan = hierarki setara).
 - Semua angka dari Google Sheets asli; tanpa testimoni/FAQ/klaim (R-17/R-18/R-28/R-36).
 - Em dash (—) di copy Indonesia dipertahankan: idiom bahasa, bukan pola
