@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { masters as fallbackMasters, priceListData as fallbackPrices } from '../data/masters.js';
 import { createCase, getMasters } from '../lib/api.js';
 import { recordActivity } from '../lib/activity.js';
@@ -41,7 +42,31 @@ const INITIAL = {
 };
 
 const INPUT_CLS =
-  'mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
+  'mt-1 w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
+
+// R-31: reveal sekali saat kartu masuk viewport = orientasi scroll (MOTION 2).
+function Reveal({ children, className = '' }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Judul grup section: hierarki visual form panjang (R-20).
+function GrupJudul({ children }) {
+  return (
+    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+      {children}
+    </p>
+  );
+}
 
 function Field({ label, required, children }) {
   return (
@@ -144,30 +169,31 @@ export default function FormKasusPage() {
   }
 
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5">
+    <div className="page">
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 -mt-1 mb-5">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <button
           onClick={resetForm}
-          className="text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          className="text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 py-2 min-h-[44px] rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
           Reset
         </button>
         <button
           onClick={saveForm}
           disabled={saving}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2 rounded-lg shadow-md shadow-brand-600/25 transition disabled:opacity-60"
+          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2 min-h-[44px] rounded-lg shadow-md shadow-brand-600/25 transition disabled:opacity-60"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Simpan ke Backend
+          {saving ? 'Menyimpan…' : 'Simpan ke Backend'}
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-6">
         {/* Baris atas: nomor & tanggal */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <GrupJudul>Nomor dan Tanggal</GrupJudul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Field label="No">
             <input type="text" readOnly value={form.no} className={`${INPUT_CLS} bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400`} />
           </Field>
@@ -183,7 +209,8 @@ export default function FormKasusPage() {
         </div>
 
         {/* Client & PIC */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <GrupJudul>Klien dan Penugasan</GrupJudul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Field label="Brand / Client" required>
             <input list="brandList" value={form.client} onChange={set('client')} required placeholder="Pilih atau ketik brand" className={INPUT_CLS} />
             <datalist id="brandList">
@@ -202,7 +229,8 @@ export default function FormKasusPage() {
         </div>
 
         {/* Module & Sub Module */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <GrupJudul>Modul dan Lokasi</GrupJudul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Field label="Module">
             <Select
               value={form.module}
@@ -224,7 +252,8 @@ export default function FormKasusPage() {
         </Field>
 
         {/* Kategori & Billing */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <GrupJudul>Status dan Billing</GrupJudul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Field label="Status">
             <Select value={form.status} onChange={set('status')} items={masters.status || []} />
           </Field>
@@ -240,7 +269,8 @@ export default function FormKasusPage() {
         </div>
 
         {/* Price List & Charges */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+        <GrupJudul>Price List dan Charges</GrupJudul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
           <Field label="Ref Price List">
             <Select
               value={form.refPriceList}
@@ -263,17 +293,22 @@ export default function FormKasusPage() {
                 value={form.charges}
                 onChange={set('charges')}
                 placeholder="0"
-                className="pl-8 pr-3 py-2.5 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                className="pl-8 pr-3 py-2.5 min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
               />
             </div>
-            <p className="text-[10px] text-brand-600 dark:text-brand-300 mt-1 cursor-pointer hover:underline" onClick={autoFillCharges}>
+            <button
+              type="button"
+              onClick={autoFillCharges}
+              className="text-[11px] font-semibold text-brand-600 dark:text-brand-300 mt-1.5 hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+            >
               Isi otomatis dari price list
-            </p>
+            </button>
           </Field>
         </div>
 
         {/* Group KPI & Notes */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <GrupJudul>KPI dan Catatan</GrupJudul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Field label="Group KPI">
             <Select value={form.groupKpi} onChange={set('groupKpi')} items={masters.groupKpi || []} />
           </Field>
@@ -286,7 +321,8 @@ export default function FormKasusPage() {
         </div>
 
         {/* Meta */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <GrupJudul>Meta</GrupJudul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Field label="Bulan">
             <Select value={form.monthName} onChange={set('monthName')} items={masters.monthName || []} />
           </Field>
@@ -307,7 +343,7 @@ export default function FormKasusPage() {
             className="mt-1 w-full text-xs font-mono bg-slate-900 dark:bg-black text-emerald-400 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5"
           />
         </Field>
-      </div>
+      </Reveal>
     </div>
   );
 }
