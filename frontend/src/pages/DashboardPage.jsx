@@ -430,13 +430,13 @@ export default function DashboardPage() {
               {fmtNum(TOTAL)} kasus dari {uniqueClients} klien · {fmtNum(paidCases.length)} berbayar · outstanding {fmtRp(outstanding.amount)}. Data diperbarui {lastUpdated}.
             </p>
             <div className="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
-              <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-2">
+              <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-xl px-3 py-2">
                 <Dot /> {fmtNum(latestYM ? ymMap[latestYM].count : 0)} kasus bulan terakhir
               </span>
-              <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-2">
+              <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-xl px-3 py-2">
                 <Dot /> <span className="tabular-nums">{fmtRp(totalCharge)}</span>&nbsp;nilai billing
               </span>
-              <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-2">
+              <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-xl px-3 py-2">
                 <Dot /> {Object.keys(teamPerf).length} petugas aktif
               </span>
             </div>
