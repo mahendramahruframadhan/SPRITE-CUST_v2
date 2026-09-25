@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useFilters } from '../hooks/useFilters.js';
@@ -120,12 +121,12 @@ export default function DataKasusPage() {
   }
 
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+    <div className="page">
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 -mt-1">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <button
           onClick={exportCSV}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-4 py-2 rounded-lg transition"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-4 py-2 min-h-[44px] rounded-lg transition"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -134,7 +135,7 @@ export default function DataKasusPage() {
         </button>
         <button
           onClick={refresh}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
+          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 min-h-[44px] rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
         >
           <svg className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -145,12 +146,12 @@ export default function DataKasusPage() {
 
       {/* Filters */}
       {error && (
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl px-5 py-3 text-xs text-rose-700 flex items-center justify-between">
+        <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-5 py-3 text-xs text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3">
           <span>Backend tidak terjangkau ({error}). Pastikan backend jalan di port 5005.</span>
-          <button onClick={refresh} className="font-bold hover:underline">Coba lagi</button>
+          <button onClick={refresh} className="font-bold hover:underline shrink-0 min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60">Coba lagi</button>
         </div>
       )}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {FILTER_DEFS.map((d) =>
           d.type === 'text' ? (
             <div key={d.id} className="relative">
@@ -162,7 +163,7 @@ export default function DataKasusPage() {
                 placeholder={d.placeholder}
                 value={filters[d.id]}
                 onChange={(e) => setOneFilter(d.id, e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                className="w-full pl-9 pr-3 py-2 min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
               />
             </div>
           ) : d.type === 'select' ? (
@@ -170,7 +171,7 @@ export default function DataKasusPage() {
               key={d.id}
               value={filters[d.id]}
               onChange={(e) => setOneFilter(d.id, e.target.value)}
-              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             >
               <option value="">{d.label}</option>
               {options[d.id].map((v) => (
@@ -183,28 +184,28 @@ export default function DataKasusPage() {
               type="date"
               value={filters[d.id]}
               onChange={(e) => setOneFilter(d.id, e.target.value)}
-              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+              className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
             />
           )
         )}
         <button
           onClick={() => resetFilters()}
-          className="text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          className="text-sm font-semibold text-slate-500 dark:text-slate-300 px-4 py-2 min-h-[44px] rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
           Reset Filter
         </button>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <h3 className="font-bold text-slate-900 dark:text-white">Daftar Kasus</h3>
           <span className="text-xs text-slate-500 dark:text-slate-400">
             {loading ? 'Memuat dari backend…' : `${filtered.length.toLocaleString('id-ID')} kasus ditemukan`}
           </span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden md:block overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm min-w-[1100px]">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
                 <th className="px-6 py-3 font-semibold">No</th>
@@ -248,7 +249,7 @@ export default function DataKasusPage() {
                     <td className="px-6 py-3.5 text-center">
                       <button
                         onClick={() => setDetail(c)}
-                        className="text-xs font-semibold text-brand-600 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-1.5 rounded-lg transition"
+                        className="inline-flex items-center text-xs font-semibold text-brand-600 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-1.5 min-h-[44px] rounded-lg transition"
                       >
                         Detail
                       </button>
@@ -262,7 +263,41 @@ export default function DataKasusPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        {/* Varian kartu untuk layar kecil: data dan aksi sama dengan tabel */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {pageItems.map((c) => {
+            const s = statusMeta(c.status);
+            return (
+              <button
+                key={c.recordUuid}
+                type="button"
+                onClick={() => setDetail(c)}
+                className="w-full text-left px-5 py-4 flex items-start gap-3 hover:bg-brand-50/50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/60"
+              >
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="font-extrabold text-slate-900 dark:text-white text-sm truncate">{c.client}</span>
+                    <span className="shrink-0 text-xs font-bold tabular-nums text-slate-700 dark:text-slate-200">{fmtMoney(c.charges)}</span>
+                  </span>
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {c.module || '-'}</span>
+                  <span className="mt-1 block text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">{c.issue || '-'}</span>
+                  <span className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.cls}`}>{s.label}</span>
+                    <Pill size="sm" dot tone={billingTone(c.billingStatus)}>{c.billingStatus || '-'}</Pill>
+                  </span>
+                  <span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">{c.assignTo || '-'} · {c.picName || '-'}</span>
+                </span>
+                <svg className="w-4 h-4 mt-1 shrink-0 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            );
+          })}
+          {pageItems.length === 0 && (
+            <p className="px-5 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Tidak ada data yang cocok</p>
+          )}
+        </div>
+        <div className="px-4 sm:px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <span>Tampilkan</span>
             <select
@@ -276,11 +311,12 @@ export default function DataKasusPage() {
             </select>
             <span>baris per halaman</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-x-auto max-w-full scrollbar-thin">
             <button
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Halaman sebelumnya"
+              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               ‹
             </button>
@@ -291,7 +327,7 @@ export default function DataKasusPage() {
                 <button
                   key={n}
                   onClick={() => setPage(n)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
+                  className={`shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-semibold ${
                     n === page
                       ? 'bg-brand-600 text-white'
                       : 'border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -304,16 +340,32 @@ export default function DataKasusPage() {
             <button
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Halaman berikutnya"
+              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               ›
             </button>
           </div>
         </div>
-      </div>
+      </Reveal>
 
       {detail && <CaseDetailModal item={detail} onClose={() => setDetail(null)} />}
     </div>
+  );
+}
+
+/* R-31: reveal sekali saat kartu masuk viewport = orientasi scroll (MOTION 2). */
+function Reveal({ children, className = '' }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -334,7 +386,7 @@ function CaseDetailModal({ item, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col animate-fade-in-fast">
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between">
+        <div className="px-5 sm:px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-lg text-slate-900 dark:text-white">{item.client}</h3>
@@ -342,7 +394,7 @@ function CaseDetailModal({ item, onClose }) {
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{item.issue}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400">
+          <button onClick={onClose} aria-label="Tutup detail" className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
