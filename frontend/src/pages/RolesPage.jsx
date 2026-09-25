@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
-import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
+import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { DEFAULT_PERMS } from '../hooks/usePermissions.js';
 import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog, getConfig, putConfig, chatAi } from '../lib/api.js';
@@ -93,9 +93,8 @@ export default function RolesPage({ bare = false }) {
   const [editingId, setEditingId] = useState(null);
   const [showAiForm, setShowAiForm] = useState(false);
   const [toast, setToast] = useState(null);
-  const [hapusUser, setHapusUser] = useState(null); // user menunggu konfirmasi hapus
-  const [hapusConn, setHapusConn] = useState(null); // koneksi AI menunggu konfirmasi hapus
   const [konfirmBusy, setKonfirmBusy] = useState(false);
+  const confirm = useConfirm();
 
   useEffect(() => {
     storageSet('appUsers', users);
@@ -206,12 +205,13 @@ export default function RolesPage({ bare = false }) {
       showToast('Super Admin tidak dapat dihapus');
       return;
     }
-    setHapusUser(u);
-  }
-
-  async function confirmDeleteUser() {
-    const u = hapusUser;
-    if (!u || konfirmBusy) return;
+    const ok = await confirm({
+      title: `Hapus "${u.name}"?`,
+      description: 'Akun dihapus dari daftar dan tidak bisa login lagi.',
+      variant: 'danger',
+      confirmLabel: 'Ya, Hapus',
+    });
+    if (!ok || konfirmBusy) return;
     setKonfirmBusy(true);
     try {
       const r = await deleteUserApi(u.id);
@@ -227,7 +227,6 @@ export default function RolesPage({ bare = false }) {
     }
     setUsers((prev) => prev.filter((x) => x.id !== u.id));
     addLog(`menghapus pengguna ${u.name}`);
-    setHapusUser(null);
     showToast('Pengguna dihapus');
   }
 
@@ -324,24 +323,21 @@ export default function RolesPage({ bare = false }) {
       .catch(() => showToast('Gagal menyimpan — backend tidak terjangkau', 'err'));
   }
 
-  function removeConn(id) {
+  async function removeConn(id) {
     const hit = conns.find((c) => c.id === id);
     if (!hit) return;
-    setHapusConn(hit);
-  }
-
-  async function confirmDeleteConn() {
-    const hit = hapusConn;
-    if (!hit || konfirmBusy) return;
-    setKonfirmBusy(true);
+    const ok = await confirm({
+      title: `Hapus "${hit.name}"?`,
+      description: 'Koneksi AI dihapus dari daftar.',
+      variant: 'danger',
+      confirmLabel: 'Ya, Hapus',
+    });
+    if (!ok) return;
     try {
       await persistConns(conns.filter((c) => c.id !== hit.id));
-      setHapusConn(null);
       showToast('Koneksi dihapus', 'ok');
     } catch {
       showToast('Gagal menghapus', 'err');
-    } finally {
-      setKonfirmBusy(false);
     }
   }
 
@@ -899,27 +895,6 @@ export default function RolesPage({ bare = false }) {
             </div>
           </div>
         </div>
-      )}
-
-      {hapusUser && (
-        <DeleteConfirmModal
-          title={`Hapus "${hapusUser.name}"?`}
-          message="Akun dihapus dari daftar dan tidak bisa login lagi."
-          itemLabel={`${hapusUser.name} · ${hapusUser.email}`}
-          busy={konfirmBusy}
-          onCancel={() => { if (!konfirmBusy) setHapusUser(null); }}
-          onConfirm={confirmDeleteUser}
-        />
-      )}
-      {hapusConn && (
-        <DeleteConfirmModal
-          title={`Hapus "${hapusConn.name}"?`}
-          message="Koneksi AI dihapus dari daftar."
-          itemLabel={`${hapusConn.name} · ${hapusConn.model}`}
-          busy={konfirmBusy}
-          onCancel={() => { if (!konfirmBusy) setHapusConn(null); }}
-          onConfirm={confirmDeleteConn}
-        />
       )}
 
       {/* Toast */}
