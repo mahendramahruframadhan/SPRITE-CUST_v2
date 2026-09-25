@@ -13,8 +13,8 @@ export function db() {
 export function setupTables() {
   const mem = getMemDb();
   const ddls = [
-    `CREATE TABLE IF NOT EXISTS "user" (id TEXT PRIMARY KEY, name TEXT, email TEXT, role TEXT, active INTEGER)`,
-    `CREATE TABLE IF NOT EXISTS account (id TEXT PRIMARY KEY, account_id TEXT, provider_id TEXT, user_id TEXT, password TEXT)`,
+    `CREATE TABLE IF NOT EXISTS "user" (id TEXT PRIMARY KEY, name TEXT, email TEXT, role TEXT, active INTEGER, email_verified INTEGER, created_at TEXT, updated_at TEXT)`,
+    `CREATE TABLE IF NOT EXISTS account (id TEXT PRIMARY KEY, account_id TEXT, provider_id TEXT, user_id TEXT, password TEXT, created_at TEXT, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS session (id TEXT PRIMARY KEY, expires_at TIMESTAMP, token TEXT UNIQUE, created_at TIMESTAMP, updated_at TIMESTAMP, user_id TEXT)`,
     `CREATE TABLE IF NOT EXISTS role_permissions (role TEXT, module TEXT, allowed INTEGER)`,
     `CREATE TABLE IF NOT EXISTS assistance_records (record_uuid TEXT PRIMARY KEY, no TEXT, client TEXT)`,
