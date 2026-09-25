@@ -32,6 +32,8 @@ export async function logActivity(db: any, input: ActivityInput): Promise<void> 
 
 // Nama pelaku: utama dari token sesi (anti-spoofing atribusi), fallback ke
 // header x-user-email → nama user di DB, terakhir ke email mentah.
+// Fallback header DITANDAI karena bisa dipalsukan siapa pun (bukan otorisasi,
+// hanya atribusi tampilan log).
 export async function resolveWho(db: any, req: any, fallback?: string): Promise<string> {
   try {
     if (fallback && String(fallback).trim()) return String(fallback).slice(0, 120);
@@ -42,7 +44,7 @@ export async function resolveWho(db: any, req: any, fallback?: string): Promise<
     if (!email) return 'Admin';
     const r: any = await db.execute(`SELECT name FROM "user" WHERE lower(email)='${esc(email)}' LIMIT 1` as any);
     const name = (r.rows || r)[0]?.name;
-    return name || email;
+    return `${name || email} (belum terverifikasi)`;
   } catch {
     return 'Admin';
   }
