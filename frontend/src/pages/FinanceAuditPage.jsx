@@ -9,7 +9,7 @@ import { recordActivity } from '../lib/activity.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
 import FilterLabel from '../components/FilterLabel.jsx';
-import { Pill, EmptyRow } from '../components/DataTable.jsx';
+import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
@@ -979,7 +979,9 @@ export default function FinanceAuditPage() {
                 </tr>
                 );
               })}
-              {filtered.length === 0 && (
+              {loading ? (
+                <LoadingRow colSpan={13} />
+              ) : filtered.length === 0 && (
                 <EmptyRow colSpan={13}>
                   Belum ada kasus tervalidasi — validasi dulu kasus di menu{' '}
                   <Link to="/billing" className="font-semibold text-emerald-600 hover:underline">

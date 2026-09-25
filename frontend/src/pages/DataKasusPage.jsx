@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useFilters } from '../hooks/useFilters.js';
-import { Pill, EmptyRow } from '../components/DataTable.jsx';
+import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 import { moduleTone, billingTone } from '../utils/tones.js';
 
@@ -257,7 +257,9 @@ export default function DataKasusPage() {
                   </tr>
                 );
               })}
-              {pageItems.length === 0 && (
+              {loading ? (
+                <LoadingRow colSpan={13} />
+              ) : pageItems.length === 0 && (
                 <EmptyRow colSpan={13}>Tidak ada data yang cocok</EmptyRow>
               )}
             </tbody>
@@ -293,7 +295,12 @@ export default function DataKasusPage() {
               </button>
             );
           })}
-          {pageItems.length === 0 && (
+          {loading ? (
+            <div className="px-5 py-4 space-y-3" role="status" aria-label="Memuat data">
+              <div className="skeleton h-16 rounded-xl" aria-hidden="true" />
+              <div className="skeleton h-16 rounded-xl" aria-hidden="true" />
+            </div>
+          ) : pageItems.length === 0 && (
             <p className="px-5 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Tidak ada data yang cocok</p>
           )}
         </div>

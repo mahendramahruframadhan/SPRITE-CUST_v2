@@ -4,7 +4,7 @@ import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { moduleTone } from '../utils/tones.js';
-import { Pill, EmptyRow } from '../components/DataTable.jsx';
+import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 
 const normKpi = (k) => (k || '').trim() || 'TANPA KATEGORI';
 
@@ -406,7 +406,9 @@ function Reveal({ children, className = '' }) {
                     </tr>
                   );
                 })}
-                {picList.length === 0 && (
+                {loading ? (
+                  <LoadingRow colSpan={KPI_COLS.length + 2} />
+                ) : picList.length === 0 && (
                   <EmptyRow colSpan={KPI_COLS.length + 2} compact>Tidak ada data pada periode ini</EmptyRow>
                 )}
               </tbody>
@@ -460,7 +462,9 @@ function Reveal({ children, className = '' }) {
                     </td>
                   </tr>
                 ))}
-                {detailRows.length === 0 && (
+                {loading ? (
+                  <LoadingRow colSpan={7} />
+                ) : detailRows.length === 0 && (
                   <EmptyRow colSpan={7}>Tidak ada ticket pada periode & filter ini</EmptyRow>
                 )}
               </tbody>

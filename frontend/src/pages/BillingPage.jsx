@@ -12,7 +12,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
 import FilterLabel from '../components/FilterLabel.jsx';
-import { Pill, EmptyRow } from '../components/DataTable.jsx';
+import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 import { withViewTransition } from '../hooks/useViewTransitionLocation.js';
 import { useFilters } from '../hooks/useFilters.js';
 
@@ -681,7 +681,9 @@ export default function BillingPage() {
                   <td className="px-6 py-3.5"><ExpandableText text={c.completionNotes} /></td>
                 </tr>
               ))}
-              {items.length === 0 && (
+              {loading ? (
+                <LoadingRow colSpan={12} />
+              ) : items.length === 0 && (
                 <EmptyRow colSpan={12}>Tidak ada data {cat} yang cocok dengan filter</EmptyRow>
               )}
             </tbody>

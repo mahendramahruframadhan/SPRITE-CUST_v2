@@ -23,7 +23,7 @@ import { useTheme } from '../context/ThemeContext.jsx';
 import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
 import { billingTone, invLabel } from '../utils/tones.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
-import { Pill, EmptyRow } from '../components/DataTable.jsx';
+import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 
 ChartJS.register(
   CategoryScale,
@@ -484,7 +484,7 @@ export default function DashboardPage() {
       </section>
 
       {error && (
-        <div className="bg-white border border-rose-200 rounded-2xl px-5 py-3.5 text-[13px] text-rose-700 flex items-center justify-between shadow-sm animate-fade-in-fast">
+        <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-5 py-3.5 text-[13px] text-rose-700 dark:text-rose-300 flex items-center justify-between shadow-sm animate-fade-in-fast">
           <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-rose-500" /> Backend tidak terjangkau ({error}).</span>
           <button onClick={refresh} className="font-bold hover:underline shrink-0 ml-4 min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60">Coba lagi</button>
         </div>
@@ -827,7 +827,9 @@ export default function DashboardPage() {
                   </tr>
                 );
               })}
-              {recent.length === 0 && (
+              {loading ? (
+                <LoadingRow colSpan={8} />
+              ) : recent.length === 0 && (
                 <EmptyRow colSpan={8} compact>Belum ada data kasus.</EmptyRow>
               )}
             </tbody>
@@ -861,7 +863,12 @@ export default function DashboardPage() {
               </button>
             );
           })}
-          {recent.length === 0 && (
+          {loading ? (
+            <div className="px-5 py-4 space-y-3" role="status" aria-label="Memuat data">
+              <div className="skeleton h-16 rounded-xl" aria-hidden="true" />
+              <div className="skeleton h-16 rounded-xl" aria-hidden="true" />
+            </div>
+          ) : recent.length === 0 && (
             <p className="px-5 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada data kasus.</p>
           )}
         </div>

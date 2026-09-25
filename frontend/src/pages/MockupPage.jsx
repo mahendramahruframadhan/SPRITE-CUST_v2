@@ -5,7 +5,7 @@ import { useCases } from '../hooks/useCases.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { CHART, chartTheme } from '../lib/chartPalette.js';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
-import { EmptyRow } from '../components/DataTable.jsx';
+import { EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 
 const iso8now = () => {
   const d = new Date();
@@ -349,7 +349,9 @@ function Reveal({ children, className = '' }) {
                   </tr>
                 );
               })}
-              {filtered.length === 0 && (
+              {loading ? (
+                <LoadingRow colSpan={12} />
+              ) : filtered.length === 0 && (
                 <EmptyRow colSpan={12}>Tidak ada data yang cocok</EmptyRow>
               )}
             </tbody>

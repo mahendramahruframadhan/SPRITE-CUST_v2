@@ -13,6 +13,35 @@
   ::selection {
     @apply bg-brand-600/90 text-white;
   }
+  /* Jaring pengaman fokus: setiap elemen fokus keyboard terlihat jelas (R-32).
+     Elemen yang sudah punya ring eksplisit memakai focus-visible:outline-none. */
+  :focus-visible {
+    outline: 2px solid rgb(74 79 233 / 0.6);
+    outline-offset: 2px;
+  }
+}
+
+/* Kilau skeleton untuk state loading (R-27) */
+.skeleton {
+  background: linear-gradient(90deg, rgb(148 163 184 / 0.18) 25%, rgb(148 163 184 / 0.32) 50%, rgb(148 163 184 / 0.18) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Hormati preferensi gerak pengguna (melengkapi MotionConfig di AppShell) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ===== Komponen kustom (dipakai bersama utility Tailwind) ===== */

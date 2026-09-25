@@ -4,6 +4,7 @@
 // - Dot: titik indikator (mengikuti warna teks via bg-current).
 // - Pill: label kapsul; tone dari utils/tones.js; size md/sm/xs; dot opsional.
 // - EmptyRow: baris "tidak ada data" (compact untuk tabel kecil).
+// - LoadingRow: baris skeleton saat fetch — bedakan dari kosong (R-27).
 export function Dot() {
   return <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />;
 }
@@ -28,6 +29,21 @@ export function EmptyRow({ colSpan, compact = false, children }) {
     <tr>
       <td colSpan={colSpan} className={`${compact ? 'px-4 py-10' : 'px-6 py-12'} text-center text-slate-500 dark:text-slate-400 text-sm`}>
         {children}
+      </td>
+    </tr>
+  );
+}
+
+export function LoadingRow({ colSpan, rows = 3 }) {
+  const lebar = [92, 78, 85];
+  return (
+    <tr>
+      <td colSpan={colSpan} role="status" aria-label="Memuat data" className="px-6 py-4">
+        <div className="space-y-2.5" aria-hidden="true">
+          {Array.from({ length: rows }).map((_, i) => (
+            <div key={i} className="skeleton h-4 rounded-lg" style={{ width: `${lebar[i % lebar.length]}%` }} />
+          ))}
+        </div>
       </td>
     </tr>
   );
