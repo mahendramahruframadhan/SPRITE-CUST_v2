@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
 import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, getInvoiceMap, getAuditMap } from '../lib/api.js';
@@ -427,6 +428,22 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
 // Warna badge billing status & status invoice: billingTone()/invoiceTone()
 // terpusat di utils/tones.js.
 
+// R-31: reveal sekali saat grup masuk viewport = orientasi scroll (MOTION 2).
+// Tanpa cascade delay antar kartu.
+function Reveal({ children, className = '' }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 export default function FinanceAuditPage() {
   const { notify } = useToast();
   const { user } = useAuth();
@@ -650,9 +667,9 @@ export default function FinanceAuditPage() {
   }
 
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+    <div className="page">
       {/* ===== HERO ===== */}
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#064e3b] via-[#059669] to-[#10b981] text-white shadow-2xl shadow-emerald-600/25 animate-fade-in-fast">
+      <Reveal className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#064e3b] via-[#059669] to-[#10b981] text-white shadow-2xl shadow-emerald-600/25">
         <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
         <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-teal-300/20 rounded-full blur-3xl" />
         <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center gap-6">
@@ -668,14 +685,14 @@ export default function FinanceAuditPage() {
             <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
               Finance Audit
             </h1>
-            <p className="mt-2 text-sm text-white/75 max-w-xl leading-relaxed">
+            <p className="mt-2 text-sm text-white/90 max-w-xl leading-relaxed">
               {stats.total} kasus tervalidasi siap invoice · outstanding <span className="font-bold text-white tabular-nums">{fmtMoney(stats.outstandingAmount)}</span> · {stats.paid} sudah dibayar.
             </p>
           </div>
           <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
             <button
               onClick={exportData}
-              className="inline-flex items-center justify-center gap-2 bg-white text-emerald-700 text-sm font-extrabold px-4 py-3 rounded-2xl shadow-lg hover:bg-emerald-50 transition active:scale-[.98]"
+              className="inline-flex items-center justify-center gap-2 bg-white text-emerald-700 text-sm font-extrabold px-4 py-3 min-h-[44px] rounded-2xl shadow-lg hover:bg-emerald-50 transition active:scale-[.98]"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -684,26 +701,26 @@ export default function FinanceAuditPage() {
             </button>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       {/* Alur kerja */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm px-4 py-3 flex flex-wrap items-center gap-x-2 gap-y-2 text-[11px] font-bold animate-fade-in-fast">
         <span className="text-slate-500 dark:text-slate-400 uppercase tracking-[0.14em]">Alur:</span>
         <Link to="/billing" className="text-brand-600 hover:text-brand-700 hover:underline uppercase tracking-wide">Billing & Audit</Link>
         <Arrow />
-        <FlowPill tone="bg-amber-50 text-amber-700 border-amber-200">Menunggu Invoice</FlowPill>
+        <FlowPill tone="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">Menunggu Invoice</FlowPill>
         <Arrow />
-        <FlowPill tone="bg-violet-50 text-violet-700 border-violet-200">Invoice Terbit</FlowPill>
+        <FlowPill tone="bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20">Invoice Terbit</FlowPill>
         <Arrow />
-        <FlowPill tone="bg-sky-50 text-sky-700 border-sky-200">Terkirim</FlowPill>
+        <FlowPill tone="bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20">Terkirim</FlowPill>
         <Arrow />
-        <FlowPill tone="bg-emerald-50 text-emerald-700 border-emerald-200">Sudah Dibayar</FlowPill>
+        <FlowPill tone="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">Sudah Dibayar</FlowPill>
       </div>
 
       {/* KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
+      <Reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
         {kpi.map((d, i) => (
-          <div key={d.t} className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast">
+          <div key={d.t} className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300">
             <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${d.accent}`} />
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -717,10 +734,10 @@ export default function FinanceAuditPage() {
             </div>
           </div>
         ))}
-      </div>
+      </Reveal>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-5 animate-fade-in-fast">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Filter Data</h3>
@@ -730,31 +747,31 @@ export default function FinanceAuditPage() {
           </div>
           <button
             onClick={resetFilters}
-            className="text-[13px] font-bold text-slate-500 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2 rounded-xl transition"
+            className="text-[13px] font-bold text-slate-500 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2 min-h-[44px] rounded-xl transition"
           >
             Reset Filter
           </button>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <div className="w-[230px]">
+          <div className="w-full sm:w-[230px]">
             <FilterLabel>Date From</FilterLabel>
             <div className="mt-1">
               <DatePickerInput id="fin-from" value={from} onChange={setFromLogged} placeholder="Semua tanggal" />
             </div>
           </div>
-          <div className="w-[230px]">
+          <div className="w-full sm:w-[230px]">
             <FilterLabel>Date Until</FilterLabel>
             <div className="mt-1">
               <DatePickerInput id="fin-to" value={to} onChange={setToLogged} placeholder="Semua tanggal" />
             </div>
           </div>
-          <div className="min-w-[200px]">
+          <div className="w-full sm:min-w-[200px] sm:w-auto">
             <FilterLabel htmlFor="fin-brand">Brand</FilterLabel>
             <div className="mt-1">
               <BrandCombobox id="fin-brand" value={brand} onChange={setBrandLogged} options={brands} placeholder="Cari brand…" />
             </div>
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <FilterLabel>Status Invoice</FilterLabel>
             <select
               value={invFilter}
@@ -768,11 +785,11 @@ export default function FinanceAuditPage() {
             </select>
           </div>
         </div>
-      </div>
+      </Reveal>
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">
+        <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -981,7 +998,7 @@ export default function FinanceAuditPage() {
             {filtered.length} kasus · <span className="text-base font-extrabold text-slate-900 dark:text-white">Total: {fmtMoney(total)}</span>
           </span>
         </div>
-      </div>
+      </Reveal>
 
       {/* Popup detail kasus dari kolom Issue */}
       {(() => {
