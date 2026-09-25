@@ -16,6 +16,7 @@ import { Reveal } from '../components/Reveal.jsx';
 import { useClientBrands } from '../hooks/useClientBrands.js';
 import { daysLeft, expiryState, fmtDateID } from '../utils/contract.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
+import { Button } from '../components/ui/Button.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const INPUT_CLS =
@@ -178,6 +179,7 @@ export default function ClientBrandPage() {
   // alasan: menandai baris bisa dibuka, bukan dekorasi).
   function RowButton({ item, onOpen, children }) {
     return (
+      // eslint-disable-next-line react/forbid-elements -- baris drill-in utuh, bukan tombol aksi visual
       <button
         onClick={() => onOpen(item)}
         aria-label={`Lihat detail ${item.brand}`}
@@ -293,6 +295,7 @@ export default function ClientBrandPage() {
           <span id="cb-type-label" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Masuk ke</span>
           <div className="flex mt-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 p-1 gap-1" role="group" aria-labelledby="cb-type-label">
             {TABS.map((t) => (
+              {/* eslint-disable-next-line react/forbid-elements -- segmented control kustom dengan status aktif */}
               <button
                 key={t.id}
                 type="button"
@@ -319,15 +322,16 @@ export default function ClientBrandPage() {
             </div>
           </div>
         )}
-        <button
+        <Button
+          variant="primary"
           type="submit"
-          className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-sm font-bold px-6 py-2.5 min-h-[44px] rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+          className="px-6 active:scale-[.98] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
           Tambah
-        </button>
+        </Button>
       </form>
 
       {/* Status koneksi + contoh */}
@@ -339,33 +343,36 @@ export default function ClientBrandPage() {
         )}
         <div className="ml-auto flex items-center gap-2">
           {serverOk === false && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={async () => {
                 const ok = await retryConnection();
                 notify(ok ? 'Tersambung ke server.' : 'Backend belum terjangkau.', ok ? 'success' : 'error');
               }}
-              className="min-h-[44px] inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
               Coba lagi
-            </button>
+            </Button>
           )}
           {monthly.length + gratis.length === 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 seedExamples().then(() => {
                   notify(`Contoh data finance dimasukkan (tanpa duplikat).${offTag}`, 'success');
                 }).catch((err) => notify(errMsg(err), 'error'));
               }}
-              className="min-h-[44px] inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 active:bg-brand-100 dark:active:bg-brand-500/20 px-3 py-2 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+              className="text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 active:bg-brand-100 dark:active:bg-brand-500/20"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
               Isi contoh finance
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -437,15 +444,17 @@ export default function ClientBrandPage() {
                   </p>
                   <h3 className="font-bold truncate" title={detailItem.brand}>{detailItem.brand}</h3>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={closeDetail}
                   aria-label="Tutup detail"
-                  className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                  className="shrink-0 rounded-xl text-white/80 hover:text-white hover:bg-white/15 focus-visible:ring-white/70"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -475,21 +484,23 @@ export default function ClientBrandPage() {
                   </div>
                 )}
                 <div className="flex gap-2 pt-1">
-                  <button
+                  <Button
+                    variant="primary"
                     onClick={saveModalEdit}
-                    className="flex-1 min-h-[44px] inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-sm font-bold px-4 rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                    className="flex-1 active:scale-[.98]"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
-                    Simpan
-                  </button>
-                  <button
-                    onClick={() => setModalMode('view')}
-                    className="flex-1 min-h-[44px] inline-flex items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-300 px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
-                  >
-                    Batal
-                  </button>
+                      Simpan
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setModalMode('view')}
+                      className="flex-1"
+                    >
+                      Batal
+                    </Button>
                 </div>
               </div>
             ) : (
@@ -550,31 +561,35 @@ export default function ClientBrandPage() {
                         Hapus <span className="font-bold">{detailItem.brand}</span> permanen?
                       </p>
                       <div className="mt-2.5 flex gap-2">
-                        <button
+                        <Button
+                          variant="destructive"
                           onClick={doModalDelete}
-                          className="flex-1 min-h-[44px] inline-flex items-center justify-center text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 px-4 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
+                          className="flex-1"
                         >
                           Ya, hapus
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="secondary"
                           onClick={() => setConfirmDelete(false)}
-                          className="flex-1 min-h-[44px] inline-flex items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-300 px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                          className="flex-1"
                         >
                           Batal
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <button
+                      <Button
+                        variant="primary"
                         onClick={beginEdit}
-                        className="flex-1 min-h-[44px] inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-sm font-bold px-4 rounded-xl shadow-md shadow-brand-600/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                        className="flex-1 active:scale-[.98]"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                         </svg>
                         Update
-                      </button>
+                      </Button>
+                      {/* eslint-disable-next-line react/forbid-elements -- tombol hapus bertint rose kustom */}
                       <button
                         onClick={() => setConfirmDelete(true)}
                         className="flex-1 min-h-[44px] inline-flex items-center justify-center gap-2 text-sm font-bold text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 px-4 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-500/10 active:bg-rose-100 dark:active:bg-rose-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
