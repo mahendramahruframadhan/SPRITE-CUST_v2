@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useRangedCases } from '../hooks/useCases.js';
 import { getAuditMap } from '../lib/api.js';
@@ -22,6 +23,22 @@ const moneySize = (v) => {
   if (len > 13) return 'text-[20px]';
   return 'text-[22px]';
 };
+
+// R-31: reveal sekali saat grup masuk viewport = orientasi scroll (MOTION 2).
+// Tanpa cascade delay antar kartu.
+function Reveal({ children, className = '' }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 // Teks panjang (Issue/Notes): 2 baris + tombol "Selengkapnya" untuk buka penuh per baris
 function ExpandableText({ text }) {
@@ -317,7 +334,7 @@ export default function BillingPage() {
   };
 
   const filterCls =
-    'mt-1 block text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
+    'mt-1 block min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
 
   // Tema hero mengikuti tab kategori aktif (crossfade via tumpukan layer).
   const HERO_THEME = {
@@ -346,9 +363,9 @@ export default function BillingPage() {
   const heroTheme = HERO_THEME[cat] || HERO_THEME['ON-CALL'];
 
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+    <div className="page">
       {/* ===== HERO (warna mengikuti kategori aktif) ===== */}
-      <section className={`relative overflow-hidden rounded-[28px] text-white shadow-2xl ${heroTheme.shadow} animate-fade-in-fast`}>
+      <Reveal className={`relative overflow-hidden rounded-[28px] text-white shadow-2xl ${heroTheme.shadow}`}>
         {Object.entries(HERO_THEME).map(([key, t]) => (
           <div
             key={key}
@@ -371,7 +388,7 @@ export default function BillingPage() {
             <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
               Billing & Audit
             </h1>
-            <p className="mt-2 text-sm text-white/80 max-w-xl leading-relaxed">
+            <p className="mt-2 text-sm text-white/90 max-w-xl leading-relaxed">
               Total tagihan <span className="font-bold text-white tabular-nums">{fmtMoney(stats.totalAmount)}</span> ·{' '}
               {stats.auditCounts['VALID - SIAP INVOICE'] || 0} valid siap invoice ·{' '}
               {stats.auditCounts['PERLU DICEK ULANG'] || 0} perlu dicek ulang.
@@ -380,7 +397,7 @@ export default function BillingPage() {
           <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
             <button
               onClick={() => setMasterOpen(true)}
-              className={`inline-flex items-center justify-center gap-2 bg-white ${heroTheme.btnText} ${heroTheme.btnHover} text-sm font-extrabold px-4 py-3 rounded-2xl shadow-lg transition-colors duration-500 motion-reduce:transition-none active:scale-[.98]`}
+              className={`inline-flex items-center justify-center gap-2 bg-white ${heroTheme.btnText} ${heroTheme.btnHover} text-sm font-extrabold px-4 py-3 min-h-[44px] rounded-2xl shadow-lg transition-colors duration-500 motion-reduce:transition-none active:scale-[.98]`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -389,7 +406,7 @@ export default function BillingPage() {
             </button>
             <button
               onClick={exportData}
-              className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 rounded-2xl transition active:scale-[.98]"
+              className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98]"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -398,12 +415,12 @@ export default function BillingPage() {
             </button>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       {/* KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <Reveal className="stat-grid">
         {kpi.map((d, i) => (
-          <div key={d.t} className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast">
+          <div key={d.t} className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300">
             <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${d.accent}`} />
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -417,10 +434,10 @@ export default function BillingPage() {
             </div>
           </div>
         ))}
-      </div>
+      </Reveal>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <Reveal className="panel-grid">
         <ChartPanel title="Distribusi Billing" desc="Jumlah kasus per kategori billing" accent="from-amber-400 to-orange-500" badge={`${filtered.length} kasus`}>
           <Doughnut data={distData} options={legendBottom} />
         </ChartPanel>
@@ -444,10 +461,10 @@ export default function BillingPage() {
         <ChartPanel title="Distribusi Status Validasi" desc="Status validasi kasus berbayar" accent="from-brand-500 to-violet-500" badge={`${stats.auditCounts['VALID - SIAP INVOICE'] || 0} valid`}>
           <Pie data={auditData} options={legendRight} />
         </ChartPanel>
-      </div>
+      </Reveal>
 
       {/* Tab Kategori Billing */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-4 sm:p-5 animate-fade-in-fast">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05)] p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
             <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Kategori Billing</h3>
@@ -467,7 +484,7 @@ export default function BillingPage() {
               <button
                 key={c}
                 onClick={() => setCat(c)}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200 ${
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 min-h-[64px] text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${
                     active
                       ? `bg-gradient-to-r ${meta.gradient} text-white shadow-md`
                       : 'text-slate-500 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm'
@@ -489,14 +506,14 @@ export default function BillingPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
                 )}
-              </button>
-            );
-          })}
+          </button>
+              );
+            })}
         </div>
-      </div>
+      </Reveal>
 
       {/* Detail Kasus */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex flex-wrap items-end gap-3">
             <div>
@@ -507,7 +524,7 @@ export default function BillingPage() {
                   type="button"
                   onClick={() => applyMonth(monthKey())}
                   title="Kembali ke bulan berjalan"
-                  className="text-[13px] font-bold text-brand-600 dark:text-brand-300 hover:text-brand-700 border border-slate-200 dark:border-slate-700 hover:border-brand-300 px-4 py-2.5 rounded-xl transition whitespace-nowrap"
+                  className="text-[13px] font-bold text-brand-600 dark:text-brand-300 hover:text-brand-700 border border-slate-200 dark:border-slate-700 hover:border-brand-300 px-4 py-2.5 min-h-[44px] rounded-xl transition whitespace-nowrap"
                 >
                   Bulan ini
                 </button>
@@ -529,7 +546,7 @@ export default function BillingPage() {
             </div>
             <button
               onClick={() => resetFilterValues()}
-              className="text-[13px] font-bold text-slate-500 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2.5 rounded-xl transition"
+              className="text-[13px] font-bold text-slate-500 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2.5 min-h-[44px] rounded-xl transition"
             >
               Reset
             </button>
@@ -563,7 +580,7 @@ export default function BillingPage() {
               placeholder="Cari kasus..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="pl-9 pr-3 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition"
+              className="pl-9 pr-3 py-2.5 min-h-[44px] w-full sm:w-auto text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition"
             />
           </div>
         </div>
@@ -674,11 +691,12 @@ export default function BillingPage() {
           <span className="tabular-nums">
             Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} data
           </span>
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="flex items-center gap-1 ml-auto overflow-x-auto max-w-full scrollbar-thin">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              aria-label="Halaman sebelumnya"
+              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               ‹
             </button>
@@ -686,7 +704,7 @@ export default function BillingPage() {
               <button
                 key={n}
                 onClick={() => setPage(n)}
-                className={`min-w-[32px] px-2 py-1.5 rounded-lg border font-bold transition ${
+                className={`shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2 py-1.5 rounded-lg border font-bold transition ${
                   n === safePage
                     ? 'bg-brand-600 border-brand-600 text-white'
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -698,7 +716,8 @@ export default function BillingPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              aria-label="Halaman berikutnya"
+              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               ›
             </button>
@@ -706,7 +725,7 @@ export default function BillingPage() {
           <select
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
-            className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-200"
+            className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-200"
           >
             <option value={10}>10 / halaman</option>
             <option value={50}>50 / halaman</option>
@@ -714,7 +733,7 @@ export default function BillingPage() {
           </select>
           <span className="tabular-nums">{items.length} kasus · <span className="text-base font-extrabold text-slate-900 dark:text-white">Total: {fmtMoney(grandTotal)}</span></span>
         </div>
-      </div>
+      </Reveal>
 
       {/* Modal Master Status Validasi */}
       {masterOpen && (
@@ -726,7 +745,7 @@ export default function BillingPage() {
                 <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Master Status Validasi</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Kelola opsi status validasi</p>
               </div>
-              <button onClick={() => setMasterOpen(false)} aria-label="Tutup" className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
+              <button onClick={() => setMasterOpen(false)} aria-label="Tutup" className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -776,7 +795,7 @@ export default function BillingPage() {
                           <button
                             type="submit"
                             disabled={editBusy}
-                            className="shrink-0 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-60 px-3 py-1.5 rounded-lg transition"
+                            className="shrink-0 min-h-[44px] inline-flex items-center text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-60 px-3 py-1.5 rounded-lg transition"
                           >
                             {editBusy ? '…' : 'Simpan'}
                           </button>
@@ -784,7 +803,7 @@ export default function BillingPage() {
                             type="button"
                             disabled={editBusy}
                             onClick={() => { setEditingAction(null); setEditValue(''); setEditErr(''); }}
-                            className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg transition"
+                            className="shrink-0 min-h-[44px] inline-flex items-center text-xs font-semibold text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg transition"
                           >
                             Batal
                           </button>
@@ -850,7 +869,7 @@ export default function BillingPage() {
                   onChange={(e) => setNewAction(e.target.value)}
                   className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
                 />
-                <button className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 rounded-lg transition">Tambah</button>
+                <button className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 min-h-[44px] rounded-lg transition">Tambah</button>
               </form>
             </div>
           </div>
@@ -915,7 +934,7 @@ function KpiIcon({ name }) {
 }
 function ChartPanel({ title, desc, children, accent = 'from-brand-500 to-violet-500', badge }) {
   return (
-    <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast">
+    <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)]">
       <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
       <div className="p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
