@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Button } from './ui/Button.jsx';
 
 // Modal timeline riwayat invoice + PDF per kasus (siapa, berbuat apa, kapan).
 // history: [{ who, action, detail, createdAt }] | title: nama file/kasus | onClose
@@ -53,17 +54,19 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
               <h3 id="inv-history-title" className="mt-0.5 font-extrabold truncate" title={title}>{title}</h3>
               {subtitle && <p className="text-[11px] text-emerald-100/90 truncate">{subtitle}</p>}
             </div>
-            <button
+            <Button
               ref={closeRef}
+              variant="ghost"
+              size="icon"
               type="button"
               onClick={onClose}
               aria-label="Tutup riwayat"
-              className="shrink-0 rounded-lg p-2 text-emerald-50 hover:bg-white/15 hover:text-white transition"
+              className="shrink-0 rounded-lg text-emerald-50 hover:bg-white/15 hover:text-white"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </Button>
           </div>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-5 py-4">

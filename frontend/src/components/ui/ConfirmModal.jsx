@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Button } from './Button.jsx';
 
 // Modal konfirmasi generik (struktur/styling mengikuti DeleteConfirmModal
 // yang dipakai Finance). Props:
@@ -111,25 +112,29 @@ export default function ConfirmModal({
             </div>
           )}
           <div className="mt-4 flex items-center justify-end gap-2">
-            <button
+            <Button
               ref={batalRef}
+              variant="ghost"
+              size="sm"
               type="button"
               onClick={onCancel}
               disabled={loading}
-              className="min-h-[44px] inline-flex items-center rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-[12px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50"
+              className="border border-slate-200 dark:border-slate-700"
             >
               {cancelLabel}
-            </button>
-            <button
+            </Button>
+            <Button
               ref={confirmRef}
+              variant={bahaya ? 'destructive' : 'primary'}
+              size="sm"
               type="button"
               onClick={onConfirm}
-              disabled={loading || !ketikanCocok}
+              loading={loading}
+              disabled={!ketikanCocok}
               title={butuhKetik && !ketikanCocok ? `Ketik ${requireTypedConfirmation} dulu` : undefined}
-              className={`min-h-[44px] inline-flex items-center rounded-xl px-4 py-2 text-[12px] font-extrabold text-white shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed ${bahaya ? 'bg-gradient-to-r from-rose-600 to-red-500 shadow-rose-600/25 hover:from-rose-500 hover:to-red-400' : 'bg-brand-600 shadow-brand-600/25 hover:bg-brand-700'}`}
             >
               {loading ? 'Memproses…' : confirmLabel}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

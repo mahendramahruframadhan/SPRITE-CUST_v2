@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { moduleTone } from '../utils/tones.js';
+import { Button } from './ui/Button.jsx';
 
 // Popup detail kasus bersama (dipakai Billing & Finance Audit & Dashboard).
 // c: data kasus | chips: [{ text, className }] | rows: [[label, value]] flat
@@ -48,17 +49,19 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
                 </div>
               )}
             </div>
-            <button
+            <Button
               ref={closeRef}
+              variant="ghost"
+              size="icon"
               type="button"
               onClick={onClose}
               aria-label="Tutup detail kasus"
-              className="shrink-0 rounded-lg p-2 text-brand-100 hover:bg-white/15 hover:text-white transition"
+              className="shrink-0 rounded-lg text-brand-100 hover:bg-white/15 hover:text-white"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </Button>
           </div>
         </div>
         {/* Isi */}

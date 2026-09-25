@@ -7,6 +7,7 @@
 // Props: id, value (yyyy-MM-dd), onChange(iso), placeholder.
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Button } from './ui/Button.jsx';
 import { fmtDateLong, parseDateInput } from '../utils/contract.js';
 import { usePopover } from '../hooks/usePopover.js';
 
@@ -91,17 +92,19 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
           autoComplete="off"
           className="min-h-[44px] w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition"
         />
-        <button
+        <Button
+          variant="secondary"
+          size="icon"
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-label="Pilih tanggal dari kalender"
-          className="w-11 shrink-0 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-300 hover:border-brand-300 dark:hover:border-brand-500/40 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+          className="shrink-0 bg-white dark:bg-slate-800 hover:text-brand-600 dark:hover:text-brand-300 hover:border-brand-300 dark:hover:border-brand-500/40"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
           </svg>
-        </button>
+        </Button>
       </div>
 
       {open &&
@@ -113,29 +116,31 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
             className={`fixed z-[70] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-3 animate-fade-in-fast ${pos.up ? 'origin-bottom' : 'origin-top'}`}
           >
             <div className="flex items-center justify-between mb-2">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 type="button"
                 onClick={() => shiftMonth(-1)}
                 aria-label="Bulan sebelumnya"
-                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                 </svg>
-              </button>
+              </Button>
               <p className="text-sm font-bold text-slate-800 dark:text-slate-100" aria-live="polite">
                 {MONTH_LONG[month.getMonth()]} {month.getFullYear()}
               </p>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 type="button"
                 onClick={() => shiftMonth(1)}
                 aria-label="Bulan berikutnya"
-                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                 </svg>
-              </button>
+              </Button>
             </div>
             <div className="grid grid-cols-7 gap-0.5" role="grid" aria-label="Pilih tanggal">
               {DAY_HEAD.map((d) => (
