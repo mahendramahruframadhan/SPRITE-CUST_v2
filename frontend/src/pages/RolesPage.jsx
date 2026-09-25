@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
+import { Button } from '../components/ui/Button.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { DEFAULT_PERMS } from '../hooks/usePermissions.js';
 import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog, getConfig, putConfig, chatAi } from '../lib/api.js';
@@ -745,12 +746,12 @@ export default function RolesPage({ bare = false }) {
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
-                <button onClick={saveAiForm} className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2.5 min-h-[44px] rounded-lg shadow-md shadow-brand-600/25 transition">
+                <Button varian="primer" onClick={saveAiForm}>
                   Simpan
-                </button>
-                <button onClick={() => { setShowAiForm(false); setAiKeyInput(''); }} className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-4 py-2 min-h-[44px] rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                </Button>
+                <Button varian="teks" onClick={() => { setShowAiForm(false); setAiKeyInput(''); }}>
                   Batal
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -863,16 +864,12 @@ export default function RolesPage({ bare = false }) {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
-              <button onClick={() => setModal(null)} className="text-sm font-semibold text-slate-500 dark:text-slate-400 px-4 py-2 min-h-[44px] rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <Button varian="teks" onClick={() => setModal(null)}>
                 Batal
-              </button>
-              <button
-                onClick={saveUser}
-                disabled={saving}
-                className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2 min-h-[44px] rounded-lg shadow-md shadow-brand-600/25 transition disabled:opacity-60"
-              >
+              </Button>
+              <Button varian="primer" onClick={saveUser} disabled={saving}>
                 {saving ? 'Menyimpan…' : 'Simpan'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
