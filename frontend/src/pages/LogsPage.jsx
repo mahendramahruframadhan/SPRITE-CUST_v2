@@ -166,6 +166,7 @@ export default function LogsPage({ bare = false }) {
       <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 py-3 flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mr-1">Kategori:</span>
         {CATS.map((c) => (
+          /* eslint-disable-next-line react/forbid-elements -- pil kategori segmented kustom */
           <button
             key={c}
             onClick={() => setCat(c)}

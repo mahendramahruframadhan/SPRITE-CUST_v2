@@ -270,6 +270,7 @@ export default function AiChat() {
 
           <div className="px-3 pt-2 flex flex-wrap gap-1.5">
             {SUGGESTIONS.map((s) => (
+              /* eslint-disable-next-line react/forbid-elements -- pil saran kustom (batas visual) */
               <button key={s} onClick={() => send(s)} className="text-[11px] font-semibold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-100 dark:border-brand-500/20 rounded-full px-2.5 py-1 transition">
                 {s}
               </button>
@@ -298,6 +299,7 @@ export default function AiChat() {
         </div>
       )}
 
+      {/* eslint-disable-next-line react/forbid-elements -- FAB bulat gradien kustom (pengecualian tercatat) */}
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? 'Tutup asisten AI' : 'Buka asisten AI'}

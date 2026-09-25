@@ -39,14 +39,15 @@ function ExpandableText({ text }) {
         {value}
       </p>
       {value.length > 120 && (
-        <button
+        <Button
+          variant="link"
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="mt-1 text-[11px] font-bold text-brand-600 hover:text-brand-700 hover:underline"
+          className="mt-1 h-auto text-[11px] font-bold hover:underline"
         >
           {open ? 'Tutup' : 'Selengkapnya'}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -399,6 +400,7 @@ export default function BillingPage() {
             </p>
           </div>
           <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
+            {/* eslint-disable-next-line react/forbid-elements -- tombol hero bertema per kategori (pengecualian tercatat) */}
             <button
               onClick={() => setMasterOpen(true)}
               className={`inline-flex items-center justify-center gap-2 bg-white ${heroTheme.btnText} ${heroTheme.btnHover} text-sm font-extrabold px-4 py-3 min-h-[44px] rounded-2xl shadow-lg transition-colors duration-500 motion-reduce:transition-none active:scale-[.98]`}
@@ -408,6 +410,7 @@ export default function BillingPage() {
               </svg>
               Master Status Validasi
             </button>
+            {/* eslint-disable-next-line react/forbid-elements -- tombol hero bertema per kategori (pengecualian tercatat) */}
             <button
               onClick={exportData}
               className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98]"
@@ -485,6 +488,7 @@ export default function BillingPage() {
             const meta = CAT_META[c];
             const s = catStats[c] || { count: 0, amount: 0 };
             return (
+              /* eslint-disable-next-line react/forbid-elements -- kartu kategori gradien kustom */
               <button
                 key={c}
                 onClick={() => setCat(c)}
@@ -524,14 +528,15 @@ export default function BillingPage() {
               <FilterLabel>Bulan</FilterLabel>
               <div className="flex items-center gap-2">
                 <input type="month" value={month} onChange={(e) => applyMonth(e.target.value)} className={filterCls} />
-                <button
+                <Button
+                  variant="secondary"
                   type="button"
                   onClick={() => applyMonth(monthKey())}
                   title="Kembali ke bulan berjalan"
-                  className="text-[13px] font-bold text-brand-600 dark:text-brand-300 hover:text-brand-700 border border-slate-200 dark:border-slate-700 hover:border-brand-300 px-4 py-2.5 min-h-[44px] rounded-xl transition whitespace-nowrap"
+                  className="text-[13px] text-brand-600 dark:text-brand-300 hover:text-brand-700 hover:border-brand-300 whitespace-nowrap"
                 >
                   Bulan ini
-                </button>
+                </Button>
               </div>
             </div>
             <div>
@@ -548,12 +553,13 @@ export default function BillingPage() {
                 <BrandCombobox id="bil-brand" value={brand} onChange={(v) => setFilter('brand', v)} options={brands} placeholder="Cari brand…" accent="amber" />
               </div>
             </div>
-            <button
+            <Button
+              variant="secondary"
               onClick={() => resetFilterValues()}
-              className="text-[13px] font-bold text-slate-500 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2.5 min-h-[44px] rounded-xl transition"
+              className="text-[13px] hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10"
             >
               Reset
-            </button>
+            </Button>
             <div className="ml-auto text-xs text-slate-500 dark:text-slate-400">
               Periode:{' '}
               <span className="font-semibold text-slate-600 dark:text-slate-300">
@@ -623,6 +629,7 @@ export default function BillingPage() {
                   <td className="px-4 py-3.5">
                     <div className="min-w-[220px] max-w-[320px]">
                         <p className={`text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2${detailUuid === c.recordUuid ? ' case-title-vt' : ''}`}>{c.issue || '-'}</p>
+                      {/* eslint-disable-next-line react/forbid-elements -- kontrol mikro per baris tabel */}
                       <button
                         type="button"
                         onClick={() => openDetail(c.recordUuid)}
@@ -663,6 +670,7 @@ export default function BillingPage() {
                               >
                                 {current}
                               </span>
+                              {/* eslint-disable-next-line react/forbid-elements -- kontrol mikro per baris tabel */}
                               <button
                                 type="button"
                                 onClick={() => handleAudit(c.recordUuid, next)}
@@ -801,6 +809,7 @@ export default function BillingPage() {
                             onChange={(e) => setEditValue(e.target.value)}
                             className="flex-1 min-w-0 text-sm font-bold border-2 border-amber-300 dark:border-amber-500/40 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 uppercase"
                           />
+                          {/* eslint-disable-next-line react/forbid-elements -- tombol simpan amber kustom di baris edit */}
                           <button
                             type="submit"
                             disabled={editBusy}
@@ -828,6 +837,7 @@ export default function BillingPage() {
                             </span>
                           </span>
                           <span className="flex items-center gap-1 shrink-0">
+                            {/* eslint-disable-next-line react/forbid-elements -- kontrol mikro per baris */}
                             <button
                               onClick={() => { setEditingAction(a); setEditValue(a); setEditErr(''); }}
                               title={`Ubah nama "${a}"`}
@@ -836,6 +846,7 @@ export default function BillingPage() {
                               Edit
                             </button>
                             {DEFAULT_ACTIONS.includes(a) ? null : (
+                              /* eslint-disable-next-line react/forbid-elements -- kontrol mikro per baris */
                               <button
                                 onClick={() => hapusStatusAction(a)}
                                 className="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2 py-1 rounded transition"

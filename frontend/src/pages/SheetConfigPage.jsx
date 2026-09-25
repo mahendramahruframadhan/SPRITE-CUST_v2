@@ -194,6 +194,7 @@ export default function SheetConfigPage() {
             </p>
           </div>
           <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
+            {/* eslint-disable-next-line react/forbid-elements -- tombol hero bertema violet di atas gradien */}
             <button
               onClick={exportJSON}
               className="inline-flex items-center justify-center gap-2 bg-white text-violet-700 text-sm font-extrabold px-4 py-3 min-h-[44px] rounded-2xl shadow-lg hover:bg-violet-50 transition active:scale-[.98]"
@@ -203,6 +204,7 @@ export default function SheetConfigPage() {
               </svg>
               Export JSON (Backend)
             </button>
+            {/* eslint-disable-next-line react/forbid-elements -- tombol hero di atas gradien */}
             <button
               onClick={() => resetConfig()}
               className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98]"
@@ -220,6 +222,7 @@ export default function SheetConfigPage() {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm p-2 animate-fade-in-fast">
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin" role="tablist" aria-label="Kategori konfigurasi">
           {TABS.map((t) => (
+            /* eslint-disable-next-line react/forbid-elements -- pil tab segmented violet kustom */
             <button
               key={t.id}
               role="tab"
@@ -352,6 +355,7 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
         {arr.map((v, i) => (
           <span key={`${v}-${i}`} className={`group inline-flex items-center gap-1.5 text-[11px] font-semibold border rounded-full pl-3 pr-1.5 py-1 ${badge}`}>
             {v}
+            {/* eslint-disable-next-line react/forbid-elements -- tombol × mikro dalam chip */}
             <button
               type="button"
               title="Hapus"
@@ -404,6 +408,7 @@ function TabPricelist({ cfg, patch }) {
                 <h3 className="font-extrabold text-sm tracking-tight">{v}</h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{rows.length} billing category</p>
               </div>
+              {/* eslint-disable-next-line react/forbid-elements -- tombol gelap di header tabel gelap */}
               <button onClick={() => setAddingVersion(v)} className="text-xs font-bold bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 min-h-[44px] transition">
                 + Tambah Baris
               </button>
@@ -458,6 +463,7 @@ function TabPricelist({ cfg, patch }) {
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-center">
+                      {/* eslint-disable-next-line react/forbid-elements -- kontrol mikro per baris tabel */}
                       <button
                         onClick={async () => {
                           const ok = await confirm({
@@ -519,6 +525,7 @@ function TabBcMap({ cfg, patch }) {
           <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">Mapping BILLING CATEGORY → SUPPORT TYPE</h3>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">Sesuai 2 kolom pertama di sheet — menentukan tipe support otomatis dari kategori billing</p>
         </div>
+        {/* eslint-disable-next-line react/forbid-elements -- tombol sekunder kecil kustom (brand-50) */}
         <button onClick={() => setAddingBc(true)} className="text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl px-3 py-2 min-h-[44px] transition">
           + Tambah Mapping
         </button>
@@ -552,6 +559,7 @@ function TabBcMap({ cfg, patch }) {
                 </select>
               </td>
               <td className="px-4 py-2.5 text-center">
+                {/* eslint-disable-next-line react/forbid-elements -- kontrol mikro per baris tabel */}
                 <button
                   onClick={async () => {
                     const ok = await confirm({
@@ -646,9 +654,9 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
             <Button variant="ghost" type="button" onClick={onClose}>
               Batal
             </Button>
-            <button type="submit" className="text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 px-5 py-2.5 min-h-[44px] rounded-xl transition">
+            <Button variant="primary" type="submit" className="bg-violet-600 hover:bg-violet-700">
               {submitLabel}
-            </button>
+            </Button>
           </div>
         </div>
       </form>
@@ -796,6 +804,7 @@ function TabAi({ agents, onToggle }) {
       </div>
       {agents.map((a) => (
         <div key={a.id} className="card p-5 flex items-center gap-4">
+          {/* eslint-disable-next-line react/forbid-elements -- toggle switch (role=switch) */}
           <button
             onClick={() => onToggle(a.id)}
             title={a.enabled ? 'Nonaktifkan' : 'Aktifkan'}

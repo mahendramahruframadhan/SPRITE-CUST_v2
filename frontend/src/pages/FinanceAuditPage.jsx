@@ -23,6 +23,13 @@ import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
 import InvoiceHistoryModal from '../components/InvoiceHistoryModal.jsx';
 
+/* eslint-disable react/forbid-elements --
+   Halaman ini penuh kontrol mikro kustom per baris tabel: tombol ikon PDF
+   (lihat/unduh/hapus/riwayat) dan badge status invoice yang berubah bentuk
+   per status (gradien emerald / tone invoice). Varian Button tak mencakupnya
+   tanpa override warna besar, jadi sengaja tetap mentah (pengecualian
+   tercatat Task 2, konvensi repo). */
+
 const VALID_TAG = 'VALID - SIAP INVOICE';
 
 const MAX_PDF_MB = 10;

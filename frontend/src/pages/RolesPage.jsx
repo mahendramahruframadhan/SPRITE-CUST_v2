@@ -455,6 +455,7 @@ export default function RolesPage({ bare = false }) {
           { id: 'ai', label: 'AI & API Key' },
           { id: 'log', label: 'Log Aktivitas' },
         ].map((t) => (
+          /* eslint-disable-next-line react/forbid-elements -- pil tab segmented kustom */
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
@@ -526,6 +527,7 @@ export default function RolesPage({ bare = false }) {
                     <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">{u.lastLogin}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
+                        {/* eslint-disable-next-line react/forbid-elements -- toggle switch (role=switch) */}
                         <button
                           onClick={() => toggleUser(u.id)}
                           role="switch"
@@ -677,6 +679,7 @@ export default function RolesPage({ bare = false }) {
           {conns.map((c) => (
             <div key={c.id} className={`bg-white dark:bg-slate-900 rounded-2xl border p-4 sm:p-5 ${c.active ? 'border-emerald-300 dark:border-emerald-500/40 ring-1 ring-emerald-200 dark:ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800'}`}>
               <div className="flex items-center gap-3 flex-wrap">
+                {/* eslint-disable-next-line react/forbid-elements -- toggle switch (role=switch) */}
                 <button
                   onClick={() => activateConn(c.id)}
                   role="switch"
@@ -875,6 +878,7 @@ export default function RolesPage({ bare = false }) {
                 </div>
               )}
               <div className="flex items-center gap-2">
+                {/* eslint-disable-next-line react/forbid-elements -- toggle switch (role=switch) */}
                 <button
                   onClick={() => setModal({ ...modal, active: !modal.active })}
                   role="switch"

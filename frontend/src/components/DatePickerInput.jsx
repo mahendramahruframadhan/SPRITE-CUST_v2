@@ -152,6 +152,7 @@ export default function DatePickerInput({ id, value, onChange, placeholder = 'ct
                 day === null ? (
                   <span key={`b-${i}`} />
                 ) : (
+                  /* eslint-disable-next-line react/forbid-elements -- sel tanggal grid kalender (bukan tombol aksi) */
                   <button
                     key={day}
                     type="button"

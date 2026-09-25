@@ -149,6 +149,7 @@ function IsiSidebar({ ciut, saatNavigasi = () => {}, pengguna, keluar, bisa, sak
                 </NavLink>
               )}
             </div>
+            {/* eslint-disable-next-line react/forbid-elements -- tombol logout rose kustom (pengecualian tercatat Task 2) */}
             <button
               onClick={keluar}
               className="w-full min-h-[44px] flex items-center justify-center gap-2 text-sm font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 px-4 py-2 rounded-lg transition"
@@ -165,6 +166,7 @@ function IsiSidebar({ ciut, saatNavigasi = () => {}, pengguna, keluar, bisa, sak
             >
               {inisial}
             </div>
+            {/* eslint-disable-next-line react/forbid-elements -- tombol logout rose kustom (pengecualian tercatat Task 2) */}
             <button
               onClick={keluar}
               title="Logout"

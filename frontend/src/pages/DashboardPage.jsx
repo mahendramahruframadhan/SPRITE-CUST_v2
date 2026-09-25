@@ -771,6 +771,7 @@ export default function DashboardPage() {
                     <td className="px-3 py-3.5">
                       <div className="min-w-[220px] max-w-[320px]">
                         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2" title={c.issue}>{c.issue || '-'}</p>
+                        {/* eslint-disable-next-line react/forbid-elements -- kontrol mikro per baris tabel */}
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setDetailUuid(c.recordUuid); }}
@@ -820,6 +821,7 @@ export default function DashboardPage() {
             const bs = (c.billingStatus || '').trim() || '-';
             const inisial = String(c.assignTo || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
             return (
+              /* eslint-disable-next-line react/forbid-elements -- kartu drill-in utuh (bukan tombol aksi) */
               <button
                 key={c.recordUuid}
                 type="button"

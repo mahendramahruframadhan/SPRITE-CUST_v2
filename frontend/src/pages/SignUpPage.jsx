@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
+import { Button } from '../components/ui/Button.jsx';
 import {
   normalizeEmail,
   passwordScore,
@@ -232,13 +233,14 @@ export default function SignUpPage() {
                   <ul className="mt-1 space-y-0.5">
                     {errorList.map((e) => (
                       <li key={e.field}>
-                        <button
+                        <Button
+                          variant="link"
                           type="button"
                           onClick={() => document.getElementById(`reg-${e.field}`)?.focus()}
-                          className="text-xs text-rose-600 hover:underline"
+                          className="h-auto text-xs"
                         >
                           {e.message}
-                        </button>
+                        </Button>
                       </li>
                     ))}
                   </ul>
@@ -305,6 +307,7 @@ export default function SignUpPage() {
                         aria-describedby="reg-password-hint reg-password-strength"
                         className={`${inputCls(errors.password)} pr-12`}
                       />
+                      {/* eslint-disable-next-line react/forbid-elements -- toggle mata kontrol mikro di dalam input */}
                       <button
                         type="button"
                         onClick={() => setShowPw((v) => !v)}
@@ -347,6 +350,7 @@ export default function SignUpPage() {
                         aria-describedby={errors.confirm ? 'reg-confirm-error' : undefined}
                         className={`${inputCls(errors.confirm)} pr-12`}
                       />
+                      {/* eslint-disable-next-line react/forbid-elements -- toggle mata kontrol mikro di dalam input */}
                       <button
                         type="button"
                         onClick={() => setShowConfirm((v) => !v)}
@@ -395,31 +399,34 @@ export default function SignUpPage() {
 
               <div className="flex items-center gap-3 mt-7">
                 {step > 0 && (
-                  <button
+                  <Button
+                    variant="secondary"
                     type="button"
                     onClick={back}
                     disabled={saving}
-                    className="px-5 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition disabled:opacity-60 min-h-[44px]"
+                    className="px-5"
                   >
                     Kembali
-                  </button>
+                  </Button>
                 )}
                 {step < STEPS.length - 1 ? (
-                  <button
+                  <Button
+                    variant="primary"
                     type="button"
                     onClick={next}
-                    className="flex-1 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold py-3 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95 min-h-[44px]"
+                    className="flex-1 active:scale-95"
                   >
                     Lanjut
-                  </button>
+                  </Button>
                 ) : (
-                  <button
+                  <Button
+                    variant="primary"
                     type="submit"
                     disabled={saving}
-                    className="flex-1 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold py-3 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95 disabled:opacity-60 min-h-[44px]"
+                    className="flex-1 active:scale-95"
                   >
                     {saving ? 'Mendaftarkan…' : firstRun ? 'Buat Super Admin' : 'Daftar'}
-                  </button>
+                  </Button>
                 )}
               </div>
             </form>

@@ -11,7 +11,7 @@ import {
   getBrandStatuses,
   patchBrandStatus,
 } from '../lib/api.js';
-import { expiryState } from '../utils/contract.js';
+import { expiryState, normalizeBrand } from '../utils/contract.js';
 import { getJSON, set as storageSet } from '../lib/storage.js';
 
 const STATUS_KEY = 'sprite.brandStatus.v1';

@@ -244,6 +244,7 @@ export default function DataKasusPage() {
                     </td>
                     <td className="px-4 py-3.5 text-right font-medium text-slate-700 dark:text-slate-200 tabular-nums">{fmtMoney(c.charges)}</td>
                     <td className="px-6 py-3.5 text-center">
+                      {/* eslint-disable-next-line react/forbid-elements -- kontrol mikro per baris tabel */}
                       <button
                         onClick={() => setDetail(c)}
                         className="inline-flex items-center text-xs font-semibold text-brand-600 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-3 py-1.5 min-h-[44px] rounded-lg transition"
@@ -267,6 +268,7 @@ export default function DataKasusPage() {
           {pageItems.map((c) => {
             const s = statusMeta(c.status);
             return (
+              /* eslint-disable-next-line react/forbid-elements -- kartu drill-in utuh (bukan tombol aksi) */
               <button
                 key={c.recordUuid}
                 type="button"

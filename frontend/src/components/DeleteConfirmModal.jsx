@@ -77,14 +77,16 @@ export default function DeleteConfirmModal({ file, busy = false, onCancel, onCon
             >
               Batal
             </Button>
-            <button
+            <Button
+              variant="destructive"
+              size="sm"
               type="button"
               onClick={onConfirm}
               disabled={busy}
-              className="rounded-xl bg-gradient-to-r from-rose-600 to-red-500 px-4 py-2 text-[12px] font-extrabold text-white shadow-sm shadow-rose-600/25 hover:from-rose-500 hover:to-red-400 hover:shadow-md transition disabled:opacity-60 disabled:cursor-wait"
+              className="bg-gradient-to-r from-rose-600 to-red-500 shadow-rose-600/25 hover:from-rose-500 hover:to-red-400"
             >
               {busy ? 'Menghapus…' : 'Ya, Hapus'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

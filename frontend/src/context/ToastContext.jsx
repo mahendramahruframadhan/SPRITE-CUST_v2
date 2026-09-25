@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { Button } from '../components/ui/Button.jsx';
 
 const ToastContext = createContext(null);
 let toastSeq = 0;
@@ -72,15 +73,17 @@ export function ToastProvider({ children }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d={s.path} />
               </svg>
               <p className="flex-1 min-w-0 text-[13px] font-semibold text-slate-700 dark:text-slate-200 leading-snug">{t.message}</p>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => dismiss(t.id)}
                 aria-label="Tutup notifikasi"
-                className="shrink-0 p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition"
+                className="shrink-0 rounded-lg"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </Button>
             </div>
           );
         })}

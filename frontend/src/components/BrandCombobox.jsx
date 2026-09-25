@@ -135,6 +135,7 @@ export default function BrandCombobox({ id, value, onChange, options = [], place
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
           {text && (
+            /* eslint-disable-next-line react/forbid-elements -- kontrol mikro 28px di dalam input */
             <button
               type="button"
               onClick={clear}
@@ -147,6 +148,7 @@ export default function BrandCombobox({ id, value, onChange, options = [], place
               </svg>
             </button>
           )}
+          {/* eslint-disable-next-line react/forbid-elements -- kontrol mikro 28px di dalam input */}
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
@@ -180,6 +182,7 @@ export default function BrandCombobox({ id, value, onChange, options = [], place
                 const isAct = i === actIdx && !isSel;
                 return (
                   <li key={o.value === '' ? '__all' : o.value} id={`${id}-opt-${i}`} role="option" aria-selected={isSel}>
+                    {/* eslint-disable-next-line react/forbid-elements -- baris opsi listbox (bukan tombol aksi) */}
                     <button
                       type="button"
                       onClick={() => pick(o.value)}
