@@ -43,7 +43,6 @@ const PROJECT_KB = `STACK: Frontend React 18 + Vite 5 + Tailwind (port 5173, pro
 HALAMAN: /login, /signup, /dashboard, /kasus (data+filter+CSV), /mockup, /form (POST /api/cases), /hrreport, /cfg (GET/PUT /api/config + toggle AI), /billing (PATCH audit), /finance (PATCH invoice), /roles (CRUD user, matriks izin, log).
 ROLE: Super Admin (semua akses, dikunci) | Admin CS | Support | Finance | Viewer. Matriks di tabel role_permissions, diatur di /roles.
 TABEL DB: assistance_records (2034 seed), user/account/session/verification, audit_status, invoice_status, sync_logs, app_config (sheetConfig, agentConfig, aiConfig), role_permissions, activity_logs.
-AKUN: rani/budi/sari/finance/vina/admin @revota.id (password awal password123, admin & finance 12345).
 MODE: SHEETS_MOCK=true (tanpa Google API); sync manual POST /api/sync/trigger.`;
 
 // Proxy chat ke AI eksternal (OpenAI-compatible). Key hanya di server (DB app_config

@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { getDb, getMemDb } from './drizzle.service';
+import { hashPassword } from '../auth/password';
 import { esc } from './sql';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
@@ -129,7 +130,7 @@ export async function initDb() {
   try {
     const res: any = await db.execute(`SELECT COUNT(*) as c FROM "user"` as any);
     const c = Number(res.rows?.[0]?.c ?? res[0]?.c ?? 0);
-    if (freshInstall && c === 0) {
+    if (freshInstall && c === 0 && String(process.env.NODE_ENV || '').toLowerCase() !== 'production') {
       const now = new Date().toISOString();
       const users = [
         ['u_admin', 'Admin Utama', 'admin@revota.id', 'Super Admin', '12345'],
@@ -141,9 +142,9 @@ export async function initDb() {
       ];
       for (const [id, name, email, role, pwd] of users) {
         await db.execute(`INSERT INTO "user" (id,name,email,email_verified,role,active,created_at,updated_at) VALUES ('${id}','${name}','${email}',1,'${role}',1,'${now}','${now}') ON CONFLICT (id) DO NOTHING` as any);
-        // also create account entry with password hash placeholder — real sign-up will overwrite
         const accId = `acc_${id}`;
-        await db.execute(`INSERT INTO account (id,account_id,provider_id,user_id,password,created_at,updated_at) VALUES ('${accId}','${email}','credential','${id}','${pwd}','${now}','${now}') ON CONFLICT (id) DO NOTHING` as any);
+        const password = await hashPassword(pwd);
+        await db.execute(`INSERT INTO account (id,account_id,provider_id,user_id,password,created_at,updated_at) VALUES ('${accId}','${email}','credential','${id}','${password}','${now}','${now}') ON CONFLICT (id) DO NOTHING` as any);
       }
       console.log(`[db] seeded 6 users`);
     }
@@ -170,8 +171,10 @@ export async function initDb() {
       'finance@revota.id': 'Finance',
       'vina@revota.id': 'Viewer',
     };
-    for (const [email, role] of Object.entries(roleSeed)) {
-      await q(`UPDATE "user" SET role='${role}' WHERE email='${email}' AND role='Viewer'`);
+    if (String(process.env.NODE_ENV || '').toLowerCase() !== 'production') {
+      for (const [email, role] of Object.entries(roleSeed)) {
+        await q(`UPDATE "user" SET role='${role}' WHERE email='${email}' AND role='Viewer'`);
+      }
     }
     await q(`UPDATE "user" SET active=1 WHERE active IS NULL`);
     // Migrasi ringan: kolom baru activity_logs untuk DB lama (aman bila sudah ada)

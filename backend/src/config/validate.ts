@@ -10,6 +10,11 @@ const log = new Logger('Config');
 
 export function validateConfig(): void {
   const e = process.env;
+  const production = String(e.NODE_ENV || '').toLowerCase() === 'production';
+
+  if (production && String(e.SETUP_TOKEN || '').length < 32) {
+    throw new Error('SETUP_TOKEN production minimal 32 karakter. Isi backend/.env sebelum boot.');
+  }
 
   // --- Fatal: PORT tidak valid (backend tidak bisa listen di mana pun) ---
   const port = Number(e.PORT || 5005);

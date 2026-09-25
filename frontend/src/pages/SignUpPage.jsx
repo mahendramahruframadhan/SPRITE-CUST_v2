@@ -37,9 +37,9 @@ const inputCls = (invalid) =>
 
 export default function SignUpPage() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState({ loading: true, firstRun: false, source: '' });
+  const [status, setStatus] = useState({ loading: true, firstRun: false, setupTokenRequired: false, source: '' });
   const [step, setStep] = useState(0);
-  const [values, setValues] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [values, setValues] = useState({ name: '', email: '', password: '', confirm: '', setupToken: '' });
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -51,7 +51,7 @@ export default function SignUpPage() {
   useEffect(() => {
     let alive = true;
     getSetupStatus().then((s) => {
-      if (alive) setStatus({ loading: false, firstRun: s.firstRun, source: s.source });
+      if (alive) setStatus({ loading: false, firstRun: s.firstRun, setupTokenRequired: Boolean(s.setupTokenRequired), source: s.source });
     });
     return () => {
       alive = false;
@@ -100,12 +100,18 @@ export default function SignUpPage() {
       return;
     }
     setSubmitError('');
+    if (firstRun && status.setupTokenRequired && !values.setupToken.trim()) {
+      setSubmitError('Masukkan setup token untuk membuat akun Super Admin pertama.');
+      document.getElementById('reg-setup-token')?.focus();
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
         name: values.name.trim(),
         email: normalizeEmail(values.email),
         password: values.password,
+        setupToken: values.setupToken.trim(),
       };
       const r = firstRun
         ? await registerFirstAccount(payload)
@@ -271,6 +277,21 @@ export default function SignUpPage() {
                       ? <p id="reg-email-error" className="text-xs text-rose-600 mt-1">{errors.email}</p>
                       : <p id="reg-email-hint" className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Dipakai untuk login dan header identitas <code className="font-mono">x-user-email</code> ke backend.</p>}
                   </div>
+                  {firstRun && status.setupTokenRequired && (
+                    <div>
+                      <label htmlFor="reg-setup-token" className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Setup token</label>
+                      <input
+                        id="reg-setup-token"
+                        name="setup-token"
+                        type="password"
+                        autoComplete="one-time-code"
+                        placeholder="Token bootstrap production"
+                        value={values.setupToken}
+                        onChange={(e) => set('setupToken', e.target.value)}
+                        className={inputCls(false)}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

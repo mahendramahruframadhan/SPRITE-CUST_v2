@@ -4,6 +4,7 @@ import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { setupTables, seedUser, db } from './helpers/pgmem.ts';
 import { createSession, destroySession, resolveSessionUser, SESSION_TTL_MS } from '../src/auth/session.ts';
+import { hashPassword, isLegacyPassword, verifyPassword } from '../src/auth/password.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
 import { PermGuard } from '../src/auth/perm.guard.ts';
 
@@ -70,6 +71,14 @@ describe('auth session (P1-3)', () => {
     assert.notEqual(a.token, b.token);
     assert.equal(await resolveSessionUser(db(), reqWith(a.token)), null);
     assert.ok(await resolveSessionUser(db(), reqWith(b.token)));
+  });
+
+  it('password hash dapat diverifikasi dan legacy plaintext terdeteksi', async () => {
+    const stored = await hashPassword('rahasia-123');
+    assert.equal(isLegacyPassword(stored), false);
+    assert.equal(await verifyPassword('rahasia-123', stored), true);
+    assert.equal(await verifyPassword('salah', stored), false);
+    assert.equal(await verifyPassword('rahasia-123', 'rahasia-123'), false);
   });
 
   it('SESSION_TTL_MS = 7 hari', () => {

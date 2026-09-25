@@ -91,6 +91,8 @@ Postgres asli, selain itu → `pg-mem`.
 | Key | Nilai default | Ket |
 |-----|---------------|-----|
 | `PORT` | `5005` | Nest listen |
+| `NODE_ENV` | `development` | Set `production` untuk validasi konfigurasi ketat |
+| `SETUP_TOKEN` | kosong | Wajib minimal 32 karakter saat `NODE_ENV=production`; dikirim via header `x-setup-token` |
 | `DATABASE_URL` | *(kosong = pg-mem)* | Isi `postgresql://postgres:postgres@localhost:5433/sprite_cust` untuk MODE B |
 | `BETTER_AUTH_SECRET` | dev-secret | Ganti 32 char random di prod |
 | `BETTER_AUTH_URL` | `http://localhost:5005` | Base URL auth |
@@ -151,9 +153,10 @@ POST /api/auth/sign-up/email {email, password, name, role?}
        Role awal Viewer; body.role hanya dihormati bila peminta (header
        x-user-email) adalah Super Admin — dipakai form tambah pengguna /roles.
        Daftar HANYA menyimpan ke DB; frontend mengarahkan ke /login (tanpa auto-login).
-GET  /api/setup/status → {firstRun, userCount} (Cache-Control: no-store, publik)
+GET  /api/setup/status → {firstRun, userCount, setupTokenRequired} (Cache-Control: no-store, publik)
 POST /api/setup/first-admin {name, email, password}
        → 201 {user Super Admin} — HANYA saat DB kosong, role dikunci server.
+       Production wajib header `x-setup-token` dengan nilai `SETUP_TOKEN`.
        409 ALREADY_INITIALIZED bila sudah ada user · 409 EMAIL_TAKEN ·
        400 VALIDATION_ERROR · throttle 10 req/menit/IP.
 POST /api/auth/sign-in/email {email, password} → {user} atau {error}
@@ -179,6 +182,7 @@ PATCH /api/brand-status/:id {brand?, type?, expiredAt?, ...} · DELETE /api/bran
 User seed: `admin@revota.id` (`12345`, Super Admin), `rani@revota.id`,
 `budi.cs@revota.id`, `sari@revota.id`, `finance@revota.id`,
 `vina@revota.id` (password awal `password123`). Password min. 5 karakter.
+Password lama yang masih plaintext tidak dapat login dan wajib di-reset oleh Super Admin melalui endpoint user.
 
 ## Hak akses (PermGuard)
 
@@ -289,6 +293,7 @@ provider = ganti env + CORS, **tanpa ubah kode**. Prosedur (prompt sakti):
 
 1. Siapkan Postgres + database (contoh lokal: cluster port `5433`, db `sprite_cust`).
 2. `.env` produksi (jangan commit):
+   `NODE_ENV=production`, `SETUP_TOKEN=<minimal 32 char random>`,
    `DATABASE_URL=postgresql://user:pass@host:5433/sprite_cust`,
    `BETTER_AUTH_SECRET=<32 char random>`, `BETTER_AUTH_URL=<url backend>`,
    `FRONTEND_URL=<url frontend>`, `SHEET_ID`, `SHEET_DATA_TAB`,

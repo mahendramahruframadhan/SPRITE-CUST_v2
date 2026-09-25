@@ -4,6 +4,7 @@
 process.env.DATABASE_URL = '';
 
 import { getDb, getMemDb } from '../../src/db/drizzle.service.ts';
+import { hashPassword } from '../../src/auth/password.ts';
 import { esc } from '../../src/db/sql.ts';
 
 export function db() {
@@ -33,7 +34,7 @@ export async function seedUser(role = 'Super Admin', email = 't@revota.id', pass
     `INSERT INTO "user" (id, name, email, role, active) VALUES ('${esc(id)}','${esc(role)}','${esc(email)}','${esc(role)}',1)` as any,
   );
   await d.execute(
-    `INSERT INTO account (id, account_id, provider_id, user_id, password) VALUES ('acc_${esc(id)}','${esc(email)}','credential','${esc(id)}','${esc(password)}')` as any,
+    `INSERT INTO account (id, account_id, provider_id, user_id, password) VALUES ('acc_${esc(id)}','${esc(email)}','credential','${esc(id)}','${esc(await hashPassword(password))}')` as any,
   );
   return { id, email, password, role };
 }

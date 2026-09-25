@@ -3,6 +3,7 @@ import { getDb } from '../db/drizzle.service';
 import * as crypto from 'crypto';
 import { pickRole, validateRegistration } from './register.validation';
 import { createSession, destroySession, resolveSessionUser } from './session';
+import { hashPassword, isLegacyPassword, verifyPassword } from './password';
 import { esc, rowsOf } from '../db/sql';
 
 // ponytail: local fallback auth (pg-mem) — Better Auth's drizzle pg adapter has timestamp type mismatch with pg-mem, so we provide minimal email/password auth that mimics Better Auth API shape. When DATABASE_URL is real postgres, main.ts mounts real Better Auth handler instead.
@@ -54,12 +55,13 @@ export class AuthController {
 
     const id = `u_${crypto.randomUUID().slice(0, 8)}`;
     const now = new Date().toISOString();
+    const password = await hashPassword(values.password);
     try {
       await this.db.execute(
         `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES ('${esc(id)}', '${esc(values.name)}', '${esc(values.email)}', 1, '${esc(role)}', 1, '${now}', '${now}')` as any,
       );
       await this.db.execute(
-        `INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES ('${esc(`acc_${id}`)}', '${esc(values.email)}', 'credential', '${esc(id)}', '${esc(values.password)}', '${now}', '${now}')` as any,
+        `INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES ('${esc(`acc_${id}`)}', '${esc(values.email)}', 'credential', '${esc(id)}', '${esc(password)}', '${now}', '${now}')` as any,
       );
     } catch (e: any) {
       throw new HttpException(
@@ -76,7 +78,9 @@ export class AuthController {
     const password = String(body.password || '');
     const r: any = await this.db.execute(`SELECT u.id, u.name, u.email, u.role, u.active, a.password FROM "user" u JOIN account a ON a.user_id = u.id WHERE lower(u.email) = '${esc(email)}' LIMIT 1` as any);
     const row = rowsOf(r)[0];
-    if (!row || row.password !== password) return { error: 'invalid credentials' };
+    if (!row) return { error: 'invalid credentials' };
+    if (isLegacyPassword(row.password)) return { error: 'password reset required' };
+    if (!(await verifyPassword(password, row.password))) return { error: 'invalid credentials' };
     if (!Number(row.active ?? 1)) return { error: 'akun dinonaktifkan' };
     // Token sesi server-side (disimpan di tabel session, kedaluwarsa 7 hari).
     // Frontend wajib mengirimnya via header x-auth-token di setiap request tulis.

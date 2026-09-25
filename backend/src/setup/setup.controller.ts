@@ -4,10 +4,11 @@ import * as crypto from 'crypto';
 import { getDb } from '../db/drizzle.service';
 import { logActivity } from '../logs/activity';
 import { validateRegistration } from '../auth/register.validation';
+import { hashPassword } from '../auth/password';
 import { esc, rowsOf } from '../db/sql';
 
 // Registrasi AKUN PERTAMA instalasi (kontrak: frontend/src/features/register/BACKEND_CONTRACT.md).
-// - GET  /api/setup/status      → { firstRun, userCount } (publik, tanpa auth)
+// - GET  /api/setup/status      → { firstRun, userCount, setupTokenRequired } (publik, tanpa auth)
 // - POST /api/setup/first-admin → { user } role Super Admin (HANYA saat userCount === 0)
 // Setelah 1 user ada, POST selalu 409 ALREADY_INITIALIZED. Role dikunci di
 // server — body.role dari client selalu diabaikan.
@@ -34,18 +35,33 @@ function throttleFirstAdmin(ip: string) {
 export class SetupController {
   private db: any = getDb();
 
+  private hasValidSetupToken(req: any): boolean {
+    const configured = String(process.env.SETUP_TOKEN || '');
+    if (!configured) return String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+    const provided = String(req?.headers?.['x-setup-token'] || '');
+    const expected = Buffer.from(configured);
+    const actual = Buffer.from(provided);
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  }
+
   @Get('status')
   @Header('Cache-Control', 'no-store')
   async status() {
     const r: any = await this.db.execute(sql`SELECT COUNT(*) AS c FROM "user"`);
     const userCount = Number(rowsOf(r)[0]?.c ?? 0);
-    return { firstRun: userCount === 0, userCount };
+    return { firstRun: userCount === 0, userCount, setupTokenRequired: !!String(process.env.SETUP_TOKEN || '') };
   }
 
   @Post('first-admin')
   @HttpCode(201)
   async firstAdmin(@Body() body: any, @Req() req: any) {
     throttleFirstAdmin(String(req?.ip || req?.socket?.remoteAddress || 'unknown'));
+    if (!this.hasValidSetupToken(req)) {
+      throw new HttpException(
+        { code: 'SETUP_TOKEN_REQUIRED', message: 'Setup token tidak valid.' },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
 
     const { values, fields } = validateRegistration(body);
     if (Object.keys(fields).length > 0) {
@@ -55,36 +71,36 @@ export class SetupController {
       );
     }
 
-    // Kunci first-run: tolak bila sudah ada user (cek + insert tidak atomik;
-    // jendela race antar 2 request bersamaan diterima untuk tool internal —
-    // kontrak mencatatnya sebagai follow-up bila perlu serialisasi penuh).
-    const c: any = await this.db.execute(sql`SELECT COUNT(*) AS c FROM "user"`);
-    if (Number(rowsOf(c)[0]?.c ?? 0) > 0) {
-      throw new HttpException(
-        { code: 'ALREADY_INITIALIZED', message: 'Instalasi sudah memiliki akun. Silakan login atau daftar sebagai Viewer.' },
-        HttpStatus.CONFLICT,
-      );
-    }
-
-    const dup: any = await this.db.execute(`SELECT id FROM "user" WHERE lower(email) = '${esc(values.email)}' LIMIT 1` as any);
-    if (rowsOf(dup)[0]) {
-      throw new HttpException(
-        { code: 'EMAIL_TAKEN', message: 'Email sudah terdaftar. Silakan login.' },
-        HttpStatus.CONFLICT,
-      );
-    }
-
     const id = `u_${crypto.randomUUID().slice(0, 8)}`;
     const now = new Date().toISOString();
+    const password = await hashPassword(values.password);
     try {
-      await this.db.execute(
-        `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES ('${esc(id)}', '${esc(values.name)}', '${esc(values.email)}', 1, 'Super Admin', 1, '${now}', '${now}')` as any,
-      );
-      await this.db.execute(
-        `INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES ('${esc(`acc_${id}`)}', '${esc(values.email)}', 'credential', '${esc(id)}', '${esc(values.password)}', '${now}', '${now}')` as any,
-      );
+      await this.db.transaction(async (tx: any) => {
+        const c: any = await tx.execute(sql`SELECT COUNT(*) AS c FROM "user"`);
+        if (Number(rowsOf(c)[0]?.c ?? 0) > 0) {
+          throw new HttpException(
+            { code: 'ALREADY_INITIALIZED', message: 'Instalasi sudah memiliki akun. Silakan login atau daftar sebagai Viewer.' },
+            HttpStatus.CONFLICT,
+          );
+        }
+
+        const dup: any = await tx.execute(`SELECT id FROM "user" WHERE lower(email) = '${esc(values.email)}' LIMIT 1` as any);
+        if (rowsOf(dup)[0]) {
+          throw new HttpException(
+            { code: 'EMAIL_TAKEN', message: 'Email sudah terdaftar. Silakan login.' },
+            HttpStatus.CONFLICT,
+          );
+        }
+
+        await tx.execute(
+          `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES ('${esc(id)}', '${esc(values.name)}', '${esc(values.email)}', 1, 'Super Admin', 1, '${now}', '${now}')` as any,
+        );
+        await tx.execute(
+          `INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES ('${esc(`acc_${id}`)}', '${esc(values.email)}', 'credential', '${esc(id)}', '${esc(password)}', '${now}', '${now}')` as any,
+        );
+      });
     } catch (e: any) {
-      // Race: request lain mengisi DB duluan / email duplikat bersamaan.
+      if (e instanceof HttpException) throw e;
       throw new HttpException(
         { code: 'ALREADY_INITIALIZED', message: 'Instalasi sudah memiliki akun. Silakan login.' },
         HttpStatus.CONFLICT,

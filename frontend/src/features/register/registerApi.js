@@ -19,7 +19,7 @@ import { normalizeEmail } from './validation.js';
 
 const FIRST_RUN_KEY = 'sprite_first_run_done';
 
-async function tryJson(path, opts) {
+async function tryJson(path, opts = {}, extraHeaders = {}) {
   let res;
   try {
     res = await fetch(`${API_BASE}${path}`, {
@@ -27,6 +27,7 @@ async function tryJson(path, opts) {
         'Content-Type': 'application/json',
         'x-user-email': get('userEmail', ''),
         ...(getAuthToken() ? { 'x-auth-token': getAuthToken() } : {}),
+        ...extraHeaders,
       },
       ...opts,
       ...(opts?.body && typeof opts.body !== 'string'
@@ -90,6 +91,7 @@ export async function getSetupStatus() {
     return {
       firstRun: Boolean(r.firstRun ?? r.userCount === 0),
       userCount: Number(r.userCount ?? (r.firstRun ? 0 : 1)),
+      setupTokenRequired: Boolean(r.setupTokenRequired),
       source: 'backend',
     };
   } catch {
@@ -111,7 +113,7 @@ export async function getSetupStatus() {
  * Payload: { name, email, password } → resolve { user, source }.
  * Hanya menyimpan ke DB — TANPA auto-login (caller mengarahkan ke /login).
  */
-export async function registerFirstAccount({ name, email, password }) {
+export async function registerFirstAccount({ name, email, password, setupToken }) {
   const payload = {
     name: (name || '').trim(),
     email: normalizeEmail(email),
@@ -129,7 +131,7 @@ export async function registerFirstAccount({ name, email, password }) {
     const r = await tryJson('/setup/first-admin', {
       method: 'POST',
       body: payload,
-    });
+    }, setupToken ? { 'x-setup-token': setupToken } : {});
     storageSet(FIRST_RUN_KEY, 'true');
     return { user: r.user || r, source: 'backend' };
   } catch (err) {

@@ -13,7 +13,9 @@ import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { setupTables, seedUser, db } from './helpers/pgmem.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
+import { SetupController } from '../src/setup/setup.controller.ts';
 import { createSession } from '../src/auth/session.ts';
+import { validateConfig } from '../src/config/validate.ts';
 import { resolveWho, logActivity } from '../src/logs/activity.ts';
 
 const uniq = () => Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
@@ -72,5 +74,47 @@ describe('auth fail-closed + atribusi log (Task 3)', () => {
     const dbRusak = { execute: async () => { throw new Error('down'); } };
     await logActivity(dbRusak, { who: 'x', action: 'uji' });
     await logActivity(dbRusak, null as any);
+  });
+
+  it('first-admin production membutuhkan setup token yang valid', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousSetupToken = process.env.SETUP_TOKEN;
+    process.env.NODE_ENV = 'production';
+    process.env.SETUP_TOKEN = 'setup-token-test-12345678901234567890';
+    const controller = new SetupController();
+    const fakeDb: any = {
+      execute: async (sql: string) => {
+        if (typeof sql !== 'string' || sql.includes('COUNT(*)')) return { rows: [{ c: 0 }] };
+        return { rows: [] };
+      },
+      transaction: async (fn: (tx: any) => Promise<void>) => fn(fakeDb),
+    };
+    (controller as any).db = fakeDb;
+    const body = { name: 'Admin', email: 'admin-critical@revota.id', password: 'password123' };
+    await assert.rejects(
+      () => controller.firstAdmin(body, { ip: '127.0.0.1', headers: {} }),
+      (e: any) => e?.status === 401 && e?.response?.code === 'SETUP_TOKEN_REQUIRED',
+    );
+    const result = await controller.firstAdmin(body, {
+      ip: '127.0.0.1',
+      headers: { 'x-setup-token': process.env.SETUP_TOKEN },
+    });
+    assert.equal(result.user.role, 'Super Admin');
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousSetupToken === undefined) delete process.env.SETUP_TOKEN;
+    else process.env.SETUP_TOKEN = previousSetupToken;
+  });
+
+  it('production boot gagal tanpa setup token', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousSetupToken = process.env.SETUP_TOKEN;
+    process.env.NODE_ENV = 'production';
+    delete process.env.SETUP_TOKEN;
+    assert.throws(() => validateConfig(), /SETUP_TOKEN/);
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousSetupToken === undefined) delete process.env.SETUP_TOKEN;
+    else process.env.SETUP_TOKEN = previousSetupToken;
   });
 });

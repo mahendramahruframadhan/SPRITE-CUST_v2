@@ -3,6 +3,7 @@ import { getDb } from '../db/drizzle.service';
 import { esc } from '../db/sql';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { logActivity, resolveWho } from '../logs/activity';
+import { hashPassword } from '../auth/password';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'finance', 'mockup', 'roles', 'logs', 'settings'];
@@ -57,7 +58,8 @@ export class RolesController {
     const p = String(b.password || '');
     if (p.length < 5) return { ok: false, error: 'password min. 5 karakter' };
     const e = esc(id);
-    await this.db.execute(`UPDATE account SET password='${esc(p)}', updated_at='${new Date().toISOString()}' WHERE user_id='${e}'` as any);
+    const password = await hashPassword(p);
+    await this.db.execute(`UPDATE account SET password='${esc(password)}', updated_at='${new Date().toISOString()}' WHERE user_id='${e}'` as any);
     return { ok: true };
   }
 
