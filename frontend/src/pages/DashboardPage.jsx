@@ -491,11 +491,11 @@ export default function DashboardPage() {
 
       {/* ===== STAT CARDS ===== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-        <StatCard title="Total Kasus" value={fmtNum(TOTAL)} sub={`${uniqueClients} klien · ${Object.keys(moduleMap).length} modul`} icon="cases" grad="from-indigo-500 to-violet-600" glow="group-hover:shadow-indigo-500/25" delta={`${fmtNum(ymKeys.length)} bulan periode`} tone="text-indigo-600 bg-indigo-50 border-indigo-100" delay=".02s" />
-        <StatCard title="Bulan Terakhir" value={fmtNum(latestYM ? ymMap[latestYM].count : 0)} sub={latestYM ? 'periode ' + ymLabels[ymLabels.length - 1] : '—'} icon="mockup" grad="from-sky-400 to-blue-600" glow="group-hover:shadow-sky-500/25" delta={momGrowth == null ? 'data awal' : `${momGrowth >= 0 ? '▲' : '▼'} ${Math.abs(momGrowth)}% MoM`} tone={momGrowth != null && momGrowth < 0 ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'} delay=".06s" />
-        <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} sub={`${paidPct}% dari total kasus`} icon="billing" grad="from-amber-400 to-orange-500" glow="group-hover:shadow-amber-500/25" delta={`${fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0))} tagihan`} tone="text-amber-700 bg-amber-50 border-amber-100" delay=".1s" />
-        <StatCard title="Nilai Billing" value={fmtRp(totalCharge)} valueSize={moneySize(totalCharge)} sub={`dari ${fmtNum(paidCases.length)} kasus berbayar`} icon="finance" grad="from-emerald-400 to-teal-600" glow="group-hover:shadow-emerald-500/25" delta="tercatat" tone="text-emerald-700 bg-emerald-50 border-emerald-100" delay=".14s" />
-        <StatCard title="Outstanding" value={fmtRp(outstanding.amount)} valueSize={moneySize(outstanding.amount)} sub={`${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" delay=".18s" />
+        <StatCard title="Total Kasus" value={fmtNum(TOTAL)} sub={`${uniqueClients} klien · ${Object.keys(moduleMap).length} modul`} icon="cases" grad="from-indigo-500 to-violet-600" glow="group-hover:shadow-indigo-500/25" delta={`${fmtNum(ymKeys.length)} bulan periode`} tone="text-indigo-600 bg-indigo-50 border-indigo-100" />
+        <StatCard title="Bulan Terakhir" value={fmtNum(latestYM ? ymMap[latestYM].count : 0)} sub={latestYM ? 'periode ' + ymLabels[ymLabels.length - 1] : '—'} icon="mockup" grad="from-sky-400 to-blue-600" glow="group-hover:shadow-sky-500/25" delta={momGrowth == null ? 'data awal' : `${momGrowth >= 0 ? '▲' : '▼'} ${Math.abs(momGrowth)}% MoM`} tone={momGrowth != null && momGrowth < 0 ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'} />
+        <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} sub={`${paidPct}% dari total kasus`} icon="billing" grad="from-amber-400 to-orange-500" glow="group-hover:shadow-amber-500/25" delta={`${fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0))} tagihan`} tone="text-amber-700 bg-amber-50 border-amber-100" />
+        <StatCard title="Nilai Billing" value={fmtRp(totalCharge)} valueSize={moneySize(totalCharge)} sub={`dari ${fmtNum(paidCases.length)} kasus berbayar`} icon="finance" grad="from-emerald-400 to-teal-600" glow="group-hover:shadow-emerald-500/25" delta="tercatat" tone="text-emerald-700 bg-emerald-50 border-emerald-100" />
+        <StatCard title="Outstanding" value={fmtRp(outstanding.amount)} valueSize={moneySize(outstanding.amount)} sub={`${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" />
       </div>
 
       {/* ===== NAVIGASI CEPAT (strip ramping) ===== */}
@@ -525,7 +525,7 @@ export default function DashboardPage() {
 
       {/* ===== TREN + BILLING ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Panel className="xl:col-span-2" title="Tren Kasus per Bulan" desc="Jumlah kasus masuk berdasarkan tanggal issue" delay=".24s" accent="from-indigo-500 to-violet-500" badge={`${fmtNum(TOTAL)} total`}>
+        <Panel className="xl:col-span-2" title="Tren Kasus per Bulan" desc="Jumlah kasus masuk berdasarkan tanggal issue" accent="from-indigo-500 to-violet-500" badge={`${fmtNum(TOTAL)} total`}>
           <div className="h-64">
             <Line
               data={trendData}
@@ -542,7 +542,7 @@ export default function DashboardPage() {
             />
           </div>
         </Panel>
-        <Panel title="Status Billing" desc="Pembagian FREE / ON-CALL / MONTHLY" delay=".28s" accent="from-emerald-400 to-teal-500">
+        <Panel title="Status Billing" desc="Pembagian FREE / ON-CALL / MONTHLY" accent="from-emerald-400 to-teal-500">
           <div className="relative h-64">
             <Doughnut data={billingData} options={doughnutOpt} />
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-10">
@@ -555,7 +555,7 @@ export default function DashboardPage() {
 
       {/* ===== MODUL + CHANNEL + CHARGES ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Panel title="Kasus per Modul" desc="Modul terbanyak ditangani" delay=".3s" accent="from-violet-500 to-purple-600" badge={`Top ${modEntries.length}`}>
+        <Panel title="Kasus per Modul" desc="Modul terbanyak ditangani" accent="from-violet-500 to-purple-600" badge={`Top ${modEntries.length}`}>
           <div className="h-64">
             <Bar
               data={moduleData}
@@ -569,12 +569,12 @@ export default function DashboardPage() {
             />
           </div>
         </Panel>
-        <Panel title="Channel Tiket" desc="Sumber masuknya kasus" delay=".34s" accent="from-sky-400 to-blue-500">
+        <Panel title="Channel Tiket" desc="Sumber masuknya kasus" accent="from-sky-400 to-blue-500">
           <div className="h-64 flex items-center justify-center">
             <Doughnut data={channelData} options={doughnutOpt} />
           </div>
         </Panel>
-        <Panel title="Nilai Billing per Bulan" desc="Total charges (Rp) dari kasus berbayar" delay=".38s" accent="from-amber-400 to-orange-500" badge={fmtRp(totalCharge)}>
+        <Panel title="Nilai Billing per Bulan" desc="Total charges (Rp) dari kasus berbayar" accent="from-amber-400 to-orange-500" badge={fmtRp(totalCharge)}>
           <div className="h-64">
             <Bar
               data={chargesData}
@@ -594,7 +594,7 @@ export default function DashboardPage() {
 
       {/* ===== OUTSTANDING ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Panel className="xl:col-span-2" title="Outstanding per Brand" desc="Top 5 brand dengan invoice belum PAID" delay=".4s" accent="from-rose-400 to-rose-600" badge={`${fmtNum(outstanding.count)} kasus`}>
+        <Panel className="xl:col-span-2" title="Outstanding per Brand" desc="Top 5 brand dengan invoice belum PAID" accent="from-rose-400 to-rose-600" badge={`${fmtNum(outstanding.count)} kasus`}>
           {outstanding.top.length === 0 ? (
             <div className="h-64 flex flex-col items-center justify-center gap-2 text-center">
               <span className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
@@ -624,7 +624,7 @@ export default function DashboardPage() {
             </div>
           )}
         </Panel>
-        <Panel title="Ringkasan Outstanding" desc="Kasus tervalidasi yang belum PAID" delay=".42s" accent="from-rose-400 to-orange-400">
+        <Panel title="Ringkasan Outstanding" desc="Kasus tervalidasi yang belum PAID" accent="from-rose-400 to-orange-400">
           <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-100 p-5">
             <p className="text-[11px] font-bold text-rose-400 uppercase tracking-[0.14em]">Total Outstanding</p>
             <p className="mt-1 text-[32px] leading-none font-extrabold text-slate-900 dark:text-white tracking-tight tabular-nums">{fmtRp(outstanding.amount)}</p>
@@ -687,7 +687,7 @@ export default function DashboardPage() {
 
       {/* ===== TOP KLIEN + TIM ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Panel className="xl:col-span-2" title="Top 8 Klien" desc="Klien dengan kasus terbanyak" delay=".44s" accent="from-indigo-500 to-blue-500" badge={`${uniqueClients} klien`}>
+        <Panel className="xl:col-span-2" title="Top 8 Klien" desc="Klien dengan kasus terbanyak" accent="from-indigo-500 to-blue-500" badge={`${uniqueClients} klien`}>
           <div className="h-72">
             <Bar
               data={clientData}
@@ -703,7 +703,7 @@ export default function DashboardPage() {
             />
           </div>
         </Panel>
-        <Panel title="Kinerja Tim Support" desc="Kasus ditangani per petugas" delay=".46s" accent="from-emerald-400 to-sky-500">
+        <Panel title="Kinerja Tim Support" desc="Kasus ditangani per petugas" accent="from-emerald-400 to-sky-500">
           <div className="space-y-4 max-h-72 overflow-y-auto scrollbar-thin pr-1">
             {teamPerf.map((t, i) => (
               <div key={t.name} className="group">
@@ -876,7 +876,7 @@ function Dot() {
   return <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block" />;
 }
 
-function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', valueSize = 'text-[28px]', delay }) {
+function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', valueSize = 'text-[28px]' }) {
   return (
     <div className={`group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`}>
       <div aria-hidden="true" className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${grad} opacity-[.08] rounded-full blur-2xl group-hover:opacity-[.18] transition`} />
@@ -899,7 +899,7 @@ function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, value
   );
 }
 
-function Panel({ title, desc, children, className = '', delay, accent = 'from-brand-500 to-violet-500', badge }) {
+function Panel({ title, desc, children, className = '', accent = 'from-brand-500 to-violet-500', badge }) {
   return (
     <div className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast ${className}`}>
       <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
