@@ -26,6 +26,10 @@ Dial: **ENERGY 2 / RHYTHM 2 / MOTION 2** (MOTION naik 1→2 atas persetujuan own
   (pegas tunggal stiffness 380/damping 38; alasan R-31: gerak fisik cepat
   tanpa memantul berlebihan).
 - Kartu metrik identik = perbandingan setara (R-14: alasan = hierarki setara).
+- Radius hero dikunci dua tingkat (keputusan owner 2026-09-25 via review):
+  primer `rounded-[28px]` untuk halaman besar (Dashboard, Sheet, Billing,
+  Finance); sekunder `rounded-2xl` untuk halaman kecil (Client & Brand).
+  Halaman baru wajib pilih salah satunya, bukan nilai lain.
 - Semua angka dari Google Sheets asli; tanpa testimoni/FAQ/klaim (R-17/R-18/R-28/R-36).
 - Em dash (—) di copy Indonesia dipertahankan: idiom bahasa, bukan pola
   marketing AI; bukan tulisan agent (R-02: protokol konflik, diputuskan keep).

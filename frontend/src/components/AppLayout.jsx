@@ -34,7 +34,7 @@ function grupTerlihat(i, can) {
 
 // Isi sidebar dipakai dua tempat: panel desktop (bisa diciutkan) dan drawer
 // mobile (selalu penuh). `ciut` hanya true di desktop.
-function IsiSidebar({ ciut, saatNavigasi, pengguna, keluar, bisa, saklarCiut, refTutup }) {
+function IsiSidebar({ ciut, saatNavigasi = () => {}, pengguna, keluar, bisa, saklarCiut, refTutup = null }) {
   const inisial = pengguna.name
     .split(' ')
     .map((w) => w[0])
@@ -236,12 +236,10 @@ export default function AppLayout() {
         >
           <IsiSidebar
             ciut={ciut}
-            saatNavigasi={undefined}
             pengguna={user}
             keluar={logout}
             bisa={can}
             saklarCiut={saklarCiut}
-            refTutup={undefined}
           />
         </motion.aside>
 
@@ -299,8 +297,8 @@ export default function AppLayout() {
             <button
               type="button"
               onClick={() => setNavBuka((o) => !o)}
-              aria-expanded={navBuka}
-              aria-controls="navigasi-seluler"
+            aria-expanded={navBuka}
+            aria-controls={navBuka ? 'navigasi-seluler' : undefined}
               aria-label="Buka navigasi"
               className="lg:hidden w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
             >
