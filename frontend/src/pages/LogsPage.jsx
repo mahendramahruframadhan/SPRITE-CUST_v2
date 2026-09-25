@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { getLogs } from '../lib/api.js';
 import { readLocalActivity } from '../lib/activity.js';
 import { useToast } from '../context/ToastContext.jsx';
@@ -46,6 +47,21 @@ function fmtTime(t) {
 
 const initials = (name) =>
   String(name || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+
+// R-31: reveal sekali saat kartu masuk viewport = orientasi scroll (MOTION 2).
+function Reveal({ children, className = '' }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 // bare=true: ditempel sebagai tab di Pengaturan (tanpa padding halaman sendiri)
 export default function LogsPage({ bare = false }) {
@@ -149,12 +165,12 @@ export default function LogsPage({ bare = false }) {
   }
 
   return (
-    <div className={bare ? 'space-y-5' : 'w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5'}>
+    <div className={bare ? 'space-y-5' : 'page'}>
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 -mt-1">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <button
           onClick={exportData}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-4 py-2 rounded-lg transition"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-4 py-2 min-h-[44px] rounded-lg transition"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -164,13 +180,13 @@ export default function LogsPage({ bare = false }) {
       </div>
 
       {/* Filter kategori */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 py-3 flex flex-wrap items-center gap-2">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 px-4 py-3 flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mr-1">Kategori:</span>
         {CATS.map((c) => (
           <button
             key={c}
             onClick={() => setCat(c)}
-            className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition ${
+            className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 min-h-[44px] rounded-lg border transition ${
               cat === c
                 ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white'
                 : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -182,11 +198,11 @@ export default function LogsPage({ bare = false }) {
             </span>
           </button>
         ))}
-      </div>
+      </Reveal>
 
       {/* Daftar log */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3">
           <h3 className="font-bold text-slate-900 dark:text-white">Riwayat Aktivitas</h3>
           <span className="text-xs text-slate-500 dark:text-slate-400">{loading ? 'Memuat…' : `${items.length} aktivitas`}</span>
           <div className="ml-auto relative">
@@ -198,13 +214,13 @@ export default function LogsPage({ bare = false }) {
               placeholder="Cari pelaku / aktivitas..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
+              className="pl-9 pr-3 py-2 min-h-[44px] w-full sm:w-auto text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
                 <th className="px-6 py-3 font-semibold">Waktu</th>
@@ -245,15 +261,16 @@ export default function LogsPage({ bare = false }) {
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
+        <div className="px-4 sm:px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
           <span>
             Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} aktivitas
           </span>
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="flex items-center gap-1 ml-auto overflow-x-auto max-w-full scrollbar-thin">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              aria-label="Halaman sebelumnya"
+              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               ‹
             </button>
@@ -261,7 +278,7 @@ export default function LogsPage({ bare = false }) {
               <button
                 key={n}
                 onClick={() => setPage(n)}
-                className={`min-w-[32px] px-2 py-1.5 rounded-lg border font-bold transition ${
+                className={`shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2 py-1.5 rounded-lg border font-bold transition ${
                   n === safePage ? 'bg-brand-600 border-brand-600 text-white' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
@@ -271,7 +288,8 @@ export default function LogsPage({ bare = false }) {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              aria-label="Halaman berikutnya"
+              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               ›
             </button>
@@ -279,14 +297,14 @@ export default function LogsPage({ bare = false }) {
           <select
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
-            className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-200"
+            className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-200"
           >
             <option value={10}>10 / halaman</option>
             <option value={50}>50 / halaman</option>
             <option value={100}>100 / halaman</option>
           </select>
         </div>
-      </div>
+      </Reveal>
     </div>
   );
 }

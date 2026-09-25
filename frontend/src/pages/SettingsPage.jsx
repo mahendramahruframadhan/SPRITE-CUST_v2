@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -12,12 +13,27 @@ import LogsPage from './LogsPage.jsx';
 import { getUsers, patchUser, setUserPassword, postLog, getStatusOptions, putStatusOptions } from '../lib/api.js';
 
 const ROLE_BADGE = {
-  'Super Admin': 'bg-violet-50 text-violet-600 border-violet-200',
-  'Admin CS': 'bg-sky-50 text-sky-600 border-sky-200',
-  Support: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  Finance: 'bg-amber-50 text-amber-600 border-amber-200',
-  Viewer: 'bg-slate-100 text-slate-500 dark:text-slate-400 border-slate-200',
+  'Super Admin': 'bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20',
+  'Admin CS': 'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20',
+  Support: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+  Finance: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+  Viewer: 'bg-slate-100 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700',
 };
+
+// R-31: reveal sekali saat kartu masuk viewport = orientasi scroll (MOTION 2).
+function Reveal({ children, className = '' }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 const TABS = [
   { id: 'akun', label: 'Akun', desc: 'Profil, keamanan & sesi', icon: 'user' },
@@ -67,7 +83,7 @@ function Field({ label, hint, error, children }) {
 }
 
 const inputCls =
-  'block w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400 disabled:bg-slate-50 disabled:text-slate-500 transition bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500';
+  'block w-full min-h-[44px] text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-400 disabled:bg-slate-50 disabled:text-slate-500 transition bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500';
 
 function Notice({ kind, children }) {
   if (!children) return null;
@@ -100,7 +116,7 @@ function StatusListManager({ label, hint, items, newVal, onNewVal, onAdd, onDele
               disabled={disabled || busy || items.length <= 1}
               title={items.length <= 1 ? 'Minimal 1 status harus ada' : `Hapus status ${s}`}
               aria-label={`Hapus status ${s}`}
-              className="shrink-0 text-slate-300 hover:text-rose-600 disabled:opacity-40 disabled:cursor-not-allowed rounded p-1 transition"
+              className="shrink-0 w-9 h-9 inline-flex items-center justify-center text-slate-300 hover:text-rose-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -128,7 +144,7 @@ function StatusListManager({ label, hint, items, newVal, onNewVal, onAdd, onDele
         <button
           type="submit"
           disabled={disabled || busy}
-          className="shrink-0 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition"
+          className="shrink-0 min-h-[44px] inline-flex items-center text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition"
         >
           {busy ? '…' : 'Tambah'}
         </button>
@@ -329,9 +345,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+    <div className="page">
       {/* Kartu identitas */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 flex items-center gap-4 animate-fade-in-fast">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 flex items-center gap-4">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-lg font-bold shrink-0">
           {initials(name)}
         </div>
@@ -339,12 +355,12 @@ export default function SettingsPage() {
           <h2 className="text-lg font-extrabold text-slate-900 dark:text-white truncate">{name || 'Pengguna'}</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
           <span
-            className={`inline-block mt-1.5 text-[10px] font-bold border rounded-full px-2 py-0.5 ${ROLE_BADGE[role] || 'bg-slate-100 text-slate-500 dark:text-slate-400 border-slate-200'}`}
+            className={`inline-block mt-1.5 text-[10px] font-bold border rounded-full px-2 py-0.5 ${ROLE_BADGE[role] || 'bg-slate-100 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}
           >
             {role}
           </span>
         </div>
-      </div>
+      </Reveal>
 
       <div className="flex flex-col lg:flex-row gap-5 items-start">
         {/* Sub-navigasi pengaturan */}
@@ -360,7 +376,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => setTab(t.id)}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition shrink-0 lg:shrink ${
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 min-h-[44px] text-left transition shrink-0 lg:shrink ${
                   active
                     ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -385,7 +401,7 @@ export default function SettingsPage() {
           {safeTab === 'akun' && (
             <div className="max-w-3xl space-y-5">
               {/* Profil */}
-              <form onSubmit={saveProfile} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+              <form onSubmit={saveProfile} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
                 <SectionHead icon="roles" title="Profil Saya" desc="Nama tampil, email & role akun" />
                 <div className="grid sm:grid-cols-2 gap-4">
                   <Field
@@ -408,7 +424,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={!canManage || savingProfile}
-                    className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 rounded-lg transition"
+                    className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 min-h-[44px] rounded-lg transition"
                   >
                     {savingProfile ? 'Menyimpan…' : 'Simpan Profil'}
                   </button>
@@ -417,7 +433,7 @@ export default function SettingsPage() {
               </form>
 
               {/* Keamanan */}
-              <form onSubmit={savePassword} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+              <form onSubmit={savePassword} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
                 <SectionHead icon="lock" title="Keamanan" desc="Ubah password akun" />
                 {!canManage && (
                   <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400">
@@ -450,7 +466,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={!canManage || savingPw}
-                    className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 rounded-lg transition"
+                    className="text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 min-h-[44px] rounded-lg transition"
                   >
                     {savingPw ? 'Menyimpan…' : 'Ubah Password'}
                   </button>
@@ -462,7 +478,7 @@ export default function SettingsPage() {
 
           {safeTab === 'tampilan' && (
             <div className="max-w-3xl space-y-5">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
                 <SectionHead icon="sun" title="Tampilan" desc="Pilih tema — tersimpan otomatis di browser ini" />
                 <div className="grid sm:grid-cols-2 gap-3" role="radiogroup" aria-label="Pilih tema">
                   {[
@@ -528,7 +544,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Ukuran font */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
                 <SectionHead icon="sun" title="Ukuran Font" desc="Kecil, sedang, atau besar — tersimpan otomatis di browser ini" />
                 <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Pilih ukuran font">
                   {[
@@ -576,7 +592,7 @@ export default function SettingsPage() {
           )}
 
           {safeTab === 'master' && (
-            <div className="max-w-3xl bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+            <div className="max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
               <SectionHead icon="billing" title="Master Status Validasi" desc="Status Billing & Audit yang bisa dikonfigurasi. Status invoice (MENUNGGU / TERBIT / TERKIRIM / SUDAH DIBAYAR) dikunci alur dan tidak bisa diubah di sini." />
               {!canEditMaster && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400">
@@ -586,7 +602,7 @@ export default function SettingsPage() {
               {mastersLoading ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400 py-4 text-center">Memuat master status…</p>
               ) : (
-                <div className="grid md:grid-cols-1 gap-4">
+                <div className="grid gap-4">
                   <StatusListManager
                     label="Status Validasi"
                     hint="Dipakai di halaman Billing & Audit."
@@ -605,7 +621,7 @@ export default function SettingsPage() {
           )}
 
           {safeTab === 'akses' && (
-            <div className="max-w-3xl bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+            <div className="max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
               <SectionHead icon="dashboard" title="Akses Saya" desc={`${accessCount} dari ${myAccess.length} modul dapat diakses role ${role}`} />
               <ul className="grid sm:grid-cols-2 gap-2">
                 {myAccess.map((m) => (
@@ -639,7 +655,7 @@ export default function SettingsPage() {
           {safeTab === 'logs' && <LogsPage bare />}
 
           {safeTab === 'sesi' && (
-            <div className="max-w-3xl bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+            <div className="max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
               <SectionHead icon="logout" title="Sesi" desc="Perangkat yang sedang login & keluar akun" />
               <div className="flex items-center gap-3 text-sm">
                 <span className="relative flex h-2 w-2 shrink-0">
@@ -653,7 +669,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={logout}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-5 py-2 rounded-lg transition"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 px-5 py-2 min-h-[44px] rounded-lg transition"
               >
                 <Icon name="logout" className="w-4 h-4" strokeWidth={2} />
                 Keluar dari Akun
