@@ -48,6 +48,10 @@
   /* Durasi */
   --duration-fast: 150ms;
   --duration-normal: 200ms;
+
+  /* Motion shell (MOTION 2): pendamping pegas motion untuk transisi CSS */
+  --duration-shell: 300ms;
+  --ease-shell: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* === SEMANTIC: alias tujuan (ganti tema cukup di sini + .dark) === */

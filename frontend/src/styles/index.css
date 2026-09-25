@@ -48,6 +48,26 @@
     @apply border border-slate-200/70 dark:border-slate-800;
   }
 
+  /* ===== Foundation revamp (Tahap 2): kontainer & grid responsif ===== */
+  /* Kontainer halaman standar: mobile-first, napas lega di desktop */
+  .page {
+    @apply w-full min-w-0 mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-5 space-y-5;
+  }
+  /* Grid statistik: bertahap 1 → 2 → 3 → 5 (tanpa lompat breakpoint) */
+  .stat-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4;
+  }
+  /* Grid panel: 1 → 2 → 3 */
+  .panel-grid {
+    @apply grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4;
+  }
+  /* Transisi margin konten mengikuti lebar sidebar (desktop saja) */
+  @media (min-width: 1024px) {
+    .shell-main {
+      transition: margin-left var(--duration-shell) var(--ease-shell);
+    }
+  }
+
   /* Sub-nav horizontal internal (sebelumnya diubah jadi tab bar oleh app.js) */
   .subnav-tab {
     @apply px-3.5 py-2 rounded-lg whitespace-nowrap transition text-sm font-semibold;
