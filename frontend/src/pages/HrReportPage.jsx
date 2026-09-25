@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { moduleTone } from '../utils/tones.js';
 import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
+import { Button } from '../components/ui/Button.jsx';
 
 const normKpi = (k) => (k || '').trim() || 'TANPA KATEGORI';
 
@@ -242,12 +243,7 @@ export default function HrReportPage() {
   const dateCls =
     'block w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition [color-scheme:light] dark:[color-scheme:dark]';
 
-  const presetBtn = (active) =>
-    `min-h-[44px] inline-flex items-center text-xs font-bold px-3.5 py-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-      active
-        ? 'bg-brand-600 border-brand-600 text-white shadow-md shadow-brand-600/25'
-        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-    }`;
+  // presetBtn dihapus Task 2 — pil preset kini Button variant primary/secondary.
 
   return (
     <div className="page">
@@ -295,32 +291,35 @@ export default function HrReportPage() {
                 { id: '30', label: '30 Hari' },
                 { id: 'month', label: 'Bulan Ini' },
               ].map((p) => (
-                <button
+                <Button
                   key={p.id}
+                  variant={activePreset === p.id ? 'primary' : 'secondary'}
                   type="button"
                   onClick={() => applyPreset(p.id)}
                   aria-pressed={activePreset === p.id}
-                  className={presetBtn(activePreset === p.id)}
+                  className="rounded-full text-xs"
                 >
                   {p.label}
-                </button>
+                </Button>
               ))}
               <span className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" aria-hidden="true" />
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => { setPic(''); setFrom(''); setTo(''); }}
-                className="min-h-[44px] inline-flex items-center text-xs font-bold text-slate-500 dark:text-slate-300 px-3.5 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="rounded-full text-xs"
               >
                 Reset
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={exportCSV}
-                className="min-h-[44px] inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 px-3.5 py-2 rounded-full transition"
+                className="rounded-full text-xs"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
                 Export CSV
-              </button>
+              </Button>
             </div>
           </div>
           {/* Ringkasan periode */}
