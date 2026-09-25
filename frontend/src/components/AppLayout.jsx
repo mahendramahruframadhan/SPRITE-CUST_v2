@@ -7,6 +7,9 @@ import { MODULES } from '../config/modules.js';
 import { getJSON, set as simpan } from '../lib/storage.js';
 import Icon from '../components/Icon.jsx';
 import AiChat from '../components/AiChat.jsx';
+import { Button } from '../components/ui/Button.jsx';
+// Catatan migrasi Task 2: tombol logout rose disengaja tetap mentah
+// (varian Button tak mencakup tint rose tanpa override warna).
 
 // Design Read: shell admin untuk staf operasional, bahasa brand indigo Revota,
 // dial ENERGY 2 / RHYTHM 2 / MOTION 2.
@@ -55,25 +58,29 @@ function IsiSidebar({ ciut, saatNavigasi = () => {}, pengguna, keluar, bisa, sak
           </div>
         )}
         {/* Tombol tutup khusus drawer mobile */}
-        <button
+        <Button
           ref={refTutup}
+          variant="ghost"
+          size="icon"
           type="button"
           onClick={saatNavigasi}
           aria-label="Tutup navigasi"
-          className="lg:hidden w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+          className="lg:hidden shrink-0"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
-        </button>
+        </Button>
         {/* Tombol ciut/luas khusus desktop */}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           onClick={saklarCiut}
           aria-expanded={!ciut}
           aria-label={ciut ? 'Luaskan sidebar' : 'Ciutkan sidebar'}
           title={ciut ? 'Luaskan sidebar' : 'Ciutkan sidebar'}
-          className="hidden lg:inline-flex w-11 h-11 shrink-0 items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+          className="hidden lg:inline-flex shrink-0"
         >
           <svg
             className={`w-5 h-5 transition-transform duration-300 ${ciut ? 'rotate-180' : ''}`}
@@ -85,7 +92,7 @@ function IsiSidebar({ ciut, saatNavigasi = () => {}, pengguna, keluar, bisa, sak
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-        </button>
+        </Button>
       </div>
 
       <nav aria-label="Navigasi utama" className="flex-1 py-4 text-sm overflow-y-auto overflow-x-hidden scrollbar-thin">
@@ -294,18 +301,20 @@ export default function AppLayout() {
         {/* Main */}
         <main className={`shell-main flex flex-col min-h-screen ${ciut ? 'lg:ml-20' : 'lg:ml-64'}`}>
           <header className="shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 px-4 md:px-5 py-3.5 flex items-center gap-3 z-30 sticky top-0">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               type="button"
               onClick={() => setNavBuka((o) => !o)}
             aria-expanded={navBuka}
             aria-controls={navBuka ? 'navigasi-seluler' : undefined}
               aria-label="Buka navigasi"
-              className="lg:hidden w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+              className="lg:hidden shrink-0"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
-            </button>
+            </Button>
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">{saatIni?.title || 'Dashboard'}</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{saatIni?.sub || '—'}</p>
