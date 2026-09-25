@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -389,7 +390,7 @@ export default function DashboardPage() {
   const TEAM_COLORS = ['from-indigo-500 to-violet-500', 'from-emerald-400 to-teal-500', 'from-amber-400 to-orange-500', 'from-sky-400 to-blue-500', 'from-fuchsia-400 to-purple-500'];
 
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+    <div className="page">
       {/* dekorasi latar */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-24 right-0 w-[420px] h-[420px] bg-gradient-to-br from-brand-200/50 to-violet-200/40 rounded-full blur-3xl" />
@@ -491,13 +492,13 @@ export default function DashboardPage() {
 
       {/* ===== STAT CARDS ===== */}
       {/* R-31: satu glow fokus di Outstanding (perlu ditagih); 4 kartu lain tanpa glow agar aksen tunggal. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <Reveal className="stat-grid">
         <StatCard title="Total Kasus" value={fmtNum(TOTAL)} sub={`${uniqueClients} klien · ${Object.keys(moduleMap).length} modul`} icon="cases" grad="from-indigo-500 to-violet-600" delta={`${fmtNum(ymKeys.length)} bulan periode`} tone="text-indigo-600 bg-indigo-50 border-indigo-100" />
         <StatCard title="Bulan Terakhir" value={fmtNum(latestYM ? ymMap[latestYM].count : 0)} sub={latestYM ? 'periode ' + ymLabels[ymLabels.length - 1] : '—'} icon="mockup" grad="from-sky-400 to-blue-600" delta={momGrowth == null ? 'data awal' : `${momGrowth >= 0 ? '▲' : '▼'} ${Math.abs(momGrowth)}% MoM`} tone={momGrowth != null && momGrowth < 0 ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'} />
         <StatCard title="Kasus Berbayar" value={fmtNum(paidCases.length)} sub={`${paidPct}% dari total kasus`} icon="billing" grad="from-amber-400 to-orange-500" delta={`${fmtNum((billMap['ON-CALL'] || 0) + (billMap['MONTHLY'] || 0))} tagihan`} tone="text-amber-700 bg-amber-50 border-amber-100" />
         <StatCard title="Nilai Billing" value={fmtRp(totalCharge)} valueSize={moneySize(totalCharge)} sub={`dari ${fmtNum(paidCases.length)} kasus berbayar`} icon="finance" grad="from-emerald-400 to-teal-600" delta="tercatat" tone="text-emerald-700 bg-emerald-50 border-emerald-100" />
         <StatCard title="Outstanding" value={fmtRp(outstanding.amount)} valueSize={moneySize(outstanding.amount)} sub={`${fmtNum(outstanding.count)} kasus belum PAID`} icon="finance" grad="from-rose-400 to-rose-600" glow="group-hover:shadow-rose-500/25" delta="perlu ditagih" tone="text-rose-700 bg-rose-50 border-rose-100" />
-      </div>
+      </Reveal>
 
       {/* ===== NAVIGASI CEPAT (strip ramping) ===== */}
       <nav aria-label="Navigasi cepat" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm animate-fade-in-fast">
@@ -507,7 +508,7 @@ export default function DashboardPage() {
               key={f.title}
               to={f.to}
               title={`${f.title} — ${f.desc}`}
-              className="group flex min-w-[178px] flex-1 items-center gap-3 rounded-xl px-3 py-2 min-h-[44px] hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="group flex min-w-[150px] sm:min-w-[178px] flex-1 items-center gap-3 rounded-xl px-3 py-2 min-h-[44px] hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <span className={`w-9 h-9 shrink-0 rounded-lg ${f.soft} flex items-center justify-center`}>
                 <FeatureIcon name={f.icon} />
@@ -525,7 +526,7 @@ export default function DashboardPage() {
       </nav>
 
       {/* ===== TREN + BILLING ===== */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <Reveal className="panel-grid">
         <Panel className="xl:col-span-2" title="Tren Kasus per Bulan" desc="Jumlah kasus masuk berdasarkan tanggal issue" accent="from-indigo-500 to-violet-500" badge={`${fmtNum(TOTAL)} total`}>
           <div className="h-64">
             <Line
@@ -552,10 +553,10 @@ export default function DashboardPage() {
             </div>
           </div>
         </Panel>
-      </div>
+      </Reveal>
 
       {/* ===== MODUL + CHANNEL + CHARGES ===== */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <Reveal className="panel-grid">
         <Panel title="Kasus per Modul" desc="Modul terbanyak ditangani" accent="from-violet-500 to-purple-600" badge={`Top ${modEntries.length}`}>
           <div className="h-64">
             <Bar
@@ -591,10 +592,10 @@ export default function DashboardPage() {
             />
           </div>
         </Panel>
-      </div>
+      </Reveal>
 
       {/* ===== OUTSTANDING ===== */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <Reveal className="panel-grid">
         <Panel className="xl:col-span-2" title="Outstanding per Brand" desc="Top 5 brand dengan invoice belum PAID" accent="from-rose-400 to-rose-600" badge={`${fmtNum(outstanding.count)} kasus`}>
           {outstanding.top.length === 0 ? (
             <div className="h-64 flex flex-col items-center justify-center gap-2 text-center">
@@ -654,7 +655,7 @@ export default function DashboardPage() {
             </svg>
           </Link>
         </Panel>
-      </div>
+      </Reveal>
 
       {/* ===== KONTRAK MAINTENANCE (hanya bila ada yang perlu perhatian) ===== */}
       {attentionContracts.length > 0 && (
@@ -687,7 +688,7 @@ export default function DashboardPage() {
       )}
 
       {/* ===== TOP KLIEN + TIM ===== */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <Reveal className="panel-grid">
         <Panel className="xl:col-span-2" title="Top 8 Klien" desc="Klien dengan kasus terbanyak" accent="from-indigo-500 to-blue-500" badge={`${uniqueClients} klien`}>
           <div className="h-72">
             <Bar
@@ -732,10 +733,10 @@ export default function DashboardPage() {
             {teamPerf.length === 0 && <p className="text-xs text-slate-500 dark:text-slate-400">Belum ada data tim.</p>}
           </div>
         </Panel>
-      </div>
+      </Reveal>
 
       {/* ===== KASUS TERBARU ===== */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)] animate-fade-in-fast">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25">
@@ -753,7 +754,7 @@ export default function DashboardPage() {
             </svg>
           </Link>
         </div>
-        <div className="overflow-x-auto scrollbar-thin">
+        <div className="hidden md:block overflow-x-auto scrollbar-thin">
           <table className="w-full text-sm min-w-[960px]">
             <thead>
               <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
@@ -832,7 +833,39 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
-      </div>
+        {/* Varian kartu untuk layar kecil: data dan aksi sama dengan tabel */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {recent.map((c) => {
+            const bs = (c.billingStatus || '').trim() || '-';
+            const inisial = String(c.assignTo || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+            return (
+              <button
+                key={c.recordUuid}
+                type="button"
+                onClick={() => setDetailUuid(c.recordUuid)}
+                className="w-full text-left px-5 py-4 flex items-start gap-3 hover:bg-brand-50/50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/60"
+              >
+                <span className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white text-[10px] font-extrabold flex items-center justify-center">{inisial}</span>
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{c.client || '-'}</span>
+                    <span className="shrink-0 text-xs font-extrabold tabular-nums text-amber-700 dark:text-amber-400">{c.charges > 0 ? fmtRp(c.charges) : 'Gratis'}</span>
+                  </span>
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate(c.dateIssue)} · {c.module || '-'}</span>
+                  <span className="mt-1 block text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">{c.issue || '-'}</span>
+                  <span className="mt-2 inline-flex"><Pill dot tone={billingTone(bs)}>{bs}</Pill></span>
+                </span>
+                <svg className="w-4 h-4 mt-1 shrink-0 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            );
+          })}
+          {recent.length === 0 && (
+            <p className="px-5 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada data kasus.</p>
+          )}
+        </div>
+      </Reveal>
 
       {/* Popup detail kasus dari kolom Kendala — sama seperti Finance */}
       <CaseDetailModal
@@ -877,9 +910,25 @@ function Dot() {
   return <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block" />;
 }
 
+// R-31: reveal sekali saat section masuk viewport = orientasi scroll (MOTION 2).
+// Tanpa cascade delay antar kartu (DESIGN.md): satu Reveal membungkus satu grup.
+function Reveal({ children, className = '' }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', valueSize = 'text-[28px]' }) {
   return (
-    <div className={`group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300 animate-fade-in-fast`}>
+    <div className={`group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl ${glow} hover:-translate-y-1 hover:border-transparent transition-all duration-300`}>
       <div aria-hidden="true" className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${grad} opacity-[.08] rounded-full blur-2xl group-hover:opacity-[.18] transition`} />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -902,7 +951,7 @@ function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, value
 
 function Panel({ title, desc, children, className = '', accent = 'from-brand-500 to-violet-500', badge }) {
   return (
-    <div className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] animate-fade-in-fast ${className}`}>
+    <div className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.12)] ${className}`}>
       <div aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
       <div className="p-6">
         <div className="mb-5 flex items-start justify-between gap-3">
