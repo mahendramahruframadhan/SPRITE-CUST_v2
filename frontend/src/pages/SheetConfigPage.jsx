@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
+import { Button } from '../components/ui/Button.jsx';
 import { DEFAULT_CONFIG } from '../data/sheetConfig.js';
 import { getConfig, putConfig } from '../lib/api.js';
 import { getJSON, set as storageSet } from '../lib/storage.js';
@@ -333,7 +334,7 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
           onChange={(e) => { setVal(e.target.value); setErr(''); }}
           className={`${CFG_INPUT} flex-1 !rounded-xl !py-2.5`}
         />
-        <button className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 min-h-[44px] rounded-xl transition shrink-0">Tambah</button>
+        <Button varian="primer" kecil type="submit" className="shrink-0">Tambah</Button>
       </form>
       {err && <p className="mb-2 text-[11px] font-semibold text-rose-600">{err}</p>}
       <div className="flex flex-wrap gap-1.5 max-h-72 overflow-y-auto scrollbar-thin">
@@ -613,9 +614,9 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
             ? <p className="mt-2 text-xs font-semibold text-rose-600">{err}</p>
             : <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Otomatis UPPERCASE.{suggestions.length > 0 ? ' Ketik untuk mencari dari saran.' : ''}</p>}
           <div className="mt-4 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-100 px-4 py-2.5 min-h-[44px] rounded-xl transition">
+            <Button varian="teks" type="button" onClick={onClose}>
               Batal
-            </button>
+            </Button>
             <button type="submit" className="text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 px-5 py-2.5 min-h-[44px] rounded-xl transition">
               {submitLabel}
             </button>
