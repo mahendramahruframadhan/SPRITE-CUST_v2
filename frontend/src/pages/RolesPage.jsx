@@ -428,15 +428,15 @@ export default function RolesPage({ bare = false }) {
           </svg>
           Login sebagai: <span className="font-bold">{user?.role}</span>
         </span>
-        <button
+        <Button
+          variant="primary"
           onClick={() => openUserModal(null)}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
           Tambah Pengguna
-        </button>
+        </Button>
       </div>
 
       {/* Statistik */}
@@ -544,26 +544,30 @@ export default function RolesPage({ bare = false }) {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => openUserModal(u.id)}
-                        className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-brand-50 dark:hover:bg-brand-500/10 text-slate-500 dark:text-slate-400 hover:text-brand-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
                         title="Edit"
                         aria-label={`Edit ${u.name}`}
+                        className="hover:text-brand-600 dark:hover:text-brand-300"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                         </svg>
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => deleteUser(u.id)}
-                        className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
                         title="Hapus"
                         aria-label={`Hapus ${u.name}`}
+                        className="hover:text-rose-500 dark:hover:text-rose-400"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                         </svg>
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -599,15 +603,15 @@ export default function RolesPage({ bare = false }) {
                 <h3 className="font-bold text-slate-900 dark:text-white">Matriks Izin Modul</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Centang modul yang boleh diakses setiap role</p>
               </div>
-              <button
+              <Button
+                variant="primary"
                 onClick={savePerms}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 Simpan Perubahan
-              </button>
+              </Button>
             </div>
             <div className="overflow-x-auto scrollbar-thin">
               <table className="w-full text-sm min-w-[680px]">
@@ -662,12 +666,12 @@ export default function RolesPage({ bare = false }) {
               <span className="font-bold text-slate-700 dark:text-slate-200">{conns.filter((c) => c.active).length ? '1 AI dipakai' : 'Tidak ada AI dipakai'}</span>
               {' '}— chat memakai koneksi bertanda DIPAKAI
             </p>
-            <button
+            <Button
+              variant="primary"
               onClick={startAddConn}
-              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
             >
               + Tambah AI
-            </button>
+            </Button>
           </div>
 
           {conns.map((c) => (
@@ -694,22 +698,22 @@ export default function RolesPage({ bare = false }) {
                 </div>
                 <div className="flex items-center gap-1">
                   {c.active && (
-                    <button onClick={testAi} disabled={testingAi} title="Tes koneksi yang dipakai" aria-label="Tes koneksi yang dipakai" className="w-11 h-11 inline-flex items-center justify-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white shadow-sm shadow-brand-600/25 transition active:scale-95 disabled:opacity-60">
+                    <Button variant="primary" size="icon" onClick={testAi} disabled={testingAi} title="Tes koneksi yang dipakai" aria-label="Tes koneksi yang dipakai" className="shadow-sm">
                       <svg className={`w-4 h-4 ${testingAi ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                      </svg>
-                    </button>
+                                              </svg>
+                    </Button>
                   )}
-                  <button onClick={() => startEditConn(c.id)} title="Edit (termasuk ganti API key)" aria-label="Edit koneksi" className="w-11 h-11 inline-flex items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 transition active:scale-95">
+                  <Button variant="ghost" size="icon" onClick={() => startEditConn(c.id)} title="Edit (termasuk ganti API key)" aria-label="Edit koneksi" className="border border-amber-100 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                     </svg>
-                  </button>
-                  <button onClick={() => removeConn(c.id)} title="Hapus" aria-label="Hapus koneksi" className="w-11 h-11 inline-flex items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 transition active:scale-95">
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => removeConn(c.id)} title="Hapus" aria-label="Hapus koneksi" className="border border-rose-100 dark:border-rose-500/20 text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                     </svg>
-                  </button>
+                  </Button>
                 </div>
               </div>
               {aiTest && c.active && (
@@ -807,11 +811,11 @@ export default function RolesPage({ bare = false }) {
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-md">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h3 className="font-bold text-slate-900 dark:text-white">{modal.id ? 'Edit Pengguna' : 'Tambah Pengguna'}</h3>
-              <button onClick={() => setModal(null)} aria-label="Tutup" className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
+              <Button variant="ghost" size="icon" onClick={() => setModal(null)} aria-label="Tutup" className="shrink-0 rounded-xl">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </Button>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
