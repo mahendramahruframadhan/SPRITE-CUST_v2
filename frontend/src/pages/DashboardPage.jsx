@@ -1,18 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Reveal } from '../components/Reveal.jsx';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { triggerSync, getSyncLogs, getHealth, getBrandStatuses } from '../lib/api.js';
@@ -24,18 +12,6 @@ import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js
 import { billingTone, invLabel } from '../utils/tones.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 /* ================= Helpers ================= */
 const fmtNum = (n) => (+n || 0).toLocaleString('id-ID');
