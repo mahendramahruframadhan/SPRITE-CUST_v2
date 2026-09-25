@@ -92,18 +92,18 @@ export default function LoginPage() {
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             {regState && (
-              <div role="status" className="bg-emerald-50/90 border border-emerald-200 text-emerald-700 text-xs font-semibold px-4 py-3 rounded-xl">
+              <div role="status" className="bg-emerald-50/90 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold px-4 py-3 rounded-xl">
                 Pendaftaran berhasil{regState.firstRun ? ' — akun Super Admin pertama' : ''}.
                 Silakan login dengan email &amp; password Anda.
               </div>
             )}
             {regState?.compat && (
-              <div className="bg-amber-50/90 border border-amber-200 text-amber-700 text-xs px-4 py-2.5 rounded-xl">
+              <div className="bg-amber-50/90 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs px-4 py-2.5 rounded-xl">
                 Catatan: backend dalam mode kompatibilitas — role final dikunci saat kontrak setup aktif.
               </div>
             )}
             {error && (
-              <div className="bg-rose-50/90 border border-rose-200 text-rose-600 text-xs font-semibold px-4 py-3 rounded-xl">
+              <div className="bg-rose-50/90 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold px-4 py-3 rounded-xl">
                 {error}
               </div>
             )}
@@ -120,7 +120,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="nama@perusahaan.id"
-                  className="w-full pl-10 pr-3 py-2.5 text-sm bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-400 focus:bg-white/90 dark:focus:bg-slate-800 transition placeholder:text-slate-500 dark:placeholder:text-slate-400 text-slate-800 dark:text-slate-100"
+                  className="w-full min-h-[44px] pl-10 pr-3 py-2.5 text-sm bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-400 focus:bg-white/90 dark:focus:bg-slate-800 transition placeholder:text-slate-500 dark:placeholder:text-slate-400 text-slate-800 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-3 py-2.5 text-sm bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-400 focus:bg-white/90 dark:focus:bg-slate-800 transition placeholder:text-slate-500 dark:placeholder:text-slate-400 text-slate-800 dark:text-slate-100"
+                  className="w-full min-h-[44px] pl-10 pr-3 py-2.5 text-sm bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-400 focus:bg-white/90 dark:focus:bg-slate-800 transition placeholder:text-slate-500 dark:placeholder:text-slate-400 text-slate-800 dark:text-slate-100"
                 />
               </div>
             </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { Line, Doughnut, Pie, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -166,10 +167,25 @@ export default function MockupPage() {
 
   const setF = (k) => (e) => setFilters({ ...filters, [k]: e.target.value });
 
+// R-31: reveal sekali saat grup masuk viewport = orientasi scroll (MOTION 2).
+function Reveal({ children, className = '' }) {
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-6">
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+  return (
+    <div className="page">
       {/* Topbar */}
-      <div className="flex items-center justify-end gap-3 -mt-1">
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -179,7 +195,7 @@ export default function MockupPage() {
         </div>
         <button
           onClick={refresh}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
+          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
         >
           <svg className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -189,9 +205,9 @@ export default function MockupPage() {
       </div>
 
       {/* KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <Reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpi.map((d, i) => (
-          <div key={d.t} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 animate-fade-in-fast">
+          <div key={d.t} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{d.t}</p>
@@ -204,11 +220,11 @@ export default function MockupPage() {
             </div>
           </div>
         ))}
-      </div>
+      </Reveal>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+      <Reveal className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 xl:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
           <div className="mb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Tren Kasus per Minggu</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">Berdasarkan nomor minggu pada sheet</p>
@@ -217,7 +233,7 @@ export default function MockupPage() {
             <Line data={charts.trend} options={axisOpt} />
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
           <div className="mb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Distribusi Modul</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">Kasus berdasarkan modul</p>
@@ -226,10 +242,10 @@ export default function MockupPage() {
             <Doughnut data={charts.module} options={legendRight} />
           </div>
         </div>
-      </div>
+      </Reveal>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+      <Reveal className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
           <div className="mb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Status Billing</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">FREE / MONTHLY / ON-CALL</p>
@@ -238,7 +254,7 @@ export default function MockupPage() {
             <Pie data={charts.billing} options={legendBottom} />
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
           <div className="mb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Top PIC / Assign To</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">Jumlah kasus ditangani per petugas</p>
@@ -247,16 +263,16 @@ export default function MockupPage() {
             <Bar data={charts.pic} options={axisOpt} />
           </div>
         </div>
-      </div>
+      </Reveal>
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-end gap-3">
+      <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="px-4 sm:px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-end gap-3">
           <div>
             <h3 className="font-bold text-slate-900 dark:text-white">Daftar Kasus Dukungan</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">Klik baris untuk lihat detail lengkap</p>
           </div>
-          <div className="ml-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2 w-full xl:w-auto">
+          <div className="ml-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 w-full xl:w-auto">
             <div className="relative">
               <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -266,26 +282,26 @@ export default function MockupPage() {
                 placeholder="Cari client / pic / issue..."
                 value={filters.kw}
                 onChange={setF('kw')}
-                className="pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                className="pl-9 pr-3 py-2 min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40 w-full bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
               />
             </div>
-            <select value={filters.module} onChange={setF('module')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+            <select value={filters.module} onChange={setF('module')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
               <option value="">Semua Modul</option>
               {modules.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
-            <select value={filters.status} onChange={setF('status')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+            <select value={filters.status} onChange={setF('status')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
               <option value="">Semua Status</option>
               {statuses.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
-            <select value={filters.assign} onChange={setF('assign')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+            <select value={filters.assign} onChange={setF('assign')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
               <option value="">Semua PIC</option>
               {assignees.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
-            <input type="date" value={filters.date} onChange={setF('date')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100" />
+            <input type="date" value={filters.date} onChange={setF('date')} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100" />
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm min-w-[1100px]">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
                 <th className="px-6 py-3 font-semibold">No</th>
@@ -306,7 +322,14 @@ export default function MockupPage() {
               {filtered.map((c) => {
                 const s = statusMeta(c.status);
                 return (
-                  <tr key={c.recordUuid} onClick={() => setDetail(c)} className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-brand-50/50 dark:hover:bg-slate-800 cursor-pointer transition">
+                  <tr
+                    key={c.recordUuid}
+                    onClick={() => setDetail(c)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDetail(c); } }}
+                    tabIndex={0}
+                    title="Tekan Enter untuk lihat detail"
+                    className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-brand-50/50 dark:hover:bg-slate-800 cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/60"
+                  >
                     <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no}</td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
                     <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100">{c.client}</td>
@@ -332,10 +355,10 @@ export default function MockupPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+        <div className="px-4 sm:px-6 py-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
           Menampilkan {filtered.length} dari {cases.length} kasus
         </div>
-      </div>
+      </Reveal>
 
       {detail && <MockupDetailModal item={detail} onClose={() => setDetail(null)} />}
     </div>
@@ -389,7 +412,7 @@ function MockupDetailModal({ item, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col animate-fade-in-fast">
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3">
+        <div className="px-4 sm:px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-lg text-slate-900 dark:text-white">{item.client}</h3>
@@ -397,13 +420,13 @@ function MockupDetailModal({ item, onClose }) {
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{item.issue}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
+          <button onClick={onClose} aria-label="Tutup detail" className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
           {fields.map(([k, v]) => (
             <div key={k}>
               <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{k}</p>
