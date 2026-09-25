@@ -345,7 +345,7 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
           onChange={(e) => { setVal(e.target.value); setErr(''); }}
           className={`${CFG_INPUT} flex-1 !rounded-xl !py-2.5`}
         />
-        <Button varian="primer" kecil type="submit" className="shrink-0">Tambah</Button>
+        <Button variant="primary" size="sm" type="submit" className="shrink-0">Tambah</Button>
       </form>
       {err && <p className="mb-2 text-[11px] font-semibold text-rose-600">{err}</p>}
       <div className="flex flex-wrap gap-1.5 max-h-72 overflow-y-auto scrollbar-thin">
@@ -643,7 +643,7 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
             ? <p className="mt-2 text-xs font-semibold text-rose-600">{err}</p>
             : <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Otomatis UPPERCASE.{suggestions.length > 0 ? ' Ketik untuk mencari dari saran.' : ''}</p>}
           <div className="mt-4 flex justify-end gap-2">
-            <Button varian="teks" type="button" onClick={onClose}>
+            <Button variant="ghost" type="button" onClick={onClose}>
               Batal
             </Button>
             <button type="submit" className="text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 px-5 py-2.5 min-h-[44px] rounded-xl transition">

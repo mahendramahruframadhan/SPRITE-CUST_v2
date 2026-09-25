@@ -15,6 +15,9 @@ import FilterLabel from '../components/FilterLabel.jsx';
 import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
+// Catatan migrasi Task 2: tombol bertema khusus (hero per kategori, kartu
+// kategori gradien, tombol amber/rose, mikro-kontrol baris tabel) disengaja
+// tetap mentah — varian Button tak mencakupnya tanpa override warna.
 import { withViewTransition } from '../hooks/useViewTransitionLocation.js';
 import { useFilters } from '../hooks/useFilters.js';
 
@@ -695,35 +698,38 @@ export default function BillingPage() {
             Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} data
           </span>
           <div className="flex items-center gap-1 ml-auto overflow-x-auto max-w-full scrollbar-thin">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
               aria-label="Halaman sebelumnya"
-              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              className="shrink-0 font-bold disabled:opacity-40"
             >
               ‹
-            </button>
+            </Button>
             {pageNums.map((n) => (
-              <button
+              <Button
                 key={n}
+                variant={n === safePage ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => setPage(n)}
-                className={`shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2 py-1.5 rounded-lg border font-bold transition ${
-                  n === safePage
-                    ? 'bg-brand-600 border-brand-600 text-white'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
+                aria-current={n === safePage ? 'page' : undefined}
+                className="shrink-0 font-bold"
               >
                 {n}
-              </button>
+              </Button>
             ))}
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
               aria-label="Halaman berikutnya"
-              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              className="shrink-0 font-bold disabled:opacity-40"
             >
               ›
-            </button>
+            </Button>
           </div>
           <select
             value={perPage}
@@ -748,11 +754,11 @@ export default function BillingPage() {
                 <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Master Status Validasi</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Kelola opsi status validasi</p>
               </div>
-              <button onClick={() => setMasterOpen(false)} aria-label="Tutup" className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
+              <Button variant="ghost" size="icon" onClick={() => setMasterOpen(false)} aria-label="Tutup" className="shrink-0 hover:text-slate-600 dark:hover:text-slate-300">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </Button>
             </div>
             <div className="px-6 py-4">
               <ul className="divide-y divide-slate-100">
@@ -803,8 +809,8 @@ export default function BillingPage() {
                             {editBusy ? '…' : 'Simpan'}
                           </button>
                           <Button
-                            varian="teks"
-                            kecil
+                            variant="ghost"
+                            size="sm"
                             type="button"
                             disabled={editBusy}
                             onClick={() => { setEditingAction(null); setEditValue(''); setEditErr(''); }}
@@ -868,7 +874,7 @@ export default function BillingPage() {
                   onChange={(e) => setNewAction(e.target.value)}
                   className="flex-1 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
                 />
-                <Button varian="primer" kecil type="submit" className="shrink-0">Tambah</Button>
+                <Button variant="primary" size="sm" type="submit" className="shrink-0">Tambah</Button>
               </form>
             </div>
           </div>

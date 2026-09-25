@@ -768,10 +768,10 @@ export default function RolesPage({ bare = false }) {
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
-                <Button varian="primer" onClick={saveAiForm}>
+                <Button variant="primary" onClick={saveAiForm}>
                   Simpan
                 </Button>
-                <Button varian="teks" onClick={() => { setShowAiForm(false); setAiKeyInput(''); }}>
+                <Button variant="ghost" onClick={() => { setShowAiForm(false); setAiKeyInput(''); }}>
                   Batal
                 </Button>
               </div>
@@ -886,10 +886,10 @@ export default function RolesPage({ bare = false }) {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
-              <Button varian="teks" onClick={() => setModal(null)}>
+              <Button variant="ghost" onClick={() => setModal(null)}>
                 Batal
               </Button>
-              <Button varian="primer" onClick={saveUser} disabled={saving}>
+              <Button variant="primary" onClick={saveUser} disabled={saving}>
                 {saving ? 'Menyimpan…' : 'Simpan'}
               </Button>
             </div>

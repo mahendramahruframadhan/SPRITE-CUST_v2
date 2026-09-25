@@ -158,10 +158,10 @@ export default function FormKasusPage() {
     <div className="page">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button varian="teks" onClick={resetForm}>
+        <Button variant="ghost" onClick={resetForm}>
           Reset
         </Button>
-        <Button varian="primer" onClick={saveForm} disabled={saving}>
+        <Button variant="primary" onClick={saveForm} disabled={saving}>
           <svg className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>

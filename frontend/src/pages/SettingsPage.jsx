@@ -128,7 +128,7 @@ function StatusListManager({ label, hint, items, newVal, onNewVal, onAdd, onDele
           className={`${inputCls} flex-1`}
         />
         <Button
-          varian="primer"
+          variant="primary"
           type="submit"
           disabled={disabled || busy}
           className="shrink-0"
@@ -409,7 +409,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Button
-                    varian="primer"
+                    variant="primary"
                     type="submit"
                     disabled={!canManage || savingProfile}
                   >
@@ -451,7 +451,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Button
-                    varian="primer"
+                    variant="primary"
                     type="submit"
                     disabled={!canManage || savingPw}
                   >
