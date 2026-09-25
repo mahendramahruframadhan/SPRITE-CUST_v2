@@ -10,6 +10,9 @@ import DatePickerInput from '../components/DatePickerInput.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
 import FilterLabel from '../components/FilterLabel.jsx';
 import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
+import { Button } from '../components/ui/Button.jsx';
+// Catatan migrasi Task 2: tombol bertema khusus (hero emerald, badge status
+// invoice, mikro-kontrol baris tabel/PDF) disengaja tetap mentah.
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
@@ -729,12 +732,13 @@ export default function FinanceAuditPage() {
               {loading ? 'Memuat dari backend…' : <>Menampilkan <span className="font-bold text-emerald-600">{filtered.length}</span> dari {validatedPool.length} kasus tervalidasi</>}
             </p>
           </div>
-          <button
+          <Button
+            variant="secondary"
             onClick={resetFilters}
-            className="text-[13px] font-bold text-slate-500 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2 min-h-[44px] rounded-xl transition"
+            className="text-[13px] hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-500/10"
           >
             Reset Filter
-          </button>
+          </Button>
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-full sm:w-[230px]">
