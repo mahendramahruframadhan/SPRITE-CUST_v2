@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { DEFAULT_CONFIG } from '../data/sheetConfig.js';
 import { getConfig, putConfig } from '../lib/api.js';
 import { getJSON, set as storageSet } from '../lib/storage.js';
@@ -41,6 +42,23 @@ const DEFAULT_AGENTS = [
 
 const CFG_INPUT =
   'w-full border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-[3px] focus:ring-brand-500/25 focus:border-brand-400 transition';
+
+// R-31: reveal sekali saat konten masuk viewport + saat ganti tab (key=tab)
+// = orientasi navigasi (MOTION 2). Tanpa cascade delay antar kartu.
+function Reveal({ children, className = '', tabKey }) {
+  return (
+    <motion.div
+      key={tabKey}
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 export default function SheetConfigPage() {
   const [cfg, setCfg] = useState(loadCfg);
@@ -159,9 +177,9 @@ export default function SheetConfigPage() {
   }
 
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-5">
+    <div className="page">
       {/* ===== HERO ===== */}
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#4c1d95] via-[#7c3aed] to-[#a78bfa] text-white shadow-2xl shadow-violet-600/25 animate-fade-in-fast">
+      <Reveal className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#4c1d95] via-[#7c3aed] to-[#a78bfa] text-white shadow-2xl shadow-violet-600/25">
         <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
         <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-fuchsia-300/20 rounded-full blur-3xl" />
         <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center gap-6">
@@ -177,14 +195,14 @@ export default function SheetConfigPage() {
             <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
               Konfigurasi Sheet
             </h1>
-            <p className="mt-2 text-sm text-white/75 max-w-xl leading-relaxed">
+            <p className="mt-2 text-sm text-white/90 max-w-xl leading-relaxed">
               {heroStats.brands} brand · {heroStats.modules} modul · {heroStats.prices} baris pricelist. Setiap perubahan tersimpan otomatis ke browser & backend.
             </p>
           </div>
           <div className="flex flex-wrap lg:flex-col gap-2.5 shrink-0">
             <button
               onClick={exportJSON}
-              className="inline-flex items-center justify-center gap-2 bg-white text-violet-700 text-sm font-extrabold px-4 py-3 rounded-2xl shadow-lg hover:bg-violet-50 transition active:scale-[.98]"
+              className="inline-flex items-center justify-center gap-2 bg-white text-violet-700 text-sm font-extrabold px-4 py-3 min-h-[44px] rounded-2xl shadow-lg hover:bg-violet-50 transition active:scale-[.98]"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -193,7 +211,7 @@ export default function SheetConfigPage() {
             </button>
             <button
               onClick={resetConfig}
-              className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 rounded-2xl transition active:scale-[.98]"
+              className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98]"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -202,7 +220,7 @@ export default function SheetConfigPage() {
             </button>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       {/* Tabs */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm p-2 animate-fade-in-fast">
@@ -213,7 +231,7 @@ export default function SheetConfigPage() {
               role="tab"
               aria-selected={tab === t.id}
               onClick={() => setTab(t.id)}
-              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
+              className={`px-3.5 py-2 min-h-[44px] inline-flex items-center rounded-xl whitespace-nowrap transition text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
                 tab === t.id ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -229,7 +247,7 @@ export default function SheetConfigPage() {
       </div>
 
       {/* Content */}
-      <div>
+      <Reveal tabKey={tab}>
         {tab === 'pricelist' && <TabPricelist cfg={cfg} patch={patch} />}
         {tab === 'brands' && (
           <ListPanel
@@ -243,7 +261,7 @@ export default function SheetConfigPage() {
         )}
         {tab === 'bcmap' && <TabBcMap cfg={cfg} patch={patch} />}
         {tab === 'module' && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <ListPanel title="MODULE" desc="Daftar modul sistem (kolom MODULE di sheet)" arr={cfg.modules} badge="bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20"
               onAdd={(v) => patch((c) => void (!c.modules.includes(v) && (c.modules.push(v), c.modules.sort())), 'Ditambahkan: ' + v)}
               onDel={(i) => patch((c) => c.modules.splice(i, 1), 'Dihapus: ' + cfg.modules[i])} />
@@ -253,7 +271,7 @@ export default function SheetConfigPage() {
           </div>
         )}
         {tab === 'support' && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <ListPanel title="SUPPORT TYPE" desc="Tipe support: TRAVICS!, SUPPORT TYPE - A/B/C, SUPPORT MONTHLY, X00–X13 (kolom SUPPORT TYPE di sheet)" arr={cfg.supportTypes} badge="bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20"
               onAdd={(v) => patch((c) => void (!c.supportTypes.includes(v) && (c.supportTypes.push(v), c.supportTypes.sort())), 'Ditambahkan: ' + v)}
               onDel={(i) => patch((c) => c.supportTypes.splice(i, 1), 'Dihapus: ' + cfg.supportTypes[i])} />
@@ -263,7 +281,7 @@ export default function SheetConfigPage() {
           </div>
         )}
         {tab === 'status' && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <ListPanel title="BILLING STATUS" desc="Status penagihan (kolom BILLING STATUS di sheet)" arr={cfg.billingStatuses} badge="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
               onAdd={(v) => patch((c) => void (!c.billingStatuses.includes(v) && (c.billingStatuses.push(v), c.billingStatuses.sort())), 'Ditambahkan: ' + v)}
               onDel={(i) => patch((c) => c.billingStatuses.splice(i, 1), 'Dihapus: ' + cfg.billingStatuses[i])} />
@@ -273,7 +291,7 @@ export default function SheetConfigPage() {
           </div>
         )}
         {tab === 'channel' && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <ListPanel title="Channel Ticket" desc="Sumber masuknya tiket (kolom Channel Ticket di sheet)" arr={cfg.channels} badge="bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20"
               onAdd={(v) => patch((c) => void (!c.channels.includes(v) && (c.channels.push(v), c.channels.sort())), 'Ditambahkan: ' + v)}
               onDel={(i) => patch((c) => c.channels.splice(i, 1), 'Dihapus: ' + cfg.channels[i])} />
@@ -285,7 +303,7 @@ export default function SheetConfigPage() {
         {tab === 'calendar' && <TabCalendar cfg={cfg} />}
         {tab === 'headers' && <TabHeaders cfg={cfg} />}
         {tab === 'ai' && <TabAi agents={agents} onToggle={toggleAgent} />}
-      </div>
+      </Reveal>
 
       {/* Toast */}
       {toast && (
@@ -302,7 +320,7 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
   const [val, setVal] = useState('');
   const [err, setErr] = useState('');
   return (
-    <div className="card p-5 animate-fade-in-fast">
+    <div className="card p-5">
       <div className="flex items-center justify-between mb-1">
         <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{title}</h3>
         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full px-2.5 py-0.5 tabular-nums">{arr.length} item</span>
@@ -331,7 +349,7 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
           onChange={(e) => { setVal(e.target.value); setErr(''); }}
           className={`${CFG_INPUT} flex-1 !rounded-xl !py-2.5`}
         />
-        <button className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 rounded-xl transition shrink-0">Tambah</button>
+        <button className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 min-h-[44px] rounded-xl transition shrink-0">Tambah</button>
       </form>
       {err && <p className="mb-2 text-[11px] font-semibold text-rose-600">{err}</p>}
       <div className="flex flex-wrap gap-1.5 max-h-72 overflow-y-auto scrollbar-thin">
@@ -341,12 +359,13 @@ function ListPanel({ title, desc, arr, badge = 'bg-slate-50 text-slate-600 borde
             <button
               type="button"
               title="Hapus"
+              aria-label={`Hapus ${v}`}
               onClick={() => {
                 if (confirm(`Hapus "${v}" dari daftar?`)) onDel(i);
               }}
-              className="w-4 h-4 rounded-full text-slate-500 dark:text-slate-400 hover:text-white hover:bg-rose-500 flex items-center justify-center transition"
+              className="w-8 h-8 shrink-0 rounded-full text-slate-500 dark:text-slate-400 hover:text-white hover:bg-rose-500 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
             >
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -367,7 +386,7 @@ function TabPricelist({ cfg, patch }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-4 py-3 text-[11px] text-amber-800 dark:text-amber-400 animate-fade-in-fast">
+      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-4 py-3 text-[11px] text-amber-800 dark:text-amber-400">
         <span className="font-bold">Sesuai sheet:</span> kolom{' '}
         <span className="font-mono">BILLING CATEGORY · TARIFF · SUPPORT TYPE · NOTES (versi)</span>. Tariff dalam Rupiah tanpa
         titik/koma. Versi <span className="font-semibold">PRICELIST - 3 & 4</span> di sheet masih tarif 0 (cadangan kenaikan harga).
@@ -376,17 +395,18 @@ function TabPricelist({ cfg, patch }) {
         const rows = cfg.pricelist.map((p, i) => ({ ...p, _i: i })).filter((p) => p.version === v);
         const maxT = Math.max(...rows.map((r) => r.tariff), 1);
         return (
-          <div key={v} className="card overflow-hidden animate-fade-in-fast">
+          <div key={v} className="card overflow-hidden">
             <div className="px-6 py-4 bg-slate-800 dark:bg-slate-950 text-white flex flex-wrap items-center gap-3 justify-between">
               <div>
                 <h3 className="font-extrabold text-sm tracking-tight">{v}</h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{rows.length} billing category</p>
               </div>
-              <button onClick={() => setAddingVersion(v)} className="text-xs font-bold bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition">
+              <button onClick={() => setAddingVersion(v)} className="text-xs font-bold bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 min-h-[44px] transition">
                 + Tambah Baris
               </button>
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full text-sm min-w-[720px]">
               <thead>
                 <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <th className="px-6 py-2.5 text-left">Billing Category</th>
@@ -440,8 +460,9 @@ function TabPricelist({ cfg, patch }) {
                           if (confirm(`Hapus "${p.billingCategory}" dari ${p.version}?`))
                             patch((c) => c.pricelist.splice(p._i, 1), 'Baris dihapus');
                         }}
-                        className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 transition"
+                        className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
                         title="Hapus baris"
+                        aria-label={`Hapus ${p.billingCategory}`}
                       >
                         <TrashIcon />
                       </button>
@@ -450,6 +471,7 @@ function TabPricelist({ cfg, patch }) {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         );
       })}
@@ -482,17 +504,18 @@ function TabBcMap({ cfg, patch }) {
   }, [cfg]);
 
   return (
-    <div className="card overflow-hidden animate-fade-in-fast">
-      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
+    <div className="card overflow-hidden">
+      <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
         <div>
           <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">Mapping BILLING CATEGORY → SUPPORT TYPE</h3>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">Sesuai 2 kolom pertama di sheet — menentukan tipe support otomatis dari kategori billing</p>
         </div>
-        <button onClick={() => setAddingBc(true)} className="text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl px-3 py-2 transition">
+        <button onClick={() => setAddingBc(true)} className="text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl px-3 py-2 min-h-[44px] transition">
           + Tambah Mapping
         </button>
       </div>
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto scrollbar-thin">
+      <table className="w-full text-sm min-w-[560px]">
         <thead>
           <tr className="bg-slate-50/80 dark:bg-slate-800/70 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
             <th className="px-6 py-2.5 text-left">Billing Category</th>
@@ -525,16 +548,18 @@ function TabBcMap({ cfg, patch }) {
                     if (confirm(`Hapus mapping "${b.billingCategory}"?`))
                       patch((c) => c.billingCategoryMap.splice(i, 1), 'Mapping dihapus');
                   }}
-                  className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-500 dark:text-slate-400 hover:text-rose-500 transition"
+                  aria-label={`Hapus mapping ${b.billingCategory}`}
+                  className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
                 >
                   <TrashIcon />
                 </button>
               </td>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {addingBc && (
+            ))}
+          </tbody>
+        </table>
+        </div>
+        {addingBc && (
         <PromptModal
           title="Tambah Mapping"
           desc="Pasangan billing category baru dengan support type default C."
@@ -591,7 +616,7 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
             onChange={(e) => { setVal(e.target.value); setErr(''); }}
             list={suggestions.length ? listId : undefined}
             placeholder={placeholder}
-            className="w-full border-2 border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
+            className="w-full min-h-[44px] border-2 border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
           />
           {suggestions.length > 0 && (
             <datalist id={listId}>
@@ -604,10 +629,10 @@ function PromptModal({ title, desc, placeholder, suggestions = [], submitLabel =
             ? <p className="mt-2 text-xs font-semibold text-rose-600">{err}</p>
             : <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Otomatis UPPERCASE.{suggestions.length > 0 ? ' Ketik untuk mencari dari saran.' : ''}</p>}
           <div className="mt-4 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-100 px-4 py-2.5 rounded-xl transition">
+            <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-100 px-4 py-2.5 min-h-[44px] rounded-xl transition">
               Batal
             </button>
-            <button type="submit" className="text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 px-5 py-2.5 rounded-xl transition">
+            <button type="submit" className="text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 px-5 py-2.5 min-h-[44px] rounded-xl transition">
               {submitLabel}
             </button>
           </div>
@@ -642,7 +667,7 @@ function RoTable({ title, desc, head, children }) {
 function TabCalendar({ cfg }) {
   return (
     <div className="space-y-5">
-      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 animate-fade-in-fast">
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
         </svg>
@@ -700,7 +725,7 @@ function TabCalendar({ cfg }) {
 function TabHeaders({ cfg }) {
   return (
     <div className="space-y-5">
-      <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3 text-[11px] text-rose-700 dark:text-rose-400 flex items-center gap-2 animate-fade-in-fast">
+      <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3 text-[11px] text-rose-700 dark:text-rose-400 flex items-center gap-2">
         <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
@@ -708,8 +733,8 @@ function TabHeaders({ cfg }) {
           <span className="font-bold">KRITIS UNTUK BACKEND — TERKUNCI.</span> Tabel ini adalah mapping kolom sheet master (HEADER NAME → COL NO → DEF_HEADERS_NAME). Jangan diubah tanpa koordinasi dengan backend agar sinkronisasi tidak rusak.
         </span>
       </div>
-      <div className="card overflow-hidden animate-fade-in-fast">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
+      <div className="card overflow-hidden">
+        <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div>
             <h3 className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">Mapping Kolom Sheet Master ({cfg.headerMapping.length} kolom)</h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">HEADER NAME (nama internal) · COL NO (posisi kolom) · DEF_HEADERS_NAME (judul tampilan)</p>
@@ -721,8 +746,8 @@ function TabHeaders({ cfg }) {
             READ-ONLY
           </span>
         </div>
-        <div className="overflow-y-auto scrollbar-thin max-h-[520px]">
-          <table className="w-full text-sm">
+        <div className="overflow-auto scrollbar-thin max-h-[520px]">
+          <table className="w-full text-sm min-w-[560px]">
             <thead className="sticky top-0">
               <tr className="bg-slate-50 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                 <th className="px-6 py-2.5 text-left bg-slate-50 dark:bg-slate-800">Header Name</th>
@@ -751,16 +776,18 @@ function TabAi({ agents, onToggle }) {
   const onCount = agents.filter((a) => a.enabled).length;
   return (
     <div className="space-y-4">
-      <div className="bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-xl px-4 py-3 text-[11px] text-brand-800 dark:text-brand-300 animate-fade-in-fast">
+      <div className="bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-xl px-4 py-3 text-[11px] text-brand-800 dark:text-brand-300">
         <span className="font-bold">{onCount}/{agents.length} agent aktif.</span> Toggle tersimpan otomatis ke backend.
         Koneksi API key diatur di <span className="font-bold">Hak Akses → AI & API Key</span>.
       </div>
       {agents.map((a) => (
-        <div key={a.id} className="card p-5 flex items-center gap-4 animate-fade-in-fast">
+        <div key={a.id} className="card p-5 flex items-center gap-4">
           <button
             onClick={() => onToggle(a.id)}
             title={a.enabled ? 'Nonaktifkan' : 'Aktifkan'}
-            className={`relative w-12 h-7 rounded-full transition shrink-0 ${a.enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
+            aria-label={`${a.enabled ? 'Nonaktifkan' : 'Aktifkan'} ${a.name}`}
+            aria-pressed={a.enabled}
+            className={`relative w-12 h-7 rounded-full transition shrink-0 ${a.enabled ? 'bg-emerald-500' : 'bg-slate-300'} before:absolute before:-inset-3 before:content-[""] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60`}
           >
             <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${a.enabled ? 'left-6' : 'left-1'}`} />
           </button>
