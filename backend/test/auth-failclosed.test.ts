@@ -16,6 +16,7 @@ import { AuthController } from '../src/auth/auth.controller.ts';
 import { SetupController } from '../src/setup/setup.controller.ts';
 import { createSession } from '../src/auth/session.ts';
 import { validateConfig } from '../src/config/validate.ts';
+import { normalizeAiBaseUrl } from '../src/ai/ai.controller.ts';
 import { resolveWho, logActivity } from '../src/logs/activity.ts';
 
 const uniq = () => Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
@@ -116,5 +117,32 @@ describe('auth fail-closed + atribusi log (Task 3)', () => {
     else process.env.NODE_ENV = previousNodeEnv;
     if (previousSetupToken === undefined) delete process.env.SETUP_TOKEN;
     else process.env.SETUP_TOKEN = previousSetupToken;
+  });
+
+  it('production boot gagal dengan URL database yang bukan PostgreSQL', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousSetupToken = process.env.SETUP_TOKEN;
+    const previousDatabaseUrl = process.env.DATABASE_URL;
+    process.env.NODE_ENV = 'production';
+    process.env.SETUP_TOKEN = 'setup-token-test-12345678901234567890';
+    process.env.DATABASE_URL = 'mysql://localhost:3306/sprite';
+    assert.throws(() => validateConfig(), /DATABASE_URL/);
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousSetupToken === undefined) delete process.env.SETUP_TOKEN;
+    else process.env.SETUP_TOKEN = previousSetupToken;
+    if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = previousDatabaseUrl;
+  });
+
+  it('AI base URL hanya menerima HTTPS host yang diizinkan', () => {
+    const previousAllowedHosts = process.env.AI_ALLOWED_HOSTS;
+    process.env.AI_ALLOWED_HOSTS = 'api.openai.com';
+    assert.equal(normalizeAiBaseUrl('https://api.openai.com/v1/'), 'https://api.openai.com/v1');
+    assert.equal(normalizeAiBaseUrl('http://api.openai.com/v1'), null);
+    assert.equal(normalizeAiBaseUrl('https://127.0.0.1/v1'), null);
+    assert.equal(normalizeAiBaseUrl('https://internal.example/v1'), null);
+    if (previousAllowedHosts === undefined) delete process.env.AI_ALLOWED_HOSTS;
+    else process.env.AI_ALLOWED_HOSTS = previousAllowedHosts;
   });
 });

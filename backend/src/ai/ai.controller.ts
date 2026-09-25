@@ -1,8 +1,52 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, HttpException, HttpStatus } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { SessionGuard } from '../auth/session.guard';
 
 export const maskKey = (k: string) => (!k ? '' : k.length <= 4 ? '••••' : `••••${k.slice(-4)}`);
+
+const AI_MAX_REQUESTS_PER_MINUTE = Math.max(1, Number(process.env.AI_MAX_REQUESTS_PER_MINUTE || 10));
+const AI_MAX_MESSAGES = 8;
+const AI_MAX_MESSAGE_CHARS = 2000;
+const aiHits = new Map<string, number[]>();
+
+const isPrivateHost = (hostname: string): boolean => {
+  const host = hostname.toLowerCase();
+  return host === 'localhost' || host === '::1' || host === '[::1]' || host.endsWith('.local') ||
+    /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+};
+
+const allowedAiHosts = (): Set<string> => new Set(
+  String(process.env.AI_ALLOWED_HOSTS || 'api.openai.com')
+    .split(',')
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+export const normalizeAiBaseUrl = (value: any): string | null => {
+  const raw = String(value || 'https://api.openai.com/v1').trim().replace(/\/$/, '');
+  try {
+    const parsed = new URL(raw);
+    const hostname = parsed.hostname.toLowerCase();
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.search || parsed.hash) return null;
+    if (parsed.port && parsed.port !== '443') return null;
+    if (isPrivateHost(hostname) || !allowedAiHosts().has(hostname)) return null;
+    return raw;
+  } catch {
+    return null;
+  }
+};
+
+const consumeAiQuota = (key: string): boolean => {
+  const now = Date.now();
+  const hits = (aiHits.get(key) || []).filter((time) => now - time < 60_000);
+  if (hits.length >= AI_MAX_REQUESTS_PER_MINUTE) {
+    aiHits.set(key, hits);
+    return false;
+  }
+  hits.push(now);
+  aiHits.set(key, hits);
+  return true;
+};
 
 // Konfigurasi SPRITE AI — asisten resmi project SPRITE-CUST_v2 (diatur pemilik,
 // abaikan bila sudah diimplementasikan). Aturan: HANYA jawab seputar project
@@ -116,17 +160,29 @@ export class AiController {
   // token + status aktif), tanpa cek modul agar semua role bisa memakai.
   @Post('chat')
   @UseGuards(SessionGuard)
-  async chat(@Body() body: any) {
+  async chat(@Body() body: any, @Req() req: any) {
+    const rawMessages = Array.isArray(body.messages) ? body.messages.slice(-AI_MAX_MESSAGES) : [];
+    if (!rawMessages.length) return { ok: false, error: 'messages kosong' };
+    if (rawMessages.some((message: any) => String(message?.content || '').length > AI_MAX_MESSAGE_CHARS)) {
+      return { ok: false, error: `Setiap pesan maksimal ${AI_MAX_MESSAGE_CHARS} karakter.` };
+    }
+
+    const quotaKey = String(req?.user?.id || req?.ip || req?.socket?.remoteAddress || 'unknown');
+    if (!consumeAiQuota(quotaKey)) {
+      throw new HttpException({ code: 'AI_RATE_LIMITED', message: 'Terlalu banyak permintaan AI. Coba lagi sebentar.' }, HttpStatus.TOO_MANY_REQUESTS);
+    }
 
     const cfg = await this.pickConnection(body.connectionId);
     const apiKey = String(cfg?.apiKey || '');
     if (!cfg || !apiKey) {
       return { ok: false, error: 'Tidak ada AI aktif — daftarkan & aktifkan di /roles → AI & API Key' };
     }
-    const baseURL = String(cfg.baseURL || 'https://api.openai.com/v1').replace(/\/$/, '');
+    const baseURL = normalizeAiBaseUrl(cfg.baseURL);
+    if (!baseURL) {
+      return { ok: false, error: 'Provider AI tidak diizinkan.' };
+    }
     const model = String(cfg.model || 'gpt-4o-mini');
-    const msgs = Array.isArray(body.messages) ? body.messages.slice(-8) : [];
-    if (!msgs.length) return { ok: false, error: 'messages kosong' };
+    const msgs = rawMessages;
 
     // Konteks ringkas data agar AI bisa jawab soal kasus & tagihan (query cepat)
     let snapshot = '';

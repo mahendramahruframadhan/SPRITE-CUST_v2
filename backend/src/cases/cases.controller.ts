@@ -3,7 +3,9 @@ import { CasesService } from './cases.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { getDb } from '../db/drizzle.service';
 import { logActivity, resolveWho } from '../logs/activity';
+import { SessionGuard } from '../auth/session.guard';
 
+@UseGuards(SessionGuard)
 @Controller('cases')
 export class CasesController {
   constructor(private cases: CasesService) {}
@@ -32,7 +34,7 @@ export class CasesController {
     try {
       const row = await this.cases.create(body);
       await logActivity(getDb(), {
-        who: await resolveWho(getDb(), req, body.who),
+        who: await resolveWho(getDb(), req),
         action: `menambah kasus baru (${row.client})`,
         category: 'Penambahan',
         detail: String(row.issue || '').slice(0, 200),
@@ -40,7 +42,8 @@ export class CasesController {
       });
       return { ok: true, data: row };
     } catch (e: any) {
-      throw new HttpException(e.message || 'Create failed', 400);
+      if (e instanceof HttpException) throw e;
+      throw new HttpException({ code: 'CASE_CREATE_FAILED', message: e.message || 'Create failed' }, 400);
     }
   }
 }

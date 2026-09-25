@@ -18,7 +18,7 @@ export async function initDb() {
   const db: any = getDb();
   const mem = getMemDb();
   const url = process.env.DATABASE_URL || '';
-  const isRealPg = url.startsWith('postgres');
+  const isRealPg = /^postgres(?:ql)?:\/\//.test(url);
 
   // DDL — create tables if not exists (works for both pg-mem and real PG)
   const ddl = `

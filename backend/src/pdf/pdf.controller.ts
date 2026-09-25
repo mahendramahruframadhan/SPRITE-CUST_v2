@@ -3,9 +3,9 @@ import { PdfService } from './pdf.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { getDb } from '../db/drizzle.service';
 import { resolveWho } from '../logs/activity';
+import { SessionGuard } from '../auth/session.guard';
 
-// API PDF invoice (R2 presigned URL). Tulis dijaga modul finance;
-// baca daftar per kasus sengaja terbuka seperti GET lain (lihat PermGuard).
+@UseGuards(SessionGuard)
 @Controller()
 export class PdfController {
   private db: any = getDb();
@@ -17,7 +17,7 @@ export class PdfController {
   async uploadUrl(@Body() b: any, @Req() req: any) {
     return this.pdf.createUploadUrl(
       String(b.recordUuid || ''), String(b.filename || ''), Number(b.sizeBytes) || 0,
-      await resolveWho(this.db, req, b.who),
+      await resolveWho(this.db, req),
     );
   }
 
@@ -25,7 +25,7 @@ export class PdfController {
   @UseGuards(PermGuard)
   @Perm('finance')
   async confirm(@Body() b: any, @Req() req: any) {
-    return this.pdf.confirmUpload(String(b.id || ''), await resolveWho(this.db, req, b.who));
+    return this.pdf.confirmUpload(String(b.id || ''), await resolveWho(this.db, req));
   }
 
   @Get('pdf/by-case/:uuid')
@@ -58,6 +58,6 @@ export class PdfController {
   @UseGuards(PermGuard)
   @Perm('finance')
   async remove(@Param('id') id: string, @Req() req: any, @Body() b: any) {
-    return this.pdf.remove(id, await resolveWho(this.db, req, b?.who));
+    return this.pdf.remove(id, await resolveWho(this.db, req));
   }
 }

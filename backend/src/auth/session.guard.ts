@@ -12,6 +12,7 @@ export class SessionGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest();
     const u: any = await resolveSessionUser(this.db, req);
     if (!u) throw new UnauthorizedException({ code: 'SESSION_EXPIRED', message: 'Sesi berakhir — silakan login lagi.' });
+    req.user = u;
     return true;
   }
 }

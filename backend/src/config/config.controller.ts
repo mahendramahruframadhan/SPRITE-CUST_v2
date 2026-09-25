@@ -1,10 +1,12 @@
-import { Controller, Get, Put, Patch, Body, Query, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Put, Patch, Body, Query, UseGuards, BadRequestException, ForbiddenException, Req } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { esc } from '../db/sql';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { maskKey } from '../ai/ai.controller';
 import * as fs from 'fs';
 import * as path from 'path';
+import { SessionGuard } from '../auth/session.guard';
+import { resolveSessionUser } from '../auth/session';
 
 const cleanKey = (k: any) => String(k || 'sheetConfig').replace(/[^a-zA-Z0-9_]/g, '') || 'sheetConfig';
 
@@ -29,6 +31,7 @@ const cleanStatusList = (arr: any, fallback: string[]) => {
   return out.length ? out : [...fallback];
 };
 
+@UseGuards(SessionGuard)
 @Controller('config')
 export class ConfigController {
   private db: any = getDb();
@@ -67,9 +70,15 @@ export class ConfigController {
   @Put()
   @UseGuards(PermGuard)
   @Perm('cfg')
-  async put(@Body() body:any){
+  async put(@Body() body:any, @Req() req: any){
     const k = cleanKey(body.key);
     const incoming = body.config || body;
+    if (k === 'aiConfig' || k === 'aiConnections') {
+      const u = await resolveSessionUser(this.db, req);
+      if (u?.role !== 'Super Admin') {
+        throw new ForbiddenException({ code: 'AI_CONFIG_FORBIDDEN', message: 'Hanya Super Admin yang dapat mengubah konfigurasi AI.' });
+      }
+    }
     // key kosong/mask = tidak diubah (jangan timpa key asli dengan ••••)
     if (k === 'aiConfig' && (!incoming.apiKey || String(incoming.apiKey).startsWith('••••'))) {
       try {

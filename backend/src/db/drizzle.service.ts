@@ -11,7 +11,11 @@ let _mem: any = null;
 export function getDb() {
   if (_db) return _db;
   const url = process.env.DATABASE_URL || '';
-  const isRealPg = url.startsWith('postgres');
+  const isRealPg = /^postgres(?:ql)?:\/\//.test(url);
+  const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+  if (isProduction && !isRealPg) {
+    throw new Error('DATABASE_URL production harus memakai postgresql:// atau postgres://.');
+  }
   if (isRealPg) {
     const pool = new Pool({ connectionString: url });
     _db = drizzlePg(pool, { schema: schema as any });

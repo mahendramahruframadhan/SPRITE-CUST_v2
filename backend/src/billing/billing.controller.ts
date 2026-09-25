@@ -3,7 +3,9 @@ import { getDb } from '../db/drizzle.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { logActivity, resolveWho, caseLabel } from '../logs/activity';
 import { esc } from '../db/sql';
+import { SessionGuard } from '../auth/session.guard';
 
+@UseGuards(SessionGuard)
 @Controller()
 export class BillingController {
   private db: any = getDb();
@@ -55,7 +57,7 @@ export class BillingController {
     const action = body.action || body.status;
     if (!action) return { ok:false, error:'action required' };
     await this.db.execute(`INSERT INTO audit_status (record_uuid,action,updated_at) VALUES ('${esc(uuid)}','${esc(action)}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET action=EXCLUDED.action, updated_at=EXCLUDED.updated_at` as any);
-    await logActivity(this.db, { who: await resolveWho(this.db, req, body.who), action: `mengubah status validasi ${await caseLabel(this.db, uuid)}`, category: 'Validasi', detail: `menjadi ${action}`, recordUuid: uuid });
+    await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status validasi ${await caseLabel(this.db, uuid)}`, category: 'Validasi', detail: `menjadi ${action}`, recordUuid: uuid });
     return { ok:true, recordUuid: uuid, action };
   }
   @Patch('cases/:uuid/invoice')
@@ -74,7 +76,7 @@ export class BillingController {
     if (canon === 'MENUNGGU INVOICE') {
       throw new HttpException({ code: 'INVOICE_AUTO_LOCKED', message: `Status "${status}" diatur otomatis oleh sistem (upload/hapus PDF) — tidak bisa diubah manual.` }, 422);
     }
-    const who = await resolveWho(this.db, req, body.who);
+    const who = await resolveWho(this.db, req);
     const cur: any = await this.db.execute(`SELECT status FROM invoice_status WHERE record_uuid='${esc(uuid)}' LIMIT 1` as any);
     const curStatus = String((cur.rows || cur)[0]?.status || 'MENUNGGU INVOICE').toUpperCase();
     if (canon === 'DIKIRIM') {
@@ -117,7 +119,7 @@ export class BillingController {
     }
     await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(uuid)}','${esc(status)}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);
     const invNo = String(body.invoiceNo || body.no || '').trim();
-    await logActivity(this.db, { who: await resolveWho(this.db, req, body.who), action: `mengubah status invoice ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `menjadi ${status}${invNo ? ` • no. invoice ${invNo}` : ''}`, recordUuid: uuid });
+    await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status invoice ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `menjadi ${status}${invNo ? ` • no. invoice ${invNo}` : ''}`, recordUuid: uuid });
     return { ok:true, recordUuid: uuid, status };
   }
 }

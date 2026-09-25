@@ -148,7 +148,7 @@ export class SheetsService {
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: SHEET_ID,
         range: 'Data!A:ZZ',
-        valueInputOption: 'USER_ENTERED',
+        valueInputOption: 'RAW',
         requestBody: { values },
       });
       return true;

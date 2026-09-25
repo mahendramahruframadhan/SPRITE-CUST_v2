@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { esc } from '../db/sql';
 import { SheetsService } from '../sheets/sheets.service';
@@ -83,7 +83,10 @@ export class CasesService {
       charges: Number(body.charges)||0, completionNotes: body.completionNotes || '', groupKpi: body.groupKpi || '', groupKpiDesc: body.groupKpiDesc || '', month: body.month || '', weeknum: body.weeknum || '',
     };
     if (!row.client || !row.issue || !row.dateIssue) throw new Error('client, issue, dateIssue required');
-    await this.sheets.appendCase(row);
+    const appended = await this.sheets.appendCase(row);
+    if (!appended) {
+      throw new HttpException({ code: 'SHEETS_WRITE_FAILED', message: 'Kasus gagal disimpan ke Google Sheets.' }, HttpStatus.BAD_GATEWAY);
+    }
     await this.db.execute(`INSERT INTO assistance_records (record_uuid,no,date_issue,start_date,finish_date,client,pic_name,module,sub_module,location,issue,assign_to,status,support_category,billing_status,billing_category,ref_price_list,channel_ticket,support_type,charges,completion_notes,group_kpi,group_kpi_desc,month,weeknum,updated_at) VALUES ('${esc(row.recordUuid)}','${esc(row.no)}','${esc(row.dateIssue)}','${esc(row.startDate)}','${esc(row.finishDate)}','${esc(row.client)}','${esc(row.picName)}','${esc(row.module)}','${esc(row.subModule)}','${esc(row.location)}','${esc(row.issue)}','${esc(row.assignTo)}','${esc(row.status)}','${esc(row.supportCategory)}','${esc(row.billingStatus)}','${esc(row.billingCategory)}','${esc(row.refPriceList)}','${esc(row.channelTicket)}','${esc(row.supportType)}',${Number(row.charges) || 0},'${esc(row.completionNotes)}','${esc(row.groupKpi)}','${esc(row.groupKpiDesc)}','${esc(row.month)}','${esc(row.weeknum)}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET client=EXCLUDED.client, issue=EXCLUDED.issue, updated_at=EXCLUDED.updated_at` as any);
     return row;
   }

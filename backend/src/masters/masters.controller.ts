@@ -1,7 +1,9 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { SessionGuard } from '../auth/session.guard';
 
+@UseGuards(SessionGuard)
 @Controller('masters')
 export class MastersController {
   @Get()

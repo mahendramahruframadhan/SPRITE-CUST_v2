@@ -4,6 +4,7 @@ import { esc } from '../db/sql';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { logActivity, resolveWho } from '../logs/activity';
 import { hashPassword } from '../auth/password';
+import { SessionGuard } from '../auth/session.guard';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'finance', 'mockup', 'roles', 'logs', 'settings'];
@@ -12,6 +13,7 @@ const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'fi
 // GET (baca) sengaja terbuka; hanya method tulis yang dijaga PermGuard.
 // (class-level guard dihapus: dulu GET roles/permissions ikut 403 untuk
 // role tanpa izin 'roles', merusak alur login frontend.)
+@UseGuards(SessionGuard)
 @Controller()
 export class RolesController {
   private db: any = getDb();
@@ -105,7 +107,7 @@ export class RolesController {
   @Post('roles/logs')
   async addLog(@Body() b: any, @Req() req: any) {
     if (!b.action) return { ok: false, error: 'action required' };
-    const who = b.who || (await resolveWho(this.db, req, ''));
+    const who = await resolveWho(this.db, req);
     await logActivity(this.db, { who, action: b.action, category: b.category, detail: b.detail, recordUuid: b.recordUuid || b.record_uuid });
     return { ok: true };
   }

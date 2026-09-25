@@ -9,6 +9,7 @@ import { expiryState, fmtDateID } from '../utils/contract.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { usePermissions } from '../hooks/usePermissions.js';
 import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
 import { billingTone, invLabel } from '../utils/tones.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
@@ -93,6 +94,7 @@ export default function DashboardPage() {
 
   // Palet chart terpusat (lib/chartPalette.js) mengikuti tema terang/gelap
   const { theme } = useTheme();
+  const { can } = usePermissions();
   const dark = theme === 'dark';
   const t = chartTheme(dark);
   const gridOpt = { color: t.grid };
@@ -426,17 +428,19 @@ export default function DashboardPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white">Sinkronisasi</p>
               <p className="mt-1 text-sm font-bold">{lastSync ? `Terakhir: ${lastSync}` : 'Belum pernah sinkron sesi ini'}</p>
               <div className="mt-4 grid grid-cols-1 gap-2.5">
-                <Button
-                  variant="primary"
-                  onClick={syncAndReload}
-                  disabled={syncing}
-                  className="gap-2.5 bg-white text-brand-700 font-extrabold rounded-2xl shadow-lg hover:bg-brand-50 hover:shadow-xl active:scale-[.98] disabled:opacity-70 focus-visible:ring-white/80"
-                >
-                  <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                  </svg>
-                  {!syncing ? 'Sinkron & Muat Ulang' : syncStage === 'sync' ? '1/2 Sinkron Sheets…' : '2/2 Memuat Data…'}
-                </Button>
+                {can('roles') && (
+                  <Button
+                    variant="primary"
+                    onClick={syncAndReload}
+                    disabled={syncing}
+                    className="gap-2.5 bg-white text-brand-700 font-extrabold rounded-2xl shadow-lg hover:bg-brand-50 hover:shadow-xl active:scale-[.98] disabled:opacity-70 focus-visible:ring-white/80"
+                  >
+                    <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v.001M2.985 19.644l4.992-4.992m0 0L12.969 4.5l4.992 4.992m-4.992-4.992v14.99M7.978 14.99H2.985m0 0L7.977 10m-4.992 4.99L2.985 19.644" />
+                    </svg>
+                    {!syncing ? 'Sinkron & Muat Ulang' : syncStage === 'sync' ? '1/2 Sinkron Sheets…' : '2/2 Memuat Data…'}
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   onClick={refresh}

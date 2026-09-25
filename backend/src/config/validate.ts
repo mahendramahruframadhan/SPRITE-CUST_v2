@@ -37,7 +37,11 @@ export function validateConfig(): void {
 
   // --- Peringatan: DATABASE_URL bukan postgres & bukan kosong (fallback pg-mem tak disengaja) ---
   const url = e.DATABASE_URL || '';
-  if (url && !url.startsWith('postgres')) {
+  const validPostgresUrl = /^postgres(?:ql)?:\/\//.test(url);
+  if (production && !validPostgresUrl) {
+    throw new Error('DATABASE_URL production harus memakai postgresql:// atau postgres://.');
+  }
+  if (!production && url && !validPostgresUrl) {
     log.warn('DATABASE_URL tidak diawali "postgres" — backend memakai pg-mem (data hilang saat restart). Kosongkan untuk sengaja, atau isi postgresql:// untuk persisten.');
   }
 }
