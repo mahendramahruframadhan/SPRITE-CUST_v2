@@ -398,8 +398,8 @@ export default function HrReportPage() {
                 )}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-800 text-white text-sm">
-                  <td className="px-4 py-3 font-extrabold sticky left-0 bg-slate-800">TOTAL KESELURUHAN</td>
+                <tr className="bg-slate-800 dark:bg-slate-950 text-white text-sm">
+                  <td className="px-4 py-3 font-extrabold sticky left-0 bg-slate-800 dark:bg-slate-950">TOTAL KESELURUHAN</td>
                   {KPI_COLS.map((k) => (
                     <td key={k} className="px-3 py-3 text-center font-bold">{grand[k]}</td>
                   ))}
