@@ -1,24 +1,40 @@
 // Halaman Client & Brand, versi elegan untuk tim finance (frontend-only).
 // Design Read: halaman admin operasional untuk tim Revota, bahasa Linear-clean,
-// dial ENERGY 2 / RHYTHM 2 / MOTION 1 (lihat DESIGN.md).
+// dial ENERGY 2 / RHYTHM 2 / MOTION 2 (lihat DESIGN.md, naik saat revamp 2026-09).
 // Alasan (R-31): hero gradien indigo ke ungu adalah identitas brand Revota (R-01);
 // kartu metrik identik + hover-lift karena perbandingan setara (R-14, motif DESIGN.md);
 // badge kapsul hanya status fungsional Monthly/Free/Expired (R-09);
 // baris hanya untuk baca: ketuk baris mana pun membuka modal detail berisi
 // detail + Update + Hapus, satu pola untuk Monthly dan Free (R-31: satu titik
 // aksi, tanpa menu tambahan); form ubah tinggal di dalam modal;
-// satu animasi mount tanpa cascade delay (R-19, MOTION 1).
+// satu reveal per grup tanpa cascade delay (R-19, MOTION 2).
 // Context7 react: form terkontrol + useMemo (react/docs); Tailwind mobile-first
 // grid + dark: variant (tailwindcss/docs); pola cegah duplikat per daftar.
 // TODO(backend): sambungkan useClientBrands ke API saat backend siap.
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { useClientBrands } from '../hooks/useClientBrands.js';
 import { daysLeft, expiryState, fmtDateID } from '../utils/contract.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const INPUT_CLS =
-  'w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
+  'w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
+
+// R-31: reveal sekali saat grup masuk viewport = orientasi scroll (MOTION 2).
+function Reveal({ children, className = '' }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-48px' }}
+      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 const TABS = [
   { id: 'MONTHLY', label: 'Monthly' },
@@ -240,14 +256,14 @@ export default function ClientBrandPage() {
   }
 
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 md:px-5 py-5 space-y-4">
+    <div className="page">
       {!ready && (
         <div aria-busy="true" aria-label="Memuat data brand" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 text-center">
           <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 animate-pulse">Memuat data brand...</p>
         </div>
       )}
       {/* Hero identitas brand: gradien indigo ke ungu (R-01, alasan = brand Revota) */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#4a4fe9] to-[#7c3aed] p-5 sm:p-6 text-white animate-fade-in-fast">
+      <Reveal className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#4a4fe9] to-[#7c3aed] p-5 sm:p-6 text-white">
         <div className="relative flex flex-wrap items-end gap-4">
           <div className="min-w-0 flex-1 basis-56">
             <p className="text-[10px] font-bold uppercase tracking-wider text-white">Kontrak brand</p>
@@ -269,7 +285,7 @@ export default function ClientBrandPage() {
             </div>
           </dl>
         </div>
-      </section>
+      </Reveal>
 
       {/* Tambah cepat */}
       <form
@@ -370,7 +386,7 @@ export default function ClientBrandPage() {
       </div>
 
       {/* Dua daftar: monthly dan free, urut expired terdekat */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <Reveal className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <section aria-label="Support Monthly" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition">
           <header className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
             <div>
@@ -384,7 +400,7 @@ export default function ClientBrandPage() {
           {monthly.length === 0 ? (
             <p className="px-4 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada. Ketik nama lalu Tambah ke Monthly.</p>
           ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto scrollbar-thin">
               {monthly.map((it) => <MonthlyRow key={it.id} item={it} />)}
             </ul>
           )}
@@ -406,12 +422,12 @@ export default function ClientBrandPage() {
           {gratis.length === 0 ? (
             <p className="px-4 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada. Pilih Free Maintenance dan isi tanggal expired.</p>
           ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto scrollbar-thin">
               {gratis.map((it) => <FreeRow key={it.id} item={it} />)}
             </ul>
           )}
         </section>
-      </div>
+      </Reveal>
 
       <p className="text-[11px] text-slate-500 dark:text-slate-400">Tersimpan otomatis di browser ini. Backend disambungkan nanti tanpa mengubah tampilan.</p>
 
