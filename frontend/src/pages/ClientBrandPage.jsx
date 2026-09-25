@@ -295,7 +295,7 @@ export default function ClientBrandPage() {
           <span id="cb-type-label" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Masuk ke</span>
           <div className="flex mt-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 p-1 gap-1" role="group" aria-labelledby="cb-type-label">
             {TABS.map((t) => (
-              {/* eslint-disable-next-line react/forbid-elements -- segmented control kustom dengan status aktif */}
+              /* eslint-disable-next-line react/forbid-elements -- segmented control kustom dengan status aktif */
               <button
                 key={t.id}
                 type="button"
