@@ -249,33 +249,38 @@ export default function LogsPage({ bare = false }) {
             Menampilkan {items.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, items.length)} dari {items.length} aktivitas
           </span>
           <div className="flex items-center gap-1 ml-auto overflow-x-auto max-w-full scrollbar-thin">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
               aria-label="Halaman sebelumnya"
-              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              className="shrink-0 font-bold disabled:opacity-40"
             >
               ‹
-            </button>
+            </Button>
             {pageNums.map((n) => (
-              <button
+              <Button
                 key={n}
+                variant={n === safePage ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => setPage(n)}
-                className={`shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2 py-1.5 rounded-lg border font-bold transition ${
-                  n === safePage ? 'bg-brand-600 border-brand-600 text-white' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
+                aria-current={n === safePage ? 'page' : undefined}
+                className="shrink-0 font-bold"
               >
                 {n}
-              </button>
+              </Button>
             ))}
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
               aria-label="Halaman berikutnya"
-              className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              className="shrink-0 font-bold disabled:opacity-40"
             >
               ›
-            </button>
+            </Button>
           </div>
           <select
             value={perPage}
