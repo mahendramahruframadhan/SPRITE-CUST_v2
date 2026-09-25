@@ -12,7 +12,7 @@
 // grid + dark: variant (tailwindcss/docs); pola cegah duplikat per daftar.
 // TODO(backend): sambungkan useClientBrands ke API saat backend siap.
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { useClientBrands } from '../hooks/useClientBrands.js';
 import { daysLeft, expiryState, fmtDateID } from '../utils/contract.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
@@ -20,21 +20,6 @@ import { useToast } from '../context/ToastContext.jsx';
 
 const INPUT_CLS =
   'w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
-
-// R-31: reveal sekali saat grup masuk viewport = orientasi scroll (MOTION 2).
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 const TABS = [
   { id: 'MONTHLY', label: 'Monthly' },

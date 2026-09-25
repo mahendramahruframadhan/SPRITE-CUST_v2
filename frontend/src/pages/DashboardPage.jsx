@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -915,22 +915,6 @@ export default function DashboardPage() {
 /* ===== Sub-komponen ===== */
 function Dot() {
   return <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block" />;
-}
-
-// R-31: reveal sekali saat section masuk viewport = orientasi scroll (MOTION 2).
-// Tanpa cascade delay antar kartu (DESIGN.md): satu Reveal membungkus satu grup.
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
 }
 
 function StatCard({ title, value, sub, icon, grad, glow = '', delta, tone, valueCls = '', valueSize = 'text-[28px]' }) {

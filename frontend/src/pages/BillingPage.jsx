@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useRangedCases } from '../hooks/useCases.js';
 import { getAuditMap } from '../lib/api.js';
@@ -23,22 +23,6 @@ const moneySize = (v) => {
   if (len > 13) return 'text-[20px]';
   return 'text-[22px]';
 };
-
-// R-31: reveal sekali saat grup masuk viewport = orientasi scroll (MOTION 2).
-// Tanpa cascade delay antar kartu.
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 // Teks panjang (Issue/Notes): 2 baris + tombol "Selengkapnya" untuk buka penuh per baris
 function ExpandableText({ text }) {

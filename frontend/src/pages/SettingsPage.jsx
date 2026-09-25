@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -19,21 +19,6 @@ const ROLE_BADGE = {
   Finance: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
   Viewer: 'bg-slate-100 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700',
 };
-
-// R-31: reveal sekali saat kartu masuk viewport = orientasi scroll (MOTION 2).
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 const TABS = [
   { id: 'akun', label: 'Akun', desc: 'Profil, keamanan & sesi', icon: 'user' },

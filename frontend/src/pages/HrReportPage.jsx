@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
@@ -248,21 +248,6 @@ export default function HrReportPage() {
         ? 'bg-brand-600 border-brand-600 text-white shadow-md shadow-brand-600/25'
         : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
     }`;
-
-// R-31: reveal sekali saat kartu masuk viewport = orientasi scroll (MOTION 2).
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
   return (
     <div className="page">

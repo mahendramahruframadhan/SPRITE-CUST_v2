@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
 import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, getInvoiceMap, getAuditMap } from '../lib/api.js';
@@ -427,22 +427,6 @@ function PdfCell({ recordUuid, caseNo, caseClient, notify, onStatusChange, invoi
 
 // Warna badge billing status & status invoice: billingTone()/invoiceTone()
 // terpusat di utils/tones.js.
-
-// R-31: reveal sekali saat grup masuk viewport = orientasi scroll (MOTION 2).
-// Tanpa cascade delay antar kartu.
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export default function FinanceAuditPage() {
   const { notify } = useToast();

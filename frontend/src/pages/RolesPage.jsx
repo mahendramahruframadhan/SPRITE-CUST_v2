@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { DEFAULT_PERMS } from '../hooks/usePermissions.js';
 import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog, getConfig, putConfig, chatAi } from '../lib/api.js';
@@ -394,22 +394,6 @@ export default function RolesPage({ bare = false }) {
 
   const inputCls =
     'text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
-
-// R-31: reveal sekali saat grup masuk viewport = orientasi scroll (MOTION 2).
-// Tanpa cascade delay antar kartu.
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
   return (
     <div className={bare ? 'space-y-6' : 'page'}>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { masters as fallbackMasters, priceListData as fallbackPrices } from '../data/masters.js';
 import { createCase, getMasters } from '../lib/api.js';
 import { recordActivity } from '../lib/activity.js';
@@ -43,21 +43,6 @@ const INITIAL = {
 
 const INPUT_CLS =
   'mt-1 w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
-
-// R-31: reveal sekali saat kartu masuk viewport = orientasi scroll (MOTION 2).
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 // Judul grup section: hierarki visual form panjang (R-20).
 function GrupJudul({ children }) {

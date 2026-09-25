@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { Line, Doughnut, Pie, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -166,21 +166,6 @@ export default function MockupPage() {
   };
 
   const setF = (k) => (e) => setFilters({ ...filters, [k]: e.target.value });
-
-// R-31: reveal sekali saat grup masuk viewport = orientasi scroll (MOTION 2).
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
   return (
     <div className="page">

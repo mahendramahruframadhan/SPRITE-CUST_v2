@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { useCases } from '../hooks/useCases.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useFilters } from '../hooks/useFilters.js';
@@ -358,21 +358,6 @@ export default function DataKasusPage() {
 
       {detail && <CaseDetailModal item={detail} onClose={() => setDetail(null)} />}
     </div>
-  );
-}
-
-/* R-31: reveal sekali saat kartu masuk viewport = orientasi scroll (MOTION 2). */
-function Reveal({ children, className = '' }) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
   );
 }
 

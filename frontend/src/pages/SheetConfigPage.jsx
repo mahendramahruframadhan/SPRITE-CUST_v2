@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'motion/react';
+import { Reveal } from '../components/Reveal.jsx';
 import { DEFAULT_CONFIG } from '../data/sheetConfig.js';
 import { getConfig, putConfig } from '../lib/api.js';
 import { getJSON, set as storageSet } from '../lib/storage.js';
@@ -42,23 +42,6 @@ const DEFAULT_AGENTS = [
 
 const CFG_INPUT =
   'w-full border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-[3px] focus:ring-brand-500/25 focus:border-brand-400 transition';
-
-// R-31: reveal sekali saat konten masuk viewport + saat ganti tab (key=tab)
-// = orientasi navigasi (MOTION 2). Tanpa cascade delay antar kartu.
-function Reveal({ children, className = '', tabKey }) {
-  return (
-    <motion.div
-      key={tabKey}
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-48px' }}
-      transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 export default function SheetConfigPage() {
   const [cfg, setCfg] = useState(loadCfg);
@@ -247,7 +230,8 @@ export default function SheetConfigPage() {
       </div>
 
       {/* Content */}
-      <Reveal tabKey={tab}>
+      {/* innerKey: animasi orientasi diulang tiap ganti tab */}
+      <Reveal innerKey={tab}>
         {tab === 'pricelist' && <TabPricelist cfg={cfg} patch={patch} />}
         {tab === 'brands' && (
           <ListPanel
