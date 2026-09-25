@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext.jsx';
 import { CHART, chartTheme } from '../lib/chartPalette.js';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 import { EmptyRow, LoadingRow } from '../components/DataTable.jsx';
+import { Button } from '../components/ui/Button.jsx';
 
 const iso8now = () => {
   const d = new Date();
@@ -178,15 +179,16 @@ export default function MockupPage() {
           </span>
           Sinkron terakhir: <span className="font-semibold text-slate-700 dark:text-slate-200">{lastUpdated}</span>
         </div>
-        <button
+        <Button
+          variant="primary"
           onClick={refresh}
-          className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 min-h-[44px] rounded-lg shadow-md shadow-brand-600/25 transition active:scale-95"
+          className="active:scale-95"
         >
           <svg className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
           Muat Terbaru
-        </button>
+        </Button>
       </div>
 
       {/* KPI */}
@@ -407,11 +409,11 @@ function MockupDetailModal({ item, onClose }) {
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{item.issue}</p>
           </div>
-          <button onClick={onClose} aria-label="Tutup detail" className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60">
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Tutup detail" className="shrink-0">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </button>
+          </Button>
         </div>
         <div className="flex-1 overflow-y-auto scrollbar-thin px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
           {fields.map(([k, v]) => (
