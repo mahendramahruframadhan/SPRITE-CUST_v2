@@ -185,8 +185,15 @@ export class AiController {
     const msgs = rawMessages;
 
     // Konteks ringkas data agar AI bisa jawab soal kasus & tagihan (query cepat)
+    //
+    // H8: snapshot ini berisi angka bisnis + nama client dan dikirim ke
+    // provider AI eksternal. Default NYALA karena fitur tanya-jawab angka
+    // membutuhkannya; pemilik data bisa mematikan kapan pun tanpa deploy
+    // ulang via AI_SNAPSHOT_ENABLED=false (AI tetap jalan dengan knowledge
+    // base statis saja).
+    const snapshotOn = String(process.env.AI_SNAPSHOT_ENABLED ?? 'true').toLowerCase() !== 'false';
     let snapshot = '';
-    try {
+    if (snapshotOn) try {
       const now = new Date();
       const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
       const prevYm = (() => {

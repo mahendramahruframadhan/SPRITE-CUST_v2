@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { initDb } from './db/init';
 import { validateConfig } from './config/validate';
+import { buildCorsOptions } from './config/cors';
 import { GlobalExceptionFilter } from './common/http-exception.filter';
 
 const log = new Logger('Bootstrap');
@@ -20,20 +21,9 @@ async function bootstrap() {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
   app.setGlobalPrefix('api');
-  // LAN: izinkan akses dari IP lokal teman (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-  // agar fetch langsung ke :5005 tidak kena blokir CORS saat dibuka via http://192.168.1.5:5173
-  app.enableCors({
-    origin: [
-      frontendUrl,
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://192.168.1.5:5173',
-      /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
-      /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
-      /^http:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/,
-    ],
-    credentials: true,
-  });
+  // H6: lihat src/config/cors.ts — credentials:false (auth via header
+  // x-auth-token, bukan cookie) + origin eksplisit, tanpa regex subnet.
+  app.enableCors(buildCorsOptions());
 
   // ponytail: AuthController (email/password cocok dengan user seed) menangani
   // /api/auth/* di semua env. Handler Better Auth asli tidak di-mount karena

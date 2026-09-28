@@ -109,6 +109,15 @@ export class PdfService {
     if (row.status === 'completed') return { ok: true, id, status: 'completed' };
     const now = new Date().toISOString();
     const markFailed = async (msg: string) => {
+      // H7: ContentLength pada presigned PUT bukan signed header — S3/R2
+      // mengabaikan batas ukuran dari client, jadi file raksasa bisa masuk
+      // bucket. Hapus objeknya saat itu juga (best-effort), jangan tunggu
+      // cron 30 menit; baris failed yang tua tetap dibersihkan cron.
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: row.storage_key }));
+      } catch (e) {
+        this.logger.warn(`Hapus R2 objek gagal verifikasi (${id}): ${(e as any)?.message}`);
+      }
       await this.db.execute(`UPDATE invoice_pdfs SET status='failed', updated_at='${now}' WHERE id='${esc(id)}'` as any);
       fail('VERIFY_FAILED', msg);
     };
