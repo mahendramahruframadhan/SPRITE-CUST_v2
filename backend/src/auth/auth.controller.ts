@@ -3,8 +3,15 @@ import { getDb } from '../db/drizzle.service';
 import * as crypto from 'crypto';
 import { pickRole, validateRegistration } from './register.validation';
 import { createSession, destroySession, resolveSessionUser } from './session';
-import { hashPassword, isLegacyPassword, verifyPassword } from './password';
+import { hashPassword, verifyPassword } from './password';
 import { esc, rowsOf } from '../db/sql';
+import {
+  SIGNIN_MAX_HITS,
+  SIGNIN_WINDOW_MS,
+  SIGNUP_MAX_HITS,
+  SIGNUP_WINDOW_MS,
+  throttleAuth,
+} from './rate-limit';
 
 // ponytail: local fallback auth (pg-mem) — Better Auth's drizzle pg adapter has timestamp type mismatch with pg-mem, so we provide minimal email/password auth that mimics Better Auth API shape. When DATABASE_URL is real postgres, main.ts mounts real Better Auth handler instead.
 //
@@ -14,6 +21,12 @@ import { esc, rowsOf } from '../db/sql';
 // pg-mem: db.execute hanya andal dengan string mentah — sql-tag berparameter
 // memicu "getTypeParser is not supported" di adapter pg-mem. Escaping lewat
 // helper terpusat db/sql.ts; jalan di pg-mem maupun Postgres asli.
+
+// Hash scrypt yang valid tetapi acak — BUKAN rahasia, hanya pengisi waktu
+// agar cabang "email tidak dikenal" membayar biaya scrypt yang sama dengan
+// cabang verifikasi normal (anti timing-oracle, lihat H2 di signIn).
+const DUMMY_HASH =
+  'scrypt$35bc7ce4e3f845afe8dd94d26620c293$5abc070ba5b9f42b0d28073954d01c104e73b5ac3cdf1124e5c819399fa8b46784bcbd0192c5f224e9b5159d460dabf850182f69fdadadc740067e90dc807a63';
 
 // Peminta dari token sesi (pola yang sama dengan PermGuard).
 // Hanya Super Admin boleh menentukan role akun baru (dipakai form tambah
@@ -34,6 +47,14 @@ export class AuthController {
   @Post('sign-up/email')
   @HttpCode(201)
   async signUp(@Body() body: any, @Req() req: any) {
+    // H5: registrasi terbuka = target mass-registration & user-enumeration
+    // (EMAIL_TAKEN membedakan email). Batas keras per IP.
+    throttleAuth(
+      `signup:${String(req?.ip || req?.socket?.remoteAddress || 'unknown')}`,
+      SIGNUP_MAX_HITS,
+      SIGNUP_WINDOW_MS,
+      'SIGNUP_RATE_LIMITED',
+    );
     const { values, fields } = validateRegistration(body);
     if (Object.keys(fields).length > 0) {
       throw new HttpException(
@@ -73,20 +94,36 @@ export class AuthController {
   }
 
   @Post('sign-in/email')
-  async signIn(@Body() body: any, @Res({ passthrough: true }) res: any) {
+  async signIn(@Body() body: any, @Req() req: any, @Res({ passthrough: true }) res: any) {
     const email = String(body.email || '').toLowerCase().trim();
     const password = String(body.password || '');
+    // H1: tanpa ini, endpoint login bisa dihantam tanpa batas (password
+    // minimal 5 karakter). Kunci per email+IP agar satu penyerang tidak bisa
+    // mengunci akun orang lain, dan satu IP tidak bisa menyapu banyak akun
+    // dari alamat yang sama tanpa melambat drastis.
+    throttleAuth(
+      `signin:${email}:${String(req?.ip || req?.socket?.remoteAddress || 'unknown')}`,
+      SIGNIN_MAX_HITS,
+      SIGNIN_WINDOW_MS,
+      'AUTH_RATE_LIMITED',
+    );
     const r: any = await this.db.execute(`SELECT u.id, u.name, u.email, u.role, u.active, a.password FROM "user" u JOIN account a ON a.user_id = u.id WHERE lower(u.email) = '${esc(email)}' LIMIT 1` as any);
     const row = rowsOf(r)[0];
-    if (!row) return { error: 'invalid credentials' };
-    if (isLegacyPassword(row.password)) return { error: 'password reset required' };
-    if (!(await verifyPassword(password, row.password))) return { error: 'invalid credentials' };
-    if (!Number(row.active ?? 1)) return { error: 'akun dinonaktifkan' };
+    // H2 (anti oracle): SEMUA kegagalan membalas pesan yang sama persis.
+    // Dulu tiga pesan berbeda ('invalid credentials' / 'password reset
+    // required' / 'akun dinonaktifkan') memungkinkan pemetaan email valid +
+    // status akun. scrypt selalu dijalankan — bahkan saat email tidak dikenal
+    // (pakai DUMMY_HASH) — agar waktunya tidak membedakan kasus.
+    // Konsekuensi yang disadari: pemilik password legacy / akun nonaktif
+    // mendapat pesan generik dan harus hubungi admin untuk reset/aktivasi.
+    const passOk = await verifyPassword(password, row ? row.password : DUMMY_HASH);
+    if (!row || !passOk || !Number(row.active ?? 1)) return { error: 'invalid credentials' };
     // Token sesi server-side (disimpan di tabel session, kedaluwarsa 7 hari).
     // Frontend wajib mengirimnya via header x-auth-token di setiap request tulis.
     const token = await createSession(this.db, row.id);
-    // set cookie seperti Better Auth (kompatibilitas klien lama)
-    res.cookie?.('better-auth.session_token', token, { httpOnly: true, path: '/' });
+    // set cookie seperti Better Auth (kompatibilitas klien lama). Akses
+    // defensif: pemanggil langsung (test) boleh tidak menyertakan res.
+    res?.cookie?.('better-auth.session_token', token, { httpOnly: true, path: '/' });
     return { user: { id: row.id, name: row.name, email: row.email, role: row.role || 'Viewer' }, token };
   }
 
