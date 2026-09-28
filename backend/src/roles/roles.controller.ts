@@ -1,10 +1,11 @@
-import { Controller, Get, Put, Post, Patch, Delete, Param, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Post, Patch, Delete, Param, Body, Req, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { esc } from '../db/sql';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { logActivity, resolveWho } from '../logs/activity';
 import { hashPassword } from '../auth/password';
 import { SessionGuard } from '../auth/session.guard';
+import { resolveSessionUser } from '../auth/session';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'finance', 'mockup', 'roles', 'logs', 'settings'];
@@ -27,7 +28,43 @@ export class RolesController {
   @Patch('users/:id')
   @UseGuards(PermGuard)
   @Perm('roles')
-  async updateUser(@Param('id') id: string, @Body() b: any) {
+  async updateUser(@Param('id') id: string, @Body() b: any, @Req() req: any) {
+    // H3: dulu siapa pun berizin modul 'roles' bisa menaikkan akun mana pun
+    // menjadi Super Admin, atau menonaktifkan/menurunkan Super Admin —
+    // termasuk mengunci total sistem dengan mematikan SEMUA Super Admin.
+    const actor = await resolveSessionUser(this.db, req);
+    const actorIsSA = actor?.role === 'Super Admin';
+    const curR: any = await this.db.execute(`SELECT role, active FROM "user" WHERE id='${esc(id)}' LIMIT 1` as any);
+    const cur = (curR.rows || curR)[0];
+    if (!cur) throw new HttpException({ code: 'NOT_FOUND', message: 'Pengguna tidak ditemukan.' }, HttpStatus.NOT_FOUND);
+    const targetIsSA = cur.role === 'Super Admin';
+    const targetWasActive = Number(cur.active ?? 1) === 1;
+    const grantSA = b.role === 'Super Admin' && cur.role !== 'Super Admin';
+    const demoteSA = targetIsSA && b.role && ROLES.includes(b.role) && b.role !== 'Super Admin';
+    const deactivate = b.active !== undefined && !b.active;
+
+    // Memberi status SA, atau mengutak-atik SA yang ada → hanya sesama SA.
+    // (Matriks /roles memang mengizinkan SA mencentang modul 'roles' untuk
+    // role lain — tanpa ini, role itu langsung bisa self-escalate.)
+    if ((grantSA || (targetIsSA && (demoteSA || deactivate))) && !actorIsSA) {
+      throw new HttpException(
+        { code: 'SUPERADMIN_PROTECTED', message: 'Hanya Super Admin yang dapat memberi/mencabut status Super Admin.' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    // SA aktif terakhir tidak boleh hilang — oleh siapa pun, termasuk SA lain.
+    if (targetIsSA && targetWasActive && (demoteSA || deactivate)) {
+      const rest: any = await this.db.execute(
+        `SELECT COUNT(*) as c FROM "user" WHERE role='Super Admin' AND COALESCE(active,1)=1 AND id<>'${esc(id)}'` as any,
+      );
+      if (!Number((rest.rows || rest)[0]?.c || 0)) {
+        throw new HttpException(
+          { code: 'LAST_SUPERADMIN', message: 'Tidak bisa menonaktifkan/menurunkan Super Admin aktif terakhir.' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+
     const sets: string[] = [];
     if (b.name) sets.push(`name='${esc(b.name)}'`);
     if (b.email) sets.push(`email='${esc(String(b.email).toLowerCase())}'`);
@@ -62,6 +99,10 @@ export class RolesController {
     const e = esc(id);
     const password = await hashPassword(p);
     await this.db.execute(`UPDATE account SET password='${esc(password)}', updated_at='${new Date().toISOString()}' WHERE user_id='${e}'` as any);
+    // H4: tanpa ini, token sesi yang sudah bocor/dipegang penyerang tetap
+    // valid sampai kedaluwarsa (7 hari) — reset password tidak memulihkan
+    // akun yang direbut. Cabut SEMUA sesi target; sesi lain tidak tersentuh.
+    await this.db.execute(`DELETE FROM session WHERE user_id='${e}'` as any);
     return { ok: true };
   }
 
