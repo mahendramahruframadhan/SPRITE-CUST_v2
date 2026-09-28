@@ -6,6 +6,7 @@ import { logActivity } from '../logs/activity';
 import { validateRegistration } from '../auth/register.validation';
 import { hashPassword } from '../auth/password';
 import { esc, rowsOf } from '../db/sql';
+import { isDevSeedAllowed } from '../config/env';
 
 // Registrasi AKUN PERTAMA instalasi (kontrak: frontend/src/features/register/BACKEND_CONTRACT.md).
 // - GET  /api/setup/status      → { firstRun, userCount, setupTokenRequired } (publik, tanpa auth)
@@ -37,7 +38,12 @@ export class SetupController {
 
   private hasValidSetupToken(req: any): boolean {
     const configured = String(process.env.SETUP_TOKEN || '');
-    if (!configured) return String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+    // Kritis #2 (fail-closed): tanpa SETUP_TOKEN, endpoint ini membiarkan siapa
+    // pun menunjuk dirinya Super Admin di instalasi yang belum punya user.
+    // Dulu kondisinya `NODE_ENV !== 'production'` — true saat NODE_ENV kosong
+    // atau salah ketik, jadi proteksinya mati tanpa error. Hanya development
+    // eksplisit yang boleh; validateConfig() menolak env tak dikenal saat boot.
+    if (!configured) return isDevSeedAllowed();
     const provided = String(req?.headers?.['x-setup-token'] || '');
     const expected = Buffer.from(configured);
     const actual = Buffer.from(provided);

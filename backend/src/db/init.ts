@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { getDb, getMemDb } from './drizzle.service';
 import { hashPassword } from '../auth/password';
 import { esc } from './sql';
+import { isDevSeedAllowed } from '../config/env';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
 const ROLE_PERMS: Record<string, Record<string, number>> = {
@@ -124,13 +125,21 @@ export async function initDb() {
     console.warn('[db] seed cases skipped', e);
   }
 
-  // Seed users — HANYA saat fresh install (kasus juga kosong saat boot).
+  // Seed users — HANYA saat fresh install (kasus juga kosong saat boot) DAN
+  // NODE_ENV eksplisit 'development'.
   // DB live (kasus sudah ada, user kosong) tidak di-seed agar firstRun
   // (/api/setup/first-admin) tetap berlaku untuk akun Super Admin asli.
+  //
+  // Kritis #2: dulu guard-nya `NODE_ENV !== 'production'`, yang bernilai TRUE
+  // saat NODE_ENV kosong atau salah ketik — sehingga 2 akun Super Admin dengan
+  // password yang tertulis di source (12345 / password123) tercipta di instalasi
+  // mana pun yang belum punya user. Fail-closed: hanya 'development' yang
+  // boleh. Env kosong/salah ketik → tidak ada seed, akun dibuat lewat
+  // /setup/first-admin dengan SETUP_TOKEN.
   try {
     const res: any = await db.execute(`SELECT COUNT(*) as c FROM "user"` as any);
     const c = Number(res.rows?.[0]?.c ?? res[0]?.c ?? 0);
-    if (freshInstall && c === 0 && String(process.env.NODE_ENV || '').toLowerCase() !== 'production') {
+    if (freshInstall && c === 0 && isDevSeedAllowed()) {
       const now = new Date().toISOString();
       const users = [
         ['u_admin', 'Admin Utama', 'admin@revota.id', 'Super Admin', '12345'],
@@ -171,7 +180,7 @@ export async function initDb() {
       'finance@revota.id': 'Finance',
       'vina@revota.id': 'Viewer',
     };
-    if (String(process.env.NODE_ENV || '').toLowerCase() !== 'production') {
+    if (isDevSeedAllowed()) {
       for (const [email, role] of Object.entries(roleSeed)) {
         await q(`UPDATE "user" SET role='${role}' WHERE email='${email}' AND role='Viewer'`);
       }

@@ -5,6 +5,8 @@ import * as schema from './schema.pg';
 import { Pool } from 'pg';
 
 // ponytail: pg-mem in-memory Postgres for local dev (no Docker, no native build). When DATABASE_URL is postgres://, switch to real Pool — see README upgrade path
+import { isProduction } from '../config/env';
+
 let _db: any = null;
 let _mem: any = null;
 
@@ -12,8 +14,7 @@ export function getDb() {
   if (_db) return _db;
   const url = process.env.DATABASE_URL || '';
   const isRealPg = /^postgres(?:ql)?:\/\//.test(url);
-  const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-  if (isProduction && !isRealPg) {
+  if (isProduction() && !isRealPg) {
     throw new Error('DATABASE_URL production harus memakai postgresql:// atau postgres://.');
   }
   if (isRealPg) {

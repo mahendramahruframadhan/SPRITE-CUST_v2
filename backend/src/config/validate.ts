@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { isKnownEnv, isProduction, nodeEnv } from './env';
 
 // Validasi config saat boot — fail-fast untuk yang fatal, peringatan terstruktur
 // (Nest Logger, sekali saja) untuk konfigurasi pincang yang baru terasa saat
@@ -10,7 +11,17 @@ const log = new Logger('Config');
 
 export function validateConfig(): void {
   const e = process.env;
-  const production = String(e.NODE_ENV || '').toLowerCase() === 'production';
+  const production = isProduction();
+
+  // Kritis #1: NODE_ENV kosong/salah ketik mematikan semua guard produksi
+  // secara SENYAP (cabang "!= production" bernilai true). Tolak saat boot
+  // supaya salah tulis terlihat di detik pertama, bukan jadi celah.
+  if (!isKnownEnv()) {
+    const shown = String(e.NODE_ENV ?? '');
+    throw new Error(
+      `NODE_ENV tidak dikenal (${JSON.stringify(shown)}). Isi NODE_ENV=production untuk deploy atau NODE_ENV=development untuk localhost, lalu restart. Nilai yang sah: production, development, test.`,
+    );
+  }
 
   if (production && String(e.SETUP_TOKEN || '').length < 32) {
     throw new Error('SETUP_TOKEN production minimal 32 karakter. Isi backend/.env sebelum boot.');
