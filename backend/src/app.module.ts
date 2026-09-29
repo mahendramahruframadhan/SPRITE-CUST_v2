@@ -19,10 +19,11 @@ import { PdfController } from './pdf/pdf.controller';
 import { PdfService } from './pdf/pdf.service';
 import { ClientsController } from './clients/clients.controller';
 import { ClientsService } from './clients/clients.service';
+import { PopinavaController } from './popinava/popinava.controller';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
-  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController],
+  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController],
   providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService],
 })
 export class AppModule {}

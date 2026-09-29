@@ -23,6 +23,7 @@ export function setupTables() {
     `CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY, status TEXT, updated_at TEXT, payment_note TEXT, paid_at TEXT, paid_by TEXT)`,
     `CREATE TABLE IF NOT EXISTS invoice_pdfs (id TEXT PRIMARY KEY, record_uuid TEXT, filename TEXT, storage_key TEXT, size_bytes INTEGER, status TEXT, uploaded_by TEXT, created_at TEXT, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS activity_logs (id TEXT PRIMARY KEY, who TEXT, action TEXT, category TEXT, detail TEXT, record_uuid TEXT, created_at TEXT)`,
+    `CREATE TABLE IF NOT EXISTS popinava_outlets (uuid TEXT PRIMARY KEY, brand_name TEXT NOT NULL, rvt_custcode TEXT NOT NULL, dept_code TEXT NOT NULL, dept_name TEXT NOT NULL, dept_channel_name TEXT NOT NULL DEFAULT '', dept_reference TEXT NOT NULL DEFAULT '', iso_code TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '', city TEXT NOT NULL DEFAULT '', province TEXT NOT NULL DEFAULT '', postcode TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '', area TEXT NOT NULL DEFAULT '', region TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active', updated_at TEXT)`,
   ];
   for (const ddl of ddls) mem.public.none(ddl);
 }

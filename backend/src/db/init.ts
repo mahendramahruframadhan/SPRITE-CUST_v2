@@ -8,11 +8,11 @@ import { isDevSeedAllowed } from '../config/env';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
 const ROLE_PERMS: Record<string, Record<string, number>> = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
-  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
-  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
+  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
+  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, popinava: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, popinava: 0, billing: 1, finance: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
+  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
 };
 
 export async function initDb() {
@@ -51,6 +51,10 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS brand_statuses (id TEXT PRIMARY KEY, brand TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'MONTHLY', start_at TEXT, expired_at TEXT, monthly_fee INTEGER DEFAULT 0, pic TEXT, note TEXT, created_at TEXT NOT NULL, updated_at TEXT);
     CREATE INDEX IF NOT EXISTS idx_brand_statuses_brand ON brand_statuses(brand);
     CREATE INDEX IF NOT EXISTS idx_brand_statuses_type ON brand_statuses(type);
+    CREATE TABLE IF NOT EXISTS popinava_outlets (uuid TEXT PRIMARY KEY, brand_name TEXT NOT NULL, rvt_custcode TEXT NOT NULL, dept_code TEXT NOT NULL, dept_name TEXT NOT NULL, dept_channel_name TEXT NOT NULL DEFAULT '', dept_reference TEXT NOT NULL DEFAULT '', iso_code TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '', city TEXT NOT NULL DEFAULT '', province TEXT NOT NULL DEFAULT '', postcode TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '', area TEXT NOT NULL DEFAULT '', region TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active', updated_at TEXT);
+    CREATE INDEX IF NOT EXISTS idx_popinava_brand ON popinava_outlets(brand_name);
+    CREATE INDEX IF NOT EXISTS idx_popinava_city ON popinava_outlets(city);
+    CREATE INDEX IF NOT EXISTS idx_popinava_status ON popinava_outlets(status);
   `;
 
   if (!isRealPg && mem) {
@@ -259,6 +263,15 @@ export async function initDb() {
       const clientsSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 1, Support: 0, Finance: 1, Viewer: 0 };
       for (const [role, allowed] of Object.entries(clientsSeed)) {
         await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','clients',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
+      }
+    } catch {}
+    // Backfill izin modul 'popinava' (master outlet POPI NAVA) untuk DB lama —
+    // cermin DEFAULT_PERMS frontend: hanya Super Admin + Admin CS yang tulis.
+    try {
+      const now = new Date().toISOString();
+      const popinavaSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 1, Support: 0, Finance: 0, Viewer: 0 };
+      for (const [role, allowed] of Object.entries(popinavaSeed)) {
+        await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','popinava',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
       }
     } catch {}
     // Seed master status Billing/Finance (dikelola dari Pengaturan) —
