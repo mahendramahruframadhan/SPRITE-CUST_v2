@@ -10,6 +10,7 @@ export const MODULES = [
   { path: '/clients', id: 'clients', title: 'Client & Brand', sub: 'Koleksi client baru dan status monthly vs maintenance' },
   { path: '/hrreport', id: 'hrreport', title: 'HR Report', sub: 'Rekap performa tim & detail ticket per periode' },
   { path: '/cfg', id: 'cfg', title: 'Konfigurasi Sheet', sub: 'Master config sheet: master data, pricelist, brand, mapping' },
+  { path: '/popinava', id: 'popinava', title: 'POPI NAVA', sub: 'Master data outlet & brand POPI NAVA: impor, ekspor, kelola' },
   { group: 'Keuangan' },
   { path: '/billing', id: 'billing', title: 'Billing & Audit', sub: 'Validasi tagihan sebelum diterbitkan invoice' },
   { path: '/finance', id: 'finance', title: 'Finance Audit', sub: 'Penerbitan invoice kasus tervalidasi' },

@@ -117,7 +117,7 @@ function IsiSidebar({ ciut, saatNavigasi = () => {}, pengguna, keluar, bisa, sak
               title={ciut ? m.title : undefined}
               className={`shell-nav ${ciut ? 'lg:justify-center lg:px-0' : ''}`}
             >
-              <Icon name={m.id === 'kasus' ? 'cases' : m.id} />
+              <Icon name={m.id === 'kasus' ? 'cases' : m.id === 'popinava' ? 'cfg' : m.id} />
               {!ciut && <span className="truncate">{m.title}</span>}
             </NavLink>
           );

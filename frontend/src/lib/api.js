@@ -3,7 +3,9 @@
 // Default '/api' (di-proxy vite.config.js ke backend) → tanpa config & bebas CORS saat dev.
 import { get as storageGet, set as storageSet, remove as storageRemove } from './storage.js';
 
-export const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// ?. karena import.meta.env hanya ada di Vite; unit test node --test mengimpor
+// modul ini tanpa bundler dan harus tetap bisa jalan.
+export const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || '/api';
 
 // Token sesi (diisi saat login, dikirim sebagai x-auth-token di setiap request).
 // Backend (PermGuard) HANYA memvalidasi token ini untuk endpoint tulis —
@@ -159,3 +161,10 @@ export const getBrandStatuses = () => get('/brand-status');
 export const createBrandStatus = (body) => post('/brand-status', body);
 export const patchBrandStatus = (id, body) => patch(`/brand-status/${id}`, body);
 export const deleteBrandStatus = (id) => req(`/brand-status/${id}`, { method: 'DELETE' });
+// POPI NAVA (master outlet, spec §9) — dipakai hook usePopinava hanya saat
+// probe list sukses (/api/popinava ada); selain itu mode lokal.
+export const getPopinava = (qs = '') => get(`/popinava${qs}`);
+export const postPopinava = (body) => post('/popinava', body);
+export const patchPopinava = (uuid, body) => patch(`/popinava/${uuid}`, body);
+export const deletePopinava = (uuid) => req(`/popinava/${uuid}`, { method: 'DELETE' });
+export const postPopinavaBulk = (body) => post('/popinava/bulk', body);

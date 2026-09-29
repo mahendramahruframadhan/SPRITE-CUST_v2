@@ -36,6 +36,7 @@ const MODULES = [
   { id: 'form', name: 'Form Kasus', desc: 'Input kasus support baru' },
   { id: 'hrreport', name: 'HR Report', desc: 'Rekap performa tim & detail ticket' },
   { id: 'cfg', name: 'Konfigurasi Sheet', desc: 'Master config dari Google Sheets' },
+  { id: 'popinava', name: 'POPI NAVA', desc: 'Master data outlet & brand POPI NAVA' },
   { id: 'billing', name: 'Billing & Audit', desc: 'Validasi tagihan sebelum invoice' },
   { id: 'finance', name: 'Finance Audit', desc: 'Penerbitan invoice kasus tervalidasi' },
   { id: 'mockup', name: 'Dashboard Mockup', desc: 'Mockup data Google Sheets' },

@@ -2,35 +2,10 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getPerms } from '../lib/api.js';
 import { getJSON, set as storageSet } from '../lib/storage.js';
-
-// Matriks default — cermin backend src/db/init.ts ROLE_PERMS. Super Admin
-// selalu penuh (dikunci backend + bypass di can()).
-export const DEFAULT_PERMS = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, billing: 1, finance: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, billing: 1, finance: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
-  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
-  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, billing: 1, finance: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
-};
-
-// Path route → modul izin (menu /kasus memakai modul 'cases')
-export const ROUTE_PERM = {
-  '/dashboard': 'dashboard',
-  '/kasus': 'cases',
-  '/mockup': 'mockup',
-  '/form': 'form',
-  '/clients': 'clients',
-  '/hrreport': 'hrreport',
-  '/cfg': 'cfg',
-  '/billing': 'billing',
-  '/finance': 'finance',
-  '/roles': 'roles',
-  '/logs': 'logs',
-  '/settings': 'settings',
-};
-
-// id menu sidebar → modul izin
-export const menuPerm = (menuId) => (menuId === 'kasus' ? 'cases' : menuId);
+// Data murni dipisah ke config/permissions.js agar unit test node --test bisa
+// mengimpornya tanpa menarik AuthContext (JSX tidak bisa dibaca node langsung).
+export { DEFAULT_PERMS, ROUTE_PERM, menuPerm } from '../config/permissions.js';
+import { DEFAULT_PERMS } from '../config/permissions.js';
 
 function loadLS() {
   const v = getJSON('appPerms', null);

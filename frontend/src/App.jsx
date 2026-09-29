@@ -20,6 +20,7 @@ const FormKasusPage = lazy(() => import('./pages/FormKasusPage.jsx'));
 const ClientBrandPage = lazy(() => import('./pages/ClientBrandPage.jsx'));
 const HrReportPage = lazy(() => import('./pages/HrReportPage.jsx'));
 const SheetConfigPage = lazy(() => import('./pages/SheetConfigPage.jsx'));
+const PopiNavaPage = lazy(() => import('./pages/PopiNavaPage.jsx'));
 const BillingPage = lazy(() => import('./pages/BillingPage.jsx'));
 const FinanceAuditPage = lazy(() => import('./pages/FinanceAuditPage.jsx'));
 const RolesPage = lazy(() => import('./pages/RolesPage.jsx'));
@@ -55,6 +56,7 @@ function AnimatedRoutes() {
         <Route path="/hrreport" element={<RequirePerm module="hrreport"><HrReportPage /></RequirePerm>} />
         {/* /master & /pricelist dialihkan ke /cfg oleh AppLayout */}
         <Route path="/cfg" element={<RequirePerm module="cfg"><SheetConfigPage /></RequirePerm>} />
+        <Route path="/popinava" element={<RequirePerm module="popinava"><PopiNavaPage /></RequirePerm>} />
         <Route path="/billing" element={<RequirePerm module="billing"><BillingPage /></RequirePerm>} />
         <Route path="/finance" element={<RequirePerm module="finance"><FinanceAuditPage /></RequirePerm>} />
         <Route path="/roles" element={<RequirePerm module="roles"><RolesPage /></RequirePerm>} />
