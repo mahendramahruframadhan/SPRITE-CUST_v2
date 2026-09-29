@@ -14,7 +14,7 @@ import {
   validateRow,
 } from '../lib/popinavaValidate.js';
 import { parseImportFile } from '../lib/popinavaParse.js';
-import { recordToSource, serverToRecord, snakeToRecord } from '../lib/popinavaRecord.js';
+import { mergeServerRows, recordToSource, serverToRecord, snakeToRecord } from '../lib/popinavaRecord.js';
 import { getJSON, set as storageSet } from '../lib/storage.js';
 import * as api from '../lib/api.js';
 
@@ -114,9 +114,9 @@ export function usePopinava() {
       const res = await api.getPopinava('?page=1&pageSize=5000');
       if (res && Array.isArray(res.items)) {
         setServerOk(true);
-        // Server = sumber kebenaran; items kosong → tabel ikut kosong
-        // (seed lokal tidak boleh dipertahankan saat sudah terhubung).
-        setRows(res.items.map(serverToRecord));
+        // Server = sumber kebenaran; seed pristine dibuang, baris offline
+        // yang belum tersinkron dipertahankan (mergeServerRows).
+        setRows((prev) => mergeServerRows(prev, res.items.map(serverToRecord), buildSeed()));
         return true;
       }
       setServerOk(false);
@@ -136,8 +136,9 @@ export function usePopinava() {
         if (ignore) return;
         if (res && Array.isArray(res.items)) {
           setServerOk(true);
-          // Server = sumber kebenaran; items kosong → tabel ikut kosong.
-          setRows(res.items.map(serverToRecord));
+          // Server = sumber kebenaran; seed pristine dibuang, baris offline
+          // yang belum tersinkron dipertahankan (mergeServerRows).
+          setRows((prev) => mergeServerRows(prev, res.items.map(serverToRecord), buildSeed()));
         } else {
           setServerOk(false);
         }

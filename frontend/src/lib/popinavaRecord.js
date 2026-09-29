@@ -49,3 +49,27 @@ export function serverToRecord(r) {
     updatedAt: r.updated_at || '',
   });
 }
+
+/**
+ * Probe server sukses → server menang, TANPA menelan kerja lokal:
+ * - baris yang ada di server → pakai versi server (tanpa duplikat),
+ * - seed pristine (fallback offline) → dibuang, mode server tidak memaksa seed,
+ * - baris offline yang belum pernah tersinkron (dibuat/diedit user) → dipertahankan.
+ * Perbandingan seed mengabaikan createdAt/updatedAt karena buildSeed()
+ * memakai nowIso() baru tiap dipanggil (timestamp beda = bukan editan user).
+ * Dipakai usePopinava di dua titik probe (awal + Coba lagi).
+ */
+export function mergeServerRows(localRows, serverRows, seedRows) {
+  const serverUuids = new Set(serverRows.map((r) => r.uuid));
+  const seedByUuid = new Map(seedRows.map((r) => [r.uuid, r]));
+  const stable = (r) => {
+    const { createdAt, updatedAt, ...rest } = r;
+    return JSON.stringify(rest);
+  };
+  const localOnly = localRows.filter((r) => {
+    if (serverUuids.has(r.uuid)) return false;
+    const seed = seedByUuid.get(r.uuid);
+    return !seed || stable(r) !== stable(seed);
+  });
+  return [...serverRows, ...localOnly];
+}
