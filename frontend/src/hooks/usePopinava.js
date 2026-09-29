@@ -114,7 +114,9 @@ export function usePopinava() {
       const res = await api.getPopinava('?page=1&pageSize=5000');
       if (res && Array.isArray(res.items)) {
         setServerOk(true);
-        if (res.total > 0 && res.items.length) setRows(res.items.map(serverToRecord));
+        // Server = sumber kebenaran; items kosong → tabel ikut kosong
+        // (seed lokal tidak boleh dipertahankan saat sudah terhubung).
+        setRows(res.items.map(serverToRecord));
         return true;
       }
       setServerOk(false);
@@ -134,7 +136,8 @@ export function usePopinava() {
         if (ignore) return;
         if (res && Array.isArray(res.items)) {
           setServerOk(true);
-          if (res.total > 0 && res.items.length) setRows(res.items.map(serverToRecord));
+          // Server = sumber kebenaran; items kosong → tabel ikut kosong.
+          setRows(res.items.map(serverToRecord));
         } else {
           setServerOk(false);
         }

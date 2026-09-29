@@ -76,7 +76,9 @@ export default function OutletDrawer({ open, mode, initial, onClose, onSave, bus
 
   function submit(e) {
     e.preventDefault();
-    const { row } = prepareRow(values);
+    // Field UUID: "Kosongkan saat tambah, diisi otomatis" (hint di bawah input).
+    const base = mode === 'edit' || values.uuid ? values : { ...values, uuid: crypto.randomUUID() };
+    const { row } = prepareRow(base);
     const { errors } = validateRow(row);
     const map = {};
     for (const er of errors) if (!map[er.field]) map[er.field] = er.message;
