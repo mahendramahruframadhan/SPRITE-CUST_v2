@@ -144,8 +144,8 @@ export class RolesController {
     return (r.rows || r).map((l: any) => ({ id: l.id, who: l.who, act: l.action, action: l.action, category: l.category || null, detail: l.detail || null, recordUuid: l.record_uuid || null, time: l.time }));
   }
 
-  // POST terbuka untuk semua role: setiap pengguna boleh mencatat aktivitasnya
-  // sendiri (who dari body, fallback header x-user-email). Tanpa ini, role
+  // Imp#3: client hanya mengirim action/category/detail/recordUuid — actor
+  // (who), id, dan created_at SELALU dibuat server dari sesi. Tanpa ini, role
   // Finance/Support selalu 403 dan aktivitasnya hilang dari Logs.
   @Post('roles/logs')
   async addLog(@Body() b: any, @Req() req: any) {

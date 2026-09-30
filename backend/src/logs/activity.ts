@@ -16,7 +16,7 @@ export async function logActivity(db: any, input: ActivityInput): Promise<void> 
     if (!input || !String(input.action || '').trim()) return;
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    const who = String(input.who || 'Admin').slice(0, 120);
+    const who = String(input.who || 'system').slice(0, 120);
     const action = String(input.action).slice(0, 500);
     const category = input.category ? String(input.category).slice(0, 40) : null;
     const detail = input.detail ? String(input.detail).slice(0, 500) : null;
@@ -30,13 +30,12 @@ export async function logActivity(db: any, input: ActivityInput): Promise<void> 
   }
 }
 
-// Nama pelaku: HANYA dari token sesi yang sudah diverifikasi server.
-// Header client-supplied (x-user-email dsb) TIDAK PERNAH dipakai untuk
-// identitas — bisa dipalsukan siapa pun. Tanpa sesi valid → 'system'
+// Nama pelaku: HANYA dari token sesi yang sudah diverifikasi server (Imp#3).
+// Tidak ada parameter fallback — identitas client (body who / header
+// x-user-email dsb) TIDAK PERNAH dipakai. Tanpa sesi valid → 'system'
 // (fallback aman, bukan akun admin/privileged mana pun).
-export async function resolveWho(db: any, req: any, fallback?: string): Promise<string> {
+export async function resolveWho(db: any, req: any): Promise<string> {
   try {
-    if (fallback && String(fallback).trim()) return String(fallback).slice(0, 120);
     const u = await resolveSessionUser(db, req);
     if (u?.name) return String(u.name).slice(0, 120);
     if (u?.email) return String(u.email).slice(0, 120);
