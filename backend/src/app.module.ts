@@ -9,6 +9,7 @@ import { SyncService } from './sync/sync.service';
 import { SyncController } from './sync/sync.controller';
 import { BillingController } from './billing/billing.controller';
 import { ConfigController } from './config/config.controller';
+import { AiConfigController } from './config/ai-config.controller';
 import { MastersController } from './masters/masters.controller';
 import { DrizzleService } from './db/drizzle.service';
 import { AuthController } from './auth/auth.controller';
@@ -23,7 +24,7 @@ import { PopinavaController } from './popinava/popinava.controller';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
-  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController],
+  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController],
   providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService],
 })
 export class AppModule {}

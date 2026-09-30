@@ -116,6 +116,9 @@ export async function fetchCasesRange({ from = '', to = '' } = {}) {
 export const getMasters = () => get('/masters');
 export const getConfig = (key) => get(key ? `/config?key=${encodeURIComponent(key)}` : '/config');
 export const putConfig = (config, key) => put('/config', key ? { key, config } : { config });
+// Imp#2: config AI terpisah dari config umum — key tak pernah lewat /config.
+export const getConfigAi = (key) => get(`/config/ai?k=${encodeURIComponent(key || 'aiConnections')}`);
+export const putConfigAi = (config, key) => put('/config/ai', { key: key || 'aiConnections', config });
 export const getStatusOptions = () => get('/config/status-options');
 export const putStatusOptions = (body) => put('/config/status-options', body);
 export const renameStatusOption = (body) => patch('/config/status-options/rename', body);

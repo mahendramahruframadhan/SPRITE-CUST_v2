@@ -2,11 +2,9 @@ import { Controller, Get, Put, Patch, Body, Query, UseGuards, BadRequestExceptio
 import { getDb } from '../db/drizzle.service';
 import { esc } from '../db/sql';
 import { Perm, PermGuard } from '../auth/perm.guard';
-import { maskKey } from '../ai/ai.controller';
 import * as fs from 'fs';
 import * as path from 'path';
 import { SessionGuard } from '../auth/session.guard';
-import { resolveSessionUser } from '../auth/session';
 
 const cleanKey = (k: any) => String(k || 'sheetConfig').replace(/[^a-zA-Z0-9_]/g, '') || 'sheetConfig';
 
@@ -38,21 +36,15 @@ export class ConfigController {
   @Get()
   async get(@Query('key') key?: string) {
     const k = cleanKey(key);
+    // Imp#2: modul AI dipisah — config umum tidak lagi menyajikan key AI.
+    if (k === 'aiConfig' || k === 'aiConnections') {
+      throw new ForbiddenException({ code: 'AI_CONFIG_SEPARATED', message: 'Konfigurasi AI dipisah ke endpoint khusus /config/ai.' });
+    }
     try {
       const res: any = await this.db.pq(`SELECT value FROM app_config WHERE key=$1`, [k]);
       const row = (res.rows || res)[0];
       if (row?.value) {
         const cfg = JSON.parse(row.value);
-        // ponytail: key AI tak pernah utuh ke browser (hemat endpoint khusus)
-        if (k === 'aiConfig' && cfg.apiKey) cfg.apiKey = maskKey(cfg.apiKey);
-        if (k === 'aiConnections' && Array.isArray(cfg.connections)) {
-          for (const c of cfg.connections) {
-            if (c && c.apiKey) {
-              c.hasKey = true;
-              c.apiKey = maskKey(c.apiKey);
-            }
-          }
-        }
         return { source: 'db', key: k, config: cfg };
       }
     } catch {}
@@ -73,33 +65,10 @@ export class ConfigController {
   async put(@Body() body:any, @Req() req: any){
     const k = cleanKey(body.key);
     const incoming = body.config || body;
+    // Imp#2: modul AI dipisah — tulis AI hanya lewat /config/ai (Super Admin,
+    // secret di app_secrets). Generic /config menolak key AI.
     if (k === 'aiConfig' || k === 'aiConnections') {
-      const u = await resolveSessionUser(this.db, req);
-      if (u?.role !== 'Super Admin') {
-        throw new ForbiddenException({ code: 'AI_CONFIG_FORBIDDEN', message: 'Hanya Super Admin yang dapat mengubah konfigurasi AI.' });
-      }
-    }
-    // key kosong/mask = tidak diubah (jangan timpa key asli dengan ••••)
-    if (k === 'aiConfig' && (!incoming.apiKey || String(incoming.apiKey).startsWith('••••'))) {
-      try {
-        const r: any = await this.db.pq(`SELECT value FROM app_config WHERE key=$1`, ['aiConfig']);
-        const old = JSON.parse((r.rows || r)[0]?.value || '{}');
-        if (old.apiKey) incoming.apiKey = old.apiKey;
-      } catch {}
-    }
-    // daftar koneksi: preservasi key per item (by id) bila kosong/mask
-    if (k === 'aiConnections' && Array.isArray(incoming.connections)) {
-      try {
-        const r: any = await this.db.pq(`SELECT value FROM app_config WHERE key=$1`, ['aiConnections']);
-        const oldList = JSON.parse((r.rows || r)[0]?.value || '{}')?.connections || [];
-        const oldById: any = {};
-        for (const o of oldList) if (o && o.id) oldById[o.id] = o;
-        for (const c of incoming.connections) {
-          if (c && c.id && oldById[c.id]?.apiKey && (!c.apiKey || String(c.apiKey).startsWith('••••'))) {
-            c.apiKey = oldById[c.id].apiKey;
-          }
-        }
-      } catch {}
+      throw new ForbiddenException({ code: 'AI_CONFIG_SEPARATED', message: 'Konfigurasi AI dipisah ke endpoint khusus /config/ai.' });
     }
     const val = JSON.stringify(incoming);
     await this.db.pq(`INSERT INTO app_config (key,value,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at`, [k, val, new Date().toISOString()]);

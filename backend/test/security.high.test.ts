@@ -29,9 +29,12 @@ describe('High security protections', () => {
     const user = await seedUser('Admin CS', `ai-${suffix}@revota.id`);
     const token = await createSession(db(), user.id);
     const controller = new ConfigController();
+    // Imp#2: /config generik tolak key AI untuk SEMUA role (403 AI_CONFIG_SEPARATED);
+    // batasan Super Admin untuk endpoint khusus /config/ai diuji di
+    // test/ai.config.separation.test.ts.
     await assert.rejects(
       () => controller.put({ key: 'aiConfig', config: { baseURL: 'https://attacker.example/v1' } }, { headers: { 'x-auth-token': token } }),
-      (e: any) => e?.status === 403 && e?.response?.code === 'AI_CONFIG_FORBIDDEN',
+      (e: any) => e?.status === 403 && e?.response?.code === 'AI_CONFIG_SEPARATED',
     );
   });
 

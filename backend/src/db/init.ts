@@ -41,6 +41,7 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'MENUNGGU INVOICE', updated_by TEXT, updated_at TEXT, payment_note TEXT, paid_at TEXT, paid_by TEXT);
     CREATE TABLE IF NOT EXISTS sync_logs (id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL, rows_processed INTEGER DEFAULT 0, error_message TEXT, source TEXT DEFAULT 'sheets');
     CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT);
+    CREATE TABLE IF NOT EXISTS app_secrets (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT);
     ALTER TABLE "user" ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'Viewer';
     ALTER TABLE "user" ADD COLUMN IF NOT EXISTS active INTEGER DEFAULT 1;
     CREATE TABLE IF NOT EXISTS role_permissions (role TEXT NOT NULL, module TEXT NOT NULL, allowed INTEGER DEFAULT 0, updated_at TEXT, PRIMARY KEY (role, module));

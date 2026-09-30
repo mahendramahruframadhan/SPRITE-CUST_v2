@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button.jsx';
 import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { DEFAULT_PERMS } from '../hooks/usePermissions.js';
-import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog, getConfig, putConfig, chatAi } from '../lib/api.js';
+import { signUp, getUsers, patchUser, deleteUser as deleteUserApi, setUserPassword, getPerms, putPerms, getLogs, postLog, getConfigAi, putConfigAi, chatAi } from '../lib/api.js';
 import { getJSON, set as storageSet } from '../lib/storage.js';
 
 // Koneksi AI eksternal (OpenAI-compatible) — key di backend, browser terima versi mask
@@ -124,7 +124,7 @@ export default function RolesPage({ bare = false }) {
       })
       .catch(() => {});
     // Koneksi AI: daftar (key ter-mask); migrasi sekali dari aiConfig lama bila ada
-    getConfig('aiConnections')
+    getConfigAi('aiConnections')
       .then((r) => {
         if (ignore) return;
         const list = r && r.config && Array.isArray(r.config.connections) ? r.config.connections : [];
@@ -132,7 +132,7 @@ export default function RolesPage({ bare = false }) {
           setConns(list);
           return;
         }
-        getConfig('aiConfig')
+        getConfigAi('aiConfig')
           .then((old) => {
             if (ignore || !old || !old.config || !old.config.apiKey) return;
             const c = old.config;
@@ -148,7 +148,7 @@ export default function RolesPage({ bare = false }) {
             // ponytail: tanpa apiKey (mask tak boleh tersimpan) — chat tetap jalan via
             // fallback aiConfig lama sampai user Edit + isi key baru
             setConns(migrated);
-            putConfig({ connections: migrated }, 'aiConnections').catch(() => {});
+            putConfigAi({ connections: migrated }, 'aiConnections').catch(() => {});
           })
           .catch(() => {});
       })
@@ -313,7 +313,7 @@ export default function RolesPage({ bare = false }) {
 
   function persistConns(list) {
     setConns(list);
-    return putConfig({ connections: list }, 'aiConnections');
+    return putConfigAi({ connections: list }, 'aiConnections');
   }
 
   // Toggle pakai: hanya satu koneksi aktif; klik yang aktif = nonaktifkan semua

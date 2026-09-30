@@ -21,8 +21,8 @@ const CONN_VALUE = JSON.stringify({
   ],
 });
 
-const stubDb = () => ({
-  execute: async (q: string) => {
+const stubDb = () => {
+  const exec = async (q: string) => {
     if (typeof q === 'string' && q.includes(`key='aiConnections'`)) {
       return { rows: [{ value: CONN_VALUE }] };
     }
@@ -36,8 +36,17 @@ const stubDb = () => ({
       return { rows: [{ s: 0 }] };
     }
     return { rows: [] };
-  },
-});
+  };
+  // Imp#2: baca AI key lewat getSecret → db.pq(text, params) di app_secrets.
+  return {
+    execute: exec,
+    pq: async (t: string, p: any[]) => {
+      if (t.includes('FROM app_secrets') && p[0] === 'aiConnections') return { rows: [{ value: CONN_VALUE }] };
+      if (t.includes('FROM app_config')) return { rows: [] };
+      return exec(t);
+    },
+  };
+};
 
 let lastBody: any = null;
 const stubFetch = () => {

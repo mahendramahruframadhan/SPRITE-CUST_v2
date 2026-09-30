@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, UseGuards, Req, HttpException, HttpStatus } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { SessionGuard } from '../auth/session.guard';
+import { getSecret } from '../config/app-secret';
 
 export const maskKey = (k: string) => (!k ? '' : k.length <= 4 ? '••••' : `••••${k.slice(-4)}`);
 
@@ -86,20 +87,20 @@ billing_status='ON-CALL' AND date_issue LIKE '202608%'".`;
 const PROJECT_KB = `STACK: Frontend React 18 + Vite 5 + Tailwind (port 5173, proxy /api), Backend NestJS 10 + Drizzle ORM (port 5005, prefix /api), DB Postgres 16 Docker (db sprite_cust).
 HALAMAN: /login, /signup, /dashboard, /kasus (data+filter+CSV), /mockup, /form (POST /api/cases), /hrreport, /cfg (GET/PUT /api/config + toggle AI), /billing (PATCH audit), /finance (PATCH invoice), /roles (CRUD user, matriks izin, log).
 ROLE: Super Admin (semua akses, dikunci) | Admin CS | Support | Finance | Viewer. Matriks di tabel role_permissions, diatur di /roles.
-TABEL DB: assistance_records (2034 seed), user/account/session/verification, audit_status, invoice_status, sync_logs, app_config (sheetConfig, agentConfig, aiConfig), role_permissions, activity_logs.
+TABEL DB: assistance_records (2034 seed), user/account/session/verification, audit_status, invoice_status, sync_logs, app_config (sheetConfig, agentConfig), app_secrets (aiConfig, aiConnections), role_permissions, activity_logs.
 MODE: SHEETS_MOCK=true (tanpa Google API); sync manual POST /api/sync/trigger.`;
 
-// Proxy chat ke AI eksternal (OpenAI-compatible). Key hanya di server (DB app_config
-// key 'aiConfig') — browser tak pernah pegang key. GET config selalu ter-mask.
+// Proxy chat ke AI eksternal (OpenAI-compatible). Key hanya di server (secret
+// storage khusus app_secrets — Imp#2) — browser tak pernah pegang key. GET
+// config AI selalu ter-mask.
 @Controller('ai')
 export class AiController {
   private db: any = getDb();
 
   private async loadConfig() {
     try {
-      const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConfig'` as any);
-      const row = (r.rows || r)[0];
-      return row?.value ? JSON.parse(row.value) : {};
+      const raw = await getSecret(this.db, 'aiConfig');
+      return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
     }
@@ -110,9 +111,8 @@ export class AiController {
     const id = String(connectionId || '').trim();
     if (id) {
       try {
-        const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConnections'` as any);
-        const row = (r.rows || r)[0];
-        const list = row?.value ? JSON.parse(row.value)?.connections : null;
+        const raw = await getSecret(this.db, 'aiConnections');
+        const list = raw ? JSON.parse(raw)?.connections : null;
         if (Array.isArray(list)) {
           const hit = list.find((c: any) => c && c.id === id && c.apiKey && !String(c.apiKey).startsWith('••••'));
           if (hit) return hit;
@@ -125,9 +125,8 @@ export class AiController {
   // Koneksi aktif: item active di aiConnections; fallback aiConfig lama (migrasi otomatis FE).
   private async loadActive() {
     try {
-      const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConnections'` as any);
-      const row = (r.rows || r)[0];
-      const list = row?.value ? JSON.parse(row.value)?.connections : null;
+      const raw = await getSecret(this.db, 'aiConnections');
+      const list = raw ? JSON.parse(raw)?.connections : null;
       if (Array.isArray(list)) {
         const hit = list.find((c: any) => c && c.active && c.apiKey && !String(c.apiKey).startsWith('••••'));
         if (hit) return hit;
@@ -144,9 +143,8 @@ export class AiController {
   @UseGuards(SessionGuard)
   async connections() {
     try {
-      const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConnections'` as any);
-      const row = (r.rows || r)[0];
-      const list = row?.value ? JSON.parse(row.value)?.connections : null;
+      const raw = await getSecret(this.db, 'aiConnections');
+      const list = raw ? JSON.parse(raw)?.connections : null;
       if (!Array.isArray(list)) return [];
       return list
         .filter((c: any) => c && c.id && c.name)
