@@ -171,3 +171,5 @@ export const postPopinava = (body) => post('/popinava', body);
 export const patchPopinava = (uuid, body) => patch(`/popinava/${uuid}`, body);
 export const deletePopinava = (uuid) => req(`/popinava/${uuid}`, { method: 'DELETE' });
 export const postPopinavaBulk = (body) => post('/popinava/bulk', body);
+// Riwayat aktivitas 1 outlet (activity_logs by record_uuid): kapan & siapa.
+export const getPopinavaHistory = (uuid) => get(`/popinava/${encodeURIComponent(uuid)}/history`);

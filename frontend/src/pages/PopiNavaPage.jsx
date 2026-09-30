@@ -14,12 +14,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { Switch } from '../components/ui/Switch.jsx';
 import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { usePopinava } from '../hooks/usePopinava.js';
 import { exportRecords } from '../lib/popinavaExport.js';
 import { groupRowsByBrand } from '../lib/popinavaGroup.js';
+import { getPopinavaHistory } from '../lib/api.js';
+import { get as storageGet } from '../lib/storage.js';
 import { fmtDateID } from '../utils/contract.js';
 import ImportWizard from '../components/popinava/ImportWizard.jsx';
 import OutletDrawer from '../components/popinava/OutletDrawer.jsx';
@@ -94,6 +97,7 @@ export default function PopiNavaPage() {
     create,
     update,
     remove,
+    bulk,
     previewImport,
     commitImport,
   } = usePopinava();
@@ -115,6 +119,12 @@ export default function PopiNavaPage() {
   // outlet muncul di bawahnya. 'table' = tabel datar lama (per halaman).
   const [view, setView] = useState('group');
   const [openBrands, setOpenBrands] = useState(() => new Set());
+  // Status busy per outlet: switch dinonaktifkan selama PUT status berjalan.
+  const [statusBusy, setStatusBusy] = useState({});
+  // Modal riwayat per outlet: null = tertutup; rows null = masih memuat.
+  const [historyFor, setHistoryFor] = useState(null);
+  const [historyRows, setHistoryRows] = useState(null);
+  const [historyErr, setHistoryErr] = useState(false);
 
   const offTag = serverOk === false ? ' (mode lokal, tersimpan di browser)' : '';
   const errMsg = (e) => e?.data?.message || e?.message || 'Gagal, coba lagi.';
@@ -122,7 +132,10 @@ export default function PopiNavaPage() {
 
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape') setExpOpen(false);
+      if (e.key === 'Escape') {
+        setExpOpen(false);
+        setHistoryFor(null);
+      }
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -179,6 +192,69 @@ export default function PopiNavaPage() {
     }
   }
 
+  // Identitas pelaku dari sesi browser (server tetap otoritatif via resolveWho).
+  function whoami() {
+    return {
+      name: storageGet('userName') || storageGet('userEmail') || 'Pengguna',
+      email: storageGet('userEmail') || '-',
+      role: storageGet('userRole') || 'Tanpa peran',
+    };
+  }
+
+  // Toggle switch status → verifikasi identitas (khusus penonaktifan) →
+  // bulk set-status ke backend; audit log per outlet mencatat kapan & siapa.
+  async function requestStatusToggle(rec) {
+    const next = rec.status === 'active' ? 'inactive' : 'active';
+    const me = whoami();
+    if (next === 'inactive') {
+      const ok = await confirm({
+        title: `Nonaktifkan "${rec.deptChannelName}"?`,
+        description: `Status diubah active → inactive. Dilakukan oleh: ${me.name} · ${me.email} · peran ${me.role}. Tindakan ini tercatat di riwayat aktivitas outlet.`,
+        variant: 'danger',
+        confirmLabel: 'Ya, nonaktifkan',
+      });
+      if (!ok) return;
+    }
+    setStatusBusy((prev) => ({ ...prev, [rec.uuid]: true }));
+    try {
+      await bulk({ action: 'set-status', uuids: [rec.uuid], status: next });
+      notify(
+        `Outlet ${rec.deptChannelName} ${next === 'inactive' ? 'dinonaktifkan' : 'diaktifkan'} oleh ${me.name}.${offTag}`,
+        'success',
+      );
+    } catch (e) {
+      notify(errMsg(e), 'error');
+    } finally {
+      setStatusBusy((prev) => {
+        const n = { ...prev };
+        delete n[rec.uuid];
+        return n;
+      });
+    }
+  }
+
+  function openHistory(rec) {
+    setHistoryFor(rec);
+    setHistoryRows(null);
+    setHistoryErr(false);
+    getPopinavaHistory(rec.uuid)
+      .then((rows) => setHistoryRows(Array.isArray(rows) ? rows : []))
+      .catch(() => {
+        setHistoryRows([]);
+        setHistoryErr(true);
+      });
+  }
+
+  function closeHistory() {
+    setHistoryFor(null);
+  }
+
+  function fmtHistoryTime(s) {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return String(s || '-');
+    return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
   async function deleteOne(rec) {
     const ok = await confirm({
       title: `Hapus "${rec.deptChannelName}"?`,
@@ -190,6 +266,8 @@ export default function PopiNavaPage() {
     try {
       await remove(rec.uuid);
       notify(`Outlet ${rec.deptChannelName} dihapus.${offTag}`, 'success');
+      // Delete kini hanya dipanggil dari drawer edit → tutup drawer setelah sukses.
+      setDrawerOpen(false);
     } catch (e) {
       notify(errMsg(e), 'error');
     }
@@ -214,6 +292,7 @@ export default function PopiNavaPage() {
   // (dimBrand: sel Brand dibuat meredup + indent karena redundan dengan
   // header grup di atasnya).
   function renderRow(r, dimBrand = false, dotClass = '') {
+    const st = r.status;
     return (
       <tr key={r.uuid} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
         <td
@@ -237,13 +316,31 @@ export default function PopiNavaPage() {
         <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.province}</td>
         <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.postcode || '-'}</td>
         <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.area || '-'}</td>
-        <td className="px-3 py-2.5">{statusBadge(r.status)}</td>
+        <td className="px-3 py-2.5">{statusBadge(st)}</td>
         <td className="px-3 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
           {r.sourceCreatedAt ? fmtDateID(String(r.sourceCreatedAt).slice(0, 10)) : '-'}
         </td>
         <td className="px-3 py-2.5">
-          {canWrite && (
-            <div className="flex justify-end gap-1">
+          <div className="flex justify-end items-center gap-2">
+            {canWrite && (
+              <Switch
+                checked={st === 'active'}
+                onCheckedChange={() => requestStatusToggle(r)}
+                disabled={!!statusBusy[r.uuid]}
+                aria-label={`Status aktif ${r.deptChannelName}`}
+              />
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => openHistory(r)}
+              aria-label={`Riwayat ${r.deptChannelName}`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </Button>
+            {canWrite && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -254,19 +351,8 @@ export default function PopiNavaPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                 </svg>
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => deleteOne(r)}
-                aria-label={`Hapus ${r.deptChannelName}`}
-                className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916" />
-                </svg>
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </td>
       </tr>
     );
@@ -645,6 +731,7 @@ export default function PopiNavaPage() {
         busy={drawerBusy}
         onClose={() => setDrawerOpen(false)}
         onSave={saveDrawer}
+        onDelete={drawerMode === 'edit' && editing ? () => deleteOne(editing) : undefined}
       />
       <ImportWizard
         open={wizardOpen}
@@ -653,6 +740,66 @@ export default function PopiNavaPage() {
         onCommit={commitWizard}
         localMode={localMode}
       />
+      {historyFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            aria-hidden="true"
+            onClick={closeHistory}
+            className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+          />
+          <div
+            role="dialog"
+            aria-label={`Riwayat outlet ${historyFor.deptChannelName}`}
+            className="relative w-full max-w-lg max-h-[80vh] overflow-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">Riwayat outlet</h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 truncate">
+                  {historyFor.brandName} · {historyFor.deptChannelName}
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={closeHistory} aria-label="Tutup riwayat">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </Button>
+            </div>
+            <ul className="mt-4 space-y-3">
+              {historyErr && (
+                <li className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-sm text-slate-500 dark:text-slate-400">
+                  Riwayat hanya tersedia saat terhubung ke server.
+                </li>
+              )}
+              {!historyErr && historyRows === null && (
+                <li aria-busy="true" className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
+                  Memuat riwayat…
+                </li>
+              )}
+              {!historyErr && historyRows !== null && historyRows.length === 0 && (
+                <li className="text-sm text-slate-500 dark:text-slate-400">Belum ada riwayat untuk outlet ini.</li>
+              )}
+              {!historyErr &&
+                historyRows !== null &&
+                historyRows.map((h) => (
+                  <li
+                    key={h.id ?? `${h.action}-${h.time}`}
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 p-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[13px] font-bold text-slate-800 dark:text-slate-100">{h.action}</span>
+                      <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{fmtHistoryTime(h.time)}</span>
+                    </div>
+                    <p className="mt-1 text-[13px] text-slate-600 dark:text-slate-300">oleh {h.who}</p>
+                    {h.detail && (
+                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{h.detail}</p>
+                    )}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

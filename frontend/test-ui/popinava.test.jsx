@@ -3,7 +3,7 @@
 // Mencakup spec §14: penyembunyian tombol tulis saat role tanpa izin
 // popinava, plus keterbacaan mode lokal & data seed di tabel.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '../src/context/ToastContext.jsx';
 import { ConfirmProvider } from '../src/components/ui/ConfirmProvider.jsx';
 import PopiNavaPage from '../src/pages/PopiNavaPage.jsx';
@@ -56,6 +56,8 @@ describe('PopiNavaPage', () => {
     expect(screen.queryByRole('button', { name: /^Impor$/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Ekspor/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Nonaktifkan/ })).toBeNull();
+    expect(screen.queryByRole('switch')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Hapus / })).toBeNull();
   });
 
   it('probe gagal → badge mode lokal jujur, data seed tetap tampil', async () => {
@@ -106,6 +108,64 @@ describe('PopiNavaPage', () => {
       expect(screen.getByText(/baris cocok/).textContent).not.toMatch(/^88 /);
     });
     expect(screen.getByText(/baris cocok · halaman 1 dari/)).toBeInTheDocument();
+  });
+
+  it('aksi baris: switch → modal verifikasi identitas → konfirmasi menonaktifkan; hapus di drawer edit', async () => {
+    localStorage.setItem('userName', 'QA Tester');
+    localStorage.setItem('userEmail', 'qa@revota.id');
+    localStorage.setItem('userRole', 'Super Admin');
+    renderPage();
+    await screen.findByText('13 brand · 88 outlet');
+    // Isolasi beberapa baris lewat pencarian (grup auto-terbuka).
+    fireEvent.change(screen.getByLabelText('Cari'), { target: { value: 'FLAGSHIP BANDUNG' } });
+    await waitFor(
+      () => expect(screen.getAllByRole('button', { name: /^Ubah / }).length).toBeGreaterThan(0),
+      { timeout: 3000 },
+    );
+    const ubahBtn = screen.getAllByRole('button', { name: /^Ubah / })[0];
+    const outlet = ubahBtn.getAttribute('aria-label').replace('Ubah ', '');
+    // Baris hanya punya switch + Ubah + Riwayat; Hapus tidak di baris.
+    const sw = screen.getByRole('switch', { name: `Status aktif ${outlet}` });
+    expect(sw).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('button', { name: `Hapus ${outlet}` })).toBeNull();
+
+    // Klik switch → modal verifikasi identitas dulu; status BELUM berubah.
+    fireEvent.click(sw);
+    const vdlg = await screen.findByRole('alertdialog');
+    expect(within(vdlg).getByText(/QA Tester · qa@revota\.id · peran Super Admin/)).toBeInTheDocument();
+    expect(sw).toHaveAttribute('aria-checked', 'true');
+    // Batal → batal semua, switch tetap aktif.
+    fireEvent.click(within(vdlg).getByRole('button', { name: 'Batal' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByRole('switch', { name: `Status aktif ${outlet}` })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByText('NONAKTIF')).toBeNull();
+
+    // Konfirmasi → dinonaktifkan, badge ikut, toast menyebut pelaku.
+    fireEvent.click(screen.getByRole('switch', { name: `Status aktif ${outlet}` }));
+    const vdlg2 = await screen.findByRole('alertdialog');
+    fireEvent.click(within(vdlg2).getByRole('button', { name: 'Ya, nonaktifkan' }));
+    await screen.findByText(/dinonaktifkan oleh QA Tester/);
+    expect(await screen.findByText('NONAKTIF')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: `Status aktif ${outlet}` })).toHaveAttribute('aria-checked', 'false');
+
+    // Riwayat di mode lokal → pesan jujur tanpa server.
+    fireEvent.click(screen.getByRole('button', { name: `Riwayat ${outlet}` }));
+    await screen.findByText(/terhubung ke server/);
+    fireEvent.click(screen.getByRole('button', { name: 'Tutup riwayat' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Tutup riwayat' })).toBeNull());
+
+    // Reaktivasi langsung (tanpa modal), status kembali aktif.
+    fireEvent.click(screen.getByRole('switch', { name: `Status aktif ${outlet}` }));
+    await waitFor(() =>
+      expect(screen.getByRole('switch', { name: `Status aktif ${outlet}` })).toHaveAttribute('aria-checked', 'true'),
+    );
+
+    // Delete ada di drawer edit.
+    fireEvent.click(screen.getByRole('button', { name: `Ubah ${outlet}` }));
+    const dlg = await screen.findByRole('dialog', { name: /Ubah outlet/ });
+    expect(within(dlg).getByRole('button', { name: 'Hapus outlet' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /Ubah outlet/ })).toBeNull());
   });
 });
 

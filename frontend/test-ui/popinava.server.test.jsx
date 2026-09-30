@@ -166,10 +166,55 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
     expect(await logActions()).toContain('Ubah outlet');
   });
 
-  it('hapus via aksi baris → DELETE ke server + log Hapus outlet', async () => {
+  it('switch nonaktif → modal verifikasi identitas, pelaku tercatat di server + riwayat outlet', async () => {
     await renderPage();
     await toTableView();
-    fireEvent.click(await screen.findByRole('button', { name: 'Hapus Toko IT' }));
+    const sw = await screen.findByRole('switch', { name: 'Status aktif Toko IT' });
+    expect(sw).toHaveAttribute('aria-checked', 'true');
+
+    // Verifikasi identitas dulu — batal = tanpa perubahan apa pun.
+    fireEvent.click(sw);
+    const vdlg = await screen.findByRole('alertdialog');
+    expect(within(vdlg).getByText(/IT Integrasi · it\.popinava@revota\.id · peran Admin CS/)).toBeInTheDocument();
+    fireEvent.click(within(vdlg).getByRole('button', { name: 'Batal' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.getByRole('switch', { name: 'Status aktif Toko IT' })).toHaveAttribute('aria-checked', 'true');
+    let items = (await apiJson('/popinava?search=Toko%20IT')).items;
+    expect(items.find((x) => x.dept_channel_name === 'Toko IT').status).toBe('active');
+
+    // Konfirmasi → benar-benar ubah status di server + toast menyebut pelaku.
+    fireEvent.click(screen.getByRole('switch', { name: 'Status aktif Toko IT' }));
+    const vdlg2 = await screen.findByRole('alertdialog');
+    fireEvent.click(within(vdlg2).getByRole('button', { name: 'Ya, nonaktifkan' }));
+    await screen.findByText(/dinonaktifkan oleh IT Integrasi/);
+    items = (await apiJson('/popinava?search=Toko%20IT')).items;
+    expect(items.find((x) => x.dept_channel_name === 'Toko IT').status).toBe('inactive');
+    expect(await logActions()).toContain('Nonaktifkan outlet');
+
+    // Riwayat outlet → kapan & siapa (entri server, bukan localStorage).
+    fireEvent.click(await screen.findByRole('button', { name: 'Riwayat Toko IT' }));
+    const hist = await screen.findByRole('dialog', { name: /Riwayat outlet/ });
+    expect(await within(hist).findByText('Nonaktifkan outlet')).toBeInTheDocument();
+    expect(within(hist).getByText('Tambah outlet')).toBeInTheDocument();
+    expect(within(hist).getByText('Ubah outlet')).toBeInTheDocument();
+    expect(within(hist).getAllByText(/oleh IT Integrasi/).length).toBeGreaterThan(0);
+    fireEvent.click(within(hist).getByRole('button', { name: 'Tutup riwayat' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Tutup riwayat' })).toBeNull());
+
+    // Pulihkan status aktif (tanpa modal) untuk test hapus berikutnya.
+    fireEvent.click(screen.getByRole('switch', { name: 'Status aktif Toko IT' }));
+    await waitFor(async () => {
+      const d = (await apiJson('/popinava?search=Toko%20IT')).items.find((x) => x.dept_channel_name === 'Toko IT');
+      expect(d.status).toBe('active');
+    });
+  });
+
+  it('hapus via drawer edit → DELETE ke server + log Hapus outlet', async () => {
+    await renderPage();
+    await toTableView();
+    fireEvent.click(await screen.findByRole('button', { name: 'Ubah Toko IT' }));
+    const dlg = await screen.findByRole('dialog', { name: /Ubah outlet/ });
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Hapus outlet' }));
     const confirm = await screen.findByRole('button', { name: 'Ya, hapus' });
     fireEvent.click(confirm);
     expect(await screen.findByText(/dihapus/)).toBeInTheDocument();
