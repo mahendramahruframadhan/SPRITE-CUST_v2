@@ -1,8 +1,7 @@
 import { Controller, Patch, Param, Body, Get, Req, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
-import { Perm, PermGuard } from '../auth/perm.guard';
 import { logActivity, resolveWho, caseLabel } from '../logs/activity';
-import { esc } from '../db/sql';
+import { Perm, PermGuard } from '../auth/perm.guard';
 import { SessionGuard } from '../auth/session.guard';
 
 @UseGuards(SessionGuard)
@@ -56,7 +55,7 @@ export class BillingController {
   async audit(@Param('uuid') uuid: string, @Body() body: any, @Req() req: any) {
     const action = body.action || body.status;
     if (!action) return { ok:false, error:'action required' };
-    await this.db.execute(`INSERT INTO audit_status (record_uuid,action,updated_at) VALUES ('${esc(uuid)}','${esc(action)}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET action=EXCLUDED.action, updated_at=EXCLUDED.updated_at` as any);
+    await this.db.pq(`INSERT INTO audit_status (record_uuid,action,updated_at) VALUES ($1,$2,$3) ON CONFLICT (record_uuid) DO UPDATE SET action=EXCLUDED.action, updated_at=EXCLUDED.updated_at`, [uuid, action, new Date().toISOString()]);
     await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status validasi ${await caseLabel(this.db, uuid)}`, category: 'Validasi', detail: `menjadi ${action}`, recordUuid: uuid });
     return { ok:true, recordUuid: uuid, action };
   }
@@ -77,14 +76,14 @@ export class BillingController {
       throw new HttpException({ code: 'INVOICE_AUTO_LOCKED', message: `Status "${status}" diatur otomatis oleh sistem (upload/hapus PDF) — tidak bisa diubah manual.` }, 422);
     }
     const who = await resolveWho(this.db, req);
-    const cur: any = await this.db.execute(`SELECT status FROM invoice_status WHERE record_uuid='${esc(uuid)}' LIMIT 1` as any);
+    const cur: any = await this.db.pq(`SELECT status FROM invoice_status WHERE record_uuid=$1 LIMIT 1`, [uuid]);
     const curStatus = String((cur.rows || cur)[0]?.status || 'MENUNGGU INVOICE').toUpperCase();
     if (canon === 'DIKIRIM') {
       if (curStatus !== 'INVOICE TERBIT' && curStatus !== 'UNPAID' && curStatus !== 'DIKIRIM' && curStatus !== 'PAID') {
         throw new HttpException({ code: 'NOT_TERBIT_YET', message: 'Belum bisa ditandai terkirim — status harus INVOICE TERBIT dulu (upload PDF invoice).' }, 422);
       }
       const nowD = new Date().toISOString();
-      await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(uuid)}','${esc(status)}','${nowD}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);
+      await this.db.pq(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ($1,$2,$3) ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at`, [uuid, status, nowD]);
       const undoFromPaid = curStatus === 'PAID';
       await logActivity(this.db, { who, action: undoFromPaid ? `mengurungkan SUDAH DIBAYAR ${await caseLabel(this.db, uuid)}` : `menandai invoice terkirim ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: undoFromPaid ? 'kembali ke TERKIRIM (revisi)' : 'menunggu pembayaran', recordUuid: uuid });
       return { ok: true, recordUuid: uuid, status };
@@ -95,7 +94,7 @@ export class BillingController {
         throw new HttpException({ code: 'INVOICE_AUTO_LOCKED', message: 'INVOICE TERBIT diatur otomatis oleh sistem (upload PDF) — hanya bisa dikembalikan dari status TERKIRIM (urungkan kirim).' }, 422);
       }
       const nowT = new Date().toISOString();
-      await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(uuid)}','${esc(status)}','${nowT}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);
+      await this.db.pq(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ($1,$2,$3) ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at`, [uuid, status, nowT]);
       await logActivity(this.db, { who, action: `mengurungkan pengiriman ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: 'kembali ke INVOICE TERBIT (revisi)', recordUuid: uuid });
       return { ok: true, recordUuid: uuid, status };
     }
@@ -103,7 +102,7 @@ export class BillingController {
       if (curStatus !== 'DIKIRIM' && curStatus !== 'PAID') {
         throw new HttpException({ code: 'NOT_DIKIRIM_YET', message: 'Belum bisa PAID — tandai invoice sudah terkirim (TERKIRIM) dulu.' }, 422);
       }
-      const c: any = await this.db.execute(`SELECT COUNT(*) as c FROM invoice_pdfs WHERE record_uuid='${esc(uuid)}' AND status='completed'` as any);
+      const c: any = await this.db.pq(`SELECT COUNT(*) as c FROM invoice_pdfs WHERE record_uuid=$1 AND status='completed'`, [uuid]);
       if (!Number((c.rows || c)[0]?.c || 0)) {
         throw new HttpException({ code: 'INVOICE_NEED_PDF', message: 'Belum bisa PAID — upload minimal 1 PDF invoice dulu.' }, 422);
       }
@@ -112,12 +111,12 @@ export class BillingController {
         throw new HttpException({ code: 'PAYMENT_NOTE_REQUIRED', message: 'Keterangan pembayaran wajib diisi untuk menandai PAID.' }, 422);
       }
       const now = new Date().toISOString();
-      await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at,payment_note,paid_at,paid_by) VALUES ('${esc(uuid)}','${esc(status)}','${now}','${esc(paymentNote)}','${now}','${esc(who)}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at, payment_note=EXCLUDED.payment_note, paid_at=EXCLUDED.paid_at, paid_by=EXCLUDED.paid_by` as any);
+      await this.db.pq(`INSERT INTO invoice_status (record_uuid,status,updated_at,payment_note,paid_at,paid_by) VALUES ($1,$2,$3,$4,$3,$5) ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at, payment_note=EXCLUDED.payment_note, paid_at=EXCLUDED.paid_at, paid_by=EXCLUDED.paid_by`, [uuid, status, now, paymentNote, who]);
       const invNo = String(body.invoiceNo || body.no || '').trim();
       await logActivity(this.db, { who, action: `menandai SUDAH DIBAYAR ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `${paymentNote}${invNo ? ` • no. invoice ${invNo}` : ''}`, recordUuid: uuid });
       return { ok: true, recordUuid: uuid, status, paymentNote };
     }
-    await this.db.execute(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(uuid)}','${esc(status)}','${new Date().toISOString()}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any);
+    await this.db.pq(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ($1,$2,$3) ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at`, [uuid, status, new Date().toISOString()]);
     const invNo = String(body.invoiceNo || body.no || '').trim();
     await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status invoice ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `menjadi ${status}${invNo ? ` • no. invoice ${invNo}` : ''}`, recordUuid: uuid });
     return { ok:true, recordUuid: uuid, status };

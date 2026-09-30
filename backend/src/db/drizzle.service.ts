@@ -9,6 +9,16 @@ import { isProduction } from '../config/env';
 
 let _db: any = null;
 let _mem: any = null;
+let _pool: any = null;
+
+// Imp#1: binding parameter di level driver pool — text + nilai terpisah
+// ($1..$n). sql-tag drizzle dipakai gagal di pg-mem ("getTypeParser is not
+// supported"), sedangkan pool.query(text, params) jalan di pg-mem maupun
+// Postgres asli. db.pq() adalah jalur utama query dengan input eksternal.
+function attachPq(db: any, pool: any) {
+  db.pq = (text: string, params: any[] = []) =>
+    pool.query(text, params.map((v) => (v === undefined ? null : v)));
+}
 
 export function getDb() {
   if (_db) return _db;
@@ -19,7 +29,9 @@ export function getDb() {
   }
   if (isRealPg) {
     const pool = new Pool({ connectionString: url });
+    _pool = pool;
     _db = drizzlePg(pool, { schema: schema as any });
+    attachPq(_db, pool);
     return _db;
   }
   // local: pg-mem
@@ -27,7 +39,9 @@ export function getDb() {
   // pg-mem adapter creates a pg-compatible Pool
   const { Pool: MemPool } = _mem.adapters.createPg();
   const pool = new MemPool();
+  _pool = pool;
   _db = drizzlePg(pool, { schema: schema as any });
+  attachPq(_db, pool);
   // create tables on first call via initDb, but ensure pool ready
   return _db;
 }

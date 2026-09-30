@@ -39,7 +39,7 @@ export class ConfigController {
   async get(@Query('key') key?: string) {
     const k = cleanKey(key);
     try {
-      const res: any = await this.db.execute(`SELECT value FROM app_config WHERE key='${k}'` as any);
+      const res: any = await this.db.pq(`SELECT value FROM app_config WHERE key=$1`, [k]);
       const row = (res.rows || res)[0];
       if (row?.value) {
         const cfg = JSON.parse(row.value);
@@ -82,7 +82,7 @@ export class ConfigController {
     // key kosong/mask = tidak diubah (jangan timpa key asli dengan ••••)
     if (k === 'aiConfig' && (!incoming.apiKey || String(incoming.apiKey).startsWith('••••'))) {
       try {
-        const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConfig'` as any);
+        const r: any = await this.db.pq(`SELECT value FROM app_config WHERE key=$1`, ['aiConfig']);
         const old = JSON.parse((r.rows || r)[0]?.value || '{}');
         if (old.apiKey) incoming.apiKey = old.apiKey;
       } catch {}
@@ -90,7 +90,7 @@ export class ConfigController {
     // daftar koneksi: preservasi key per item (by id) bila kosong/mask
     if (k === 'aiConnections' && Array.isArray(incoming.connections)) {
       try {
-        const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='aiConnections'` as any);
+        const r: any = await this.db.pq(`SELECT value FROM app_config WHERE key=$1`, ['aiConnections']);
         const oldList = JSON.parse((r.rows || r)[0]?.value || '{}')?.connections || [];
         const oldById: any = {};
         for (const o of oldList) if (o && o.id) oldById[o.id] = o;
@@ -101,8 +101,8 @@ export class ConfigController {
         }
       } catch {}
     }
-    const val = esc(JSON.stringify(incoming));
-    await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${new Date().toISOString()}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
+    const val = JSON.stringify(incoming);
+    await this.db.pq(`INSERT INTO app_config (key,value,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at`, [k, val, new Date().toISOString()]);
     return { ok:true, key: k };
   }
 
@@ -112,7 +112,7 @@ export class ConfigController {
   async statusOptions() {
     const read = async (k: string, fallback: string[]) => {
       try {
-        const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='${k}'` as any);
+        const r: any = await this.db.pq(`SELECT value FROM app_config WHERE key=$1`, [k]);
         const raw = (r.rows || r)[0]?.value;
         if (!raw) return { list: [...fallback], fromDb: false };
         return { list: cleanStatusList(JSON.parse(raw), fallback), fromDb: true };
@@ -136,8 +136,8 @@ export class ConfigController {
     for (const k of ['auditActions', 'invoiceActions'] as const) {
       if (body?.[k] === undefined) continue;
       const list = cleanStatusList(body[k], DEFAULT_STATUS_OPTIONS[k]);
-      const val = esc(JSON.stringify(list));
-      await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${k}','${val}','${new Date().toISOString()}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
+      const val = JSON.stringify(list);
+      await this.db.pq(`INSERT INTO app_config (key,value,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at`, [k, val, new Date().toISOString()]);
       out[k] = list;
     }
     return out;
@@ -161,7 +161,7 @@ export class ConfigController {
     const fallback = DEFAULT_STATUS_OPTIONS[scope];
     let list: string[];
     try {
-      const r: any = await this.db.execute(`SELECT value FROM app_config WHERE key='${scope}'` as any);
+      const r: any = await this.db.pq(`SELECT value FROM app_config WHERE key=$1`, [scope]);
       const raw = (r.rows || r)[0]?.value;
       list = raw ? cleanStatusList(JSON.parse(raw), fallback) : [...fallback];
     } catch {
@@ -183,6 +183,8 @@ export class ConfigController {
     // M6: tulis config + hitung + migrasi dalam SATU transaksi. Migrasi
     // gagal → rollback config dan error keluar (dulu: catch → tetap
     // ok:true, migrated:0; master dan data tidak sinkron).
+    // Imp#1: di dalam transaksi tetap esc() — sql-tag berparameter drizzle
+    // gagal di pg-mem dan pool.pq() beda koneksi (di luar transaksi).
     let migrated = 0;
     await this.db.transaction(async (tx: any) => {
       await tx.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${scope}','${val}','${now}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);

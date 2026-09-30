@@ -4,7 +4,6 @@ import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, Delete
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/drizzle.service';
-import { esc } from '../db/sql';
 import { logActivity } from '../logs/activity';
 
 // Penyimpanan PDF invoice di Cloudflare R2 (S3-compatible).
@@ -86,12 +85,13 @@ export class PdfService {
     if (!/\.pdf$/i.test(clean)) fail('NOT_PDF', 'File harus berformat PDF.');
     const size = Number(sizeBytes) || 0;
     if (size <= 0 || size > MAX_BYTES) fail('BAD_SIZE', `Ukuran PDF 1..${MAX_MB} MB.`);
-    const rec: any = await this.db.execute(`SELECT record_uuid FROM assistance_records WHERE record_uuid='${esc(recordUuid)}' LIMIT 1` as any);
+    const rec: any = await this.db.pq(`SELECT record_uuid FROM assistance_records WHERE record_uuid=$1 LIMIT 1`, [recordUuid]);
     if (!(rec.rows || rec)[0]) fail('CASE_NOT_FOUND', 'Kasus tidak ditemukan.', HttpStatus.NOT_FOUND);
     const key = `invoices/${recordUuid}/${Date.now()}-${clean}`;
     const now = new Date().toISOString();
-    await this.db.execute(
-      `INSERT INTO invoice_pdfs (id,record_uuid,filename,storage_key,size_bytes,status,uploaded_by,created_at,updated_at) VALUES ('${id}','${esc(recordUuid)}','${esc(clean)}','${esc(key)}',${size},'uploading','${esc(who)}','${now}','${now}')` as any,
+    await this.db.pq(
+      `INSERT INTO invoice_pdfs (id,record_uuid,filename,storage_key,size_bytes,status,uploaded_by,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,'uploading',$6,$7,$7)`,
+      [id, recordUuid, clean, key, size, who, now],
     );
     const url = await getSignedUrl(
       s3,
@@ -103,7 +103,7 @@ export class PdfService {
 
   async confirmUpload(id: string, who: string) {
     const s3 = this.needS3();
-    const r: any = await this.db.execute(`SELECT * FROM invoice_pdfs WHERE id='${esc(id)}' LIMIT 1` as any);
+    const r: any = await this.db.pq(`SELECT * FROM invoice_pdfs WHERE id=$1 LIMIT 1`, [id]);
     const row = (r.rows || r)[0];
     if (!row) fail('PDF_NOT_FOUND', 'Data PDF tidak ditemukan.', HttpStatus.NOT_FOUND);
     if (row.status === 'completed') return { ok: true, id, status: 'completed' };
@@ -118,7 +118,7 @@ export class PdfService {
       } catch (e) {
         this.logger.warn(`Hapus R2 objek gagal verifikasi (${id}): ${(e as any)?.message}`);
       }
-      await this.db.execute(`UPDATE invoice_pdfs SET status='failed', updated_at='${now}' WHERE id='${esc(id)}'` as any);
+      await this.db.pq(`UPDATE invoice_pdfs SET status='failed', updated_at=$1 WHERE id=$2`, [now, id]);
       fail('VERIFY_FAILED', msg);
     };
     try {
@@ -128,7 +128,7 @@ export class PdfService {
       const got: any = await s3.send(new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: row.storage_key, Range: 'bytes=0-4' }));
       const sig = await streamHead(got.Body, 5);
       if (!sig.startsWith('%PDF-')) return markFailed('Isi file bukan PDF (%PDF- tidak ditemukan).');
-      await this.db.execute(`UPDATE invoice_pdfs SET status='completed', size_bytes=${actual}, updated_at='${now}' WHERE id='${esc(id)}'` as any);
+      await this.db.pq(`UPDATE invoice_pdfs SET status='completed', size_bytes=$1, updated_at=$2 WHERE id=$3`, [actual, now, id]);
       await logActivity(this.db, { who, action: 'mengunggah PDF invoice', category: 'Invoice', detail: `${row.filename} (${(actual / 1024).toFixed(0)} KB)`, recordUuid: row.record_uuid });
       // Otomatisasi status invoice: PDF pertama yang completed → INVOICE TERBIT.
       // DIKIRIM & PAID tidak pernah diturunkan (invoice sudah diterbitkan/dikirim).
@@ -147,7 +147,7 @@ export class PdfService {
 
   private async getInvoiceStatus(recordUuid: string): Promise<string> {
     try {
-      const r: any = await this.db.execute(`SELECT status FROM invoice_status WHERE record_uuid='${esc(recordUuid)}' LIMIT 1` as any);
+      const r: any = await this.db.pq(`SELECT status FROM invoice_status WHERE record_uuid=$1 LIMIT 1`, [recordUuid]);
       return (r.rows || r)[0]?.status || 'MENUNGGU INVOICE';
     } catch {
       return 'MENUNGGU INVOICE';
@@ -156,14 +156,15 @@ export class PdfService {
 
   private async setInvoiceStatus(recordUuid: string, status: string): Promise<void> {
     const now = new Date().toISOString();
-    await this.db.execute(
-      `INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ('${esc(recordUuid)}','${esc(status)}','${now}') ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at` as any,
+    await this.db.pq(
+      `INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ($1,$2,$3) ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at`,
+      [recordUuid, status, now],
     );
   }
 
   private async countCompleted(recordUuid: string): Promise<number> {
     try {
-      const r: any = await this.db.execute(`SELECT COUNT(*) as c FROM invoice_pdfs WHERE record_uuid='${esc(recordUuid)}' AND status='completed'` as any);
+      const r: any = await this.db.pq(`SELECT COUNT(*) as c FROM invoice_pdfs WHERE record_uuid=$1 AND status='completed'`, [recordUuid]);
       return Number((r.rows || r)[0]?.c || 0);
     } catch {
       return 0;
@@ -171,8 +172,9 @@ export class PdfService {
   }
 
   async listByCase(recordUuid: string) {
-    const r: any = await this.db.execute(
-      `SELECT id,filename,size_bytes as "sizeBytes",status,created_at as "createdAt" FROM invoice_pdfs WHERE record_uuid='${esc(recordUuid)}' ORDER BY created_at DESC` as any,
+    const r: any = await this.db.pq(
+      `SELECT id,filename,size_bytes as "sizeBytes",status,created_at as "createdAt" FROM invoice_pdfs WHERE record_uuid=$1 ORDER BY created_at DESC`,
+      [recordUuid],
     );
     return (r.rows || r).map((x: any) => ({
       id: x.id, filename: x.filename, sizeBytes: Number(x.sizeBytes || x.sizebytes || 0),
@@ -183,8 +185,9 @@ export class PdfService {
   // Kondisi gate tombol Unduh/Hapus versi server (cermin isPdfReady di frontend):
   // true hanya bila ada ≥1 file completed pada kasus ini.
   async caseState(recordUuid: string) {
-    const r: any = await this.db.execute(
-      `SELECT status, COUNT(*) as c FROM invoice_pdfs WHERE record_uuid='${esc(recordUuid)}' GROUP BY status` as any,
+    const r: any = await this.db.pq(
+      `SELECT status, COUNT(*) as c FROM invoice_pdfs WHERE record_uuid=$1 GROUP BY status`,
+      [recordUuid],
     );
     const rows = r.rows || r || [];
     let completed = 0;
@@ -201,8 +204,9 @@ export class PdfService {
   // Riwayat invoice + validasi + PDF per kasus (sumber: activity_logs).
   // Dipakai tombol Riwayat di frontend — siapa berbuat apa + kapan.
   async caseHistory(recordUuid: string) {
-    const r: any = await this.db.execute(
-      `SELECT who, action, category, detail, created_at as "createdAt" FROM activity_logs WHERE record_uuid='${esc(recordUuid)}' AND category IN ('Invoice','Validasi') ORDER BY created_at DESC LIMIT 50` as any,
+    const r: any = await this.db.pq(
+      `SELECT who, action, category, detail, created_at as "createdAt" FROM activity_logs WHERE record_uuid=$1 AND category IN ('Invoice','Validasi') ORDER BY created_at DESC LIMIT 50`,
+      [recordUuid],
     );
     return {
       ok: true,
@@ -219,7 +223,7 @@ export class PdfService {
 
   async downloadUrl(id: string, inline = false) {
     const s3 = this.needS3();
-    const r: any = await this.db.execute(`SELECT * FROM invoice_pdfs WHERE id='${esc(id)}' LIMIT 1` as any);
+    const r: any = await this.db.pq(`SELECT * FROM invoice_pdfs WHERE id=$1 LIMIT 1`, [id]);
     const row = (r.rows || r)[0];
     if (!row) fail('PDF_NOT_FOUND', 'Data PDF tidak ditemukan.', HttpStatus.NOT_FOUND);
     if (row.status !== 'completed') fail('NOT_READY', 'File belum selesai diunggah.');
@@ -235,7 +239,7 @@ export class PdfService {
 
   async remove(id: string, who: string) {
     const s3 = this.needS3();
-    const r: any = await this.db.execute(`SELECT * FROM invoice_pdfs WHERE id='${esc(id)}' LIMIT 1` as any);
+    const r: any = await this.db.pq(`SELECT * FROM invoice_pdfs WHERE id=$1 LIMIT 1`, [id]);
     const row = (r.rows || r)[0];
     if (!row) fail('PDF_NOT_FOUND', 'Data PDF tidak ditemukan.', HttpStatus.NOT_FOUND);
     try {
@@ -246,7 +250,7 @@ export class PdfService {
       this.logger.warn(`Hapus R2 gagal (DB tidak disentuh): ${(e as any)?.message}`);
       fail('R2_DELETE_FAILED', 'Gagal menghapus file di penyimpanan — data dipertahankan, coba lagi.', HttpStatus.BAD_GATEWAY);
     }
-    await this.db.execute(`DELETE FROM invoice_pdfs WHERE id='${esc(id)}'` as any);
+    await this.db.pq(`DELETE FROM invoice_pdfs WHERE id=$1`, [id]);
     await logActivity(this.db, { who, action: 'menghapus PDF invoice', category: 'Invoice', detail: row.filename, recordUuid: row.record_uuid });
     // Otomatisasi status invoice: PDF completed terakhir dihapus → kembali MENUNGGU.
     // Hanya dari TERBIT (atau legacy UNPAID) — DIKIRIM/PAID tidak disentuh

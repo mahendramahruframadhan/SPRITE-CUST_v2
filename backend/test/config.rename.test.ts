@@ -7,12 +7,15 @@ import assert from 'node:assert/strict';
 import { ConfigController } from '../src/config/config.controller.ts';
 
 function ctlWith(txFake: any, txSpy: { called: boolean }) {
+  const exec = async (sql: string) => {
+    if (/SELECT value FROM app_config/.test(sql)) return { rows: [{ value: JSON.stringify(['LUNAS', 'BELUM']) }] };
+    return { rows: [] };
+  };
   const ctl: any = new ConfigController();
   ctl.db = {
-    execute: async (sql: string) => {
-      if (/SELECT value FROM app_config/.test(sql)) return { rows: [{ value: JSON.stringify(['LUNAS', 'BELUM']) }] };
-      return { rows: [] };
-    },
+    execute: exec,
+    // Imp#1: SELECT list kini lewat pq(text, params) — fake ikut meneruskan.
+    pq: async (t: string, p: any[]) => exec(`${t} /*${JSON.stringify(p)}*/`),
     transaction: async (fn: any) => { txSpy.called = true; return fn(txFake); },
   };
   return ctl;

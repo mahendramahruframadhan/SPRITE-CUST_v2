@@ -23,6 +23,8 @@ function serviceWithStubs(s3: any, rows: any[]) {
       return { rows: [] };
     },
   };
+  (svc as any).db.pq = async (text: string, params: any[]) =>
+    (svc as any).db.execute(`${text} /*${JSON.stringify(params)}*/`);
   return svc;
 }
 

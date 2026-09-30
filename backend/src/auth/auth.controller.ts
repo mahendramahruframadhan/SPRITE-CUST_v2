@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
 import { pickRole, validateRegistration } from './register.validation';
 import { createSession, destroySession, resolveSessionUser, SESSION_TTL_MS } from './session';
 import { hashPassword, verifyPassword } from './password';
-import { esc, rowsOf } from '../db/sql';
+import { rowsOf } from '../db/sql';
 import { logActivity } from '../logs/activity';
 import {
   SIGNIN_MAX_HITS,
@@ -67,7 +67,7 @@ export class AuthController {
     const canAssignRole = await requesterIsSuperAdmin(this.db, req);
     const role = canAssignRole ? pickRole(body.role) : 'Viewer';
 
-    const dup: any = await this.db.execute(`SELECT id FROM "user" WHERE lower(email) = '${esc(values.email)}' LIMIT 1` as any);
+    const dup: any = await this.db.pq(`SELECT id FROM "user" WHERE lower(email) = $1 LIMIT 1`, [values.email]);
     if (rowsOf(dup)[0]) {
       throw new HttpException(
         { code: 'EMAIL_TAKEN', message: 'Email sudah terdaftar. Silakan login.' },
@@ -79,11 +79,13 @@ export class AuthController {
     const now = new Date().toISOString();
     const password = await hashPassword(values.password);
     try {
-      await this.db.execute(
-        `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES ('${esc(id)}', '${esc(values.name)}', '${esc(values.email)}', 1, '${esc(role)}', 1, '${now}', '${now}')` as any,
+      await this.db.pq(
+        `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES ($1, $2, $3, 1, $4, 1, $5, $5)`,
+        [id, values.name, values.email, role, now],
       );
-      await this.db.execute(
-        `INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES ('${esc(`acc_${id}`)}', '${esc(values.email)}', 'credential', '${esc(id)}', '${esc(password)}', '${now}', '${now}')` as any,
+      await this.db.pq(
+        `INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES ($1, $2, 'credential', $3, $4, $5, $5)`,
+        [`acc_${id}`, values.email, id, password, now],
       );
     } catch (e: any) {
       throw new HttpException(
@@ -108,7 +110,7 @@ export class AuthController {
       SIGNIN_WINDOW_MS,
       'AUTH_RATE_LIMITED',
     );
-    const r: any = await this.db.execute(`SELECT u.id, u.name, u.email, u.role, u.active, a.password FROM "user" u JOIN account a ON a.user_id = u.id WHERE lower(u.email) = '${esc(email)}' LIMIT 1` as any);
+    const r: any = await this.db.pq(`SELECT u.id, u.name, u.email, u.role, u.active, a.password FROM "user" u JOIN account a ON a.user_id = u.id WHERE lower(u.email) = $1 LIMIT 1`, [email]);
     const row = rowsOf(r)[0];
     // H2 (anti oracle): SEMUA kegagalan membalas pesan yang sama persis.
     // Dulu tiga pesan berbeda ('invalid credentials' / 'password reset

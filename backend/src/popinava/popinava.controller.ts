@@ -79,7 +79,7 @@ function pickSource(body: Record<string, any>): Record<string, string> {
 }
 
 async function rowByUuid(db: any, uuid: string): Promise<any | null> {
-  const r: any = await db.execute(`SELECT * FROM popinava_outlets WHERE uuid='${esc(uuid)}' LIMIT 1` as any);
+  const r: any = await db.pq(`SELECT * FROM popinava_outlets WHERE uuid=$1 LIMIT 1`, [uuid]);
   const row = (r.rows || r)[0];
   return row || null;
 }
@@ -94,26 +94,32 @@ export class PopinavaController {
     const page = Math.max(1, parseInt(q.page, 10) || 1);
     const pageSize = Math.min(5000, Math.max(1, parseInt(q.pageSize, 10) || 50));
     const where: string[] = [];
+    const params: any[] = [];
+    const ph = () => `$${params.length}`;
     const search = clean(q.search).toLowerCase().replace(/[%_]/g, '');
     if (search) {
+      params.push(`%${search}%`);
+      const s = ph();
       where.push(
-        `(LOWER(uuid) LIKE '%${esc(search)}%' OR LOWER(dept_channel_name) LIKE '%${esc(search)}%' OR LOWER(address) LIKE '%${esc(search)}%' OR LOWER(city) LIKE '%${esc(search)}%')`,
+        `(LOWER(uuid) LIKE ${s} OR LOWER(dept_channel_name) LIKE ${s} OR LOWER(address) LIKE ${s} OR LOWER(city) LIKE ${s})`,
       );
     }
     for (const [key, col] of Object.entries(FILTERS)) {
       const v = clean(q[key]);
-      if (v) where.push(`${col}='${esc(v)}'`);
+      if (v) { params.push(v); where.push(`${col}=${ph()}`); }
     }
     const whereSql = where.length ? ` WHERE ${where.join(' AND ')}` : '';
-    const countR: any = await this.db.execute(`SELECT COUNT(*) as c FROM popinava_outlets${whereSql}` as any);
+    const countR: any = await this.db.pq(`SELECT COUNT(*) as c FROM popinava_outlets${whereSql}`, params);
     const total = Number((countR.rows || countR)[0]?.c || 0);
 
     const [sortField, sortDir] = clean(q.sort || 'brand_name:asc').split(':');
     const col = SORTABLE[sortField] || 'brand_name';
     const dir = String(sortDir).toLowerCase() === 'desc' ? 'DESC' : 'ASC';
     const offset = (page - 1) * pageSize;
-    const rowsR: any = await this.db.execute(
-      `SELECT * FROM popinava_outlets${whereSql} ORDER BY ${col} ${dir} LIMIT ${pageSize} OFFSET ${offset}` as any,
+    params.push(pageSize, offset);
+    const rowsR: any = await this.db.pq(
+      `SELECT * FROM popinava_outlets${whereSql} ORDER BY ${col} ${dir} LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
     );
 
     const facet = async (col2: string) => {
@@ -153,9 +159,11 @@ export class PopinavaController {
     if (await rowByUuid(this.db, src.uuid)) fail('DUPLICATE_UUID', `Outlet dengan uuid ${src.uuid} sudah ada.`, HttpStatus.CONFLICT);
     if (!src.created_at) src.created_at = new Date().toISOString().slice(0, 19).replace('T', ' ');
     if (!src.status) src.status = 'active';
-    const sets = COLS.map((c) => `'${esc(src[c] ?? '')}'`).join(',');
-    await this.db.execute(
-      `INSERT INTO popinava_outlets (uuid,brand_name,rvt_custcode,dept_code,dept_name,dept_channel_name,dept_reference,iso_code,address,city,province,postcode,country,area,region,email,notes,created_at,status) VALUES (${sets},'${esc(src.status)}')` as any,
+    const cols = COLS.map((c, i) => `$${i + 1}`);
+    const placeholders = [...cols, `$${COLS.length + 1}`].join(',');
+    await this.db.pq(
+      `INSERT INTO popinava_outlets (uuid,brand_name,rvt_custcode,dept_code,dept_name,dept_channel_name,dept_reference,iso_code,address,city,province,postcode,country,area,region,email,notes,created_at,status) VALUES (${placeholders})`,
+      [...COLS.map((c) => src[c] ?? ''), src.status],
     );
     const who = await resolveWho(this.db, req);
     await logActivity(this.db, {
@@ -180,9 +188,12 @@ export class PopinavaController {
     if (errors.length) validationFail(errors);
     const keys = Object.keys(provided).filter((k) => k !== 'uuid');
     if (!keys.length) return existing;
-    const sets = keys.map((k) => `${k}='${esc(provided[k])}'`).join(',');
-    await this.db.execute(
-      `UPDATE popinava_outlets SET ${sets}, updated_at='${new Date().toISOString()}' WHERE uuid='${esc(uuid)}'` as any,
+    const updParams: any[] = [];
+    const sets = keys.map((k) => { updParams.push(provided[k]); return `${k}=$${updParams.length}`; });
+    updParams.push(new Date().toISOString(), uuid);
+    await this.db.pq(
+      `UPDATE popinava_outlets SET ${sets.join(',')}, updated_at=$${updParams.length - 1} WHERE uuid=$${updParams.length}`,
+      updParams,
     );
     const who = await resolveWho(this.db, req);
     await logActivity(this.db, {
@@ -202,7 +213,7 @@ export class PopinavaController {
   async remove(@Param('uuid') uuid: string, @Req() req: any) {
     const existing = await rowByUuid(this.db, uuid);
     if (!existing) fail('NOT_FOUND', 'Outlet tidak ditemukan.', HttpStatus.NOT_FOUND);
-    await this.db.execute(`DELETE FROM popinava_outlets WHERE uuid='${esc(uuid)}'` as any);
+    await this.db.pq(`DELETE FROM popinava_outlets WHERE uuid=$1`, [uuid]);
     const who = await resolveWho(this.db, req);
     await logActivity(this.db, {
       who,
@@ -229,14 +240,15 @@ export class PopinavaController {
       status = clean(body?.status);
       if (!STATUSES.includes(status)) fail('VALIDATION_FAILED', 'status harus active atau inactive.', HttpStatus.BAD_REQUEST);
     }
-    const inSql = uuids.map((u: string) => `'${esc(u)}'`).join(',');
+    const inSql = uuids.map((_: string, i: number) => `$${i + 1}`).join(',');
     let affected = 0;
     if (action === 'delete') {
-      const r: any = await this.db.execute(`DELETE FROM popinava_outlets WHERE uuid IN (${inSql}) RETURNING uuid` as any);
+      const r: any = await this.db.pq(`DELETE FROM popinava_outlets WHERE uuid IN (${inSql}) RETURNING uuid`, uuids);
       affected = (r.rows || r).length;
     } else {
-      const r: any = await this.db.execute(
-        `UPDATE popinava_outlets SET status='${esc(status)}', updated_at='${new Date().toISOString()}' WHERE uuid IN (${inSql}) RETURNING uuid` as any,
+      const r: any = await this.db.pq(
+        `UPDATE popinava_outlets SET status=$1, updated_at=$2 WHERE uuid IN (${uuids.map((_: string, i: number) => `$${i + 3}`).join(',')}) RETURNING uuid`,
+        [status, new Date().toISOString(), ...uuids],
       );
       affected = (r.rows || r).length;
     }

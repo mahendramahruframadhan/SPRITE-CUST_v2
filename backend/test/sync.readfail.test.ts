@@ -30,18 +30,18 @@ function sheetsService(api: any) {
 }
 
 function fakeDb(store: any) {
-  return {
-    execute: async (sql: string) => {
-      if (/INSERT INTO sync_logs/.test(sql)) { store.logInserts = (store.logInserts || 0) + 1; return { rows: [] }; }
-      if (/UPDATE sync_logs/.test(sql)) { store.logStatus = (/status='failed'/.test(sql) ? 'failed' : 'success'); return { rows: [] }; }
-      if (/SELECT value FROM app_config WHERE key='syncHashes'/.test(sql)) {
-        return { rows: [{ value: store.prior }] };
-      }
-      if (/INSERT INTO app_config/.test(sql)) { store.hashesWritten = (store.hashesWritten || 0) + 1; return { rows: [] }; }
-      if (/INSERT INTO activity_logs/.test(sql)) return { rows: [] };
-      return { rows: [] };
-    },
+  const exec = async (sql: string) => {
+    if (/INSERT INTO sync_logs/.test(sql)) { store.logInserts = (store.logInserts || 0) + 1; return { rows: [] }; }
+    if (/UPDATE sync_logs/.test(sql)) { store.logStatus = (/status='failed'/.test(sql) ? 'failed' : 'success'); return { rows: [] }; }
+    if (/SELECT value FROM app_config WHERE key='syncHashes'/.test(sql)) {
+      return { rows: [{ value: store.prior }] };
+    }
+    if (/INSERT INTO app_config/.test(sql)) { store.hashesWritten = (store.hashesWritten || 0) + 1; return { rows: [] }; }
+    if (/INSERT INTO activity_logs/.test(sql)) return { rows: [] };
+    return { rows: [] };
   };
+  // Imp#1: query input kini lewat pq(text, params) — fake ikut meneruskan.
+  return { execute: exec, pq: async (t: string, p: any[]) => exec(`${t} /*${JSON.stringify(p)}*/`) };
 }
 
 describe('readDataTab gagal baca (M1)', () => {

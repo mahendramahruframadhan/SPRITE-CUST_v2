@@ -90,6 +90,8 @@ export class SetupController {
           );
         }
 
+        // Imp#1: di dalam transaksi tetap esc() — lihat db/sql.ts (tx tidak
+        // punya pq; sql-tag berparameter drizzle gagal di pg-mem).
         const dup: any = await tx.execute(`SELECT id FROM "user" WHERE lower(email) = '${esc(values.email)}' LIMIT 1` as any);
         if (rowsOf(dup)[0]) {
           throw new HttpException(

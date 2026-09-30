@@ -2,7 +2,6 @@ import { Injectable, CanActivate, ExecutionContext, SetMetadata, UnauthorizedExc
 import { Reflector } from '@nestjs/core';
 import { getDb } from '../db/drizzle.service';
 import { resolveSessionUser } from './session';
-import { esc } from '../db/sql';
 
 export const Perm = (module: string) => SetMetadata('permModule', module);
 
@@ -30,7 +29,7 @@ export class PermGuard implements CanActivate {
     if (!u) throw new UnauthorizedException({ code: 'SESSION_EXPIRED', message: 'Sesi berakhir — silakan login lagi.' });
     const role = u.role || 'Viewer';
     if (role === 'Super Admin') return true;
-    const p: any = await this.db.execute(`SELECT allowed FROM role_permissions WHERE role='${esc(role)}' AND module='${esc(mod)}'` as any);
+    const p: any = await this.db.pq(`SELECT allowed FROM role_permissions WHERE role=$1 AND module=$2`, [role, mod]);
     return Number((p.rows || p)[0]?.allowed || 0) === 1;
   }
 }

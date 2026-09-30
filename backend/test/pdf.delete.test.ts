@@ -10,15 +10,18 @@ describe('hapus PDF fail-closed (M5)', () => {
   it('R2 DeleteObject gagal → error + baris DB TIDAK dihapus', async () => {
     const svc: any = new PdfService();
     let dbDeleted = false;
+    const exec = async (sql: string) => {
+      if (/DELETE FROM invoice_pdfs/.test(sql)) { dbDeleted = true; return { rows: [] }; }
+      if (/SELECT \* FROM invoice_pdfs/.test(sql)) {
+        return { rows: [{ id: 'pdf-1', record_uuid: 'rec-1', filename: 'inv.pdf', storage_key: 'k/pdf-1', status: 'completed' }] };
+      }
+      if (/invoice_status|audit_status/.test(sql)) return { rows: [] };
+      return { rows: [] };
+    };
     svc.db = {
-      execute: async (sql: string) => {
-        if (/DELETE FROM invoice_pdfs/.test(sql)) { dbDeleted = true; return { rows: [] }; }
-        if (/SELECT \* FROM invoice_pdfs/.test(sql)) {
-          return { rows: [{ id: 'pdf-1', record_uuid: 'rec-1', filename: 'inv.pdf', storage_key: 'k/pdf-1', status: 'completed' }] };
-        }
-        if (/invoice_status|audit_status/.test(sql)) return { rows: [] };
-        return { rows: [] };
-      },
+      execute: exec,
+      // Imp#1: query input kini lewat pq(text, params) — fake ikut meneruskan.
+      pq: async (text: string, params: any[]) => exec(`${text} /*${JSON.stringify(params)}*/`),
     };
     (svc as any).needS3 = () => ({
       send: async () => { throw new Error('R2 timeout'); },

@@ -1,8 +1,7 @@
 import { Controller, Get, Put, Post, Patch, Delete, Param, Body, Req, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
-import { esc } from '../db/sql';
-import { Perm, PermGuard } from '../auth/perm.guard';
 import { logActivity, resolveWho } from '../logs/activity';
+import { Perm, PermGuard } from '../auth/perm.guard';
 import { hashPassword } from '../auth/password';
 import { SessionGuard } from '../auth/session.guard';
 import { resolveSessionUser } from '../auth/session';
@@ -35,7 +34,7 @@ export class RolesController {
     // termasuk mengunci total sistem dengan mematikan SEMUA Super Admin.
     const actor = await resolveSessionUser(this.db, req);
     const actorIsSA = actor?.role === 'Super Admin';
-    const curR: any = await this.db.execute(`SELECT role, active FROM "user" WHERE id='${esc(id)}' LIMIT 1` as any);
+    const curR: any = await this.db.pq(`SELECT role, active FROM "user" WHERE id=$1 LIMIT 1`, [id]);
     const cur = (curR.rows || curR)[0];
     if (!cur) throw new HttpException({ code: 'NOT_FOUND', message: 'Pengguna tidak ditemukan.' }, HttpStatus.NOT_FOUND);
     const targetIsSA = cur.role === 'Super Admin';
@@ -55,8 +54,9 @@ export class RolesController {
     }
     // SA aktif terakhir tidak boleh hilang — oleh siapa pun, termasuk SA lain.
     if (targetIsSA && targetWasActive && (demoteSA || deactivate)) {
-      const rest: any = await this.db.execute(
-        `SELECT COUNT(*) as c FROM "user" WHERE role='Super Admin' AND COALESCE(active,1)=1 AND id<>'${esc(id)}'` as any,
+      const rest: any = await this.db.pq(
+        `SELECT COUNT(*) as c FROM "user" WHERE role='Super Admin' AND COALESCE(active,1)=1 AND id<>$1`,
+        [id],
       );
       if (!Number((rest.rows || rest)[0]?.c || 0)) {
         throw new HttpException(
@@ -67,13 +67,16 @@ export class RolesController {
     }
 
     const sets: string[] = [];
-    if (b.name) sets.push(`name='${esc(b.name)}'`);
-    if (b.email) sets.push(`email='${esc(String(b.email).toLowerCase())}'`);
-    if (b.role && ROLES.includes(b.role)) sets.push(`role='${b.role}'`);
-    if (b.active !== undefined) sets.push(`active=${b.active ? 1 : 0}`);
+    const params: any[] = [];
+    const push = (col: string, val: any) => { params.push(val); sets.push(`${col}=$${params.length}`); };
+    if (b.name) push('name', b.name);
+    if (b.email) push('email', String(b.email).toLowerCase());
+    if (b.role && ROLES.includes(b.role)) push('role', b.role);
+    if (b.active !== undefined) push('active', b.active ? 1 : 0);
     if (!sets.length) return { ok: false, error: 'nothing to update' };
-    sets.push(`updated_at='${new Date().toISOString()}'`);
-    await this.db.execute(`UPDATE "user" SET ${sets.join(',')} WHERE id='${esc(id)}'` as any);
+    push('updated_at', new Date().toISOString());
+    params.push(id);
+    await this.db.pq(`UPDATE "user" SET ${sets.join(',')} WHERE id=$${params.length}`, params);
     return { ok: true };
   }
 
@@ -81,13 +84,12 @@ export class RolesController {
   @UseGuards(PermGuard)
   @Perm('roles')
   async remove(@Param('id') id: string) {
-    const e = esc(id);
-    const r: any = await this.db.execute(`SELECT role FROM "user" WHERE id='${e}'` as any);
+    const r: any = await this.db.pq(`SELECT role FROM "user" WHERE id=$1`, [id]);
     const row = (r.rows || r)[0];
     if (!row) return { ok: false, error: 'not found' };
     if (row.role === 'Super Admin') return { ok: false, error: 'Super Admin tidak dapat dihapus' };
-    await this.db.execute(`DELETE FROM account WHERE user_id='${e}'` as any);
-    await this.db.execute(`DELETE FROM "user" WHERE id='${e}'` as any);
+    await this.db.pq(`DELETE FROM account WHERE user_id=$1`, [id]);
+    await this.db.pq(`DELETE FROM "user" WHERE id=$1`, [id]);
     return { ok: true };
   }
 
@@ -97,13 +99,12 @@ export class RolesController {
   async password(@Param('id') id: string, @Body() b: any) {
     const p = String(b.password || '');
     if (p.length < 5) return { ok: false, error: 'password min. 5 karakter' };
-    const e = esc(id);
     const password = await hashPassword(p);
-    await this.db.execute(`UPDATE account SET password='${esc(password)}', updated_at='${new Date().toISOString()}' WHERE user_id='${e}'` as any);
+    await this.db.pq(`UPDATE account SET password=$1, updated_at=$2 WHERE user_id=$3`, [password, new Date().toISOString(), id]);
     // H4: tanpa ini, token sesi yang sudah bocor/dipegang penyerang tetap
     // valid sampai kedaluwarsa (7 hari) — reset password tidak memulihkan
     // akun yang direbut. Cabut SEMUA sesi target; sesi lain tidak tersentuh.
-    await this.db.execute(`DELETE FROM session WHERE user_id='${e}'` as any);
+    await this.db.pq(`DELETE FROM session WHERE user_id=$1`, [id]);
     return { ok: true };
   }
 
@@ -127,7 +128,7 @@ export class RolesController {
     for (const role of Object.keys(perms)) {
       if (!ROLES.includes(role)) continue;
       for (const mod of Object.keys(perms[role])) {
-        await this.db.execute(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','${esc(mod)}',${perms[role][mod] ? 1 : 0},'${now}')` as any);
+        await this.db.pq(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ($1,$2,$3,$4)`, [role, mod, perms[role][mod] ? 1 : 0, now]);
       }
     }
     // Kunci anti-lockout: Super Admin selalu penuh meski request direkayasa
