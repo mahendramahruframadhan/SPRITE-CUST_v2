@@ -44,8 +44,10 @@ export class SyncService {
     const startedMs = Date.now();
     const id = crypto.randomUUID();
     const startedAt = new Date().toISOString();
-    await this.db.execute(`INSERT INTO sync_logs (id,started_at,status,source) VALUES ('${id}','${startedAt}','running','${source}')` as any);
+    // M2: INSERT ikut di dalam try — kalau INSERT gagal sekalipun, finally
+    // di bawah wajib melepas flag `running` (dulu terkunci permanen).
     try {
+      await this.db.execute(`INSERT INTO sync_logs (id,started_at,status,source) VALUES ('${id}','${startedAt}','running','${source}')` as any);
       const { rows, tab, readRows, skippedRows } = await this.sheets.readDataTab();
       // Hash sync sebelumnya (app_config) — baris yang hash-nya sama dilewati (tidak di-upsert)
       let prevHashes: Record<string, string> = {};
@@ -80,7 +82,12 @@ export class SyncService {
       await logActivity(this.db, { who: 'Sistem', action: 'sinkronisasi Google Sheets selesai', category: 'Sinkron', detail: `${n} baris baru/berubah, ${unchanged} sama (${readRows} dibaca, sumber: ${source}${tab ? `, tab ${tab}` : ''})` });
       return { ok: true, rows: n, readRows, skippedRows, unchanged, tab, startedAt, finishedAt, durationMs: Date.now() - startedMs };
     } catch (e: any) {
-      await this.db.execute(`UPDATE sync_logs SET finished_at='${new Date().toISOString()}', status='failed', error_message='${esc(String(e.message||e))}' WHERE id='${id}'` as any);
+      try {
+        await this.db.execute(`UPDATE sync_logs SET finished_at='${new Date().toISOString()}', status='failed', error_message='${esc(String(e.message || e))}' WHERE id='${id}'` as any);
+      } catch {
+        // baris log mungkin belum tercipta (INSERT awal gagal) — jangan
+        // tutupi error asli dengan error UPDATE sekunder.
+      }
       throw e;
     } finally {
       this.running = false;

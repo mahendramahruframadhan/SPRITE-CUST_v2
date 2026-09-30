@@ -241,7 +241,10 @@ export class PdfService {
     try {
       await s3.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: row.storage_key }));
     } catch (e) {
-      this.logger.warn(`Hapus R2 gagal (lanjut hapus DB): ${(e as any)?.message}`);
+      // M5: fail-closed — R2 gagal → error keluar, baris DB dipertahankan
+      // (retry tetap mungkin; object yatim tanpa metadata dilarang).
+      this.logger.warn(`Hapus R2 gagal (DB tidak disentuh): ${(e as any)?.message}`);
+      fail('R2_DELETE_FAILED', 'Gagal menghapus file di penyimpanan — data dipertahankan, coba lagi.', HttpStatus.BAD_GATEWAY);
     }
     await this.db.execute(`DELETE FROM invoice_pdfs WHERE id='${esc(id)}'` as any);
     await logActivity(this.db, { who, action: 'menghapus PDF invoice', category: 'Invoice', detail: row.filename, recordUuid: row.record_uuid });

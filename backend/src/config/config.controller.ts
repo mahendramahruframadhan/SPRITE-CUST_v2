@@ -106,8 +106,8 @@ export class ConfigController {
     return { ok:true, key: k };
   }
 
-  // Daftar master status (CRUD dari halaman Pengaturan). GET terbuka;
-  // PUT dijaga modul 'billing' (dimiliki role Admin CS & Finance).
+  // Daftar master status (CRUD dari halaman Pengaturan). GET perlu sesi
+  // (SessionGuard kelas); PUT dijaga modul 'billing' (Admin CS & Finance).
   @Get('status-options')
   async statusOptions() {
     const read = async (k: string, fallback: string[]) => {
@@ -175,22 +175,23 @@ export class ConfigController {
     const next = list.map((a) => (a === from ? to : a));
     const val = esc(JSON.stringify(next));
     const now = new Date().toISOString();
-    await this.db.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${scope}','${val}','${now}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
 
     // Migrasi status per-kasus agar tidak yatim (orphan).
     const target = scope === 'auditActions'
       ? { table: 'audit_status', col: 'action' }
       : { table: 'invoice_status', col: 'status' };
+    // M6: tulis config + hitung + migrasi dalam SATU transaksi. Migrasi
+    // gagal → rollback config dan error keluar (dulu: catch → tetap
+    // ok:true, migrated:0; master dan data tidak sinkron).
     let migrated = 0;
-    try {
-      const cnt: any = await this.db.execute(`SELECT COUNT(*) as c FROM ${target.table} WHERE ${target.col}='${esc(from)}'` as any);
+    await this.db.transaction(async (tx: any) => {
+      await tx.execute(`INSERT INTO app_config (key,value,updated_at) VALUES ('${scope}','${val}','${now}') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at` as any);
+      const cnt: any = await tx.execute(`SELECT COUNT(*) as c FROM ${target.table} WHERE ${target.col}='${esc(from)}'` as any);
       migrated = +((cnt.rows || cnt)[0]?.c || 0);
       if (migrated > 0) {
-        await this.db.execute(`UPDATE ${target.table} SET ${target.col}='${esc(to)}', updated_at='${now}' WHERE ${target.col}='${esc(from)}'` as any);
+        await tx.execute(`UPDATE ${target.table} SET ${target.col}='${esc(to)}', updated_at='${now}' WHERE ${target.col}='${esc(from)}'` as any);
       }
-    } catch {
-      migrated = 0;
-    }
+    });
     return { ok: true, scope, from, to, [scope]: next, migrated };
   }
 }

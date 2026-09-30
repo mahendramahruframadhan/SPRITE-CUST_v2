@@ -10,6 +10,17 @@ const SHEET_DATA_TAB = (process.env.SHEET_DATA_TAB || '').trim();
 // ponytail: hardcode minimal mapping for data tab; full 25 col mapping loaded from sheetConfig when available
 const COLS = ['no','dateIssue','startDate','finishDate','client','picName','module','subModule','location','issue','assignTo','status','supportCategory','billingStatus','billingCategory','refPriceList','channelTicket','supportType','charges','completionNotes','groupKpi','groupKpiDesc','month','weeknum','recordUuid'];
 
+// M1: kegagalan baca Sheets dibedakan dari sheet yang sah-sah saja kosong.
+// SyncService harus tahu baca GAGAL supaya tidak menandai success dan tidak
+// menimpa syncHashes (outage Sheets tidak boleh hilang dari radar).
+export class SheetsReadError extends Error {
+  readonly code = 'SHEETS_READ_FAILED';
+  constructor(message: string, readonly cause?: unknown) {
+    super(message);
+    this.name = 'SheetsReadError';
+  }
+}
+
 @Injectable()
 export class SheetsService {
   private logger = new Logger(SheetsService.name);
@@ -134,7 +145,7 @@ export class SheetsService {
       return { rows: mapped, tab: range, readRows: rows.length - headerIdx - 1, skippedRows: rows.length - headerIdx - 1 - mapped.length };
     } catch (e) {
       this.logger.error('Sheets read failed', e);
-      return { rows: [], tab: '', readRows: 0, skippedRows: 0 };
+      throw new SheetsReadError(`Gagal membaca Google Sheets: ${(e as any)?.message || e}`, e);
     }
   }
 

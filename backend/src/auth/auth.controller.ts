@@ -2,9 +2,10 @@ import { Controller, Post, Body, Req, Res, Get, HttpCode, HttpException, HttpSta
 import { getDb } from '../db/drizzle.service';
 import * as crypto from 'crypto';
 import { pickRole, validateRegistration } from './register.validation';
-import { createSession, destroySession, resolveSessionUser } from './session';
+import { createSession, destroySession, resolveSessionUser, SESSION_TTL_MS } from './session';
 import { hashPassword, verifyPassword } from './password';
 import { esc, rowsOf } from '../db/sql';
+import { logActivity } from '../logs/activity';
 import {
   SIGNIN_MAX_HITS,
   SIGNIN_WINDOW_MS,
@@ -117,13 +118,30 @@ export class AuthController {
     // Konsekuensi yang disadari: pemilik password legacy / akun nonaktif
     // mendapat pesan generik dan harus hubungi admin untuk reset/aktivasi.
     const passOk = await verifyPassword(password, row ? row.password : DUMMY_HASH);
-    if (!row || !passOk || !Number(row.active ?? 1)) return { error: 'invalid credentials' };
+    if (!row || !passOk || !Number(row.active ?? 1)) {
+      // M4: audit percobaan login gagal di server (email + IP, TANPA password).
+      // Respons tetap 200 {error} — sengaja (anti-oracle, lihat komentar H2).
+      await logActivity(this.db, {
+        who: row?.email || email || 'unknown',
+        action: 'Login gagal',
+        category: 'Keamanan',
+        detail: `email=${email} ip=${String(req?.ip || req?.socket?.remoteAddress || 'unknown')}`,
+      });
+      return { error: 'invalid credentials' };
+    }
     // Token sesi server-side (disimpan di tabel session, kedaluwarsa 7 hari).
     // Frontend wajib mengirimnya via header x-auth-token di setiap request tulis.
     const token = await createSession(this.db, row.id);
-    // set cookie seperti Better Auth (kompatibilitas klien lama). Akses
-    // defensif: pemanggil langsung (test) boleh tidak menyertakan res.
-    res?.cookie?.('better-auth.session_token', token, { httpOnly: true, path: '/' });
+    // set cookie seperti Better Auth (kompatibilitas klien lama). Flags
+    // aman M3: httpOnly + sameSite=lax + maxAge=ttl; secure hanya production
+    // (dev jalan di http://localhost). Migrasi penuh ke cookie → README.
+    res?.cookie?.('better-auth.session_token', token, {
+      httpOnly: true,
+      path: '/',
+      sameSite: 'lax',
+      maxAge: SESSION_TTL_MS,
+      secure: process.env.NODE_ENV === 'production',
+    });
     return { user: { id: row.id, name: row.name, email: row.email, role: row.role || 'Viewer' }, token };
   }
 
