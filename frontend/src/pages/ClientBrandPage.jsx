@@ -17,6 +17,7 @@ import { useClientBrands } from '../hooks/useClientBrands.js';
 import { daysLeft, expiryState, fmtDateID } from '../utils/contract.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { ScrollArea } from '../components/ui/ScrollArea.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const INPUT_CLS =
@@ -392,9 +393,11 @@ export default function ClientBrandPage() {
           {monthly.length === 0 ? (
             <p className="px-4 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada. Ketik nama lalu Tambah ke Monthly.</p>
           ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto scrollbar-thin">
+            <ScrollArea className="max-h-[440px]">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
               {monthly.map((it) => <MonthlyRow key={it.id} item={it} />)}
             </ul>
+            </ScrollArea>
           )}
         </section>
 
@@ -414,9 +417,11 @@ export default function ClientBrandPage() {
           {gratis.length === 0 ? (
             <p className="px-4 py-8 text-center text-xs text-slate-500 dark:text-slate-400">Belum ada. Pilih Free Maintenance dan isi tanggal expired.</p>
           ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[440px] overflow-y-auto scrollbar-thin">
+            <ScrollArea className="max-h-[440px]">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
               {gratis.map((it) => <FreeRow key={it.id} item={it} />)}
             </ul>
+            </ScrollArea>
           )}
         </section>
       </Reveal>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { ScrollArea } from '../components/ui/ScrollArea.jsx';
 import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
 import { DEFAULT_CONFIG } from '../data/sheetConfig.js';
 import { getConfig, putConfig } from '../lib/api.js';
@@ -768,7 +769,7 @@ function TabHeaders({ cfg }) {
             READ-ONLY
           </span>
         </div>
-        <div className="overflow-auto scrollbar-thin max-h-[520px]">
+        <ScrollArea horizontal className="max-h-[520px]">
           <table className="w-full text-sm min-w-[560px]">
             <thead className="sticky top-0">
               <tr className="bg-slate-50 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
@@ -787,7 +788,7 @@ function TabHeaders({ cfg }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );

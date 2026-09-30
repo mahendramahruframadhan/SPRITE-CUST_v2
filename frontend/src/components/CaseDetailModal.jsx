@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { moduleTone } from '../utils/tones.js';
 import { Button } from './ui/Button.jsx';
+import { ScrollArea } from './ui/ScrollArea.jsx';
 
 // Popup detail kasus bersama (dipakai Billing & Finance Audit & Dashboard).
 // c: data kasus | chips: [{ text, className }] | rows: [[label, value]] flat
@@ -65,7 +66,8 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
           </div>
         </div>
         {/* Isi */}
-        <div className="px-6 py-5 space-y-5 overflow-y-auto scrollbar-thin">
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="px-6 py-5 space-y-5">
           <div className="bg-brand-50/60 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 rounded-xl p-4">
             <p className="text-[10px] font-bold uppercase tracking-widest text-brand-600 dark:text-brand-300 mb-1.5">Issue</p>
             <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed whitespace-pre-wrap break-words">{c.issue || '-'}</p>
@@ -100,7 +102,8 @@ export default function CaseDetailModal({ c, kicker, title, chips = [], rows = [
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap break-words">{notes.text || '-'}</p>
             </div>
           )}
-        </div>
+          </div>
+        </ScrollArea>
       </div>
     </div>
   );

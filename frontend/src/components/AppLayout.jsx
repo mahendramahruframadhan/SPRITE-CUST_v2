@@ -8,6 +8,7 @@ import { getJSON, set as simpan } from '../lib/storage.js';
 import Icon from '../components/Icon.jsx';
 import AiChat from '../components/AiChat.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { ScrollArea } from '../components/ui/ScrollArea.jsx';
 // Catatan migrasi Task 2: tombol logout rose disengaja tetap mentah
 // (varian Button tak mencakup tint rose tanpa override warna).
 
@@ -95,7 +96,8 @@ function IsiSidebar({ ciut, saatNavigasi = () => {}, pengguna, keluar, bisa, sak
         </Button>
       </div>
 
-      <nav aria-label="Navigasi utama" className="flex-1 py-4 text-sm overflow-y-auto overflow-x-hidden scrollbar-thin">
+      <nav aria-label="Navigasi utama" className="flex-1 min-h-0 text-sm">
+        <ScrollArea className="h-full py-4">
         {MODULES.map((m, i) => {
           if (m.group) {
             if (ciut || !grupTerlihat(i, bisa)) return null;
@@ -122,6 +124,7 @@ function IsiSidebar({ ciut, saatNavigasi = () => {}, pengguna, keluar, bisa, sak
             </NavLink>
           );
         })}
+        </ScrollArea>
       </nav>
 
       <div className={`border-t border-slate-100 dark:border-slate-800 ${ciut ? 'p-2 flex flex-col items-center gap-2' : 'p-4'}`}>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { ScrollArea } from '../components/ui/ScrollArea.jsx';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { triggerSync, getSyncLogs, getHealth, getBrandStatuses } from '../lib/api.js';
@@ -689,7 +690,8 @@ export default function DashboardPage() {
           </div>
         </Panel>
         <Panel title="Kinerja Tim Support" desc="Kasus ditangani per petugas" accent="from-emerald-400 to-sky-500">
-          <div className="space-y-4 max-h-72 overflow-y-auto scrollbar-thin pr-1">
+          <ScrollArea className="max-h-72">
+            <div className="space-y-4 pr-1">
             {teamPerf.map((t, i) => (
               <div key={t.name} className="group">
                 <div className="flex items-center gap-3 mb-1.5">
@@ -714,7 +716,8 @@ export default function DashboardPage() {
               </div>
             ))}
             {teamPerf.length === 0 && <p className="text-xs text-slate-500 dark:text-slate-400">Belum ada data tim.</p>}
-          </div>
+            </div>
+          </ScrollArea>
         </Panel>
       </Reveal>
 

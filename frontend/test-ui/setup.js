@@ -22,3 +22,8 @@ if (!window.ResizeObserver) {
     disconnect() {}
   };
 }
+// Web Animations API dipakai Base UI ScrollArea (hitung thumb setelah animasi);
+// jsdom belum mendukungnya → kembalikan daftar kosong agar alur selesai.
+if (!Element.prototype.getAnimations) {
+  Element.prototype.getAnimations = () => [];
+}

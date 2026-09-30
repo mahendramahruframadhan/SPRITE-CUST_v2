@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Button } from './ui/Button.jsx';
+import { ScrollArea } from './ui/ScrollArea.jsx';
 
 // Modal timeline riwayat invoice + PDF per kasus (siapa, berbuat apa, kapan).
 // history: [{ who, action, detail, createdAt }] | title: nama file/kasus | onClose
@@ -69,7 +70,7 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
             </Button>
           </div>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-5 py-4">
+        <ScrollArea className="flex-1 min-h-0 px-5 py-4">
           {history.length === 0 ? (
             <p className="text-center text-[13px] font-semibold text-slate-500 dark:text-slate-400 py-8">Belum ada riwayat tercatat.</p>
           ) : (
@@ -91,7 +92,7 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
               })}
             </ol>
           )}
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );

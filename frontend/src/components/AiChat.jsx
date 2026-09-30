@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from './ui/Button.jsx';
+import { ScrollArea } from './ui/ScrollArea.jsx';
 import { useCases } from '../hooks/useCases.js';
 import { chatAi, getAiConnections } from '../lib/api.js';
 import { get, set as storageSet, remove as storageRemove } from '../lib/storage.js';
@@ -250,7 +251,8 @@ export default function AiChat() {
             </Button>
           </div>
 
-          <div ref={bodyRef} className="flex-1 overflow-y-auto px-3.5 py-3 space-y-2.5 bg-slate-50 dark:bg-slate-950">
+          <ScrollArea viewportRef={bodyRef} className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950">
+            <div className="px-3.5 py-3 space-y-2.5">
             {msgs.map((m, i) => (
               <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <p className={`max-w-[85%] text-[13px] leading-relaxed px-3 py-2 rounded-2xl whitespace-pre-line ${
@@ -267,6 +269,7 @@ export default function AiChat() {
               </div>
             )}
           </div>
+          </ScrollArea>
 
           <div className="px-3 pt-2 flex flex-wrap gap-1.5">
             {SUGGESTIONS.map((s) => (

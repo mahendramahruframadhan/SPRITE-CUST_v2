@@ -6,6 +6,7 @@
 // memakai role="alert", tab memakai aria-selected.
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/Button.jsx';
+import { ScrollArea } from '../ui/ScrollArea.jsx';
 import { downloadTemplate } from '../../lib/popinavaExport.js';
 
 const TABS = [
@@ -143,7 +144,7 @@ export default function ImportWizard({ open, onClose, onPreview, onCommit, local
           </Button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <ScrollArea className="flex-1 min-h-0 px-5 py-4">
           {localMode && (
             <p className="mb-3 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 inline-block">
               Mode lokal: hasil impor tersimpan di browser; impor via server menyusul.
@@ -382,7 +383,7 @@ export default function ImportWizard({ open, onClose, onPreview, onCommit, local
               )}
             </div>
           )}
-        </div>
+        </ScrollArea>
 
         <footer className="shrink-0 border-t border-slate-100 dark:border-slate-800 px-5 py-3.5 flex flex-wrap gap-2 justify-end bg-white dark:bg-slate-900">
           {step === 'preview' && (

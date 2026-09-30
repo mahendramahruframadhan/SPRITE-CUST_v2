@@ -4,6 +4,7 @@
 // submit gagal, error per field inline + aria-describedby, Escape menutup.
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/Button.jsx';
+import { ScrollArea } from '../ui/ScrollArea.jsx';
 import { DEPT_NAMES, STATUSES, prepareRow, validateRow } from '../../lib/popinavaValidate.js';
 import { recordToSource } from '../../lib/popinavaRecord.js';
 
@@ -125,7 +126,9 @@ export default function OutletDrawer({ open, mode, initial, onClose, onSave, onD
           </div>
         </header>
 
-        <form onSubmit={submit} className="flex-1 overflow-y-auto px-5 py-4 space-y-4" noValidate>
+        <form onSubmit={submit} className="flex-1 min-h-0" noValidate>
+          <ScrollArea className="h-full">
+            <div className="px-5 py-4 space-y-4">
           {summary.length > 0 && (
             <div
               ref={summaryRef}
@@ -237,6 +240,8 @@ export default function OutletDrawer({ open, mode, initial, onClose, onSave, onD
               </Button>
             )}
           </div>
+            </div>
+          </ScrollArea>
         </form>
       </div>
     </div>

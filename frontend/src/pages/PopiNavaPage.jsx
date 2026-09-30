@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Switch } from '../components/ui/Switch.jsx';
+import { ScrollArea } from '../components/ui/ScrollArea.jsx';
 import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
@@ -754,9 +755,9 @@ export default function PopiNavaPage() {
           <div
             role="dialog"
             aria-label={`Riwayat outlet ${historyFor.deptChannelName}`}
-            className="relative w-full max-w-lg max-h-[80vh] overflow-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-2xl"
+            className="relative w-full max-w-lg max-h-[80vh] overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl flex flex-col"
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 px-5 pt-5">
               <div className="min-w-0">
                 <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">Riwayat outlet</h2>
                 <p className="text-[13px] text-slate-500 dark:text-slate-400 truncate">
@@ -769,6 +770,7 @@ export default function PopiNavaPage() {
                 </svg>
               </Button>
             </div>
+            <ScrollArea className="flex-1 min-h-0 px-5 pb-5">
             <ul className="mt-4 space-y-3">
               {historyErr && (
                 <li className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-sm text-slate-500 dark:text-slate-400">
@@ -801,6 +803,7 @@ export default function PopiNavaPage() {
                   </li>
                 ))}
             </ul>
+            </ScrollArea>
           </div>
         </div>
       )}

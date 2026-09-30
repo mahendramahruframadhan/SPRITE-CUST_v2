@@ -7,6 +7,7 @@ import { CHART, chartTheme } from '../lib/chartPalette.js';
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
 import { EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { ScrollArea } from '../components/ui/ScrollArea.jsx';
 
 const iso8now = () => {
   const d = new Date();
@@ -415,14 +416,16 @@ function MockupDetailModal({ item, onClose }) {
             </svg>
           </Button>
         </div>
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
           {fields.map(([k, v]) => (
             <div key={k}>
               <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{k}</p>
               <p className={`mt-0.5 text-slate-800 dark:text-slate-100 ${k === 'Completion Notes' ? 'leading-relaxed' : ''}`}>{v}</p>
             </div>
           ))}
-        </div>
+          </div>
+        </ScrollArea>
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl">
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
             RECORD_UUID: <span className="font-mono text-slate-600 dark:text-slate-300">{item.recordUuid}</span>

@@ -19,6 +19,29 @@
     outline: 2px solid rgb(74 79 233 / 0.6);
     outline-offset: 2px;
   }
+
+  /* Scroll global halus & tipis: kontainer yang belum pakai ScrollArea
+     tetap rapi (Webkit + Firefox), thumb netral mengikuti tema gelap. */
+  html {
+    scroll-behavior: smooth;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300 dark:bg-slate-700;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .dark * {
+    scrollbar-color: #64748b transparent;
+  }
 }
 
 /* Kilau skeleton untuk state loading (R-27) */
@@ -41,6 +64,9 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
   }
 }
 
