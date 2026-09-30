@@ -140,12 +140,13 @@ describe('popinava endpoint + activity logs', () => {
     );
   });
 
-  it('POST /bulk set-status → affected + satu log; aksi/uuids tak valid → VALIDATION_FAILED', async () => {
+  it('POST /bulk set-status → affected + log per outlet (aksi/uuids tak valid → VALIDATION_FAILED)', async () => {
     const r: any = await ctl.bulk({ action: 'set-status', uuids: [OUTLET.uuid], status: 'active' }, reqWith(token));
     assert.equal(r.affected, 1);
-    const log = await lastLog('massal');
-    assert.ok(log, 'activity log bulk tertulis');
+    const log = await lastLog('Aktifkan outlet');
+    assert.ok(log, 'activity log per outlet tertulis');
     assert.equal(log.category, 'popinava');
+    assert.equal(log.record_uuid, OUTLET.uuid, 'log membawa uuid outlet (filter riwayat)');
 
     await assert.rejects(
       () => ctl.bulk({ action: 'explode', uuids: [OUTLET.uuid] }, reqWith(token)),
@@ -155,6 +156,27 @@ describe('popinava endpoint + activity logs', () => {
       () => ctl.bulk({ action: 'delete', uuids: Array.from({ length: 1001 }, (_, i) => `u-${i}`) }, reqWith(token)),
       (e: any) => e?.response?.code === 'VALIDATION_FAILED',
     );
+  });
+
+  it('bulk set-status inactive → log "Nonaktifkan outlet" per baris: pelaku sesi + transisi status', async () => {
+    const r: any = await ctl.bulk({ action: 'set-status', uuids: [OUTLET.uuid], status: 'inactive' }, reqWith(token));
+    assert.equal(r.affected, 1);
+    const log = await lastLog('Nonaktifkan outlet');
+    assert.ok(log, 'log Nonaktifkan outlet tertulis');
+    assert.equal(log.record_uuid, OUTLET.uuid);
+    assert.equal(log.category, 'popinava');
+    assert.notEqual(log.who, 'system', 'pelaku harus dari sesi, bukan system');
+    assert.match(String(log.detail), /active → inactive/, 'detail membawa transisi status');
+  });
+
+  it('GET :uuid/history → riwayat outlet terurut (kapan & siapa, tanpa log outlet lain)', async () => {
+    const h: any = await ctl.history(OUTLET.uuid);
+    assert.ok(Array.isArray(h) && h.length >= 2, 'entri minimal create + set-status');
+    assert.ok(h.some((x: any) => x.action === 'Tambah outlet'));
+    assert.ok(h.some((x: any) => x.action === 'Nonaktifkan outlet'));
+    assert.ok(h.every((x: any) => x.who && x.action && x.time), 'tiap entri punya who/action/time');
+    const other: any = await ctl.history('99999999-9999-4999-8999-999999999999');
+    assert.equal(other.length, 0, 'uuid tanpa riwayat → kosong');
   });
 
   it('semua method tulis membawa metadata permModule = popinava', () => {

@@ -241,6 +241,16 @@ export class PopinavaController {
       if (!STATUSES.includes(status)) fail('VALIDATION_FAILED', 'status harus active atau inactive.', HttpStatus.BAD_REQUEST);
     }
     const inSql = uuids.map((_: string, i: number) => `$${i + 1}`).join(',');
+    // set-status skala kecil (≤50): ambil status lama dulu supaya tiap baris
+    // bisa dicatat ke riwayat outlet "kapan & siapa" + transisi status.
+    const oldByUuid = new Map<string, any>();
+    if (action === 'set-status' && uuids.length <= 50) {
+      const prev: any = await this.db.pq(
+        `SELECT uuid, status, brand_name, dept_channel_name FROM popinava_outlets WHERE uuid IN (${inSql})`,
+        uuids,
+      );
+      for (const row of prev.rows || prev) oldByUuid.set(row.uuid, row);
+    }
     let affected = 0;
     if (action === 'delete') {
       const r: any = await this.db.pq(`DELETE FROM popinava_outlets WHERE uuid IN (${inSql}) RETURNING uuid`, uuids);
@@ -253,12 +263,55 @@ export class PopinavaController {
       affected = (r.rows || r).length;
     }
     const who = await resolveWho(this.db, req);
-    await logActivity(this.db, {
-      who,
-      action: 'Ubah massal outlet',
-      category: 'popinava',
-      detail: `${action} ${affected} baris${status ? ` → ${status}` : ''}`.slice(0, 500),
-    });
+    if (action === 'set-status' && uuids.length <= 50) {
+      const verb = status === 'inactive' ? 'Nonaktifkan outlet' : 'Aktifkan outlet';
+      for (const u of uuids) {
+        const old = oldByUuid.get(u);
+        if (!old) continue;
+        await logActivity(this.db, {
+          who,
+          action: verb,
+          category: 'popinava',
+          detail: `${old.brand_name} · ${old.dept_channel_name} · ${old.status} → ${status}`.slice(0, 500),
+          recordUuid: u,
+        });
+      }
+      if (!oldByUuid.size) {
+        await logActivity(this.db, {
+          who,
+          action: 'Ubah massal outlet',
+          category: 'popinava',
+          detail: `${action} ${affected} baris → ${status}`.slice(0, 500),
+        });
+      }
+    } else {
+      await logActivity(this.db, {
+        who,
+        action: 'Ubah massal outlet',
+        category: 'popinava',
+        detail: `${action} ${affected} baris${status ? ` → ${status}` : ''}`.slice(0, 500),
+      });
+    }
     return { affected };
+  }
+
+  // Riwayat aktivitas 1 outlet: siapa mengubah apa dan kapan, untuk modal
+  // riwayat PopiNava. Baca terbuka untuk sesi login (pola class-level guard).
+  @Get(':uuid/history')
+  async history(@Param('uuid') uuid: string) {
+    if (!UUID_RE.test(uuid)) fail('INVALID_FORMAT', 'uuid harus format UUID 8-4-4-4-12.', HttpStatus.BAD_REQUEST);
+    const r: any = await this.db.pq(
+      `SELECT id, who, action, category, detail, created_at FROM activity_logs
+       WHERE record_uuid=$1 ORDER BY created_at DESC LIMIT 50`,
+      [uuid],
+    );
+    return (r.rows || r).map((l: any) => ({
+      id: l.id,
+      who: l.who,
+      action: l.action,
+      category: l.category || null,
+      detail: l.detail || null,
+      time: l.created_at instanceof Date ? l.created_at.toISOString() : l.created_at,
+    }));
   }
 }
