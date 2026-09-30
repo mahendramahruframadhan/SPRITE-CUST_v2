@@ -9,8 +9,9 @@ export const Perm = (module: string) => SetMetadata('permModule', module);
 // Guard izin tulis per modul. Frontend mengirim x-auth-token (token sesi dari
 // sign-in, lihat auth/session.ts); role dibaca dari DB + matriks
 // role_permissions. Super Admin selalu lolos.
-// Tanpa token sesi valid → 403. Header x-user-email TIDAK dipercaya untuk
-// otorisasi (bisa dipalsukan). Baca (GET) sengaja terbuka.
+// Tanpa token sesi valid → 401. Header x-user-email TIDAK dipercaya untuk
+// otorisasi (bisa dipalsukan). PermGuard hanya dipasang di method TULIS;
+// GET dijaga SessionGuard kelas-level (wajib token), bukan terbuka.
 @Injectable()
 export class PermGuard implements CanActivate {
   private db: any = getDb();

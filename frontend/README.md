@@ -56,7 +56,7 @@ frontend/
     │   ├── SheetConfigPage.jsx       # /cfg (GET/PUT /api/config, autosave debounce)
     │   ├── BillingPage.jsx           # /billing (PATCH audit)
     │   ├── FinanceAuditPage.jsx      # /finance (PATCH invoice)
-    │   └── RolesPage.jsx             # /roles (masih localStorage — tanpa endpoint backend)
+    │   └── RolesPage.jsx             # /roles (endpoint backend: users, permissions, logs)
     └── data/                     # fallback offline (cases, masters, sheetConfig)
 ```
 

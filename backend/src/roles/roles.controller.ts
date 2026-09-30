@@ -11,9 +11,10 @@ const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'finance', 'mockup', 'roles', 'logs', 'settings'];
 
 // CRUD pengguna + matriks izin + log aktivitas untuk halaman /roles — semua di Postgres.
-// GET (baca) sengaja terbuka; hanya method tulis yang dijaga PermGuard.
-// (class-level guard dihapus: dulu GET roles/permissions ikut 403 untuk
-// role tanpa izin 'roles', merusak alur login frontend.)
+// Class-level SessionGuard: SEMUA endpoint (termasuk GET) wajib x-auth-token
+// valid; method tulis tambahan dijaga PermGuard izin 'roles'. (Dulu ada
+// PermGuard class-level — GET roles/permissions ikut 403 untuk role tanpa
+// izin 'roles', merusak alur login frontend.)
 @UseGuards(SessionGuard)
 @Controller()
 export class RolesController {

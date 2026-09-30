@@ -8,7 +8,7 @@ import { checkClientInput, checkStatusInput, ContractError } from './contract.va
 // CRUD koleksi client/brand + status kontrak (MONTHLY/BARU/GRATIS).
 // Context7 nestjs: controller tipis + service Injectable; validasi input di
 // service (bukan cuma client). Gaya repo: raw SQL + esc() seperti pdf/cases.
-// Tulis dijaga PermGuard modul 'clients'; baca (GET) sengaja terbuka.
+// Tulis dijaga PermGuard modul 'clients'; baca (GET) wajib sesi (SessionGuard).
 
 const fail = (code: string, message: string, status = HttpStatus.BAD_REQUEST) => {
   throw new HttpException({ code, message }, status);

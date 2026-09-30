@@ -151,7 +151,8 @@ lalu diatur role-nya di halaman `/roles` oleh Super Admin.
   API tulis mengembalikan `403` tanpa izin.
 - Mengubah matriks tersimpan di DB (`role_permissions`) dan berlaku
   untuk semua user role tersebut saat itu juga.
-- Endpoint **baca** (`GET`) sengaja terbuka; yang dijaga izin hanya
+- Endpoint **baca** (`GET`) wajib sesi valid (`x-auth-token` via
+  SessionGuard; tanpa token → `401`); izin modul dijaga hanya untuk
   endpoint **tulis** (`POST/PATCH/PUT/DELETE`).
 
 ---

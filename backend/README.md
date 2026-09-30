@@ -189,8 +189,10 @@ Password lama yang masih plaintext tidak dapat login dan wajib di-reset oleh Sup
 ## Hak akses (PermGuard)
 
 Endpoint **tulis** dijaga matriks `role_permissions` via header
-`x-user-email` (dikirim otomatis oleh frontend). Tanpa izin → `403`.
-Super Admin selalu lolos dan barisnya dikunci penuh di `PUT /roles/permissions`.
+`x-auth-token` (token sesi, dikirim otomatis oleh frontend). Tanpa izin → `403`.
+Header `x-user-email` hanya untuk tampilan/legacy dan **tidak dipercaya** untuk
+otorisasi (lihat `src/auth/session.ts`). Super Admin selalu lolos dan barisnya
+dikunci penuh di `PUT /roles/permissions`.
 
 | Endpoint tulis | Butuh modul |
 | --- | --- |
@@ -200,8 +202,25 @@ Super Admin selalu lolos dan barisnya dikunci penuh di `PUT /roles/permissions`.
 | `/api/users*`, `/api/roles/*` | `roles` |
 | `/api/clients*`, `/api/brand-status*` | `clients` |
 
-`GET` (baca) sengaja terbuka; menu + route frontend difilter oleh
-`usePermissions` + `RequirePerm` dari matriks yang sama.
+`GET` (baca) dijaga **SessionGuard** (wajib `x-auth-token` valid; tanpa sesi →
+`401`). Menu + route frontend difilter oleh `usePermissions` + `RequirePerm`
+dari matriks yang sama; hanya method tulis yang butuh `PermGuard`/izin modul.
+
+### Sesi, token & cookie (M3)
+
+Login mengeluarkan token sesi 64-hex (TTL 7 hari, tabel `session`) yang
+dikirim frontend sebagai header `x-auth-token` di **setiap** request.
+Cookie `better-auth.session_token` hanya kompatibilitas klien lama dan
+sudah dibekali flags aman: `httpOnly`, `sameSite=lax`, `maxAge=7 hari`,
+`secure` saat `NODE_ENV=production`.
+
+**Asesmen migrasi penuh ke httpOnly cookie** (belum dikerjakan, keputusan
+terpisah): backend kini hanya membaca token dari header (`session.ts`) —
+perlu fallback baca cookie + SameSite/proxy yang konsisten; frontend
+(`lib/api.js`, `AuthContext.jsx`) harus berhenti menyimpan/mengirim header
+dan mengandalkan cookie otomatis (vite proxy same-origin sudah mendukung);
+integration test + guard memakai header secara eksplisit. Tanpa perubahan
+lintas tiga lapis itu, localStorage tetap menjadi mekanisme utama.
 
 ## Kosongkan DB + inject dari Sheet live terbaru
 
