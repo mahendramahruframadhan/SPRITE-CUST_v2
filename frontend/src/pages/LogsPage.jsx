@@ -1,22 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { HistoryTracking } from '../components/ui/HistoryTracking.jsx';
 import { getLogs } from '../lib/api.js';
 import { readLocalActivity } from '../lib/activity.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { EmptyRow } from '../components/DataTable.jsx';
 
 const CATS = ['Semua', 'Penambahan', 'Validasi', 'Invoice', 'Pengguna', 'Konfigurasi', 'Sinkron', 'Lainnya'];
-
-const CAT_BADGE = {
-  Penambahan: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
-  Validasi: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
-  Invoice: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20',
-  Pengguna: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20',
-  Konfigurasi: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20',
-  Sinkron: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-  Lainnya: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
-};
 
 function categorize(text) {
   const t = String(text || '').toLowerCase();
@@ -45,9 +35,6 @@ function fmtTime(t) {
   if (isNaN(d)) return String(t || '—');
   return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
-
-const initials = (name) =>
-  String(name || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
 // bare=true: ditempel sebagai tab di Pengaturan (tanpa padding halaman sendiri)
 export default function LogsPage({ bare = false }) {
@@ -203,46 +190,24 @@ export default function LogsPage({ bare = false }) {
           </div>
         </div>
 
-        <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-sm min-w-[720px]">
-            <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
-                <th className="px-6 py-3 font-semibold">Waktu</th>
-                <th className="px-4 py-3 font-semibold">Pelaku</th>
-                <th className="px-4 py-3 font-semibold">Kategori</th>
-                <th className="px-6 py-3 font-semibold">Aktivitas</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {paged.map((e) => {
-                const c = entryCat(e);
-                return (
-                  <tr key={e.id} className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-                    <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs tabular-nums">{fmtTime(e.time)}</td>
-                    <td className="px-4 py-3.5">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-white flex items-center justify-center text-[10px] font-bold">
-                          {initials(e.who)}
-                        </span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-100">{e.who}</span>
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className={`text-[11px] font-bold border rounded-full px-2.5 py-1 ${CAT_BADGE[c]}`}>
-                        {c}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 text-slate-600 dark:text-slate-300">{e.text}</td>
-                  </tr>
-                );
-              })}
-              {!loading && paged.length === 0 && (
-                <EmptyRow colSpan={4}>
-                  Belum ada aktivitas tercatat — ubah status di Billing / Finance, atau tambah kasus baru.
-                </EmptyRow>
-              )}
-            </tbody>
-          </table>
+        <div className="px-4 sm:px-6 py-4 max-h-[55vh] overflow-y-auto scrollbar-thin">
+          {loading ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400 animate-pulse py-6 text-center">Memuat…</p>
+          ) : paged.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">
+              Belum ada aktivitas tercatat — ubah status di Billing / Finance, atau tambah kasus baru.
+            </p>
+          ) : (
+            <HistoryTracking
+              steps={paged.map((e) => ({
+                id: e.id,
+                name: e.text,
+                timestamp: fmtTime(e.time),
+                description: `oleh ${e.who} · ${entryCat(e)}`,
+                isCompleted: true,
+              }))}
+            />
+          )}
         </div>
 
         <div className="px-4 sm:px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">

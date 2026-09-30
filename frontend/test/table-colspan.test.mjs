@@ -17,7 +17,6 @@ const TABEL_NUMERIK = {
   'FinanceAuditPage.jsx': [13, 13],
   'HrReportPage.jsx': [7, 7], // tabel detail; rekap memakai ekspresi dinamis (tes terpisah)
   'MockupPage.jsx': [12, 12],
-  'LogsPage.jsx': [4],
 };
 
 const BLOK_TABEL = /<table[\s\S]*?<\/table>/g;
