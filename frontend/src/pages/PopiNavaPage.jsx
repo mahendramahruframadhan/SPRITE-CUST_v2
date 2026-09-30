@@ -72,8 +72,10 @@ function statusBadge(status) {
 export default function PopiNavaPage() {
   const { notify } = useToast();
   const confirm = useConfirm();
-  const { can } = usePermissions();
+  const { can, role } = usePermissions();
   const canWrite = can('popinava');
+  // Riwayat aktivitas outlet = data audit detail → hanya Super Admin.
+  const canSeeHistory = role === 'Super Admin';
   const {
     ready,
     serverOk,
@@ -209,7 +211,7 @@ export default function PopiNavaPage() {
     if (next === 'inactive') {
       const ok = await confirm({
         title: `Nonaktifkan "${rec.deptChannelName}"?`,
-        description: `Status diubah active → inactive. Dilakukan oleh: ${me.name} · ${me.email} · peran ${me.role}. Tindakan ini tercatat di riwayat aktivitas outlet.`,
+        description: 'Yakin ingin menonaktifkan outlet ini?',
         variant: 'danger',
         confirmLabel: 'Ya, nonaktifkan',
       });
@@ -330,16 +332,18 @@ export default function PopiNavaPage() {
                 aria-label={`Status aktif ${r.deptChannelName}`}
               />
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => openHistory(r)}
-              aria-label={`Riwayat ${r.deptChannelName}`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </Button>
+            {canSeeHistory && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => openHistory(r)}
+                aria-label={`Riwayat ${r.deptChannelName}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </Button>
+            )}
             {canWrite && (
               <Button
                 variant="ghost"

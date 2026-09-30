@@ -8,14 +8,14 @@ import { ToastProvider } from '../src/context/ToastContext.jsx';
 import { ConfirmProvider } from '../src/components/ui/ConfirmProvider.jsx';
 import PopiNavaPage from '../src/pages/PopiNavaPage.jsx';
 
-const izin = vi.hoisted(() => ({ canWrite: true }));
+const izin = vi.hoisted(() => ({ canWrite: true, role: 'Super Admin' }));
 
 // Render penuh (88 baris seed + probe) bisa >5s saat file test paralel
 // berebut CPU; timeout default vitest terlalu sempit untuk ini.
 vi.setConfig({ testTimeout: 15000 });
 
 vi.mock('../src/hooks/usePermissions.js', () => ({
-  usePermissions: () => ({ can: () => izin.canWrite, perms: {}, role: 'Super Admin' }),
+  usePermissions: () => ({ can: () => izin.canWrite, perms: {}, role: izin.role }),
   DEFAULT_PERMS: {},
   ROUTE_PERM: {},
   menuPerm: (x) => x,
@@ -38,6 +38,7 @@ function renderPage() {
 beforeEach(() => {
   localStorage.clear();
   izin.canWrite = true;
+  izin.role = 'Super Admin';
 });
 
 describe('PopiNavaPage', () => {
@@ -110,7 +111,20 @@ describe('PopiNavaPage', () => {
     expect(screen.getByText(/baris cocok · halaman 1 dari/)).toBeInTheDocument();
   });
 
-  it('aksi baris: switch → modal verifikasi identitas → konfirmasi menonaktifkan; hapus di drawer edit', async () => {
+  it('hanya Super Admin yang melihat tombol Riwayat', async () => {
+    izin.role = 'Admin CS';
+    renderPage();
+    await screen.findByText('13 brand · 88 outlet');
+    fireEvent.change(screen.getByLabelText('Cari'), { target: { value: 'FLAGSHIP BANDUNG' } });
+    await waitFor(
+      () => expect(screen.getAllByRole('switch').length).toBeGreaterThan(0),
+      { timeout: 3000 },
+    );
+    expect(screen.queryByRole('button', { name: /^Riwayat / })).toBeNull();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('aksi baris: switch → konfirmasi singkat → menonaktifkan; hapus di drawer edit', async () => {
     localStorage.setItem('userName', 'QA Tester');
     localStorage.setItem('userEmail', 'qa@revota.id');
     localStorage.setItem('userRole', 'Super Admin');
@@ -129,10 +143,10 @@ describe('PopiNavaPage', () => {
     expect(sw).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryByRole('button', { name: `Hapus ${outlet}` })).toBeNull();
 
-    // Klik switch → modal verifikasi identitas dulu; status BELUM berubah.
+    // Klik switch → konfirmasi singkat dulu; status BELUM berubah.
     fireEvent.click(sw);
     const vdlg = await screen.findByRole('alertdialog');
-    expect(within(vdlg).getByText(/QA Tester · qa@revota\.id · peran Super Admin/)).toBeInTheDocument();
+    expect(within(vdlg).getByText('Yakin ingin menonaktifkan outlet ini?')).toBeInTheDocument();
     expect(sw).toHaveAttribute('aria-checked', 'true');
     // Batal → batal semua, switch tetap aktif.
     fireEvent.click(within(vdlg).getByRole('button', { name: 'Batal' }));

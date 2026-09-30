@@ -166,16 +166,18 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
     expect(await logActions()).toContain('Ubah outlet');
   });
 
-  it('switch nonaktif → modal verifikasi identitas, pelaku tercatat di server + riwayat outlet', async () => {
+  it('switch nonaktif → konfirmasi singkat, pelaku tercatat di server + riwayat khusus Super Admin', async () => {
+    // Tombol Riwayat hanya untuk Super Admin (peran dibaca dari sesi browser).
+    localStorage.setItem('userRole', 'Super Admin');
     await renderPage();
     await toTableView();
     const sw = await screen.findByRole('switch', { name: 'Status aktif Toko IT' });
     expect(sw).toHaveAttribute('aria-checked', 'true');
 
-    // Verifikasi identitas dulu — batal = tanpa perubahan apa pun.
+    // Konfirmasi singkat — batal = tanpa perubahan apa pun.
     fireEvent.click(sw);
     const vdlg = await screen.findByRole('alertdialog');
-    expect(within(vdlg).getByText(/IT Integrasi · it\.popinava@revota\.id · peran Admin CS/)).toBeInTheDocument();
+    expect(within(vdlg).getByText('Yakin ingin menonaktifkan outlet ini?')).toBeInTheDocument();
     fireEvent.click(within(vdlg).getByRole('button', { name: 'Batal' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(screen.getByRole('switch', { name: 'Status aktif Toko IT' })).toHaveAttribute('aria-checked', 'true');
@@ -207,6 +209,7 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
       const d = (await apiJson('/popinava?search=Toko%20IT')).items.find((x) => x.dept_channel_name === 'Toko IT');
       expect(d.status).toBe('active');
     });
+    localStorage.setItem('userRole', 'Admin CS');
   });
 
   it('hapus via drawer edit → DELETE ke server + log Hapus outlet', async () => {
