@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button.jsx';
 // Catatan migrasi Task 2: tombol mikro dalam baris tabel disengaja tetap
 // mentah (pengecualian tercatat).
 import { fmtDate8, fmtMoney, statusMeta, prettyKey, fmtField } from '../utils/format.js';
+import { escapeCsvFormula } from '../lib/csvFormula.js';
 import { moduleTone, billingTone } from '../utils/tones.js';
 
 const FILTER_DEFS = [
@@ -101,7 +102,9 @@ export default function DataKasusPage() {
       'COMPLETION NOTES': 'completionNotes', 'GROUP KPI': 'groupKpi', 'GROUP KPI DESC': 'groupKpiDesc',
       MONTH: 'month', WEEKNUM: 'weeknum', RECORD_UUID: 'recordUuid',
     };
-    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    // M7: prefix apostrophe utk nilai awalan =+-@ agar spreadsheet tidak
+    // mengeksekusinya sebagai formula saat file dibuka.
+    const esc = (v) => `"${escapeCsvFormula(String(v ?? '')).replace(/"/g, '""')}"`;
     const csv = [
       headers.join(','),
       ...filtered.map((c) => headers.map((h) => esc(c[keyMap[h]])).join(',')),

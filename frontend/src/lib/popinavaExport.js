@@ -5,11 +5,12 @@
 // SheetJS di-import dinamis: ekspor CSV tidak perlu memuat pustaka itu.
 import { SOURCE_FIELDS } from './popinavaValidate.js';
 import { recordToSource } from './popinavaRecord.js';
+import { escapeCsvFormula } from './csvFormula.js';
 
 export const EXPORT_HEADERS = SOURCE_FIELDS; // urutan = urutan sheet sumber
 
 function csvCell(v) {
-  const s = v === null || v === undefined ? '' : String(v);
+  const s = escapeCsvFormula(v);
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

@@ -42,6 +42,17 @@ export default [
     },
   },
   {
+    // Test node --test (*.mjs) berjalan di Node, bukan browser: global
+    // Node (URL, File, Buffer, process, …) harus dikenali — tanpa ini
+    // `npx eslint .` gagal no-undef di file test (temuan review L1).
+    files: ['test/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.node },
+    },
+  },
+  {
     ignores: ['dist/', 'node_modules/', 'test-ui/'],
   },
 ];

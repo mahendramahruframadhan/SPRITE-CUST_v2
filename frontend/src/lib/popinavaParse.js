@@ -6,6 +6,7 @@
 // client di sini hanya untuk preview lokal, server tetap parse ulang file.
 // SheetJS di-import dinamis supaya chunk halaman tidak ikut memuatnya
 // (hanya file .xlsx yang butuh; CSV jalan tanpa beban itu).
+import { unescapeCsvFormula } from './csvFormula.js';
 
 export const MAX_FILE_BYTES = 5 * 1024 * 1024; // §9: maks 5 MB
 const SUPPORTED_EXT = ['xlsx', 'xls', 'csv'];
@@ -149,7 +150,8 @@ export function matrixToRecords(matrix) {
     const data = {};
     for (const f of Object.values(HEADER_ALIASES)) {
       if (f in data) continue;
-      data[f] = cellAt(raw, colMap, f);
+      // Balik prefix anti-formula dari ekspor (M7) — round-trip identik.
+      data[f] = unescapeCsvFormula(cellAt(raw, colMap, f));
     }
     if (hasBrandCol && data.brand_name) brandLabel = data.brand_name;
     data.brand_name = brandLabel;
