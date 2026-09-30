@@ -83,7 +83,8 @@ describe('wizard impor dengan file sumber asli', () => {
     expect(within(dialog).getByText('Tutup')).toBeInTheDocument();
     fireEvent.click(within(dialog).getByText('Tutup'));
 
-    // Tabel menampilkan 88 baris dan 13 brand di dropdown filter (§15.2).
+    // Footer "88 baris cocok" hanya ada di mode Tabel (default = Per brand).
+    fireEvent.click(await screen.findByRole('button', { name: 'Tabel' }));
     expect(await screen.findByText('88 baris cocok · halaman 1 dari 2')).toBeInTheDocument();
     const brandSelect = await screen.findByLabelText('Brand');
     expect(brandSelect.options.length).toBe(14); // 13 brand + "Semua brand"

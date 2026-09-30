@@ -71,6 +71,12 @@ function submitDialog(dlg) {
   fireEvent.submit(dlg.querySelector('form'));
 }
 
+// View default = kategori Per brand; footer "X baris cocok" dan baris aksi
+// (Ubah/Hapus) hanya ada di mode Tabel.
+async function toTableView() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Tabel' }));
+}
+
 async function fillOutlet(dlg, city = 'Bekasi') {
   const d = within(dlg);
   fireEvent.change(d.getByLabelText(/^Brand/), { target: { value: 'ITTEST' } });
@@ -119,6 +125,7 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
       expect(await screen.findByText('Belum ada data outlet')).toBeInTheDocument();
       expect(screen.queryByText(/^88 baris cocok/)).toBeNull();
     } else {
+      await toTableView();
       await screen.findByText(new RegExp(`^${total} baris cocok`));
     }
   });
@@ -126,6 +133,7 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
   it('tambah via drawer → benar-benar POST ke server + tercatat di activity_logs', async () => {
     const before = await serverTotal();
     await renderPage();
+    await toTableView();
     fireEvent.click(await screen.findByRole('button', { name: /Tambah Outlet/ }));
     const dlg = await screen.findByRole('dialog', { name: /Tambah outlet/ });
     await fillOutlet(dlg);
@@ -141,6 +149,7 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
 
   it('ubah via drawer edit → PATCH ke server + log Ubah outlet', async () => {
     await renderPage();
+    await toTableView();
     fireEvent.click(await screen.findByRole('button', { name: 'Ubah Toko IT' }));
     const dlg = await screen.findByRole('dialog', { name: /Ubah outlet/ });
     const d = within(dlg);
@@ -159,6 +168,7 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
 
   it('hapus via aksi baris → DELETE ke server + log Hapus outlet', async () => {
     await renderPage();
+    await toTableView();
     fireEvent.click(await screen.findByRole('button', { name: 'Hapus Toko IT' }));
     const confirm = await screen.findByRole('button', { name: 'Ya, hapus' });
     fireEvent.click(confirm);

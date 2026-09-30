@@ -8,11 +8,10 @@
 // badge kapsul hanya status fungsional (R-09); reveal satu grup tanpa
 // cascade (R-19, MOTION 2); angka metrik diambil dari data aktual
 // (13 brand, 88 outlet, R-17), tanpa klaim berlebih (R-36).
-// UI search: tabel lebar dibungkus overflow-x-auto, bulk action memakai
-// checkbox + action bar, empty state punya CTA Impor (panduan
-// ui-ux-pro-max: Table Handling, Bulk Actions, Empty States, Error
+// UI search: tabel lebar dibungkus overflow-x-auto, empty state punya CTA
+// Impor (panduan ui-ux-pro-max: Table Handling, Empty States, Error
 // Placement; diverifikasi terhadap pola repo sebelum dipakai).
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
@@ -20,6 +19,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { usePopinava } from '../hooks/usePopinava.js';
 import { exportRecords } from '../lib/popinavaExport.js';
+import { groupRowsByBrand } from '../lib/popinavaGroup.js';
 import { fmtDateID } from '../utils/contract.js';
 import ImportWizard from '../components/popinava/ImportWizard.jsx';
 import OutletDrawer from '../components/popinava/OutletDrawer.jsx';
@@ -40,6 +40,18 @@ const COLS = [
   { key: 'area', label: 'Area' },
   { key: 'status', label: 'Status', sort: true },
   { key: 'sourceCreatedAt', label: 'Dibuat (sumber)', sort: true },
+];
+
+// Aksen warna per grup view "Per brand": siklus statis (aman purge Tailwind),
+// kontras lolos AA (koin putih di 500-600, amber pakai teks gelap).
+const GROUP_ACCENTS = [
+  { band: 'bg-brand-50/80 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/15', avatar: 'bg-brand-600 text-white', bar: 'border-l-brand-500', dot: 'bg-brand-500' },
+  { band: 'bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/15', avatar: 'bg-indigo-600 text-white', bar: 'border-l-indigo-500', dot: 'bg-indigo-500' },
+  { band: 'bg-sky-50/80 hover:bg-sky-100 dark:bg-sky-500/10 dark:hover:bg-sky-500/15', avatar: 'bg-sky-700 text-white', bar: 'border-l-sky-500', dot: 'bg-sky-500' },
+  { band: 'bg-teal-50/80 hover:bg-teal-100 dark:bg-teal-500/10 dark:hover:bg-teal-500/15', avatar: 'bg-teal-700 text-white', bar: 'border-l-teal-500', dot: 'bg-teal-500' },
+  { band: 'bg-amber-50/80 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/15', avatar: 'bg-amber-400 text-amber-950', bar: 'border-l-amber-400', dot: 'bg-amber-400' },
+  { band: 'bg-rose-50/80 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/15', avatar: 'bg-rose-600 text-white', bar: 'border-l-rose-500', dot: 'bg-rose-500' },
+  { band: 'bg-violet-50/80 hover:bg-violet-100 dark:bg-violet-500/10 dark:hover:bg-violet-500/15', avatar: 'bg-violet-600 text-white', bar: 'border-l-violet-500', dot: 'bg-violet-500' },
 ];
 
 function statusBadge(status) {
@@ -82,7 +94,6 @@ export default function PopiNavaPage() {
     create,
     update,
     remove,
-    bulk,
     previewImport,
     commitImport,
   } = usePopinava();
@@ -94,14 +105,16 @@ export default function PopiNavaPage() {
     return () => clearTimeout(t);
   }, [searchInput, setFilter]);
 
-  const [selected, setSelected] = useState(() => new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState('create');
   const [editing, setEditing] = useState(null);
   const [drawerBusy, setDrawerBusy] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [expOpen, setExpOpen] = useState(false);
-  const headCheckRef = useRef(null);
+  // View kategori (default): daftar brand collapsed, klik chevron/brand →
+  // outlet muncul di bawahnya. 'table' = tabel datar lama (per halaman).
+  const [view, setView] = useState('group');
+  const [openBrands, setOpenBrands] = useState(() => new Set());
 
   const offTag = serverOk === false ? ' (mode lokal, tersimpan di browser)' : '';
   const errMsg = (e) => e?.data?.message || e?.message || 'Gagal, coba lagi.';
@@ -115,30 +128,25 @@ export default function PopiNavaPage() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  // Seleksi baris yang terlihat + indeterminate header checkbox.
-  const pageIds = useMemo(() => pageRows.map((r) => r.uuid), [pageRows]);
-  const selectedOnPage = pageIds.filter((id) => selected.has(id)).length;
-  const allOnPage = pageIds.length > 0 && selectedOnPage === pageIds.length;
-  useEffect(() => {
-    if (headCheckRef.current) headCheckRef.current.indeterminate = selectedOnPage > 0 && !allOnPage;
-  }, [selectedOnPage, allOnPage]);
-
-  function toggleOne(uuid) {
-    setSelected((prev) => {
+  // Derivasi view kategori: kelompokkan seluruh baris terfilter per brand
+  // (pagination nonaktif di mode ini, data tampil penuh), auto-buka grup
+  // saat pencarian aktif supaya hasil tidak "hilang" di grup yang tertutup.
+  const groupData = useMemo(() => (view === 'group' ? groupRowsByBrand(exportable) : []), [view, exportable]);
+  const searchActive = filters.search.trim().length > 0;
+  const expandedOf = (brand) => searchActive || openBrands.has(brand);
+  function toggleBrandOpen(brand) {
+    setOpenBrands((prev) => {
       const next = new Set(prev);
-      if (next.has(uuid)) next.delete(uuid);
-      else next.add(uuid);
+      if (next.has(brand)) next.delete(brand);
+      else next.add(brand);
       return next;
     });
   }
-
-  function togglePage() {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (allOnPage) pageIds.forEach((id) => next.delete(id));
-      else pageIds.forEach((id) => next.add(id));
-      return next;
-    });
+  function expandAll() {
+    setOpenBrands(new Set(groupData.map((g) => g.brand)));
+  }
+  function collapseAll() {
+    setOpenBrands(new Set());
   }
 
   function openCreate() {
@@ -181,40 +189,7 @@ export default function PopiNavaPage() {
     if (!ok) return;
     try {
       await remove(rec.uuid);
-      setSelected((prev) => {
-        const next = new Set(prev);
-        next.delete(rec.uuid);
-        return next;
-      });
       notify(`Outlet ${rec.deptChannelName} dihapus.${offTag}`, 'success');
-    } catch (e) {
-      notify(errMsg(e), 'error');
-    }
-  }
-
-  async function doBulk(action, status) {
-    const uuids = [...selected];
-    const n = uuids.length;
-    if (n === 0) return;
-    const ok = await confirm({
-      title: action === 'delete' ? `Hapus ${n} outlet?` : `${status === 'active' ? 'Aktifkan' : 'Nonaktifkan'} ${n} outlet?`,
-      description:
-        action === 'delete'
-          ? `${n} baris terpilih akan dihapus permanen.`
-          : `${n} baris terpilih akan ditandai ${status}.`,
-      variant: action === 'delete' ? 'danger' : 'primary',
-      confirmLabel: action === 'delete' ? `Ya, hapus ${n}` : 'Ya, lanjutkan',
-    });
-    if (!ok) return;
-    try {
-      await bulk({ action, uuids, status });
-      setSelected(new Set());
-      notify(
-        action === 'delete'
-          ? `${n} outlet dihapus.${offTag}`
-          : `${n} outlet ditandai ${status}.${offTag}`,
-        'success'
-      );
     } catch (e) {
       notify(errMsg(e), 'error');
     }
@@ -233,6 +208,68 @@ export default function PopiNavaPage() {
   function commitWizard(entries, mode) {
     const res = commitImport(entries, mode);
     return res;
+  }
+
+  // Satu baris outlet, dipakai mode tabel (brandNormal) & mode kategori
+  // (dimBrand: sel Brand dibuat meredup + indent karena redundan dengan
+  // header grup di atasnya).
+  function renderRow(r, dimBrand = false, dotClass = '') {
+    return (
+      <tr key={r.uuid} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+        <td
+          className={
+            dimBrand
+              ? 'px-3 py-2.5 pl-9 font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap'
+              : 'px-3 py-2.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap'
+          }
+        >
+          {dimBrand && dotClass && (
+            <span aria-hidden="true" className={`inline-block h-1.5 w-1.5 rounded-full align-middle mr-1.5 ${dotClass}`} />
+          )}
+          {r.brandName || '-'}
+        </td>
+        <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.rvtCustcode}</td>
+        <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.deptCode}</td>
+        <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.deptName}</td>
+        <td className="px-3 py-2.5 text-slate-700 dark:text-slate-200 max-w-52 truncate" title={r.deptChannelName}>{r.deptChannelName}</td>
+        <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.isoCode}</td>
+        <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.city}</td>
+        <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.province}</td>
+        <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.postcode || '-'}</td>
+        <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.area || '-'}</td>
+        <td className="px-3 py-2.5">{statusBadge(r.status)}</td>
+        <td className="px-3 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+          {r.sourceCreatedAt ? fmtDateID(String(r.sourceCreatedAt).slice(0, 10)) : '-'}
+        </td>
+        <td className="px-3 py-2.5">
+          {canWrite && (
+            <div className="flex justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => openEdit(r)}
+                aria-label={`Ubah ${r.deptChannelName}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                </svg>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => deleteOne(r)}
+                aria-label={`Hapus ${r.deptChannelName}`}
+                className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916" />
+                </svg>
+              </Button>
+            </div>
+          )}
+        </td>
+      </tr>
+    );
   }
 
   return (
@@ -408,26 +445,6 @@ export default function PopiNavaPage() {
         </div>
       </Reveal>
 
-      {/* Selection bar: muncul bila ada checkbox terpilih (§10.1) */}
-      {selected.size > 0 && canWrite && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-brand-50 dark:bg-brand-500/10 px-4 py-3">
-          <span className="text-xs font-bold text-brand-800 dark:text-brand-200">
-            {selected.size} outlet terpilih
-          </span>
-          <div className="ml-auto flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" onClick={() => doBulk('set-status', 'inactive')}>Nonaktifkan</Button>
-            <Button variant="secondary" size="sm" onClick={() => doBulk('set-status', 'active')}>Aktifkan</Button>
-            <Button variant="destructive" size="sm" onClick={() => doBulk('delete')}>
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916" />
-              </svg>
-              Hapus
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Bersihkan</Button>
-          </div>
-        </div>
-      )}
-
       {/* Tabel utama */}
       <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
         {total === 0 ? (
@@ -455,22 +472,48 @@ export default function PopiNavaPage() {
           </div>
         ) : (
           <>
+            {/* Toolbar view: kategori brand (default) vs tabel datar */}
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 dark:border-slate-800 px-4 py-3">
+              <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden" role="group" aria-label="Tampilan data">
+                <Button
+                  variant={view === 'group' ? 'primary' : 'ghost'}
+                  size="sm"
+                  aria-pressed={view === 'group'}
+                  onClick={() => setView('group')}
+                  className="rounded-none"
+                >
+                  Per brand
+                </Button>
+                <Button
+                  variant={view === 'table' ? 'primary' : 'ghost'}
+                  size="sm"
+                  aria-pressed={view === 'table'}
+                  onClick={() => setView('table')}
+                  className="rounded-none"
+                >
+                  Tabel
+                </Button>
+              </div>
+              {view === 'group' && (
+                <>
+                  <Button variant="ghost" size="sm" onClick={expandAll}>
+                    Buka semua
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={collapseAll}>
+                    Tutup semua
+                  </Button>
+                </>
+              )}
+              {view === 'group' && (
+                <span className="ml-auto text-[11px] text-slate-500 dark:text-slate-400">
+                  {`${groupData.length} brand · ${exportable.length} outlet`}
+                </span>
+              )}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1180px] text-xs">
                 <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                   <tr>
-                    <th scope="col" className="px-3 py-2.5 w-10 text-left">
-                      {canWrite && (
-                        <input
-                          ref={headCheckRef}
-                          type="checkbox"
-                          checked={allOnPage}
-                          onChange={togglePage}
-                          aria-label="Pilih semua baris di halaman ini"
-                          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500/40"
-                        />
-                      )}
-                    </th>
                     {COLS.map((c) => (
                       <th
                         key={c.key}
@@ -498,68 +541,68 @@ export default function PopiNavaPage() {
                     <th scope="col" className="px-3 py-2.5 text-right font-bold">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {pageRows.map((r) => (
-                    <tr key={r.uuid} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                      <td className="px-3 py-2.5">
-                        {canWrite && (
-                          <input
-                            type="checkbox"
-                            checked={selected.has(r.uuid)}
-                            onChange={() => toggleOne(r.uuid)}
-                            aria-label={`Pilih ${r.deptChannelName}`}
-                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500/40"
-                          />
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{r.brandName || '-'}</td>
-                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.rvtCustcode}</td>
-                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.deptCode}</td>
-                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.deptName}</td>
-                      <td className="px-3 py-2.5 text-slate-700 dark:text-slate-200 max-w-52 truncate" title={r.deptChannelName}>{r.deptChannelName}</td>
-                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.isoCode}</td>
-                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.city}</td>
-                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.province}</td>
-                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.postcode || '-'}</td>
-                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.area || '-'}</td>
-                      <td className="px-3 py-2.5">{statusBadge(r.status)}</td>
-                      <td className="px-3 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                        {r.sourceCreatedAt ? fmtDateID(String(r.sourceCreatedAt).slice(0, 10)) : '-'}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {canWrite && (
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEdit(r)}
-                              aria-label={`Ubah ${r.deptChannelName}`}
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                              </svg>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => deleteOne(r)}
-                              aria-label={`Hapus ${r.deptChannelName}`}
-                              className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916" />
-                              </svg>
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                {view === 'group' ? (
+                  groupData.map((g, gi) => {
+                    const isOpen = expandedOf(g.brand);
+                    const activeCount = g.items.filter((x) => x.status === 'active').length;
+                    const depts = [...new Set(g.items.map((x) => x.deptName).filter(Boolean))];
+                    const cities = [...new Set(g.items.map((x) => x.city).filter(Boolean))];
+                    const summary = [...depts, cities.length ? `${cities.length} kota` : ''].filter(Boolean).join(' · ');
+                    const accent = GROUP_ACCENTS[gi % GROUP_ACCENTS.length];
+                    return (
+                      <tbody key={g.brand} id={`pn-group-${gi}`} className="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tr className={`${accent.band} transition`}>
+                          <td className={`px-3 py-2 border-l-[3px] ${accent.bar} ${gi > 0 ? 'border-t-2 border-slate-300 dark:border-slate-600' : ''}`} colSpan={13}>
+                            <div className="flex flex-wrap items-center gap-2 py-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                aria-expanded={isOpen}
+                                aria-controls={`pn-group-${gi}`}
+                                onClick={() => toggleBrandOpen(g.brand)}
+                                className="-ml-1 gap-1.5"
+                              >
+                                <svg
+                                  aria-hidden="true"
+                                  className={`w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-150 ${isOpen ? 'rotate-90' : ''}`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                                <span aria-hidden="true" className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${accent.avatar}`}>
+                                  {g.brand.slice(0, 1)}
+                                </span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100">{g.brand}</span>
+                              </Button>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/30">
+                                {g.items.length} outlet
+                              </span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20">
+                                {activeCount} aktif
+                              </span>
+                              {!isOpen && summary && (
+                                <span className="ml-auto text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[45%]">{summary}</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        {isOpen && g.items.map((x) => renderRow(x, true, accent.dot))}
+                      </tbody>
+                    );
+                  })
+                ) : (
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {pageRows.map((r) => renderRow(r))}
+                  </tbody>
+                )}
               </table>
             </div>
 
-            {/* Pagination server-side shape (default 50, §10.1) */}
+            {/* Pagination hanya mode tabel; mode kategori menampilkan seluruh grup sekaligus */}
+            {view === 'table' && (
             <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 dark:border-slate-800 px-4 py-3">
               <span className="text-[11px] text-slate-500 dark:text-slate-400">
                 {`${total} baris cocok · halaman ${page} dari ${totalPages}`}
@@ -584,6 +627,7 @@ export default function PopiNavaPage() {
                 </Button>
               </div>
             </div>
+            )}
           </>
         )}
       </Reveal>
