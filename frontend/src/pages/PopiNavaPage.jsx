@@ -16,6 +16,7 @@ import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Switch } from '../components/ui/Switch.jsx';
 import { ScrollArea } from '../components/ui/ScrollArea.jsx';
+import { HistoryTracking } from '../components/ui/HistoryTracking.jsx';
 import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
@@ -771,38 +772,32 @@ export default function PopiNavaPage() {
               </Button>
             </div>
             <ScrollArea className="flex-1 min-h-0 px-5 pb-5">
-            <ul className="mt-4 space-y-3">
-              {historyErr && (
-                <li className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-sm text-slate-500 dark:text-slate-400">
-                  Riwayat hanya tersedia saat terhubung ke server.
-                </li>
-              )}
-              {!historyErr && historyRows === null && (
-                <li aria-busy="true" className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
-                  Memuat riwayat…
-                </li>
-              )}
-              {!historyErr && historyRows !== null && historyRows.length === 0 && (
-                <li className="text-sm text-slate-500 dark:text-slate-400">Belum ada riwayat untuk outlet ini.</li>
-              )}
-              {!historyErr &&
-                historyRows !== null &&
-                historyRows.map((h) => (
-                  <li
-                    key={h.id ?? `${h.action}-${h.time}`}
-                    className="rounded-xl border border-slate-200 dark:border-slate-700 p-3"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[13px] font-bold text-slate-800 dark:text-slate-100">{h.action}</span>
-                      <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{fmtHistoryTime(h.time)}</span>
-                    </div>
-                    <p className="mt-1 text-[13px] text-slate-600 dark:text-slate-300">oleh {h.who}</p>
-                    {h.detail && (
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{h.detail}</p>
-                    )}
-                  </li>
-                ))}
-            </ul>
+              <div className="mt-4">
+                {historyErr && (
+                  <p className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-sm text-slate-500 dark:text-slate-400">
+                    Riwayat hanya tersedia saat terhubung ke server.
+                  </p>
+                )}
+                {!historyErr && historyRows === null && (
+                  <p aria-busy="true" className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
+                    Memuat riwayat…
+                  </p>
+                )}
+                {!historyErr && historyRows !== null && historyRows.length === 0 && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Belum ada riwayat untuk outlet ini.</p>
+                )}
+                {!historyErr && historyRows !== null && historyRows.length > 0 && (
+                  <HistoryTracking
+                    steps={historyRows.map((h) => ({
+                      id: h.id ?? `${h.action}-${h.time}`,
+                      name: h.action,
+                      timestamp: fmtHistoryTime(h.time),
+                      description: `oleh ${h.who}${h.detail ? ` · ${h.detail}` : ''}`,
+                      isCompleted: true,
+                    }))}
+                  />
+                )}
+              </div>
             </ScrollArea>
           </div>
         </div>
