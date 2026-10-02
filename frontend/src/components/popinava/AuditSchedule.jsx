@@ -12,6 +12,7 @@ import { Button } from '../ui/Button.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { useConfirm } from '../ui/ConfirmProvider.jsx';
 import AuditScheduleDrawer from './AuditScheduleDrawer.jsx';
+import AuditScheduleDetail from './AuditScheduleDetail.jsx';
 import {
   WEEK_LABELS,
   addItem,
@@ -70,6 +71,7 @@ export default function AuditSchedule({ outlets, canWrite }) {
   const [drag, setDrag] = useState(null); // {id, from} kartu yang sedang di-drag
   const [over, setOver] = useState(null); // weekKey kolom yang jadi tujuan highlight
   const [sync, setSync] = useState(null); // {status: saving|synced|local, updatedBy, updatedAt}; null = belum dimuat
+  const [detail, setDetail] = useState(null); // {item, weekKey} kartu yang dibuka di drawer detail
 
   const load = useCallback(async () => {
     setWeeks(null);
@@ -135,6 +137,12 @@ export default function AuditSchedule({ outlets, canWrite }) {
       else next.add(id);
       return next;
     });
+  }
+
+  // Buka drawer detail (read-only). Klik kartu atau Enter/Space saat kartu
+  // terfokus; drag tidak memicu klik, jadi kartu tetap aman di-drag.
+  function openDetail(weekKey, item) {
+    setDetail({ item, weekKey });
   }
 
   function outletSub(o) {
@@ -367,9 +375,18 @@ export default function AuditSchedule({ outlets, canWrite }) {
                       draggable={canWrite ? 'true' : 'false'}
                       onDragStart={canWrite ? (e) => onItemDragStart(e, k, item) : undefined}
                       onDragEnd={canWrite ? onItemDragEnd : undefined}
-                      className={`flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 dark:border-slate-800 px-3 py-2 transition ${
+                      tabIndex={0}
+                      aria-haspopup="dialog"
+                      onClick={() => openDetail(k, item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          openDetail(k, item);
+                        }
+                      }}
+                      className={`flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 dark:border-slate-800 px-3 py-2 transition hover:border-slate-300 dark:hover:border-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 ${
                         drag?.id === item.id ? 'opacity-50' : ''
-                      } ${canWrite ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                      } ${canWrite ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
                     >
                       <span
                         aria-hidden="true"
@@ -389,7 +406,10 @@ export default function AuditSchedule({ outlets, canWrite }) {
                               aria-label={`Daftar outlet ${item.brand}`}
                               aria-expanded={isOpen}
                               aria-controls={`as-outlets-${item.id}`}
-                              onClick={() => toggleExpand(item.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(item.id);
+                              }}
                               className="h-6 w-6 shrink-0"
                             >
                               <svg
@@ -420,7 +440,10 @@ export default function AuditSchedule({ outlets, canWrite }) {
                           variant="ghost"
                           size="icon"
                           aria-label={`Hapus ${itemLabel(item)}`}
-                          onClick={() => handleRemove(k, item)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemove(k, item);
+                          }}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
                             <path
@@ -469,6 +492,15 @@ export default function AuditSchedule({ outlets, canWrite }) {
         scheduled={scheduled}
         onClose={() => setPicker(null)}
         onSave={handleSave}
+      />
+
+      <AuditScheduleDetail
+        open={detail !== null}
+        item={detail?.item || null}
+        weekLabel={detail ? `${detail.weekKey} · ${weekRanges[detail.weekKey]}` : ''}
+        outlet={detail && detail.item.type === 'outlet' ? outletByUuid.get(detail.item.uuid) : null}
+        outlets={detail && detail.item.type === 'brand' ? outletsByBrand.get(detail.item.brand) || [] : []}
+        onClose={() => setDetail(null)}
       />
     </>
   );

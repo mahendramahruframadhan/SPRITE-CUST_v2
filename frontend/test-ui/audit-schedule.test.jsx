@@ -414,3 +414,90 @@ describe('AuditSchedule · status sinkron (badge server / lokal)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });
+
+describe('AuditSchedule · detail kartu (drawer read-only)', () => {
+  const seed = () => {
+    const mk = monthKeyOf(new Date());
+    localStorage.setItem(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({
+        [mk]: {
+          month: mk,
+          weeks: {
+            W1: [{ id: 'b1', type: 'brand', brand: 'Chambers' }],
+            W2: [{ id: 'o1', type: 'outlet', uuid: 'u1', brand: 'Chambers', name: 'Chambers Tebet' }],
+            W3: [],
+            W4: [],
+            W5: [],
+          },
+        },
+      }),
+    );
+  };
+
+  it('klik kartu brand → drawer: nama, minggu, daftar outlet lengkap (custcode/kota/status)', async () => {
+    seed();
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByText('Chambers'));
+    const dialog = await screen.findByRole('dialog', { name: 'Detail jadwal audit' });
+    expect(within(dialog).getByRole('heading', { name: 'Chambers' })).toBeInTheDocument();
+    expect(within(dialog).getByText(/^W1/)).toBeInTheDocument();
+    expect(within(dialog).getByText('Chambers Tebet')).toBeInTheDocument();
+    expect(within(dialog).getByText('Chambers Bekasi')).toBeInTheDocument();
+    expect(within(dialog).getAllByText(/RVT-CHM/).length).toBe(2, 'kedua outlet Chambers tampil');
+    expect(within(dialog).getByText(/JAKARTA/)).toBeInTheDocument();
+    expect(within(dialog).getAllByText('active').length).toBe(2);
+  });
+
+  it('klik kartu outlet → drawer: field master outlet (custcode, dept, kota, status, brand)', async () => {
+    seed();
+    renderSchedule();
+    const w2 = (await screen.findByRole('heading', { name: 'W2' })).closest('section');
+    fireEvent.click(within(w2).getByText('Chambers Tebet'));
+    const dialog = await screen.findByRole('dialog', { name: 'Detail jadwal audit' });
+    expect(within(dialog).getByRole('heading', { name: 'Chambers Tebet' })).toBeInTheDocument();
+    expect(within(dialog).getByText('RVT-CHM')).toBeInTheDocument();
+    expect(within(dialog).getByText('DISTRIBUTION')).toBeInTheDocument();
+    expect(within(dialog).getByText('JAKARTA')).toBeInTheDocument();
+    expect(within(dialog).getByText('active')).toBeInTheDocument();
+    expect(within(dialog).getByText('Chambers')).toBeInTheDocument();
+  });
+
+  it('Escape menutup drawer detail', async () => {
+    seed();
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByText('Chambers'));
+    const dialog = await screen.findByRole('dialog', { name: 'Detail jadwal audit' });
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Detail jadwal audit' })).not.toBeInTheDocument());
+  });
+
+  it('klik tombol hapus di kartu → konfirmasi hapus, bukan drawer detail', async () => {
+    seed();
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByRole('button', { name: 'Hapus Chambers' }));
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Detail jadwal audit' })).not.toBeInTheDocument();
+  });
+
+  it('tanpa izin tulis: kartu tetap bisa dibuka detailnya', async () => {
+    seed();
+    renderSchedule({ canWrite: false });
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByText('Chambers'));
+    expect(await screen.findByRole('dialog', { name: 'Detail jadwal audit' })).toBeInTheDocument();
+  });
+
+  it('keyboard: Enter di kartu terfokus membuka detail', async () => {
+    seed();
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    const item = within(w1).getByText('Chambers').closest('li');
+    item.focus();
+    fireEvent.keyDown(item, { key: 'Enter' });
+    expect(await screen.findByRole('dialog', { name: 'Detail jadwal audit' })).toBeInTheDocument();
+  });
+});
