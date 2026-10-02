@@ -125,3 +125,51 @@ describe('AuditSchedule', () => {
     expect(await screen.findByText(/Ikut minggu kalender Sen-Jum/)).toBeInTheDocument();
   });
 });
+
+describe('AuditScheduleDrawer — daftar brand sebagai kategori', () => {
+  async function openDrawer() {
+    renderSchedule();
+    const w1 = await screen.findByRole('heading', { name: 'W1' });
+    fireEvent.click(within(w1.closest('section')).getByRole('button', { name: 'Tambah' }));
+    return screen.findByRole('dialog', { name: /Tambah jadwal/ });
+  }
+
+  it('tiap brand jadi region kategori berisi outletnya sendiri, urut A→Z', async () => {
+    const dialog = await openDrawer();
+    const regions = within(dialog).getAllByRole('region');
+    expect(regions.map((r) => r.getAttribute('aria-label'))).toEqual(['Chambers', 'SCH']);
+    expect(within(regions[0]).getByText('Chambers Tebet')).toBeInTheDocument();
+    expect(within(regions[0]).getByText('Chambers Bekasi')).toBeInTheDocument();
+    expect(within(regions[0]).queryByText('SCH Puri')).not.toBeInTheDocument();
+    expect(within(regions[1]).getByText('SCH Puri')).toBeInTheDocument();
+    // Tiap kategori punya tombol pilih brand + jumlah outlet.
+    expect(within(regions[0]).getByRole('button', { name: 'Pilih brand Chambers' })).toBeInTheDocument();
+    expect(within(regions[0]).getByText(/2 outlet/)).toBeInTheDocument();
+  });
+
+  it('chevron melipat/membuka grup outlet (aria-expanded)', async () => {
+    const dialog = await openDrawer();
+    const toggle = within(dialog).getByRole('button', { name: 'Chambers' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(dialog).queryByText('Chambers Tebet')).not.toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(within(dialog).getByText('Chambers Tebet')).toBeInTheDocument();
+  });
+
+  it('search brand → grup tampil utuh; search outlet → hanya grup berisi outlet cocok', async () => {
+    const dialog = await openDrawer();
+    const input = within(dialog).getByLabelText('Cari brand / outlet');
+    fireEvent.change(input, { target: { value: 'SCH' } });
+    expect(within(dialog).queryByRole('region', { name: 'Chambers' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('region', { name: 'SCH' })).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'Tebet' } });
+    const chambers = within(dialog).getByRole('region', { name: 'Chambers' });
+    expect(within(chambers).getByText('Chambers Tebet')).toBeInTheDocument();
+    expect(within(chambers).queryByText('Chambers Bekasi')).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('region', { name: 'SCH' })).not.toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'xyz-tidak-ada' } });
+    expect(within(dialog).getByText(/Tidak ada/)).toBeInTheDocument();
+  });
+});
