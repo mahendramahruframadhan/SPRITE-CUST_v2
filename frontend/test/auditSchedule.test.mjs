@@ -2,9 +2,11 @@
 // Jalankan: npm test
 // Kontrak (revisi kalender 2026-10-02): W1 mulai Senin pertama bulan; satu
 // minggu = Senin penentu bulan (1-2 Okt ikut W4 September); bulan boleh
-// punya 4 atau 5 minggu. Adapter {month, weeks}: server /api/audit-schedule
-// sumber kebenaran bila terjangkau; localStorage fallback offline + lazy
-// seed (server kosong, local ada data → di-PUT sekali).
+// punya 4 atau 5 minggu. Adapter {month, weeks, updatedBy, updatedAt,
+// source}: server /api/audit-schedule sumber kebenaran bila terjangkau;
+// localStorage fallback offline + lazy seed (server kosong, local ada data
+// → di-PUT sekali). saveSchedule mengembalikan {synced, updatedBy, updatedAt}
+// supaya UI bisa menandai status sinkron (gagal kirim = tetap lokal).
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -145,7 +147,13 @@ describe('navigasi & label bulan', () => {
 describe('adapter jadwal (siap backend)', () => {
   it('getSchedule mengembalikan {month, weeks} kosong untuk bulan baru', async () => {
     const s = await getSchedule('2026-02');
-    assert.deepEqual(s, { month: '2026-02', weeks: emptyWeeks() });
+    assert.deepEqual(s, {
+      month: '2026-02',
+      weeks: emptyWeeks(),
+      updatedBy: null,
+      updatedAt: null,
+      source: 'local',
+    });
   });
 
   it('saveSchedule -> getSchedule roundtrip termasuk W5', async () => {
@@ -228,7 +236,13 @@ describe('adapter jadwal → backend /api/audit-schedule', () => {
   it('getSchedule: server kosong + local kosong → kosong, tanpa PUT', async () => {
     fetchImpl = async () => ok({ month: '2026-11', weeks: emptyWeeks() });
     const s = await getSchedule('2026-11');
-    assert.deepEqual(s, { month: '2026-11', weeks: emptyWeeks() });
+    assert.deepEqual(s, {
+      month: '2026-11',
+      weeks: emptyWeeks(),
+      updatedBy: null,
+      updatedAt: null,
+      source: 'server',
+    });
     assert.equal(fetchCalls.filter((c) => c.method === 'PUT').length, 0);
   });
 
@@ -267,11 +281,69 @@ describe('adapter jadwal → backend /api/audit-schedule', () => {
     const weeks = emptyWeeks();
     weeks.W1.push({ id: 'f1', type: 'brand', brand: 'Fallback' });
 
-    await saveSchedule('2026-02', weeks);
+    const result = await saveSchedule('2026-02', weeks);
 
+    assert.equal(result.synced, false, 'hasil save memberi tahu UI bahwa PUT gagal');
     const local = JSON.parse(store.get('sprite.auditSchedule.v1'));
     assert.equal(local['2026-02'].weeks.W1[0].id, 'f1', 'edit tidak hilang saat server tak terjangkau');
     const back = await getSchedule('2026-02');
     assert.equal(back.weeks.W1[0].id, 'f1');
+  });
+
+  it('getSchedule: server berisi → source server + meta updatedBy/updatedAt terbawa', async () => {
+    fetchImpl = async () =>
+      ok({
+        month: '2026-09',
+        weeks: { W1: [SERVER_ITEM], W2: [], W3: [], W4: [], W5: [] },
+        updatedBy: 'budi@corp.id',
+        updatedAt: '2026-10-02T07:32:00.000Z',
+      });
+    const s = await getSchedule('2026-09');
+    assert.equal(s.source, 'server');
+    assert.equal(s.updatedBy, 'budi@corp.id');
+    assert.equal(s.updatedAt, '2026-10-02T07:32:00.000Z');
+  });
+
+  it('getSchedule: lazy seed sukses → source server + meta hasil PUT', async () => {
+    fetchImpl = async (url, opts) => {
+      if ((opts.method || 'GET') === 'GET') return ok({ month: '2026-10', weeks: emptyWeeks() });
+      return ok({ ok: true, updatedBy: 'sari@corp.id', updatedAt: '2026-10-02T08:00:00.000Z' });
+    };
+    store.set(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({ '2026-10': { month: '2026-10', weeks: { W1: [{ id: 'seed-2', type: 'brand', brand: 'Lama' }] } } }),
+    );
+    const s = await getSchedule('2026-10');
+    assert.equal(s.source, 'server', 'seed masuk server → dianggap tersinkron');
+    assert.equal(s.updatedBy, 'sari@corp.id');
+    assert.equal(s.weeks.W1[0].id, 'seed-2');
+  });
+
+  it('getSchedule: lazy seed PUT gagal → source local, meta null', async () => {
+    fetchImpl = async (url, opts) => {
+      if ((opts.method || 'GET') === 'GET') return ok({ month: '2026-10', weeks: emptyWeeks() });
+      throw new Error('PUT seed gagal');
+    };
+    store.set(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({ '2026-10': { month: '2026-10', weeks: { W1: [{ id: 'seed-3', type: 'brand', brand: 'Lama' }] } } }),
+    );
+    const s = await getSchedule('2026-10');
+    assert.equal(s.source, 'local', 'seed gagal → masih lokal');
+    assert.equal(s.updatedBy, null);
+    assert.equal(s.updatedAt, null);
+    assert.equal(s.weeks.W1[0].id, 'seed-3');
+  });
+
+  it('saveSchedule: PUT sukses → {synced:true} + meta hasil PUT', async () => {
+    fetchImpl = async () => ok({ ok: true, updatedBy: 'budi@corp.id', updatedAt: '2026-10-02T09:00:00.000Z' });
+    const weeks = emptyWeeks();
+    weeks.W2.push({ id: 'ok1', type: 'outlet', brand: 'SCH', name: 'SCH Puri' });
+    const result = await saveSchedule('2026-11', weeks);
+    assert.deepEqual(result, {
+      synced: true,
+      updatedBy: 'budi@corp.id',
+      updatedAt: '2026-10-02T09:00:00.000Z',
+    });
   });
 });

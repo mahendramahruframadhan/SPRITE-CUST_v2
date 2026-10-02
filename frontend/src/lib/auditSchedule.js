@@ -3,7 +3,10 @@
 // = Senin penentu bulan (1-2 Okt ikut W4 September), bulan boleh punya 4-5
 // minggu (revisi owner 2026-10-02). Penyimpanan: server /api/audit-schedule
 // sumber kebenaran bila terjangkau; localStorage = fallback offline + lazy
-// seed (server kosong, local ada data → di-PUT sekali).
+// seed (server kosong, local ada data → di-PUT sekali). Adapter juga
+// membawa status sinkron: source ('server'|'local') + updatedBy/updatedAt
+// dari backend; saveSchedule mengembalikan {synced, ...} agar UI bisa
+// menandai "belum terkirim" tanpa melempar error.
 import { getJSON, setJSON } from './storage.js';
 import { get as apiGet, put as apiPut } from './api.js';
 
@@ -109,27 +112,46 @@ function hasItems(weeks) {
   return WEEK_KEYS.some((k) => Array.isArray(weeks?.[k]) && weeks[k].length > 0);
 }
 
+// Meta sinkron dari respons backend (GET/PUT): siapa & kapan terakhir ubah.
+function serverMeta(raw) {
+  return {
+    updatedBy: raw?.updatedBy ?? null,
+    updatedAt: raw?.updatedAt ?? null,
+  };
+}
+
 export async function getSchedule(monthKey) {
   try {
     const data = await apiGet(`/audit-schedule?month=${encodeURIComponent(monthKey)}`);
     const weeks = normalizeWeeks(data?.weeks);
+    const meta = serverMeta(data);
     if (!hasItems(weeks)) {
       const local = readLocal(monthKey);
       if (hasItems(local)) {
         // Lazy seed: data local lama (sebelum backend ada) dipindah ke server.
-        // Gagal (offline / tanpa izin tulis) tidak fatal — local tetap dipakai.
+        // Gagal (offline / tanpa izin tulis) tidak fatal: local tetap dipakai
+        // dan status jadi 'local' (belum terkirim).
+        let seeded = false;
         try {
-          await apiPut('/audit-schedule', { month: monthKey, weeks: local });
+          const res = await apiPut('/audit-schedule', { month: monthKey, weeks: local });
+          seeded = true;
+          Object.assign(meta, serverMeta(res));
         } catch {
           /* abaikan */
         }
-        return { month: monthKey, weeks: local };
+        return {
+          month: monthKey,
+          weeks: local,
+          updatedBy: meta.updatedBy,
+          updatedAt: meta.updatedAt,
+          source: seeded ? 'server' : 'local',
+        };
       }
     }
-    return { month: monthKey, weeks };
+    return { month: monthKey, weeks, updatedBy: meta.updatedBy, updatedAt: meta.updatedAt, source: 'server' };
   } catch {
     // Server tak terjangkau / sesi bermasalah → jadwal tetap jalan dari local.
-    return { month: monthKey, weeks: readLocal(monthKey) };
+    return { month: monthKey, weeks: readLocal(monthKey), updatedBy: null, updatedAt: null, source: 'local' };
   }
 }
 
@@ -138,9 +160,12 @@ export async function saveSchedule(monthKey, weeks) {
   // Selalu tulis lokal dulu: cadangan offline + fallback bila PUT gagal.
   writeLocal(monthKey, norm);
   try {
-    await apiPut('/audit-schedule', { month: monthKey, weeks: norm });
+    const res = await apiPut('/audit-schedule', { month: monthKey, weeks: norm });
+    return { synced: true, ...serverMeta(res) };
   } catch {
-    // Offline / tanpa izin tulis — perubahan tetap hidup di localStorage.
+    // Offline / tanpa izin tulis: perubahan tetap hidup di localStorage,
+    // UI diberi tahu lewat synced:false (bukan error yang dilempar).
+    return { synced: false, updatedBy: null, updatedAt: null };
   }
 }
 
