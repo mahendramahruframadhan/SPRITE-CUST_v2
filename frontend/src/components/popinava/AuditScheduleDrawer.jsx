@@ -1,8 +1,9 @@
-// Drawer "Tambah jadwal" untuk Jadwal Audit POPI NAVA. Pilih minggu tujuan
-// (W1-W4/W5 sesuai kalender bulan itu), lalu tentukan brand (seluruh
-// outletnya ikut) dan/atau outlet per item — bebas campur. Unit yang sudah
-// dijadwalkan di bulan yang sama dinonaktifkan agar satu unit tidak
-// tercatat dua minggu tanpa sengaja.
+// Drawer "Tambah jadwal" untuk Jadwal Audit POPI NAVA. Daftar tersusun per
+// brand sebagai kategori (seperti tampilan Kategori PopiNava): header grup =
+// avatar + nama brand + jumlah outlet + tombol pilih (seluruh outletnya ikut),
+// outlet lokasi brand itu tampil di bawahnya. Pilih minggu tujuan (W1-W5
+// sesuai kalender), bebas campur brand/outlet. Unit yang sudah dijadwalkan di
+// bulan yang sama dinonaktifkan. Escape menutup, fokus awal ke pencarian.
 // Pola UI mengikuti OutletDrawer: panel kanan, Escape menutup, fokus awal
 // ke pencarian, footer aksi lengket.
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -29,6 +30,7 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
   const [search, setSearch] = useState('');
   const [brands, setBrands] = useState(() => new Set());
   const [units, setUnits] = useState(() => new Set());
+  const [collapsed, setCollapsed] = useState(() => new Set());
   const [busy, setBusy] = useState(false);
   const searchRef = useRef(null);
 
@@ -39,6 +41,7 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
     setSearch('');
     setBrands(new Set());
     setUnits(new Set());
+    setCollapsed(new Set());
     setBusy(false);
     const t = setTimeout(() => searchRef.current?.focus(), 50);
     return () => clearTimeout(t);
@@ -62,8 +65,13 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
     };
   }, [year, month]);
 
-  // Daftar brand unik dari outlet + jumlah outlet per brand.
-  const brandRows = useMemo(() => {
+  // q = kata kunci pencarian (lowercase, tanpa spasi tepi).
+  const q = search.trim().toLowerCase();
+
+  // Grup per brand A→Z (pola Kategori PopiNava). Pencarian menyaring lintas
+  // grup: nama brand cocok -> seluruh outletnya tampil; nama outlet cocok ->
+  // hanya outlet itu di dalam grupnya.
+  const groups = useMemo(() => {
     const map = new Map();
     for (const o of outlets) {
       const b = o.brandName || '-';
@@ -71,16 +79,16 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
       map.get(b).push(o);
     }
     return [...map.entries()]
-      .map(([brand, list]) => ({ brand, count: list.length }))
-      .sort((a, b) => a.brand.localeCompare(b.brand, 'id'));
-  }, [outlets]);
-
-  const q = search.trim().toLowerCase();
-  const visibleBrands = brandRows.filter((r) => !q || r.brand.toLowerCase().includes(q));
-  const visibleOutlets = outlets
-    .filter((o) => !q || `${o.brandName} ${o.deptChannelName}`.toLowerCase().includes(q))
-    .slice()
-    .sort((a, b) => String(a.brandName).localeCompare(String(b.brandName), 'id'));
+      .sort((a, b) => a[0].localeCompare(b[0], 'id'))
+      .map(([brand, all]) => {
+        const brandHit = !q || brand.toLowerCase().includes(q);
+        const items = brandHit
+          ? all
+          : all.filter((o) => `${o.brandName} ${o.deptChannelName}`.toLowerCase().includes(q));
+        return { brand, all, items };
+      })
+      .filter((g) => g.items.length > 0);
+  }, [outlets, q]);
 
   function toggleBrand(brand) {
     setBrands((prev) => {
@@ -96,6 +104,15 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
       const next = new Set(prev);
       if (next.has(uuid)) next.delete(uuid);
       else next.add(uuid);
+      return next;
+    });
+  }
+
+  function toggleGroup(brand) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(brand)) next.delete(brand);
+      else next.add(brand);
       return next;
     });
   }
@@ -202,78 +219,102 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
 
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Brand (klik = seluruh outlet ikut)
+                  Brand (kategori) & lokasi outlet
                 </p>
-                <div className="mt-1.5 space-y-1.5">
-                  {visibleBrands.length === 0 && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Tidak ada brand yang cocok.</p>
+                <div className="mt-1.5 space-y-2">
+                  {groups.length === 0 && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Tidak ada brand atau outlet yang cocok.</p>
                   )}
-                  {visibleBrands.map((r) => {
-                    const done = scheduled.get(`brand:${r.brand}`);
-                    const on = brands.has(r.brand);
+                  {groups.map((g) => {
+                    const isOpen = !collapsed.has(g.brand);
+                    const done = scheduled.get(`brand:${g.brand}`);
+                    const on = brands.has(g.brand);
+                    const panelId = `as-grp-${g.brand.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}`;
                     return (
-                      <Button
-                        key={r.brand}
-                        type="button"
-                        variant={on ? 'primary' : 'secondary'}
-                        size="sm"
-                        aria-label={`Pilih brand ${r.brand}`}
-                        aria-pressed={on}
-                        aria-disabled={done ? 'true' : undefined}
-                        onClick={() => !done && toggleBrand(r.brand)}
-                        className="w-full justify-start gap-2 h-auto min-h-[44px] py-2"
+                      <section
+                        key={g.brand}
+                        aria-label={g.brand}
+                        className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
                       >
-                        <span aria-hidden="true" className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-white/20 text-[11px] font-bold">
-                          {r.brand.slice(0, 1)}
-                        </span>
-                        <span className="truncate">{r.brand}</span>
-                        <span className="ml-auto text-[11px] font-semibold opacity-80">
-                          {done ? `Sudah ${done}` : `${r.count} outlet`}
-                        </span>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Outlet (per item)</p>
-                <div className="mt-1.5 space-y-1.5">
-                  {visibleOutlets.length === 0 && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Tidak ada outlet yang cocok.</p>
-                  )}
-                  {visibleOutlets.map((o) => {
-                    const done = scheduled.get(o.uuid);
-                    const viaBrand = brands.has(o.brandName);
-                    const on = units.has(o.uuid);
-                    const disabled = !!done;
-                    return (
-                      <label
-                        key={o.uuid}
-                        className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 min-h-[44px] transition ${
-                          disabled
-                            ? 'border-slate-100 dark:border-slate-800 opacity-60'
-                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          className={CHECK_CLS}
-                          checked={on || viaBrand}
-                          disabled={disabled || viaBrand}
-                          onChange={() => toggleUnit(o.uuid)}
-                          aria-label={`${o.deptChannelName} (${o.brandName})`}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{o.deptChannelName}</span>
-                          <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">{o.brandName}</span>
-                        </span>
-                        {(done || viaBrand) && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
-                            {done ? `Sudah ${done}` : 'Ikut brand'}
+                        <div className="flex flex-wrap items-center gap-2 px-2 py-1.5 bg-slate-50 dark:bg-slate-800/60">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-expanded={isOpen}
+                            aria-controls={panelId}
+                            onClick={() => toggleGroup(g.brand)}
+                            className="gap-1.5 min-h-[44px]"
+                          >
+                            <svg
+                              aria-hidden="true"
+                              className={`w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-150 ${isOpen ? 'rotate-90' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                            <span aria-hidden="true" className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-brand-600/10 text-brand-700 dark:text-brand-300 text-[11px] font-bold">
+                              {g.brand.slice(0, 1)}
+                            </span>
+                            <span className="font-bold text-slate-800 dark:text-slate-100">{g.brand}</span>
+                          </Button>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/30">
+                            {g.all.length} outlet
                           </span>
-                        )}
-                      </label>
+                          <Button
+                            type="button"
+                            variant={on ? 'primary' : 'secondary'}
+                            size="sm"
+                            aria-label={`Pilih brand ${g.brand}`}
+                            aria-pressed={on}
+                            aria-disabled={done ? 'true' : undefined}
+                            onClick={() => !done && toggleBrand(g.brand)}
+                            className="ml-auto"
+                          >
+                            {done ? `Sudah ${done}` : 'Pilih'}
+                          </Button>
+                        </div>
+                        <ul id={panelId} className="p-2 space-y-1.5 border-t border-slate-100 dark:border-slate-800">
+                          {isOpen &&
+                            g.items.map((o) => {
+                              const oDone = scheduled.get(o.uuid);
+                              const viaBrand = brands.has(o.brandName);
+                              const onOut = units.has(o.uuid);
+                              const disabled = !!oDone;
+                              return (
+                                <li key={o.uuid}>
+                                  <label
+                                    className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 min-h-[44px] transition ${
+                                      disabled
+                                        ? 'border-slate-100 dark:border-slate-800 opacity-60'
+                                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className={CHECK_CLS}
+                                      checked={onOut || viaBrand}
+                                      disabled={disabled || viaBrand}
+                                      onChange={() => toggleUnit(o.uuid)}
+                                      aria-label={`${o.deptChannelName} (${o.brandName})`}
+                                    />
+                                    <span className="min-w-0 flex-1 text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+                                      {o.deptChannelName}
+                                    </span>
+                                    {(oDone || viaBrand) && (
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
+                                        {oDone ? `Sudah ${oDone}` : 'Ikut brand'}
+                                      </span>
+                                    )}
+                                  </label>
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      </section>
                     );
                   })}
                 </div>
