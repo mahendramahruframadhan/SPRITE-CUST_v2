@@ -1,4 +1,5 @@
-import { Controller, Get, Put, Query, Body, Req, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Query, Body, Req, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { getDb } from '../db/drizzle.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { SessionGuard } from '../auth/session.guard';
@@ -8,7 +9,9 @@ import { logActivity, resolveWho } from '../logs/activity';
 // AuditSchedule.jsx). Satu baris per bulan: weeks disimpan sebagai JSON teks
 // {W1..W5: [item {id,type,...}]}. M-3: GET dan tulis sama-sama dijaga
 // PermGuard @Perm('popinava') — frontend hanya memakainya dari /popinava
-// (canWrite = can('popinava')), tanpa matriks izin baru.
+// (canWrite = can('popinava')), tanpa matriks izin baru. Tandai "sudah
+// audit" (POST mark) mengubah flag audited di weeks sekaligus mencatat
+// audit_history (siapa, jam & tanggal) untuk riwayat.
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const WEEK_KEYS = ['W1', 'W2', 'W3', 'W4', 'W5'];
@@ -112,5 +115,96 @@ export class AuditScheduleController {
       detail: `Bulan ${month} · ${items} item`,
     });
     return { ok: true, month, weeks, updatedBy: who, updatedAt: now };
+  }
+
+  // Tandai / batalkan "sudah audit" untuk satu item. Flag audited ditulis
+  // di weeks (sumber kebenaran), lalu aksi dicatat di audit_history:
+  // pelaku (dari sesi), action mark/undo, dan created_at (jam & tanggal).
+  @Post('mark')
+  @UseGuards(PermGuard)
+  @Perm('popinava')
+  async mark(@Body() body: any, @Req() req: any) {
+    const month = parseMonth(body?.month);
+    const weekKey = String(body?.weekKey || '');
+    if (!WEEK_KEYS.includes(weekKey)) {
+      fail('VALIDATION_FAILED', 'weekKey harus W1..W5.', HttpStatus.BAD_REQUEST);
+    }
+    const itemId = String(body?.itemId || '').trim();
+    if (!itemId) {
+      fail('VALIDATION_FAILED', 'itemId wajib diisi.', HttpStatus.BAD_REQUEST);
+    }
+    const audited = Boolean(body?.audited);
+
+    const r = await this.db.pq(`SELECT weeks FROM audit_schedule WHERE month=$1`, [month]);
+    const row = (r.rows || r)[0];
+    let stored: unknown = null;
+    if (row?.weeks) {
+      try {
+        stored = JSON.parse(row.weeks);
+      } catch {
+        stored = null;
+      }
+    }
+    const weeks = stored ? normalizeWeeks(stored) : emptyWeeks();
+    const item = (weeks[weekKey] || []).find((x: any) => x?.id === itemId);
+    if (!item) {
+      fail('ITEM_NOT_FOUND', 'Item tidak ditemukan di minggu tersebut.', HttpStatus.BAD_REQUEST);
+    }
+    item.audited = audited;
+
+    const now = new Date().toISOString();
+    const who = await resolveWho(this.db, req);
+    await this.db.pq(
+      `INSERT INTO audit_schedule (month, weeks, updated_by, updated_at) VALUES ($1,$2,$3,$4)
+       ON CONFLICT (month) DO UPDATE SET weeks=$2, updated_by=$3, updated_at=$4`,
+      [month, JSON.stringify(weeks), who, now],
+    );
+
+    const label = item.type === 'brand' ? item.brand : item.name;
+    const action = audited ? 'mark' : 'undo';
+    const hid = crypto.randomUUID();
+    await this.db.pq(
+      `INSERT INTO audit_history (id, month, week_key, item_id, item_type, item_label, action, who, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [hid, month, weekKey, itemId, item.type || null, label, action, who, now],
+    );
+    await logActivity(this.db, {
+      who,
+      action: audited ? 'Tandai audit' : 'Batalkan tanda audit',
+      category: 'popinava',
+      detail: `${label} · ${month} ${weekKey}`,
+    });
+    return {
+      ok: true,
+      month,
+      weeks,
+      history: [
+        {
+          id: hid,
+          month,
+          week_key: weekKey,
+          item_id: itemId,
+          item_type: item.type || null,
+          item_label: label,
+          action,
+          who,
+          created_at: now,
+        },
+      ],
+    };
+  }
+
+  // Riwayat tandai audit per bulan (terbaru di atas), bisa per item.
+  @Get('history')
+  @UseGuards(PermGuard)
+  @Perm('popinava')
+  async history(@Query('month') month: string, @Query('item_id') itemId?: string) {
+    const m = parseMonth(month);
+    const base = `SELECT id, month, week_key, item_id, item_type, item_label, action, who, created_at
+      FROM audit_history WHERE month=$1`;
+    const r = itemId
+      ? await this.db.pq(`${base} AND item_id=$2 ORDER BY created_at DESC, id DESC`, [m, String(itemId)])
+      : await this.db.pq(`${base} ORDER BY created_at DESC, id DESC`, [m]);
+    return { month: m, history: r.rows || r };
   }
 }

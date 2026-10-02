@@ -57,6 +57,9 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_popinava_city ON popinava_outlets(city);
     CREATE INDEX IF NOT EXISTS idx_popinava_status ON popinava_outlets(status);
     CREATE TABLE IF NOT EXISTS audit_schedule (month TEXT PRIMARY KEY, weeks TEXT NOT NULL DEFAULT '{}', updated_by TEXT, updated_at TEXT);
+    CREATE TABLE IF NOT EXISTS audit_history (id TEXT PRIMARY KEY, month TEXT NOT NULL, week_key TEXT NOT NULL, item_id TEXT NOT NULL, item_type TEXT, item_label TEXT, action TEXT NOT NULL, who TEXT, created_at TEXT NOT NULL);
+    CREATE INDEX IF NOT EXISTS idx_audit_history_month ON audit_history(month);
+    CREATE INDEX IF NOT EXISTS idx_audit_history_item ON audit_history(item_id);
   `;
 
   if (!isRealPg && mem) {
