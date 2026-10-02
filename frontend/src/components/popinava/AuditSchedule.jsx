@@ -20,6 +20,7 @@ import {
   formatMonthLabel,
   formatWeekRange,
   getSchedule,
+  markAudit,
   monthKeyOf,
   monthWeeks,
   moveItem,
@@ -187,15 +188,17 @@ export default function AuditSchedule({ outlets, canWrite }) {
     notify(`"${itemLabel(item)}" dipindah ke ${toKey}.`, 'success');
   }
 
-  // Toggle tanda "sudah audit" di kartu. Item tersimpan dengan audited:true
-  // (kembali lewat PUT yang sama; data lama tanpa field = belum audit).
+  // Toggle tanda "sudah audit" di kartu. Flag audited + riwayat (pelaku, jam
+  // & tanggal) dikelola server lewat POST /audit-schedule/mark; state lokal
+  // diambil dari weeks respons server. Gagal → toast error, state tak berubah.
   async function handleToggleAudit(weekKey, item) {
-    const next = {
-      ...current,
-      [weekKey]: current[weekKey].map((x) => (x.id === item.id ? { ...x, audited: !x.audited } : x)),
-    };
-    await persist(next);
-    notify(item.audited ? `Tanda "${itemLabel(item)}" dibatalkan.` : `"${itemLabel(item)}" ditandai sudah audit.`, 'success');
+    try {
+      const r = await markAudit(monthKey, weekKey, item.id, !item.audited);
+      setWeeks(r.weeks);
+      notify(item.audited ? `Tanda "${itemLabel(item)}" dibatalkan.` : `"${itemLabel(item)}" ditandai sudah audit.`, 'success');
+    } catch {
+      notify('Gagal menyimpan tanda audit. Coba lagi.', 'error');
+    }
   }
 
   // Drag & drop antar kolom (HTML5, desktop mouse). Logika pindah memakai
@@ -534,6 +537,8 @@ export default function AuditSchedule({ outlets, canWrite }) {
       <AuditScheduleDetail
         open={detail !== null}
         item={detail?.item || null}
+        monthKey={monthKey}
+        itemId={detail?.item?.id || null}
         weekLabel={detail ? `${detail.weekKey} · ${weekRanges[detail.weekKey]}` : ''}
         outlet={detail && detail.item.type === 'outlet' ? outletByUuid.get(detail.item.uuid) : null}
         outlets={detail && detail.item.type === 'brand' ? outletsByBrand.get(detail.item.brand) || [] : []}

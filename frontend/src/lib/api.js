@@ -167,6 +167,9 @@ export const deleteBrandStatus = (id) => req(`/brand-status/${id}`, { method: 'D
 // POPI NAVA (master outlet, spec §9) — dipakai hook usePopinava hanya saat
 // probe list sukses (/api/popinava ada); selain itu mode lokal.
 export const getPopinava = (qs = '') => get(`/popinava${qs}`);
+export const postAuditMark = (body) => post('/audit-schedule/mark', body);
+export const getAuditHistory = (month, itemId) =>
+  get(`/audit-schedule/history?month=${encodeURIComponent(month)}${itemId ? `&item_id=${encodeURIComponent(itemId)}` : ''}`);
 export const postPopinava = (body) => post('/popinava', body);
 export const patchPopinava = (uuid, body) => patch(`/popinava/${uuid}`, body);
 export const deletePopinava = (uuid) => req(`/popinava/${uuid}`, { method: 'DELETE' });

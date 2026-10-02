@@ -2,9 +2,11 @@
 // field master unit terjadwal (brand atau outlet) + minggu tujuan. Pindah
 // tetap lewat drag, hapus lewat tombol di kartu. Pola UI mengikuti
 // AuditScheduleDrawer: panel kanan, Escape menutup, fokus awal ke tutup.
-import { useEffect, useRef } from 'react';
+// Riwayat audit (kapan & siapa menandai) diambil dari server per item.
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/Button.jsx';
 import { ScrollArea } from '../ui/ScrollArea.jsx';
+import { formatHistoryStamp, getAuditHistory } from '../../lib/auditSchedule.js';
 
 function Field({ label, value }) {
   if (!value) return null;
@@ -44,8 +46,9 @@ function OutletRow({ o }) {
   );
 }
 
-export default function AuditScheduleDetail({ open, item, weekLabel, outlet, outlets, onClose }) {
+export default function AuditScheduleDetail({ open, item, monthKey, itemId, weekLabel, outlet, outlets, onClose }) {
   const closeRef = useRef(null);
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     if (!open) return;
@@ -59,6 +62,26 @@ export default function AuditScheduleDetail({ open, item, weekLabel, outlet, out
       clearTimeout(t);
     };
   }, [open, onClose]);
+
+  // Riwayat tandai audit untuk item ini (terbaru di atas). Gagal memuat
+  // (offline / tanpa izin) tidak fatal: section riwayat hanya tidak tampil.
+  useEffect(() => {
+    if (!open || !itemId) {
+      setHistory([]);
+      return;
+    }
+    let live = true;
+    getAuditHistory(monthKey, itemId)
+      .then((rows) => {
+        if (live) setHistory(rows);
+      })
+      .catch(() => {
+        if (live) setHistory([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [open, monthKey, itemId]);
 
   if (!open || !item) return null;
 
@@ -135,6 +158,30 @@ export default function AuditScheduleDetail({ open, item, weekLabel, outlet, out
                     <StatusBadge status={outlet?.status} />
                   </div>
                 </div>
+              </section>
+            )}
+
+            {history.length > 0 && (
+              <section>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Riwayat audit</p>
+                <ul className="mt-1.5 space-y-1.5">
+                  {history.map((h) => (
+                    <li key={h.id} className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 flex items-center gap-2">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                          h.action === 'mark'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30'
+                            : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                        }`}
+                      >
+                        {h.action === 'mark' ? 'Sudah audit' : 'Dibatalkan'}
+                      </span>
+                      <span className="min-w-0 flex-1 text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                        {h.who || 'system'} · {formatHistoryStamp(h.created_at)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </section>
             )}
           </div>

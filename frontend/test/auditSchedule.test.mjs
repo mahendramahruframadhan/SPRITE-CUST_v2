@@ -18,6 +18,8 @@ import {
   emptyWeeks,
   getSchedule,
   saveSchedule,
+  markAudit,
+  getAuditHistory,
   addItem,
   removeItem,
   moveItem,
@@ -345,5 +347,45 @@ describe('adapter jadwal → backend /api/audit-schedule', () => {
       updatedBy: 'budi@corp.id',
       updatedAt: '2026-10-02T09:00:00.000Z',
     });
+  });
+});
+
+describe('tandai audit → backend /api/audit-schedule/mark', () => {
+  const ok = (data) => ({ status: 200, ok: true, json: async () => data });
+
+  it('markAudit: POST body {month, weekKey, itemId, audited} + balikkan weeks dari server', async () => {
+    fetchImpl = async (url, opts, body) => {
+      assert.equal(url, '/api/audit-schedule/mark');
+      assert.equal(opts.method, 'POST');
+      assert.equal(body.month, '2026-10');
+      assert.equal(body.weekKey, 'W1');
+      assert.equal(body.itemId, 'i-1');
+      assert.equal(body.audited, true);
+      return ok({ ok: true, month: '2026-10', weeks: { W1: [{ id: 'i-1', type: 'outlet', audited: true }] } });
+    };
+    const r = await markAudit('2026-10', 'W1', 'i-1', true);
+    assert.equal(r.weeks.W1[0].audited, true, 'UI memakai weeks respons server');
+  });
+
+  it('markAudit: server error → melempar (UI tampilkan toast, state tak berubah)', async () => {
+    fetchImpl = async () => {
+      throw new Error('down');
+    };
+    await assert.rejects(() => markAudit('2026-10', 'W1', 'i-1', true));
+  });
+
+  it('getAuditHistory: GET month + item_id + balikkan array history', async () => {
+    fetchImpl = async (url) => {
+      assert.ok(url.includes('/api/audit-schedule/history?month=2026-10'), url);
+      assert.ok(url.includes('item_id=i-1'), url);
+      return ok({
+        month: '2026-10',
+        history: [{ id: 'h1', action: 'mark', who: 'Super Admin', created_at: '2026-10-02T10:00:00.000Z' }],
+      });
+    };
+    const rows = await getAuditHistory('2026-10', 'i-1');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].action, 'mark');
+    assert.equal(rows[0].who, 'Super Admin');
   });
 });

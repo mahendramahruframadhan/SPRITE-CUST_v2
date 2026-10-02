@@ -8,7 +8,7 @@
 // dari backend; saveSchedule mengembalikan {synced, ...} agar UI bisa
 // menandai "belum terkirim" tanpa melempar error.
 import { getJSON, setJSON } from './storage.js';
-import { get as apiGet, put as apiPut } from './api.js';
+import { get as apiGet, put as apiPut, post as apiPost } from './api.js';
 
 const STORAGE_KEY = 'sprite.auditSchedule.v1';
 const WEEK_KEYS = ['W1', 'W2', 'W3', 'W4', 'W5'];
@@ -167,6 +167,32 @@ export async function saveSchedule(monthKey, weeks) {
     // UI diberi tahu lewat synced:false (bukan error yang dilempar).
     return { synced: false, updatedBy: null, updatedAt: null };
   }
+}
+
+// Tandai / batalkan "sudah audit" lewat server. Server mengubah flag audited
+// di weeks sekaligus mencatat audit_history (pelaku, jam & tanggal). Hasil
+// berisi weeks terbaru: UI memakainya sebagai sumber kebenaran. Melempar
+// error bila gagal: UI menampilkan toast dan tidak mengubah state lokal.
+export async function markAudit(monthKey, weekKey, itemId, audited) {
+  return apiPost('/audit-schedule/mark', { month: monthKey, weekKey, itemId, audited });
+}
+
+// Riwayat tandai audit per bulan (terbaru di atas), bisa per item.
+export async function getAuditHistory(monthKey, itemId) {
+  const data = await apiGet(
+    `/audit-schedule/history?month=${encodeURIComponent(monthKey)}${itemId ? `&item_id=${encodeURIComponent(itemId)}` : ''}`,
+  );
+  return Array.isArray(data?.history) ? data.history : [];
+}
+
+// "2 Okt 2026, 14:32" (waktu lokal) untuk baris riwayat.
+export function formatHistoryStamp(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}, ${hh}:${mm}`;
 }
 
 // --- Mutasi murni (immutable) — dipakai UI & diuji terpisah ---

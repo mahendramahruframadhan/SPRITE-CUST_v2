@@ -3,6 +3,7 @@
 // Mencakup: kartu minggu kalender (4-5 termasuk W5), navigasi bulan, alur
 // tambah brand/outlet via drawer, pindah minggu, dan empty state.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import assert from 'node:assert/strict';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '../src/context/ToastContext.jsx';
 import { ConfirmProvider } from '../src/components/ui/ConfirmProvider.jsx';
@@ -51,6 +52,28 @@ function stubScheduleFetch(getHandler, putHandler) {
     if (String(url).includes('/api/audit-schedule')) {
       if (method === 'GET') return getHandler();
       if (method === 'PUT') return putHandler(opts);
+      throw new TypeError(`method tak dikenal ${method}`);
+    }
+    throw new TypeError('Failed to parse URL');
+  });
+}
+
+// Stub fetch untuk alur tandai audit: POST /mark + GET /history dilayani;
+// GET jadwal → kosong; method lain gagal cepat.
+function stubMarkFetch(markHandler, historyHandler) {
+  vi.stubGlobal('fetch', async (url, opts = {}) => {
+    const method = opts.method || 'GET';
+    const u = String(url);
+    if (u.includes('/api/audit-schedule/mark')) {
+      if (method !== 'POST') throw new TypeError(`method tak dikenal ${method}`);
+      return markHandler(opts);
+    }
+    if (u.includes('/api/audit-schedule/history')) {
+      if (method !== 'GET') throw new TypeError(`method tak dikenal ${method}`);
+      return historyHandler();
+    }
+    if (u.includes('/api/audit-schedule')) {
+      if (method === 'GET') return jsonRes({ month: monthKeyOf(new Date()), weeks: EMPTY_WEEKS, updatedBy: null, updatedAt: null });
       throw new TypeError(`method tak dikenal ${method}`);
     }
     throw new TypeError('Failed to parse URL');
@@ -503,14 +526,19 @@ describe('AuditSchedule · detail kartu (drawer read-only)', () => {
 });
 
 describe('AuditSchedule · tandai sudah audit', () => {
-  it('klik tombol tandai → badge Sudah audit + tersimpan (localStorage & PUT); klik lagi → batal', async () => {
-    let putBody = null;
-    stubScheduleFetch(
-      () => jsonRes({ month: monthKeyOf(new Date()), weeks: EMPTY_WEEKS, updatedBy: null, updatedAt: null }),
+  it('klik tombol tandai → POST mark → badge dari respons server; klik lagi → batal', async () => {
+    const bodies = [];
+    stubMarkFetch(
       async (opts) => {
-        putBody = JSON.parse(opts.body);
-        return jsonRes({ ok: true, updatedBy: 'budi@corp.id', updatedAt: '2026-10-02T10:00:00.000Z' });
+        const body = JSON.parse(opts.body);
+        bodies.push(body);
+        return jsonRes({
+          ok: true,
+          month: body.month,
+          weeks: { W1: [{ id: 'b1', type: 'brand', brand: 'SCH', audited: body.audited }], W2: [], W3: [], W4: [], W5: [] },
+        });
       },
+      async () => jsonRes({ month: monthKeyOf(new Date()), history: [] }),
     );
     renderSchedule();
     const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
@@ -522,15 +550,67 @@ describe('AuditSchedule · tandai sudah audit', () => {
 
     fireEvent.click(within(w1).getByRole('button', { name: 'Tandai SCH sudah audit' }));
     expect(await within(w1).findByText('Sudah audit')).toBeInTheDocument();
-    const mk = monthKeyOf(new Date());
-    const stored = JSON.parse(localStorage.getItem('sprite.auditSchedule.v1'));
-    expect(stored[mk].weeks.W1[0].audited).toBe(true);
-    expect(putBody.weeks.W1[0].audited).toBe(true);
+    assert.equal(bodies.length, 1);
+    assert.equal(bodies[0].audited, true);
+    assert.equal(bodies[0].weekKey, 'W1');
+    assert.ok(bodies[0].itemId, 'itemId ikut terkirim');
 
     fireEvent.click(within(w1).getByRole('button', { name: 'Batalkan tanda SCH sudah audit' }));
     await waitFor(() => expect(within(w1).queryByText('Sudah audit')).not.toBeInTheDocument());
-    const stored2 = JSON.parse(localStorage.getItem('sprite.auditSchedule.v1'));
-    expect(stored2[mk].weeks.W1[0].audited).toBe(false);
+    assert.equal(bodies[1].audited, false);
+  });
+
+  it('mark gagal → toast error, badge tidak muncul', async () => {
+    stubMarkFetch(
+      async () => {
+        throw new Error('server down');
+      },
+      async () => jsonRes({ month: monthKeyOf(new Date()), history: [] }),
+    );
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByRole('button', { name: 'Tambah' }));
+    const dialog = await screen.findByRole('dialog', { name: /Tambah jadwal/ });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Pilih brand SCH' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan jadwal' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    fireEvent.click(within(w1).getByRole('button', { name: 'Tandai SCH sudah audit' }));
+    expect(await screen.findByText(/Gagal menyimpan tanda audit/)).toBeInTheDocument();
+    expect(within(w1).queryByText('Sudah audit')).not.toBeInTheDocument();
+  });
+
+  it('drawer detail menampilkan riwayat audit (pelaku + tanggal + jam)', async () => {
+    const mk = monthKeyOf(new Date());
+    const created = '2026-10-02T10:00:00.000Z';
+    const d = new Date(created);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    stubMarkFetch(
+      async () => jsonRes({ ok: true, month: mk, weeks: {} }),
+      async () => jsonRes({ month: mk, history: [{ id: 'h1', action: 'mark', who: 'budi@corp.id', created_at: created }] }),
+    );
+    localStorage.setItem(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({
+        [mk]: {
+          month: mk,
+          weeks: {
+            W1: [{ id: 'b1', type: 'brand', brand: 'Chambers', audited: true }],
+            W2: [],
+            W3: [],
+            W4: [],
+            W5: [],
+          },
+        },
+      }),
+    );
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByText('Chambers'));
+    const dialog = await screen.findByRole('dialog', { name: 'Detail jadwal audit' });
+    expect(await within(dialog).findByText(/Riwayat audit/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/budi@corp\.id/)).toBeInTheDocument();
+    expect(within(dialog).getByText(new RegExp(`${d.getDate()} Okt ${d.getFullYear()}, ${hh}:${mm}`))).toBeInTheDocument();
   });
 
   it('tanpa izin tulis: tidak ada tombol tandai audit', async () => {
