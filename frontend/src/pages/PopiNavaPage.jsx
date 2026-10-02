@@ -28,6 +28,7 @@ import { get as storageGet } from '../lib/storage.js';
 import { fmtDateID } from '../utils/contract.js';
 import ImportWizard from '../components/popinava/ImportWizard.jsx';
 import OutletDrawer from '../components/popinava/OutletDrawer.jsx';
+import AuditSchedule from '../components/popinava/AuditSchedule.jsx';
 
 const INPUT_CLS =
   'w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
@@ -98,6 +99,7 @@ export default function PopiNavaPage() {
     total,
     pageRows,
     exportable,
+    rows,
     create,
     update,
     remove,
@@ -122,6 +124,9 @@ export default function PopiNavaPage() {
   // View kategori (default): daftar brand collapsed, klik chevron/brand →
   // outlet muncul di bawahnya. 'table' = tabel datar lama (per halaman).
   const [view, setView] = useState('group');
+  // Mode halaman: 'outlets' = master data seperti biasa; 'audit' = tab
+  // Jadwal Audit (W1-W4) yang memakai data outlet dari hook yang sama.
+  const [pageMode, setPageMode] = useState('outlets');
   const [openBrands, setOpenBrands] = useState(() => new Set());
   // Status busy per outlet: switch dinonaktifkan selama PUT status berjalan.
   const [statusBusy, setStatusBusy] = useState({});
@@ -397,7 +402,7 @@ export default function PopiNavaPage() {
             </div>
           </dl>
         </div>
-        {canWrite && (
+        {canWrite && pageMode === 'outlets' && (
           <div className="relative mt-4 flex flex-wrap gap-2">
             <Button variant="ghost" size="sm" onClick={() => setWizardOpen(true)} className="text-white border border-white/40 hover:bg-white/15 focus-visible:ring-white/70">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
@@ -438,6 +443,27 @@ export default function PopiNavaPage() {
 
       {/* Koneksi & error: jujur soal mode lokal; banner bila server gagal */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* Toggle mode halaman: master outlet vs jadwal audit */}
+        <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden" role="group" aria-label="Mode halaman POPI NAVA">
+          <Button
+            variant={pageMode === 'outlets' ? 'primary' : 'ghost'}
+            size="sm"
+            aria-pressed={pageMode === 'outlets'}
+            onClick={() => setPageMode('outlets')}
+            className="rounded-none"
+          >
+            Outlet
+          </Button>
+          <Button
+            variant={pageMode === 'audit' ? 'primary' : 'ghost'}
+            size="sm"
+            aria-pressed={pageMode === 'audit'}
+            onClick={() => setPageMode('audit')}
+            className="rounded-none"
+          >
+            Jadwal Audit
+          </Button>
+        </div>
         {localMode && (
           <span className="inline-flex items-center gap-2 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
             Mode lokal: backend /popinava belum tersambung, data tersimpan di browser
@@ -465,7 +491,9 @@ export default function PopiNavaPage() {
         </div>
       )}
 
-      {/* Filter (§10.1): search debounce + dropdown facet + reset */}
+      {/* Filter (§10.1): search debounce + dropdown facet + reset — hanya mode outlet */}
+      {pageMode === 'outlets' && (
+        <>
       <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           <div className="lg:col-span-2">
@@ -723,12 +751,19 @@ export default function PopiNavaPage() {
           </>
         )}
       </Reveal>
+        </>
+      )}
 
-      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-        {localMode
-          ? 'Data tersimpan di browser ini. Endpoint /popinava terpakai otomatis begitu server tersambung.'
-          : 'Data tersimpan di server.'}
-      </p>
+      {/* Mode jadwal audit: kartu W1-W4 + drawer penetapan brand/outlet */}
+      {pageMode === 'audit' && <AuditSchedule outlets={rows} canWrite={canWrite} />}
+
+      {pageMode === 'outlets' && (
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+          {localMode
+            ? 'Data tersimpan di browser ini. Endpoint /popinava terpakai otomatis begitu server tersambung.'
+            : 'Data tersimpan di server.'}
+        </p>
+      )}
 
       <OutletDrawer
         open={drawerOpen}
