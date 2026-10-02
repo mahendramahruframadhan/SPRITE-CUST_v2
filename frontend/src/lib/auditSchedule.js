@@ -1,10 +1,11 @@
 // Jadwal audit mingguan POPI NAVA: minggu kalender per bulan + adapter
 // penyimpanan. Mengikuti kalender asli: W1 mulai Senin pertama, satu minggu
 // = Senin penentu bulan (1-2 Okt ikut W4 September), bulan boleh punya 4-5
-// minggu (revisi owner 2026-10-02). Penyimpanan sekarang localStorage dengan
-// API async berbentuk {month, weeks} — saat backend siap, ganti isi get/save
-// dengan fetch tanpa mengubah pemanggil.
+// minggu (revisi owner 2026-10-02). Penyimpanan: server /api/audit-schedule
+// sumber kebenaran bila terjangkau; localStorage = fallback offline + lazy
+// seed (server kosong, local ada data → di-PUT sekali).
 import { getJSON, setJSON } from './storage.js';
+import { get as apiGet, put as apiPut } from './api.js';
 
 const STORAGE_KEY = 'sprite.auditSchedule.v1';
 const WEEK_KEYS = ['W1', 'W2', 'W3', 'W4', 'W5'];
@@ -89,19 +90,58 @@ function normalizeWeeks(raw) {
   return weeks;
 }
 
-// --- Adapter penyimpanan (async; siap dialihkan ke endpoint backend) ---
+// --- Adapter penyimpanan (async): server dulu, localStorage fallback ---
 
-export async function getSchedule(monthKey) {
+function readLocal(monthKey) {
   const all = getJSON(STORAGE_KEY, {}) || {};
   const entry = all[monthKey];
-  if (!entry || typeof entry !== 'object') return { month: monthKey, weeks: emptyWeeks() };
-  return { month: monthKey, weeks: normalizeWeeks(entry.weeks) };
+  if (!entry || typeof entry !== 'object') return emptyWeeks();
+  return normalizeWeeks(entry.weeks);
 }
 
-export async function saveSchedule(monthKey, weeks) {
+function writeLocal(monthKey, weeks) {
   const all = getJSON(STORAGE_KEY, {}) || {};
   all[monthKey] = { month: monthKey, weeks: normalizeWeeks(weeks) };
   setJSON(STORAGE_KEY, all);
+}
+
+function hasItems(weeks) {
+  return WEEK_KEYS.some((k) => Array.isArray(weeks?.[k]) && weeks[k].length > 0);
+}
+
+export async function getSchedule(monthKey) {
+  try {
+    const data = await apiGet(`/audit-schedule?month=${encodeURIComponent(monthKey)}`);
+    const weeks = normalizeWeeks(data?.weeks);
+    if (!hasItems(weeks)) {
+      const local = readLocal(monthKey);
+      if (hasItems(local)) {
+        // Lazy seed: data local lama (sebelum backend ada) dipindah ke server.
+        // Gagal (offline / tanpa izin tulis) tidak fatal — local tetap dipakai.
+        try {
+          await apiPut('/audit-schedule', { month: monthKey, weeks: local });
+        } catch {
+          /* abaikan */
+        }
+        return { month: monthKey, weeks: local };
+      }
+    }
+    return { month: monthKey, weeks };
+  } catch {
+    // Server tak terjangkau / sesi bermasalah → jadwal tetap jalan dari local.
+    return { month: monthKey, weeks: readLocal(monthKey) };
+  }
+}
+
+export async function saveSchedule(monthKey, weeks) {
+  const norm = normalizeWeeks(weeks);
+  // Selalu tulis lokal dulu: cadangan offline + fallback bila PUT gagal.
+  writeLocal(monthKey, norm);
+  try {
+    await apiPut('/audit-schedule', { month: monthKey, weeks: norm });
+  } catch {
+    // Offline / tanpa izin tulis — perubahan tetap hidup di localStorage.
+  }
 }
 
 // --- Mutasi murni (immutable) — dipakai UI & diuji terpisah ---
