@@ -2,8 +2,9 @@
 // (W1 mulai Senin pertama, Senin penentu bulan, 4-5 minggu) + penetapan
 // brand/outlet per minggu. Pindah minggu lewat drag & drop antar kolom
 // (desktop, mouse) dengan label minggu statis di kartu; tanpa select.
-// Penyimpanan lewat lib/auditSchedule (localStorage
-// sekarang; kontrak async {month, weeks} siap dialihkan ke backend).
+// Penyimpanan lewat lib/auditSchedule (server /api/audit-schedule dulu,
+// localStorage fallback); badge status sinkron di header menandai
+// Tersinkron (plus pengubah & waktu) / Tersimpan lokal / Menyinkronkan….
 // Sengaja tanpa indikator slot: bebas berapa item per minggu (keputusan owner).
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../Reveal.jsx';
@@ -35,6 +36,29 @@ function itemLabel(item) {
   return item.type === 'brand' ? item.brand : item.name;
 }
 
+const STAMP_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+// "2 Okt 14:32" (waktu lokal) dari ISO backend; kosong bila tak valid.
+function formatStamp(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getDate()} ${STAMP_MONTHS[d.getMonth()]} ${hh}:${mm}`;
+}
+
+// Teks badge sinkron: status + (bila ada) pengubah & waktu terakhir.
+function syncBadgeText(sync) {
+  if (sync.status === 'saving') return 'Menyinkronkan…';
+  if (sync.status === 'local') return 'Tersimpan lokal · belum terkirim';
+  const parts = ['Tersinkron'];
+  if (sync.updatedBy) parts.push(sync.updatedBy);
+  const stamp = formatStamp(sync.updatedAt);
+  if (stamp) parts.push(stamp);
+  return parts.join(' · ');
+}
+
 export default function AuditSchedule({ outlets, canWrite }) {
   const { notify } = useToast();
   const confirm = useConfirm();
@@ -45,6 +69,7 @@ export default function AuditSchedule({ outlets, canWrite }) {
   const [expanded, setExpanded] = useState(() => new Set()); // id item brand yang daftar outletnya terbuka
   const [drag, setDrag] = useState(null); // {id, from} kartu yang sedang di-drag
   const [over, setOver] = useState(null); // weekKey kolom yang jadi tujuan highlight
+  const [sync, setSync] = useState(null); // {status: saving|synced|local, updatedBy, updatedAt}; null = belum dimuat
 
   const load = useCallback(async () => {
     setWeeks(null);
@@ -52,6 +77,11 @@ export default function AuditSchedule({ outlets, canWrite }) {
     try {
       const s = await getSchedule(monthKey);
       setWeeks(s.weeks);
+      setSync({
+        status: s.source === 'server' ? 'synced' : 'local',
+        updatedBy: s.updatedBy,
+        updatedAt: s.updatedAt,
+      });
     } catch {
       setLoadErr(true);
     }
@@ -113,8 +143,14 @@ export default function AuditSchedule({ outlets, canWrite }) {
   }
 
   async function persist(nextWeeks) {
-    await saveSchedule(monthKey, nextWeeks);
+    setSync((prev) => ({ status: 'saving', updatedBy: prev?.updatedBy ?? null, updatedAt: prev?.updatedAt ?? null }));
+    const r = await saveSchedule(monthKey, nextWeeks);
     setWeeks(nextWeeks);
+    setSync({ status: r.synced ? 'synced' : 'local', updatedBy: r.updatedBy, updatedAt: r.updatedAt });
+    if (!r.synced) {
+      notify('Gagal kirim ke server. Perubahan tersimpan lokal, belum terkirim.', 'warning');
+    }
+    return r;
   }
 
   async function handleSave(weekKey, items) {
@@ -223,8 +259,22 @@ export default function AuditSchedule({ outlets, canWrite }) {
           <Button variant="secondary" size="sm" disabled={monthKey === thisMonth} onClick={() => setMonthKey(thisMonth)}>
             Hari ini
           </Button>
-          <span className="ml-auto text-[11px] text-slate-500 dark:text-slate-400">
-            Ikut minggu kalender Sen-Jum; Senin menentukan bulan minggu itu. Tersimpan di browser ini.
+          <span className="ml-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+            <span>Ikut minggu kalender Sen-Jum; Senin menentukan bulan minggu itu.</span>
+            {sync && (
+              <span
+                aria-live="polite"
+                className={`rounded-full px-2 py-0.5 font-semibold ${
+                  sync.status === 'synced'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30'
+                    : sync.status === 'local'
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30'
+                      : 'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 animate-pulse'
+                }`}
+              >
+                {syncBadgeText(sync)}
+              </span>
+            )}
           </span>
         </div>
       </Reveal>

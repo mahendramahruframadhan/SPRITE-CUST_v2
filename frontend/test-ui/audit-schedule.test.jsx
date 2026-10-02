@@ -2,7 +2,7 @@
 // Jalankan: npm run test:ui
 // Mencakup: kartu minggu kalender (4-5 termasuk W5), navigasi bulan, alur
 // tambah brand/outlet via drawer, pindah minggu, dan empty state.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '../src/context/ToastContext.jsx';
 import { ConfirmProvider } from '../src/components/ui/ConfirmProvider.jsx';
@@ -38,6 +38,24 @@ function renderSchedule(props = {}) {
 }
 
 beforeEach(() => localStorage.clear());
+afterEach(() => vi.unstubAllGlobals());
+
+const jsonRes = (data) => ({ status: 200, ok: true, json: async () => data });
+const EMPTY_WEEKS = { W1: [], W2: [], W3: [], W4: [], W5: [] };
+
+// Stub fetch: endpoint jadwal dilayani sesuai skenario; endpoint lain
+// gagal cepat (mimik offline) supaya perilaku fallback tetap utuh.
+function stubScheduleFetch(getHandler, putHandler) {
+  vi.stubGlobal('fetch', async (url, opts = {}) => {
+    const method = opts.method || 'GET';
+    if (String(url).includes('/api/audit-schedule')) {
+      if (method === 'GET') return getHandler();
+      if (method === 'PUT') return putHandler(opts);
+      throw new TypeError(`method tak dikenal ${method}`);
+    }
+    throw new TypeError('Failed to parse URL');
+  });
+}
 
 describe('AuditSchedule', () => {
   it('menampilkan 4 kartu minggu W1-W4 dengan rentang hari kerja', async () => {
@@ -331,5 +349,68 @@ describe('AuditSchedule — detail kartu jadwal (brand & outlet)', () => {
     const w1 = await screen.findByRole('heading', { name: 'W1' });
     const item = within(w1.closest('section')).getByText('Outlet Statis').closest('li');
     expect(item).toHaveAttribute('draggable', 'false');
+  });
+});
+
+describe('AuditSchedule · status sinkron (badge server / lokal)', () => {
+  it('GET server → badge Tersinkron + info pengubah (updatedBy & waktu)', async () => {
+    stubScheduleFetch(
+      () =>
+        jsonRes({
+          month: monthKeyOf(new Date()),
+          weeks: EMPTY_WEEKS,
+          updatedBy: 'budi@corp.id',
+          updatedAt: '2026-10-02T07:32:00.000Z',
+        }),
+      async () => {
+        throw new Error('PUT tak diharapkan');
+      },
+    );
+    renderSchedule();
+    expect(await screen.findByText(/Tersinkron/, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.getByText(/budi@corp\.id/)).toBeInTheDocument();
+    expect(screen.getByText(/\d{1,2} Okt \d{2}:\d{2}/)).toBeInTheDocument();
+  });
+
+  it('PUT gagal saat simpan → toast peringatan + badge jadi Tersimpan lokal', async () => {
+    stubScheduleFetch(
+      () => jsonRes({ month: monthKeyOf(new Date()), weeks: EMPTY_WEEKS, updatedBy: null, updatedAt: null }),
+      async () => {
+        throw new Error('server menolak');
+      },
+    );
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByRole('button', { name: 'Tambah' }));
+    const dialog = await screen.findByRole('dialog', { name: /Tambah jadwal/ });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Pilih brand SCH' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan jadwal' }));
+    expect(await screen.findByText(/Gagal kirim ke server/, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Tersimpan lokal/, {}, { timeout: 5000 })).toBeInTheDocument();
+  });
+
+  it('badge Menyinkronkan… selama PUT berjalan, lalu Tersinkron + pengubah baru', async () => {
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    stubScheduleFetch(
+      () => jsonRes({ month: monthKeyOf(new Date()), weeks: EMPTY_WEEKS, updatedBy: null, updatedAt: null }),
+      async () => {
+        await gate;
+        return jsonRes({ ok: true, updatedBy: 'sari@corp.id', updatedAt: '2026-10-02T10:00:00.000Z' });
+      },
+    );
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByRole('button', { name: 'Tambah' }));
+    const dialog = await screen.findByRole('dialog', { name: /Tambah jadwal/ });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Pilih brand SCH' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan jadwal' }));
+    expect(await screen.findByText('Menyinkronkan…', {}, { timeout: 5000 })).toBeInTheDocument();
+    release();
+    expect(await screen.findByText(/Tersinkron/, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText(/sari@corp\.id/, {}, { timeout: 5000 })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });
