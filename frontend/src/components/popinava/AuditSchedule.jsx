@@ -1,6 +1,8 @@
 // Tab "Jadwal Audit" di halaman POPI NAVA: kartu minggu kalender per bulan
 // (W1 mulai Senin pertama, Senin penentu bulan, 4-5 minggu) + penetapan
-// brand/outlet per minggu. Penyimpanan lewat lib/auditSchedule (localStorage
+// brand/outlet per minggu. Pindah minggu lewat drag & drop antar kolom
+// (desktop, mouse) dengan label minggu statis di kartu; tanpa select.
+// Penyimpanan lewat lib/auditSchedule (localStorage
 // sekarang; kontrak async {month, weeks} siap dialihkan ke backend).
 // Sengaja tanpa indikator slot: bebas berapa item per minggu (keputusan owner).
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -41,6 +43,8 @@ export default function AuditSchedule({ outlets, canWrite }) {
   const [loadErr, setLoadErr] = useState(false);
   const [picker, setPicker] = useState(null); // minggu tujuan drawer, null = tertutup
   const [expanded, setExpanded] = useState(() => new Set()); // id item brand yang daftar outletnya terbuka
+  const [drag, setDrag] = useState(null); // {id, from} kartu yang sedang di-drag
+  const [over, setOver] = useState(null); // weekKey kolom yang jadi tujuan highlight
 
   const load = useCallback(async () => {
     setWeeks(null);
@@ -139,6 +143,49 @@ export default function AuditSchedule({ outlets, canWrite }) {
     notify(`"${itemLabel(item)}" dipindah ke ${toKey}.`, 'success');
   }
 
+  // Drag & drop antar kolom (HTML5, desktop mouse). Logika pindah memakai
+  // handleMove yang sama dengan select lama; dataTransfer membawa {id, from}.
+  function onItemDragStart(e, weekKey, item) {
+    e.dataTransfer?.setData?.('text/plain', JSON.stringify({ id: item.id, from: weekKey }));
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    setDrag({ id: item.id, from: weekKey });
+    setOver(null);
+  }
+
+  function onItemDragEnd() {
+    setDrag(null);
+    setOver(null);
+  }
+
+  function onWeekDragOver(e, weekKey) {
+    if (!canWrite) return;
+    e.preventDefault(); // wajib agar drop diperbolehkan browser
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    if (drag) setOver(weekKey);
+  }
+
+  function onWeekDragLeave(e, weekKey) {
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    setOver((cur) => (cur === weekKey ? null : cur));
+  }
+
+  async function onWeekDrop(e, weekKey) {
+    e.preventDefault();
+    const raw = e.dataTransfer?.getData?.('text/plain') || '';
+    setDrag(null);
+    setOver(null);
+    if (!raw) return;
+    let payload;
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    const item = (current[payload.from] || []).find((x) => x.id === payload.id);
+    if (!item) return;
+    await handleMove(payload.from, item, weekKey);
+  }
+
   const thisMonth = monthKeyOf(new Date());
 
   return (
@@ -221,7 +268,14 @@ export default function AuditSchedule({ outlets, canWrite }) {
           <section
             key={k}
             aria-labelledby={`as-week-${k}`}
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col"
+            onDragOver={canWrite ? (e) => onWeekDragOver(e, k) : undefined}
+            onDragLeave={canWrite ? (e) => onWeekDragLeave(e, k) : undefined}
+            onDrop={canWrite ? (e) => onWeekDrop(e, k) : undefined}
+            className={`bg-white dark:bg-slate-900 rounded-2xl border shadow-sm flex flex-col transition ${
+              over === k
+                ? 'border-brand-500 ring-2 ring-brand-500/50'
+                : 'border-slate-200 dark:border-slate-800'
+            }`}
           >
             <header className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 px-4 py-3">
               <div className="min-w-0">
@@ -258,7 +312,15 @@ export default function AuditSchedule({ outlets, canWrite }) {
                       ? `Outlet · ${item.brand}`
                       : 'Outlet';
                   return (
-                    <li key={item.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 dark:border-slate-800 px-3 py-2">
+                    <li
+                      key={item.id}
+                      draggable={canWrite ? 'true' : 'false'}
+                      onDragStart={canWrite ? (e) => onItemDragStart(e, k, item) : undefined}
+                      onDragEnd={canWrite ? onItemDragEnd : undefined}
+                      className={`flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 dark:border-slate-800 px-3 py-2 transition ${
+                        drag?.id === item.id ? 'opacity-50' : ''
+                      } ${canWrite ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                    >
                       <span
                         aria-hidden="true"
                         className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-600/10 text-brand-700 dark:text-brand-300 text-xs font-bold"
@@ -300,35 +362,24 @@ export default function AuditSchedule({ outlets, canWrite }) {
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{sub}</p>
                         )}
                       </div>
+                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/30">
+                        {k}
+                      </span>
                       {canWrite && (
-                        <>
-                          <select
-                            aria-label={`Pindah minggu ${itemLabel(item)}`}
-                            value={k}
-                            onChange={(e) => handleMove(k, item, e.target.value)}
-                            className="min-h-[44px] text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-                          >
-                            {weekKeys.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Hapus ${itemLabel(item)}`}
-                            onClick={() => handleRemove(k, item)}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916"
-                              />
-                            </svg>
-                          </Button>
-                        </>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Hapus ${itemLabel(item)}`}
+                          onClick={() => handleRemove(k, item)}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916"
+                            />
+                          </svg>
+                        </Button>
                       )}
                       {isBrand && isOpen && (
                         <ul

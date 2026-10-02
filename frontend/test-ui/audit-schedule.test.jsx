@@ -73,7 +73,7 @@ describe('AuditSchedule', () => {
     expect(within(card).getByText('Chambers')).toBeInTheDocument();
   });
 
-  it('item bisa dipindah ke minggu lain lewat select pindah', async () => {
+  it('item bisa dipindah ke minggu lain lewat drag & drop', async () => {
     renderSchedule();
     const w1 = await screen.findByRole('heading', { name: 'W1' });
     const card1 = w1.closest('section');
@@ -82,11 +82,25 @@ describe('AuditSchedule', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Pilih brand SCH' }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan jadwal' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    const moveSelect = within(card1).getByRole('combobox', { name: /Pindah minggu SCH/ });
-    fireEvent.change(moveSelect, { target: { value: 'W4' } });
-    const w4 = await screen.findByRole('heading', { name: 'W4' });
-    await waitFor(() => expect(within(w4.closest('section')).getByText('SCH')).toBeInTheDocument());
+    const item = within(card1).getByText('SCH').closest('li');
+    const w4 = (await screen.findByRole('heading', { name: 'W4' })).closest('section');
+    const dataTransfer = {
+      data: {},
+      setData(type, v) {
+        this.data[type] = v;
+      },
+      getData(type) {
+        return this.data[type];
+      },
+    };
+    fireEvent.dragStart(item, { dataTransfer });
+    fireEvent.dragOver(w4, { dataTransfer });
+    fireEvent.drop(w4, { dataTransfer });
+    await waitFor(() => expect(within(w4).getByText('SCH')).toBeInTheDocument());
     expect(within(card1).queryByText('SCH')).not.toBeInTheDocument();
+    // Label minggu di kartu ikut berubah mengikuti kolom tujuan.
+    const moved = within(w4).getByText('SCH').closest('li');
+    expect(within(moved).getByText('W4')).toBeInTheDocument();
   });
 
   it('empty state memberi CTA tambah jadwal pertama', async () => {
@@ -286,5 +300,36 @@ describe('AuditSchedule — detail kartu jadwal (brand & outlet)', () => {
     expect(within(card).getByText('Outlet Tak Ada')).toBeInTheDocument();
     expect(within(card).getByText('Outlet · Hilang')).toBeInTheDocument();
     expect(within(card).queryByText(/^RVT-/)).not.toBeInTheDocument();
+  });
+
+  it('select pindah diganti: tak ada combobox, ada label minggu statis di kartu', async () => {
+    renderSchedule();
+    const card = await addBrandToW1('Chambers');
+    const item = within(card).getByText('Chambers').closest('li');
+    expect(within(item).queryByRole('combobox')).not.toBeInTheDocument();
+    expect(within(item).getByText('W1')).toBeInTheDocument();
+  });
+
+  it('kartu tanpa izin tulis tidak draggable', async () => {
+    const mk = monthKeyOf(new Date());
+    localStorage.setItem(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({
+        [mk]: {
+          month: mk,
+          weeks: {
+            W1: [{ id: 'keep', type: 'outlet', uuid: 'no-such-uuid', brand: 'Hilang', name: 'Outlet Statis' }],
+            W2: [],
+            W3: [],
+            W4: [],
+            W5: [],
+          },
+        },
+      }),
+    );
+    renderSchedule({ canWrite: false });
+    const w1 = await screen.findByRole('heading', { name: 'W1' });
+    const item = within(w1.closest('section')).getByText('Outlet Statis').closest('li');
+    expect(item).toHaveAttribute('draggable', 'false');
   });
 });
