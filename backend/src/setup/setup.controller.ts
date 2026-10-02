@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, HttpCode, HttpException, HttpStatus, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, HttpException, HttpStatus, Logger, Post, Req } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import * as crypto from 'crypto';
 import { getDb } from '../db/drizzle.service';
@@ -42,6 +42,7 @@ function throttleFirstAdmin(ip: string) {
 @Controller('setup')
 export class SetupController {
   private db: any = getDb();
+  private readonly logger = new Logger(SetupController.name);
 
   private hasValidSetupToken(req: any): boolean {
     const configured = String(process.env.SETUP_TOKEN || '');
@@ -117,9 +118,13 @@ export class SetupController {
       });
     } catch (e: any) {
       if (e instanceof HttpException) throw e;
+      // Review M-5: error tak terduga (DB down dsb.) BUKAN berarti instalasi
+      // sudah ada. 409 palsu menyesatkan operator; lapor 500 dengan kode asli.
+      // Pesan generik: endpoint ini publik, detail asli cukup di log server.
+      this.logger.error(`first-admin gagal: ${(e as Error)?.message || e}`, (e as Error)?.stack);
       throw new HttpException(
-        { code: 'ALREADY_INITIALIZED', message: 'Instalasi sudah memiliki akun. Silakan login.' },
-        HttpStatus.CONFLICT,
+        { code: 'SETUP_FAILED', message: 'Gagal membuat akun Super Admin pertama. Coba lagi atau cek koneksi database.' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
