@@ -501,3 +501,81 @@ describe('AuditSchedule · detail kartu (drawer read-only)', () => {
     expect(await screen.findByRole('dialog', { name: 'Detail jadwal audit' })).toBeInTheDocument();
   });
 });
+
+describe('AuditSchedule · tandai sudah audit', () => {
+  it('klik tombol tandai → badge Sudah audit + tersimpan (localStorage & PUT); klik lagi → batal', async () => {
+    let putBody = null;
+    stubScheduleFetch(
+      () => jsonRes({ month: monthKeyOf(new Date()), weeks: EMPTY_WEEKS, updatedBy: null, updatedAt: null }),
+      async (opts) => {
+        putBody = JSON.parse(opts.body);
+        return jsonRes({ ok: true, updatedBy: 'budi@corp.id', updatedAt: '2026-10-02T10:00:00.000Z' });
+      },
+    );
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByRole('button', { name: 'Tambah' }));
+    const dialog = await screen.findByRole('dialog', { name: /Tambah jadwal/ });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Pilih brand SCH' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan jadwal' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    fireEvent.click(within(w1).getByRole('button', { name: 'Tandai SCH sudah audit' }));
+    expect(await within(w1).findByText('Sudah audit')).toBeInTheDocument();
+    const mk = monthKeyOf(new Date());
+    const stored = JSON.parse(localStorage.getItem('sprite.auditSchedule.v1'));
+    expect(stored[mk].weeks.W1[0].audited).toBe(true);
+    expect(putBody.weeks.W1[0].audited).toBe(true);
+
+    fireEvent.click(within(w1).getByRole('button', { name: 'Batalkan tanda SCH sudah audit' }));
+    await waitFor(() => expect(within(w1).queryByText('Sudah audit')).not.toBeInTheDocument());
+    const stored2 = JSON.parse(localStorage.getItem('sprite.auditSchedule.v1'));
+    expect(stored2[mk].weeks.W1[0].audited).toBe(false);
+  });
+
+  it('tanpa izin tulis: tidak ada tombol tandai audit', async () => {
+    const mk = monthKeyOf(new Date());
+    localStorage.setItem(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({
+        [mk]: {
+          month: mk,
+          weeks: {
+            W1: [{ id: 'b1', type: 'brand', brand: 'Chambers' }],
+            W2: [],
+            W3: [],
+            W4: [],
+            W5: [],
+          },
+        },
+      }),
+    );
+    renderSchedule({ canWrite: false });
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    expect(within(w1).queryByRole('button', { name: /sudah audit/ })).not.toBeInTheDocument();
+  });
+
+  it('drawer detail: item yang sudah audit menampilkan statusnya', async () => {
+    const mk = monthKeyOf(new Date());
+    localStorage.setItem(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({
+        [mk]: {
+          month: mk,
+          weeks: {
+            W1: [{ id: 'b1', type: 'brand', brand: 'Chambers', audited: true }],
+            W2: [],
+            W3: [],
+            W4: [],
+            W5: [],
+          },
+        },
+      }),
+    );
+    renderSchedule();
+    const w1 = (await screen.findByRole('heading', { name: 'W1' })).closest('section');
+    fireEvent.click(within(w1).getByText('Chambers'));
+    const dialog = await screen.findByRole('dialog', { name: 'Detail jadwal audit' });
+    expect(within(dialog).getByText('Sudah audit')).toBeInTheDocument();
+  });
+});

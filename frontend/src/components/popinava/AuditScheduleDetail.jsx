@@ -101,6 +101,7 @@ export default function AuditScheduleDetail({ open, item, weekLabel, outlet, out
             <section>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Jadwal</p>
               <div className="mt-1.5 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 divide-y divide-slate-100 dark:divide-slate-800">
+                <Field label="Status audit" value={item.audited ? 'Sudah audit' : 'Belum audit'} />
                 <Field label="Jenis" value={isBrand ? 'Brand (seluruh outlet)' : 'Outlet'} />
               </div>
             </section>
