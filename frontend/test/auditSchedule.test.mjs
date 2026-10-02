@@ -2,7 +2,9 @@
 // Jalankan: npm test
 // Kontrak (revisi kalender 2026-10-02): W1 mulai Senin pertama bulan; satu
 // minggu = Senin penentu bulan (1-2 Okt ikut W4 September); bulan boleh
-// punya 4 atau 5 minggu; adapter {month, weeks} siap diganti backend.
+// punya 4 atau 5 minggu. Adapter {month, weeks}: server /api/audit-schedule
+// sumber kebenaran bila terjangkau; localStorage fallback offline + lazy
+// seed (server kosong, local ada data → di-PUT sekali).
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -27,7 +29,23 @@ globalThis.localStorage = {
   removeItem: (k) => store.delete(k),
 };
 
-beforeEach(() => store.clear());
+// Stub fetch global untuk uji adapter backend. Default: melempar TypeError
+// (mimik fetch node dengan URL relatif '/api/...' → gagal) supaya jalur
+// fallback localStorage teruji tanpa jaringan. fetchImpl mengontrol respon.
+const fetchCalls = [];
+let fetchImpl = null;
+globalThis.fetch = async (url, opts = {}) => {
+  const body = typeof opts.body === 'string' ? JSON.parse(opts.body) : null;
+  fetchCalls.push({ url: String(url), method: opts.method || 'GET', body });
+  if (!fetchImpl) throw new TypeError('Failed to parse URL');
+  return fetchImpl(String(url), opts, body);
+};
+
+beforeEach(() => {
+  store.clear();
+  fetchCalls.length = 0;
+  fetchImpl = null;
+});
 
 const iso = (week) => week.dates.map((d) => d.toISOString().slice(0, 10));
 
@@ -162,5 +180,98 @@ describe('adapter jadwal (siap backend)', () => {
     const removed = removeItem(moved, 'W5', 'x1');
     assert.equal(removed.W5.length, 0);
     assert.equal(weeks.W2.length, 0);
+  });
+});
+
+describe('adapter jadwal → backend /api/audit-schedule', () => {
+  const SERVER_ITEM = { id: 'srv-1', type: 'brand', brand: 'ServerBrand' };
+  const ok = (data) => ({ status: 200, ok: true, json: async () => data });
+
+  it('getSchedule: server terjangkau → data server menang (bukan local)', async () => {
+    fetchImpl = async (url) => {
+      assert.ok(url.includes('/api/audit-schedule?month=2026-09'), `GET ke endpoint jadwal, dapat ${url}`);
+      return ok({ month: '2026-09', weeks: { W1: [SERVER_ITEM], W2: [], W3: [], W4: [], W5: [] } });
+    };
+    store.set(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({ '2026-09': { month: '2026-09', weeks: { W1: [{ id: 'local-1' }] } } }),
+    );
+
+    const s = await getSchedule('2026-09');
+    assert.equal(s.month, '2026-09');
+    assert.equal(s.weeks.W1[0].id, 'srv-1', 'server adalah sumber kebenaran');
+    assert.equal(fetchCalls.filter((c) => c.method === 'PUT').length, 0, 'server berisi → tanpa lazy seed');
+  });
+
+  it('getSchedule: server kosong + local ada data → lazy seed PUT sekali, data local dipakai', async () => {
+    fetchImpl = async (url, opts, body) => {
+      if ((opts.method || 'GET') === 'GET') return ok({ month: '2026-10', weeks: emptyWeeks() });
+      if (opts.method === 'PUT') {
+        assert.equal(body.month, '2026-10');
+        assert.equal(body.weeks.W1[0].id, 'seed-1', 'weeks yang di-PUT = data local');
+        return ok({ ok: true });
+      }
+      throw new Error(`method tak dikenal ${opts.method}`);
+    };
+    store.set(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({ '2026-10': { month: '2026-10', weeks: { W1: [{ id: 'seed-1', type: 'brand', brand: 'Legacy' }] } } }),
+    );
+
+    const s = await getSchedule('2026-10');
+    assert.equal(s.weeks.W1[0].id, 'seed-1', 'data local dipakai saat server kosong');
+    const puts = fetchCalls.filter((c) => c.method === 'PUT');
+    assert.equal(puts.length, 1, 'lazy seed: persis satu PUT');
+    assert.equal(puts[0].url, '/api/audit-schedule');
+  });
+
+  it('getSchedule: server kosong + local kosong → kosong, tanpa PUT', async () => {
+    fetchImpl = async () => ok({ month: '2026-11', weeks: emptyWeeks() });
+    const s = await getSchedule('2026-11');
+    assert.deepEqual(s, { month: '2026-11', weeks: emptyWeeks() });
+    assert.equal(fetchCalls.filter((c) => c.method === 'PUT').length, 0);
+  });
+
+  it('getSchedule: fetch gagal → fallback localStorage (offline tetap jalan)', async () => {
+    store.set(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({ '2026-12': { month: '2026-12', weeks: { W1: [{ id: 'off-1' }] } } }),
+    );
+    const s = await getSchedule('2026-12');
+    assert.equal(s.weeks.W1[0].id, 'off-1', 'fallback local saat jaringan mati');
+  });
+
+  it('saveSchedule: sukses → PUT body {month, weeks} + local ikut terisi', async () => {
+    fetchImpl = async (url, opts, body) => {
+      assert.equal(url, '/api/audit-schedule');
+      assert.equal(opts.method, 'PUT');
+      assert.equal(body.month, '2026-11');
+      return ok({ ok: true });
+    };
+    const weeks = emptyWeeks();
+    weeks.W3.push({ id: 's1', type: 'outlet', brand: 'SCH', name: 'SCH Tebet' });
+
+    await saveSchedule('2026-11', weeks);
+
+    const puts = fetchCalls.filter((c) => c.method === 'PUT');
+    assert.equal(puts.length, 1);
+    assert.deepEqual(puts[0].body.weeks.W3, weeks.W3, 'weeks ikut terkirim utuh');
+    const local = JSON.parse(store.get('sprite.auditSchedule.v1'));
+    assert.equal(local['2026-11'].weeks.W3[0].id, 's1', 'local ikut terisi (cadangan offline)');
+  });
+
+  it('saveSchedule: PUT gagal → tidak melempar, data tetap di localStorage', async () => {
+    fetchImpl = async () => {
+      throw new Error('jaringan mati');
+    };
+    const weeks = emptyWeeks();
+    weeks.W1.push({ id: 'f1', type: 'brand', brand: 'Fallback' });
+
+    await saveSchedule('2026-02', weeks);
+
+    const local = JSON.parse(store.get('sprite.auditSchedule.v1'));
+    assert.equal(local['2026-02'].weeks.W1[0].id, 'f1', 'edit tidak hilang saat server tak terjangkau');
+    const back = await getSchedule('2026-02');
+    assert.equal(back.weeks.W1[0].id, 'f1');
   });
 });
