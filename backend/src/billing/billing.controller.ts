@@ -9,6 +9,8 @@ import { SessionGuard } from '../auth/session.guard';
 export class BillingController {
   private db: any = getDb();
   @Get('billing/stats')
+  @UseGuards(PermGuard)
+  @Perm('billing')
   async stats() {
     const a: any = await this.db.execute(`SELECT action, COUNT(*) as c FROM audit_status GROUP BY action` as any);
     const inv: any = await this.db.execute(`SELECT status, COUNT(*) as c FROM invoice_status GROUP BY status` as any);
@@ -19,6 +21,8 @@ export class BillingController {
   // dengan kebenaran backend (otomasi upload/hapus PDF) saat halaman dimuat.
   // Baca terbuka seperti GET lain. notes: bukti pembayaran baris PAID.
   @Get('billing/invoice-map')
+  @UseGuards(PermGuard)
+  @Perm('billing')
   async invoiceMap() {
     const r: any = await this.db.execute(`SELECT record_uuid, status FROM invoice_status` as any);
     const map: Record<string, string> = {};
@@ -41,6 +45,8 @@ export class BillingController {
   // dengan kebenaran backend (validasi dari browser lain) saat halaman dimuat.
   // Baca terbuka seperti GET lain.
   @Get('billing/audit-map')
+  @UseGuards(PermGuard)
+  @Perm('billing')
   async auditMap() {
     const r: any = await this.db.execute(`SELECT record_uuid, action FROM audit_status` as any);
     const map: Record<string, string> = {};

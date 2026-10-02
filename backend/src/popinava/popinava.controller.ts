@@ -9,8 +9,9 @@ import { SessionGuard } from '../auth/session.guard';
 import { logActivity, resolveWho } from '../logs/activity';
 
 // Endpoint master outlet POPI NAVA (spec §9 fase backend): list/get/create/
-// patch/delete/bulk di Postgres. Baca terbuka untuk sesi login (pola roles),
-// tulis dijaga PermGuard @Perm('popinava'). Impor/ekspor file masih lokal di
+// patch/delete/bulk di Postgres. M-3: baca maupun tulis dijaga PermGuard
+// @Perm('popinava') — frontend hanya memanggilnya dari /popinava (satu-satunya
+// pemanggil). Impor/ekspor file masih lokal di
 // frontend (wizard client-side) — endpoint multipart menyusul saat frontend
 // beralih. Setiap operasi tulis mencatat activity_logs kategori 'popinava'.
 
@@ -90,6 +91,8 @@ export class PopinavaController {
   private db: any = getDb();
 
   @Get()
+  @UseGuards(PermGuard)
+  @Perm('popinava')
   async list(@Query() q: any) {
     const page = Math.max(1, parseInt(q.page, 10) || 1);
     const pageSize = Math.min(5000, Math.max(1, parseInt(q.pageSize, 10) || 50));
@@ -143,6 +146,8 @@ export class PopinavaController {
   }
 
   @Get(':uuid')
+  @UseGuards(PermGuard)
+  @Perm('popinava')
   async getById(@Param('uuid') uuid: string) {
     const row = await rowByUuid(this.db, uuid);
     if (!row) fail('NOT_FOUND', 'Outlet tidak ditemukan.', HttpStatus.NOT_FOUND);
@@ -296,8 +301,10 @@ export class PopinavaController {
   }
 
   // Riwayat aktivitas 1 outlet: siapa mengubah apa dan kapan, untuk modal
-  // riwayat PopiNava. Baca terbuka untuk sesi login (pola class-level guard).
+  // riwayat PopiNava. M-3: dijaga PermGuard popinava seperti list/detail.
   @Get(':uuid/history')
+  @UseGuards(PermGuard)
+  @Perm('popinava')
   async history(@Param('uuid') uuid: string) {
     if (!UUID_RE.test(uuid)) fail('INVALID_FORMAT', 'uuid harus format UUID 8-4-4-4-12.', HttpStatus.BAD_REQUEST);
     const r: any = await this.db.pq(

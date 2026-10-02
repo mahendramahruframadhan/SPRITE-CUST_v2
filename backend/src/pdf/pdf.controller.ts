@@ -29,19 +29,26 @@ export class PdfController {
   }
 
   @Get('pdf/by-case/:uuid')
+  @UseGuards(PermGuard)
+  @Perm('finance')
   async byCase(@Param('uuid') uuid: string) {
     return this.pdf.listByCase(uuid);
   }
 
   // Kondisi true/false tombol Unduh/Hapus (sumber kebenaran server).
-  // Baca terbuka seperti by-case; unduh/hapus tetap dijaga PermGuard finance.
+  // M-3: baca kini dijaga PermGuard finance — sama dengan unduh/hapus
+  // (frontend hanya memanggilnya dari FinanceAuditPage).
   @Get('pdf/state/:uuid')
+  @UseGuards(PermGuard)
+  @Perm('finance')
   async state(@Param('uuid') uuid: string) {
     return this.pdf.caseState(uuid);
   }
 
-  // Riwayat invoice + validasi + PDF per kasus. Baca terbuka seperti by-case/state.
+  // Riwayat invoice + validasi + PDF per kasus. M-3: dijaga finance seperti by-case/state.
   @Get('pdf/history/:uuid')
+  @UseGuards(PermGuard)
+  @Perm('finance')
   async history(@Param('uuid') uuid: string) {
     return this.pdf.caseHistory(uuid);
   }

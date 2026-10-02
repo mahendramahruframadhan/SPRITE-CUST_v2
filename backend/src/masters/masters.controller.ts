@@ -2,11 +2,14 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { SessionGuard } from '../auth/session.guard';
+import { Perm, PermGuard } from '../auth/perm.guard';
 
 @UseGuards(SessionGuard)
 @Controller('masters')
 export class MastersController {
   @Get()
+  @UseGuards(PermGuard)
+  @Perm('form')
   async all() {
     try {
       const p = path.resolve(__dirname, '..', '..', '..', 'frontend', 'src', 'data', 'masters.js');

@@ -11,6 +11,8 @@ export class ClientsController {
   constructor(private svc: ClientsService) {}
 
   @Get('clients')
+  @UseGuards(PermGuard)
+  @Perm('clients')
   async listClients() {
     return this.svc.listClients();
   }

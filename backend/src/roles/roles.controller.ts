@@ -1,7 +1,7 @@
 import { Controller, Get, Put, Post, Patch, Delete, Param, Body, Req, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { logActivity, resolveWho } from '../logs/activity';
-import { Perm, PermGuard } from '../auth/perm.guard';
+import { Perm, PermGuard, hasModulePerm } from '../auth/perm.guard';
 import { hashPassword } from '../auth/password';
 import { SessionGuard } from '../auth/session.guard';
 import { resolveSessionUser } from '../auth/session';
@@ -11,18 +11,25 @@ const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'fi
 
 // CRUD pengguna + matriks izin + log aktivitas untuk halaman /roles — semua di Postgres.
 // Class-level SessionGuard: SEMUA endpoint (termasuk GET) wajib x-auth-token
-// valid; method tulis tambahan dijaga PermGuard izin 'roles'. (Dulu ada
-// PermGuard class-level — GET roles/permissions ikut 403 untuk role tanpa
-// izin 'roles', merusak alur login frontend.)
+// valid; method tulis tambah dijaga PermGuard izin 'roles', GET roles/logs
+// dijaga izin 'logs' (M-3), dan GET users memfilter respons per izin
+// 'roles' (M-3). (Dulu ada PermGuard class-level — GET roles/permissions ikut
+// 403 untuk role tanpa izin 'roles', merusak alur login frontend.)
 @UseGuards(SessionGuard)
 @Controller()
 export class RolesController {
   private db: any = getDb();
 
   @Get('users')
-  async users() {
+  async users(@Req() req: any) {
     const r: any = await this.db.execute(`SELECT id,name,email,role,active,created_at FROM "user" ORDER BY created_at` as any);
-    return (r.rows || r).map((u: any) => ({ ...u, active: !!Number(u.active) }));
+    const all = (r.rows || r).map((u: any) => ({ ...u, active: !!Number(u.active) }));
+    // M-3: daftar lengkap (email + role semua orang) hanya untuk role berizin
+    // 'roles'. Role lain tetap bisa GET — hanya menerima barisnya SENDIRI
+    // (SettingsPage butuh id sendiri untuk edit profil), tanpa perubahan UI.
+    const actor = (req as any)?.user || (await resolveSessionUser(this.db, req));
+    if (!actor || (await hasModulePerm(this.db, actor.role, 'roles'))) return all;
+    return all.filter((u: any) => u.id === actor.id);
   }
 
   @Patch('users/:id')
@@ -139,6 +146,8 @@ export class RolesController {
   }
 
   @Get('roles/logs')
+  @UseGuards(PermGuard)
+  @Perm('logs')
   async logs() {
     const r: any = await this.db.execute(`SELECT id,who,action,category,detail,record_uuid,created_at as time FROM activity_logs ORDER BY created_at DESC LIMIT 200` as any);
     return (r.rows || r).map((l: any) => ({ id: l.id, who: l.who, act: l.action, action: l.action, category: l.category || null, detail: l.detail || null, recordUuid: l.record_uuid || null, time: l.time }));

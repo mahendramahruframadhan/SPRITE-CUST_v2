@@ -6,9 +6,9 @@ import { logActivity, resolveWho } from '../logs/activity';
 
 // Jadwal audit mingguan POPI NAVA per bulan (tab Jadwal Audit, frontend
 // AuditSchedule.jsx). Satu baris per bulan: weeks disimpan sebagai JSON teks
-// {W1..W5: [item {id,type,...}]}. GET terbuka untuk sesi login (SessionGuard
-// kelas, pola popinava); tulis dijaga PermGuard @Perm('popinava') — sama
-// dengan canWrite = can('popinava') di frontend, tanpa matriks izin baru.
+// {W1..W5: [item {id,type,...}]}. M-3: GET dan tulis sama-sama dijaga
+// PermGuard @Perm('popinava') — frontend hanya memakainya dari /popinava
+// (canWrite = can('popinava')), tanpa matriks izin baru.
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const WEEK_KEYS = ['W1', 'W2', 'W3', 'W4', 'W5'];
@@ -66,6 +66,8 @@ export class AuditScheduleController {
   private db = getDb();
 
   @Get()
+  @UseGuards(PermGuard)
+  @Perm('popinava')
   async get(@Query('month') month: string) {
     const m = parseMonth(month);
     const r = await this.db.pq(`SELECT weeks, updated_by, updated_at FROM audit_schedule WHERE month=$1`, [m]);

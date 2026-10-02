@@ -34,6 +34,8 @@ const cleanStatusList = (arr: any, fallback: string[]) => {
 export class ConfigController {
   private db: any = getDb();
   @Get()
+  @UseGuards(PermGuard)
+  @Perm('cfg')
   async get(@Query('key') key?: string) {
     const k = cleanKey(key);
     // Imp#2: modul AI dipisah — config umum tidak lagi menyajikan key AI.
