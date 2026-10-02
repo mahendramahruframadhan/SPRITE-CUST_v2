@@ -5,15 +5,45 @@ import { getSecret } from '../config/app-secret';
 
 export const maskKey = (k: string) => (!k ? '' : k.length <= 4 ? '••••' : `••••${k.slice(-4)}`);
 
-const AI_MAX_REQUESTS_PER_MINUTE = Math.max(1, Number(process.env.AI_MAX_REQUESTS_PER_MINUTE || 10));
+// Fail-closed: env tak numerik (NaN) dulu lolos `Math.max(1, NaN)` → NaN →
+// `hits >= NaN` selalu false → kuota tak terbatas. Sekarang jatuh ke default 10.
+export const parseAiRateLimit = (raw: string | undefined): number => {
+  if (raw === undefined || raw.trim() === '') return 10;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 10;
+  return Math.max(1, Math.floor(n));
+};
+
+const AI_MAX_REQUESTS_PER_MINUTE = parseAiRateLimit(process.env.AI_MAX_REQUESTS_PER_MINUTE);
 const AI_MAX_MESSAGES = 8;
 const AI_MAX_MESSAGE_CHARS = 2000;
 const aiHits = new Map<string, number[]>();
 
+// Cakupan ditutup (review M-2): metadata cloud 169.254, CGNAT 100.64/10,
+// 0.0.0.0, benchmark 198.18/19, IPv6 link-local fe80 & ULA fc/fd, plus alamat
+// mapped ::ffff:x.x.x.x yang dicek ulang sebagai IPv4.
 const isPrivateHost = (hostname: string): boolean => {
-  const host = hostname.toLowerCase();
-  return host === 'localhost' || host === '::1' || host === '[::1]' || host.endsWith('.local') ||
-    /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  let host = hostname.toLowerCase();
+  if (host.startsWith('[') && host.endsWith(']')) host = host.slice(1, -1);
+  if (host.startsWith('::ffff:')) {
+    const v4 = host.slice('::ffff:'.length);
+    return /^\d+\.\d+\.\d+\.\d+$/.test(v4) ? isPrivateHost(v4) : true;
+  }
+  return (
+    host === 'localhost' ||
+    host === '::1' ||
+    host.endsWith('.local') ||
+    /^0\./.test(host) ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+    /^198\.1[89]\./.test(host) ||
+    /^f[cd][0-9a-f]{2}:/.test(host) ||
+    /^fe80:/.test(host)
+  );
 };
 
 const allowedAiHosts = (): Set<string> => new Set(
