@@ -154,9 +154,15 @@ export class RolesController {
   }
 
   // Imp#3: client hanya mengirim action/category/detail/recordUuid — actor
-  // (who), id, dan created_at SELALU dibuat server dari sesi. Tanpa ini, role
-  // Finance/Support selalu 403 dan aktivitasnya hilang dari Logs.
+  // (who), id, dan created_at SELALU dibuat server dari sesi.
+  // M-4: @Perm('logs') menutup self-attribution injection — tanpa guard, role
+  // mana pun bisa menyuntik baris log palsu atas namanya. Role tanpa izin
+  // logs (Support/Viewer) ditolak 403; pemanggil Settings memakai .catch()
+  // sehingga UI tidak patah (hanya entri aktivitasnya yang tidak tercatat).
+  // logActivity server-side (billing dsb.) tidak lewat endpoint ini.
   @Post('roles/logs')
+  @UseGuards(PermGuard)
+  @Perm('logs')
   async addLog(@Body() b: any, @Req() req: any) {
     if (!b.action) return { ok: false, error: 'action required' };
     const who = await resolveWho(this.db, req);
