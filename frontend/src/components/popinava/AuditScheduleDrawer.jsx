@@ -84,7 +84,11 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
         const brandHit = !q || brand.toLowerCase().includes(q);
         const items = brandHit
           ? all
-          : all.filter((o) => `${o.brandName} ${o.deptChannelName}`.toLowerCase().includes(q));
+          : all.filter((o) =>
+              `${o.brandName} ${o.deptChannelName} ${o.rvtCustcode} ${o.deptCode} ${o.deptName} ${o.city}`
+                .toLowerCase()
+                .includes(q)
+            );
         return { brand, all, items };
       })
       .filter((g) => g.items.length > 0);
@@ -301,8 +305,20 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
                                       onChange={() => toggleUnit(o.uuid)}
                                       aria-label={`${o.deptChannelName} (${o.brandName})`}
                                     />
-                                    <span className="min-w-0 flex-1 text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
-                                      {o.deptChannelName}
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+                                        {o.deptChannelName}
+                                      </span>
+                                      {[o.rvtCustcode, o.deptCode, o.deptName].filter(Boolean).length > 0 && (
+                                        <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                          {[o.rvtCustcode, o.deptCode, o.deptName].filter(Boolean).join(' · ')}
+                                        </span>
+                                      )}
+                                      {[o.isoCode, o.city, o.province, o.postcode, o.region].filter(Boolean).length > 0 && (
+                                        <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                          {[o.isoCode, o.city, o.province, o.postcode, o.region].filter(Boolean).join(' · ')}
+                                        </span>
+                                      )}
                                     </span>
                                     {(oDone || viaBrand) && (
                                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
