@@ -208,3 +208,83 @@ describe('AuditScheduleDrawer — daftar brand sebagai kategori', () => {
     expect(within(dialog).queryByRole('region', { name: 'Chambers' })).not.toBeInTheDocument();
   });
 });
+
+describe('AuditSchedule — detail kartu jadwal (brand & outlet)', () => {
+  async function addBrandToW1(brand) {
+    const w1 = await screen.findByRole('heading', { name: 'W1' });
+    const card = w1.closest('section');
+    fireEvent.click(within(card).getByRole('button', { name: 'Tambah' }));
+    const dialog = await screen.findByRole('dialog', { name: /Tambah jadwal/ });
+    fireEvent.click(within(dialog).getByRole('button', { name: `Pilih brand ${brand}` }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan jadwal' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    return card;
+  }
+
+  async function addOutletToW1(outletLabel) {
+    const w1 = await screen.findByRole('heading', { name: 'W1' });
+    const card = w1.closest('section');
+    fireEvent.click(within(card).getByRole('button', { name: 'Tambah' }));
+    const dialog = await screen.findByRole('dialog', { name: /Tambah jadwal/ });
+    fireEvent.click(within(dialog).getByLabelText(outletLabel));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan jadwal' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    return card;
+  }
+
+  it('kartu outlet: eyebrow tipe · brand + baris sub custcode · kota', async () => {
+    renderSchedule();
+    const card = await addOutletToW1('Chambers Tebet (Chambers)');
+    expect(within(card).getByText('Outlet · Chambers')).toBeInTheDocument();
+    expect(within(card).getByText('Chambers Tebet')).toBeInTheDocument();
+    expect(within(card).getByText('RVT-CHM · JAKARTA')).toBeInTheDocument();
+  });
+
+  it('kartu brand: menampilkan jumlah outlet ikut dari data master', async () => {
+    renderSchedule();
+    const card = await addBrandToW1('Chambers');
+    expect(within(card).getByText('Brand')).toBeInTheDocument();
+    expect(within(card).getByText('Chambers')).toBeInTheDocument();
+    expect(within(card).getByText('2 outlet ikut')).toBeInTheDocument();
+  });
+
+  it('chevron membuka/menutup daftar outlet brand (aria-expanded)', async () => {
+    renderSchedule();
+    const card = await addBrandToW1('Chambers');
+    const toggle = within(card).getByRole('button', { name: 'Daftar outlet Chambers' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(card).queryByText('Chambers Bekasi')).not.toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(within(card).getByText('Chambers Tebet')).toBeInTheDocument();
+    expect(within(card).getByText('Chambers Bekasi')).toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(card).queryByText('Chambers Bekasi')).not.toBeInTheDocument();
+  });
+
+  it('outlet tak ada di master: kartu tetap tampil nama + brand tanpa baris sub', async () => {
+    const mk = monthKeyOf(new Date());
+    localStorage.setItem(
+      'sprite.auditSchedule.v1',
+      JSON.stringify({
+        [mk]: {
+          month: mk,
+          weeks: {
+            W1: [{ id: 'ghost', type: 'outlet', uuid: 'no-such-uuid', brand: 'Hilang', name: 'Outlet Tak Ada' }],
+            W2: [],
+            W3: [],
+            W4: [],
+            W5: [],
+          },
+        },
+      }),
+    );
+    renderSchedule();
+    const w1 = await screen.findByRole('heading', { name: 'W1' });
+    const card = w1.closest('section');
+    expect(within(card).getByText('Outlet Tak Ada')).toBeInTheDocument();
+    expect(within(card).getByText('Outlet · Hilang')).toBeInTheDocument();
+    expect(within(card).queryByText(/^RVT-/)).not.toBeInTheDocument();
+  });
+});
