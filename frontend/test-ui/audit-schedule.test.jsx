@@ -10,9 +10,21 @@ import AuditSchedule from '../src/components/popinava/AuditSchedule.jsx';
 import { formatMonthLabel, monthKeyOf, formatWeekRange, monthWeeks } from '../src/lib/auditSchedule.js';
 
 const OUTLETS = [
-  { uuid: 'u1', brandName: 'Chambers', deptChannelName: 'Chambers Tebet', status: 'active' },
-  { uuid: 'u2', brandName: 'Chambers', deptChannelName: 'Chambers Bekasi', status: 'active' },
-  { uuid: 'u3', brandName: 'SCH', deptChannelName: 'SCH Puri', status: 'active' },
+  {
+    uuid: 'u1', brandName: 'Chambers', deptChannelName: 'Chambers Tebet', status: 'active',
+    rvtCustcode: 'RVT-CHM', deptCode: '03010301', deptName: 'DISTRIBUTION',
+    isoCode: 'ID-JK', city: 'JAKARTA', province: 'DKI JAKARTA', postcode: '12870', region: 'P.JAWA',
+  },
+  {
+    uuid: 'u2', brandName: 'Chambers', deptChannelName: 'Chambers Bekasi', status: 'active',
+    rvtCustcode: 'RVT-CHM', deptCode: '03010302', deptName: 'RETAIL',
+    isoCode: 'ID-JB', city: 'BEKASI', province: 'JAWA BARAT', postcode: '17111', region: 'P.JAWA',
+  },
+  {
+    uuid: 'u3', brandName: 'SCH', deptChannelName: 'SCH Puri', status: 'active',
+    rvtCustcode: 'RVT-SCH', deptCode: '04020101', deptName: 'DISTRIBUTION',
+    isoCode: 'ID-YO', city: 'YOGYAKARTA', province: 'DAERAH ISTIMEWA YOGYAKARTA', postcode: '55581', region: 'P.JAWA',
+  },
 ];
 
 function renderSchedule(props = {}) {
@@ -171,5 +183,28 @@ describe('AuditScheduleDrawer — daftar brand sebagai kategori', () => {
     expect(within(dialog).queryByRole('region', { name: 'SCH' })).not.toBeInTheDocument();
     fireEvent.change(input, { target: { value: 'xyz-tidak-ada' } });
     expect(within(dialog).getByText(/Tidak ada/)).toBeInTheDocument();
+  });
+
+  it('baris outlet menampilkan detail code (custcode · dept · geo sesuai baris data)', async () => {
+    const dialog = await openDrawer();
+    const region = within(dialog).getByRole('region', { name: 'Chambers' });
+    const label = within(region).getByText('Chambers Tebet').closest('label');
+    expect(within(label).getByText('RVT-CHM · 03010301 · DISTRIBUTION')).toBeInTheDocument();
+    expect(within(label).getByText('ID-JK · JAKARTA · DKI JAKARTA · 12870 · P.JAWA')).toBeInTheDocument();
+  });
+
+  it('search nyambung ke code: custcode, dept code, dan kota', async () => {
+    const dialog = await openDrawer();
+    const input = within(dialog).getByLabelText('Cari brand / outlet');
+    fireEvent.change(input, { target: { value: 'RVT-SCH' } });
+    expect(within(dialog).getByRole('region', { name: 'SCH' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('region', { name: 'Chambers' })).not.toBeInTheDocument();
+    fireEvent.change(input, { target: { value: '03010302' } });
+    expect(within(dialog).getByRole('region', { name: 'Chambers' })).toBeInTheDocument();
+    expect(within(dialog).getByText('Chambers Bekasi')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Chambers Tebet')).not.toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'YOGYAKARTA' } });
+    expect(within(dialog).getByRole('region', { name: 'SCH' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('region', { name: 'Chambers' })).not.toBeInTheDocument();
   });
 });
