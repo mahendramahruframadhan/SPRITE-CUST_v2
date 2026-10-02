@@ -1,13 +1,13 @@
 // Komponen Jadwal Audit (tab baru Popi Nava) — vitest + Testing Library.
 // Jalankan: npm run test:ui
-// Mencakup: kartu W1-W4, navigasi bulan, alur tambah brand/outlet via drawer,
-// pindah minggu, dan empty state.
+// Mencakup: kartu minggu kalender (4-5 termasuk W5), navigasi bulan, alur
+// tambah brand/outlet via drawer, pindah minggu, dan empty state.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '../src/context/ToastContext.jsx';
 import { ConfirmProvider } from '../src/components/ui/ConfirmProvider.jsx';
 import AuditSchedule from '../src/components/popinava/AuditSchedule.jsx';
-import { formatMonthLabel, monthKeyOf } from '../src/lib/auditSchedule.js';
+import { formatMonthLabel, monthKeyOf, formatWeekRange, monthWeeks } from '../src/lib/auditSchedule.js';
 
 const OUTLETS = [
   { uuid: 'u1', brandName: 'Chambers', deptChannelName: 'Chambers Tebet', status: 'active' },
@@ -88,5 +88,40 @@ describe('AuditSchedule', () => {
     await screen.findByRole('heading', { name: 'W1' });
     expect(screen.queryAllByRole('button', { name: 'Tambah' })).toHaveLength(0);
     expect(screen.queryByRole('button', { name: /Tambah jadwal pertama/ })).not.toBeInTheDocument();
+  });
+
+  it('rentang W1 mengikuti minggu kalender (Senin pertama bulan berjalan)', async () => {
+    renderSchedule();
+    await screen.findByRole('heading', { name: 'W1' });
+    const now = new Date();
+    const expected = formatWeekRange(monthWeeks(now.getFullYear(), now.getMonth())[0]);
+    expect(screen.getByText(expected)).toBeInTheDocument();
+  });
+
+  it('bulan 5 minggu kalender menampilkan kartu W5', async () => {
+    renderSchedule();
+    await screen.findByRole('heading', { name: 'W1' });
+    const now = new Date();
+    let back = 0;
+    let target = null;
+    for (let i = 1; i <= 12 && !target; i += 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      if (monthWeeks(d.getFullYear(), d.getMonth()).length === 5) {
+        target = d;
+        back = i;
+      }
+    }
+    expect(target).not.toBeNull();
+    for (let i = 0; i < back; i += 1) {
+      fireEvent.click(screen.getByRole('button', { name: /Bulan sebelumnya/ }));
+    }
+    await screen.findByRole('heading', { name: 'W5' });
+    const lastWeek = monthWeeks(target.getFullYear(), target.getMonth())[4];
+    expect(screen.getByText(formatWeekRange(lastWeek))).toBeInTheDocument();
+  });
+
+  it('copy footer menjelaskan aturan minggu kalender', async () => {
+    renderSchedule();
+    expect(await screen.findByText(/Ikut minggu kalender Sen-Jum/)).toBeInTheDocument();
   });
 });

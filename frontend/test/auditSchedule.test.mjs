@@ -1,7 +1,8 @@
 // Uji lib jadwal audit mingguan POPI NAVA — node:test bawaan, tanpa deps.
 // Jalankan: npm test
-// Kontrak: pembagian W1-W4 (hari kerja Sen-Jum, sisa -> W4) + adapter
-// penyimpanan yang siap diganti backend (async, bentuk {month, weeks}).
+// Kontrak (revisi kalender 2026-10-02): W1 mulai Senin pertama bulan; satu
+// minggu = Senin penentu bulan (1-2 Okt ikut W4 September); bulan boleh
+// punya 4 atau 5 minggu; adapter {month, weeks} siap diganti backend.
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -28,52 +29,74 @@ globalThis.localStorage = {
 
 beforeEach(() => store.clear());
 
-// Semua hari kerja (Sen-Jum) dalam satu bulan, untuk membandingkan hasil.
-function weekdaysOf(year, month) {
-  const out = [];
-  const d = new Date(Date.UTC(year, month, 1));
-  while (d.getUTCMonth() === month) {
-    const wd = d.getUTCDay();
-    if (wd >= 1 && wd <= 5) out.push(new Date(d));
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  return out;
-}
+const iso = (week) => week.dates.map((d) => d.toISOString().slice(0, 10));
 
-describe('monthWeeks', () => {
-  it('selalu menghasilkan 4 minggu berlabel W1-W4', () => {
-    for (const [y, m] of [[2026, 1], [2026, 0], [2027, 0], [2026, 11]]) {
-      const weeks = monthWeeks(y, m);
-      assert.equal(weeks.length, 4);
-      assert.deepEqual(weeks.map((w) => w.key), ['W1', 'W2', 'W3', 'W4']);
+describe('monthWeeks — mengikuti minggu kalender (Senin penentu bulan)', () => {
+  it('Oktober 2026: W1 mulai Senin pertama 5 Okt; 1-2 Okt tidak ada di sini', () => {
+    const weeks = monthWeeks(2026, 9);
+    assert.equal(weeks.length, 4);
+    assert.deepEqual(weeks.map((w) => w.key), ['W1', 'W2', 'W3', 'W4']);
+    assert.deepEqual(iso(weeks[0]), [
+      '2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09',
+    ]);
+    assert.deepEqual(iso(weeks[3]), [
+      '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',
+    ]);
+    const all = weeks.flatMap((w) => iso(w));
+    assert.ok(!all.includes('2026-10-01'), '1 Okt milik September');
+    assert.ok(!all.includes('2026-10-02'), '2 Okt milik September');
+  });
+
+  it('September 2026: W4 = 28 Sep - 2 Okt (membawa 1-2 Okt)', () => {
+    const weeks = monthWeeks(2026, 8);
+    assert.equal(weeks.length, 4);
+    assert.deepEqual(iso(weeks[3]), [
+      '2026-09-28', '2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02',
+    ]);
+    assert.equal(iso(weeks[0])[0], '2026-09-07', '1-4 Sep milik W5 Agustus');
+  });
+
+  it('Agustus 2026: 5 minggu; W5 = 31 Agu - 4 Sep', () => {
+    const weeks = monthWeeks(2026, 7);
+    assert.equal(weeks.length, 5);
+    assert.deepEqual(weeks.map((w) => w.key), ['W1', 'W2', 'W3', 'W4', 'W5']);
+    assert.deepEqual(iso(weeks[4]), [
+      '2026-08-31', '2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04',
+    ]);
+  });
+
+  it('November 2026: 5 minggu; W5 = 30 Nov - 4 Des', () => {
+    const weeks = monthWeeks(2026, 10);
+    assert.equal(weeks.length, 5);
+    assert.deepEqual(iso(weeks[4]), [
+      '2026-11-30', '2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04',
+    ]);
+  });
+
+  it('jumlah minggu = jumlah Senin dalam bulan (4 atau 5)', () => {
+    const cases = [
+      [2026, 9, 4], // Okt 2026
+      [2026, 8, 4], // Sep 2026
+      [2026, 7, 5], // Agu 2026
+      [2026, 10, 5], // Nov 2026
+      [2026, 11, 4], // Des 2026
+      [2026, 1, 4], // Feb 2026
+      [2026, 2, 5], // Mar 2026
+    ];
+    for (const [y, m, n] of cases) {
+      assert.equal(monthWeeks(y, m).length, n, `${y}-${m + 1}`);
     }
   });
 
-  it('hanya berisi hari kerja (Sen-Jum), Sabtu & Minggu tidak pernah muncul', () => {
-    const weeks = monthWeeks(2026, 1);
-    for (const w of weeks) {
-      for (const d of w.dates) {
-        const wd = d.getUTCDay();
-        assert.ok(wd >= 1 && wd <= 5, `tanggal ${d.toISOString()} bukan hari kerja`);
+  it('tiap minggu persis 5 hari kerja Sen-Jum berurutan', () => {
+    for (const [y, m] of [[2026, 9], [2026, 7], [2026, 10], [2026, 1]]) {
+      for (const w of monthWeeks(y, m)) {
+        assert.equal(w.dates.length, 5, `${w.key} harus 5 hari kerja`);
+        w.dates.forEach((d, i) => {
+          assert.equal(d.getUTCDay(), i + 1, `${w.key} urutan Sen=1..Jum=5`);
+        });
       }
     }
-  });
-
-  it('cakupan tepat: seluruh hari kerja bulan muncul persis sekali', () => {
-    const expected = weekdaysOf(2026, 1).map((d) => d.toISOString().slice(0, 10));
-    const got = monthWeeks(2026, 1)
-      .flatMap((w) => w.dates)
-      .map((d) => d.toISOString().slice(0, 10));
-    assert.deepEqual(got, expected);
-  });
-
-  it('pembagian: 3 blok pertama sama besar, sisa masuk W4', () => {
-    // Feb 2026 = 20 hari kerja -> 5,5,5,5. Mar 2026 = 22 -> 5,5,5,7.
-    const feb = monthWeeks(2026, 1).map((w) => w.dates.length);
-    assert.deepEqual(feb, [5, 5, 5, 5]);
-    const mar = monthWeeks(2026, 2).map((w) => w.dates.length);
-    assert.equal(mar[0] + mar[1] + mar[2], 15);
-    assert.equal(mar[3], 22 - 15);
   });
 });
 
@@ -89,10 +112,15 @@ describe('navigasi & label bulan', () => {
     assert.equal(formatMonthLabel('2026-12'), 'Desember 2026');
   });
 
-  it('formatWeekRange menampilkan rentang hari kerja pertama-terakhir', () => {
-    const weeks = monthWeeks(2026, 1);
-    assert.equal(formatWeekRange(weeks[0]), '2-6 Feb');
-    assert.equal(formatWeekRange(weeks[3]), '23-27 Feb');
+  it('formatWeekRange: dalam bulan sama, tanpa nama bulan ganda', () => {
+    assert.equal(formatWeekRange(monthWeeks(2026, 1)[0]), '2-6 Feb');
+    assert.equal(formatWeekRange(monthWeeks(2026, 9)[0]), '5-9 Okt');
+  });
+
+  it('formatWeekRange lintas bulan: "28 Sep - 2 Okt"', () => {
+    assert.equal(formatWeekRange(monthWeeks(2026, 8)[3]), '28 Sep - 2 Okt');
+    assert.equal(formatWeekRange(monthWeeks(2026, 7)[4]), '31 Agu - 4 Sep');
+    assert.equal(formatWeekRange(monthWeeks(2026, 2)[4]), '30 Mar - 3 Apr');
   });
 });
 
@@ -102,16 +130,25 @@ describe('adapter jadwal (siap backend)', () => {
     assert.deepEqual(s, { month: '2026-02', weeks: emptyWeeks() });
   });
 
-  it('saveSchedule -> getSchedule roundtrip', async () => {
+  it('saveSchedule -> getSchedule roundtrip termasuk W5', async () => {
     const weeks = emptyWeeks();
     weeks.W1.push({ id: 'a1', type: 'brand', brand: 'Chambers' });
-    await saveSchedule('2026-02', weeks);
-    const back = await getSchedule('2026-02');
-    assert.equal(back.month, '2026-02');
+    weeks.W5.push({ id: 'a5', type: 'brand', brand: 'SCH' });
+    await saveSchedule('2026-08', weeks);
+    const back = await getSchedule('2026-08');
+    assert.equal(back.month, '2026-08');
     assert.equal(back.weeks.W1.length, 1);
-    assert.equal(back.weeks.W1[0].brand, 'Chambers');
+    assert.equal(back.weeks.W5.length, 1);
     const other = await getSchedule('2026-03');
     assert.equal(other.weeks.W1.length, 0);
+  });
+
+  it('data lama {W1..W4} tetap terbaca (tanpa migrasi)', async () => {
+    const legacy = { '2026-10': { month: '2026-10', weeks: { W1: [{ id: 'l1', type: 'brand', brand: 'X' }], W2: [], W3: [], W4: [] } } };
+    globalThis.localStorage.setItem('sprite.auditSchedule.v1', JSON.stringify(legacy));
+    const back = await getSchedule('2026-10');
+    assert.equal(back.weeks.W1.length, 1);
+    assert.deepEqual(back.weeks.W5, []);
   });
 
   it('addItem / removeItem / moveItem bekerja tanpa merusak minggu lain', async () => {
@@ -119,12 +156,11 @@ describe('adapter jadwal (siap backend)', () => {
     const item = { id: 'x1', type: 'outlet', brand: 'SCH', name: 'SCH Tebet' };
     const withItem = addItem(weeks, 'W2', item);
     assert.equal(withItem.W2.length, 1);
-    const moved = moveItem(withItem, 'W2', 'W4', 'x1');
+    const moved = moveItem(withItem, 'W2', 'W5', 'x1');
     assert.equal(moved.W2.length, 0);
-    assert.equal(moved.W4.length, 1);
-    const removed = removeItem(moved, 'W4', 'x1');
-    assert.equal(removed.W4.length, 0);
-    // weeks asal tidak berubah (immutable).
+    assert.equal(moved.W5.length, 1);
+    const removed = removeItem(moved, 'W5', 'x1');
+    assert.equal(removed.W5.length, 0);
     assert.equal(weeks.W2.length, 0);
   });
 });

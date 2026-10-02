@@ -1,7 +1,7 @@
-// Tab "Jadwal Audit" di halaman POPI NAVA: pembagian W1-W4 otomatis per bulan
-// (hari kerja Sen-Jum, sisa -> W4) + penetapan brand/outlet per minggu.
-// Penyimpanan lewat lib/auditSchedule (localStorage sekarang; kontrak async
-// {month, weeks} siap dialihkan ke endpoint backend tanpa ubah UI).
+// Tab "Jadwal Audit" di halaman POPI NAVA: kartu minggu kalender per bulan
+// (W1 mulai Senin pertama, Senin penentu bulan, 4-5 minggu) + penetapan
+// brand/outlet per minggu. Penyimpanan lewat lib/auditSchedule (localStorage
+// sekarang; kontrak async {month, weeks} siap dialihkan ke backend).
 // Sengaja tanpa indikator slot: bebas berapa item per minggu (keputusan owner).
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../Reveal.jsx';
@@ -57,10 +57,13 @@ export default function AuditSchedule({ outlets, canWrite }) {
   }, [load]);
 
   const { year, month } = parseMonth(monthKey);
-  const weekRanges = useMemo(
-    () => Object.fromEntries(monthWeeks(year, month).map((w) => [w.key, formatWeekRange(w)])),
-    [year, month]
-  );
+  const { weekKeys, weekRanges } = useMemo(() => {
+    const ws = monthWeeks(year, month);
+    return {
+      weekKeys: ws.map((w) => w.key),
+      weekRanges: Object.fromEntries(ws.map((w) => [w.key, formatWeekRange(w)])),
+    };
+  }, [year, month]);
   const current = weeks || emptyWeeks();
   const total = WEEK_LABELS.reduce((n, k) => n + current[k].length, 0);
 
@@ -145,7 +148,7 @@ export default function AuditSchedule({ outlets, canWrite }) {
             Hari ini
           </Button>
           <span className="ml-auto text-[11px] text-slate-500 dark:text-slate-400">
-            Hari kerja Sen-Jum dibagi rata jadi W1-W4, sisa masuk W4. Tersimpan di browser ini.
+            Ikut minggu kalender Sen-Jum; Senin menentukan bulan minggu itu. Tersimpan di browser ini.
           </span>
         </div>
       </Reveal>
@@ -169,7 +172,9 @@ export default function AuditSchedule({ outlets, canWrite }) {
       {weeks !== null && total === 0 && (
         <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 px-6 py-8 text-center">
           <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Belum ada jadwal audit bulan ini.</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Tetapkan brand atau outlet ke salah satu minggu, W1 sampai W4.</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Tetapkan brand atau outlet ke salah satu minggu, W1 sampai {weekKeys[weekKeys.length - 1]}.
+          </p>
           {canWrite && (
             <Button variant="primary" size="sm" className="mt-4" onClick={() => setPicker('W1')}>
               Tambah jadwal pertama
@@ -178,9 +183,12 @@ export default function AuditSchedule({ outlets, canWrite }) {
         </div>
       )}
 
-      {/* 4 kartu minggu: hierarki setara (R-14: alasan = perbandingan setara) */}
-      <Reveal innerKey={monthKey} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {WEEK_LABELS.map((k) => (
+      {/* Kartu minggu kalender bulan ini (4-5 kartu; hierarki setara, R-14) */}
+      <Reveal
+        innerKey={monthKey}
+        className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${weekKeys.length === 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}
+      >
+        {weekKeys.map((k) => (
           <section
             key={k}
             aria-labelledby={`as-week-${k}`}
@@ -232,7 +240,7 @@ export default function AuditSchedule({ outlets, canWrite }) {
                           onChange={(e) => handleMove(k, item, e.target.value)}
                           className="min-h-[44px] text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                         >
-                          {WEEK_LABELS.map((opt) => (
+                          {weekKeys.map((opt) => (
                             <option key={opt} value={opt}>
                               {opt}
                             </option>

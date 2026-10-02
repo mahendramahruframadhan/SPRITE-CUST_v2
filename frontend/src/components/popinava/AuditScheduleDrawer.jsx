@@ -1,14 +1,14 @@
-// Drawer "Tambah jadwal" untuk Jadwal Audit POPI NAVA. Pilih minggu (W1-W4),
-// lalu tentukan brand (seluruh outletnya ikut) dan/atau outlet per item —
-// bebas campur. Unit yang sudah dijadwalkan di bulan yang sama dinonaktifkan
-// agar satu unit tidak tercatat dua minggu tanpa sengaja.
+// Drawer "Tambah jadwal" untuk Jadwal Audit POPI NAVA. Pilih minggu tujuan
+// (W1-W4/W5 sesuai kalender bulan itu), lalu tentukan brand (seluruh
+// outletnya ikut) dan/atau outlet per item — bebas campur. Unit yang sudah
+// dijadwalkan di bulan yang sama dinonaktifkan agar satu unit tidak
+// tercatat dua minggu tanpa sengaja.
 // Pola UI mengikuti OutletDrawer: panel kanan, Escape menutup, fokus awal
 // ke pencarian, footer aksi lengket.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../ui/Button.jsx';
 import { ScrollArea } from '../ui/ScrollArea.jsx';
 import {
-  WEEK_LABELS,
   formatWeekRange,
   monthWeeks,
 } from '../../lib/auditSchedule.js';
@@ -54,10 +54,13 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
   }, [open, onClose]);
 
   const { year, month } = parseMonth(monthKey);
-  const weekRanges = useMemo(
-    () => Object.fromEntries(monthWeeks(year, month).map((w) => [w.key, formatWeekRange(w)])),
-    [year, month]
-  );
+  const { weekKeys, weekRanges } = useMemo(() => {
+    const ws = monthWeeks(year, month);
+    return {
+      weekKeys: ws.map((w) => w.key),
+      weekRanges: Object.fromEntries(ws.map((w) => [w.key, formatWeekRange(w)])),
+    };
+  }, [year, month]);
 
   // Daftar brand unik dari outlet + jumlah outlet per brand.
   const brandRows = useMemo(() => {
@@ -161,8 +164,12 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
             <div className="px-5 py-4 space-y-5">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Minggu tujuan</span>
-                <div role="group" aria-label="Pilih minggu tujuan" className="mt-1.5 grid grid-cols-4 gap-2">
-                  {WEEK_LABELS.map((k) => (
+                <div
+                  role="group"
+                  aria-label="Pilih minggu tujuan"
+                  className={`mt-1.5 grid gap-2 ${weekKeys.length === 5 ? 'grid-cols-5' : 'grid-cols-4'}`}
+                >
+                  {weekKeys.map((k) => (
                     <Button
                       key={k}
                       type="button"

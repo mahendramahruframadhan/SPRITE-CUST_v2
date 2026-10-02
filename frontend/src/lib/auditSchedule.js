@@ -1,13 +1,13 @@
-// Jadwal audit mingguan POPI NAVA: pembagian W1-W4 per bulan + adapter
-// penyimpanan. Bulan selalu dipecah jadi 4 blok hari kerja (Sen-Jum);
-// 3 blok pertama sama besar, sisa hari masuk W4 (keputusan owner, REVIEW
-// desain 2026-10-02). Penyimpanan sekarang localStorage dengan API async
-// berbentuk {month, weeks} — saat backend siap, ganti isi get/save dengan
-// fetch tanpa mengubah pemanggil (kontrak frontend-backend sudah dipisah).
+// Jadwal audit mingguan POPI NAVA: minggu kalender per bulan + adapter
+// penyimpanan. Mengikuti kalender asli: W1 mulai Senin pertama, satu minggu
+// = Senin penentu bulan (1-2 Okt ikut W4 September), bulan boleh punya 4-5
+// minggu (revisi owner 2026-10-02). Penyimpanan sekarang localStorage dengan
+// API async berbentuk {month, weeks} — saat backend siap, ganti isi get/save
+// dengan fetch tanpa mengubah pemanggil.
 import { getJSON, setJSON } from './storage.js';
 
 const STORAGE_KEY = 'sprite.auditSchedule.v1';
-const WEEK_KEYS = ['W1', 'W2', 'W3', 'W4'];
+const WEEK_KEYS = ['W1', 'W2', 'W3', 'W4', 'W5'];
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const MONTH_LONG = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -17,7 +17,7 @@ const MONTH_LONG = [
 export const WEEK_LABELS = WEEK_KEYS;
 
 export function emptyWeeks() {
-  return { W1: [], W2: [], W3: [], W4: [] };
+  return { W1: [], W2: [], W3: [], W4: [], W5: [] };
 }
 
 // Date dibangun dalam UTC agar perhitungan hari kerja bebas timezone.
@@ -41,36 +41,43 @@ export function formatMonthLabel(key) {
   return `${MONTH_LONG[m - 1] || ''} ${y}`;
 }
 
-// 4 blok hari kerja bulan (year 0-based month, mengikuti Date).
-// Hari Sabtu/Minggu tidak pernah masuk; sisa pembagian -> W4.
+// Minggu kalender (year 0-based month, mengikuti Date). Semua minggu yang
+// Seninnya jatuh di bulan ini — 4 atau 5 kartu. Tiap minggu memuat hari kerja
+// Sen-Jum penuh, jadi rentang bisa lintas bulan (28 Sep - 2 Okt). Sabtu &
+// Minggu tidak pernah masuk.
 export function monthWeeks(year, month) {
-  const days = [];
-  const d = utc(year, month, 1);
-  while (d.getUTCMonth() === month) {
-    const wd = d.getUTCDay();
-    if (wd >= 1 && wd <= 5) days.push(new Date(d));
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  const base = Math.floor(days.length / 4);
+  const first = utc(year, month, 1);
+  // offset ke Senin pertama (dow: 0=Min .. 6=Sab).
+  const firstMonday = 1 + ((8 - first.getUTCDay()) % 7);
+  const monday = utc(year, month, firstMonday);
   const weeks = [];
   let i = 0;
-  for (let w = 0; w < 4; w++) {
-    const size = w < 3 ? base : days.length - i;
-    weeks.push({ key: WEEK_KEYS[w], dates: days.slice(i, i + size) });
-    i += size;
+  while (monday.getUTCMonth() === month) {
+    const dates = [];
+    for (let d = 0; d < 5; d++) {
+      const day = new Date(monday);
+      day.setUTCDate(day.getUTCDate() + d);
+      dates.push(day);
+    }
+    weeks.push({ key: WEEK_KEYS[i], dates });
+    i += 1;
+    monday.setUTCDate(monday.getUTCDate() + 7);
   }
   return weeks;
 }
 
-// "2-6 Feb": hari kerja pertama-terakhir blok, nama bulan pendek.
+// "2-6 Feb" (satu bulan) atau "28 Sep - 2 Okt" (lintas bulan).
 export function formatWeekRange(week) {
   const dates = week?.dates || [];
   if (!dates.length) return '';
   const first = dates[0];
   const last = dates[dates.length - 1];
-  const mon = MONTH_SHORT[first.getUTCMonth()];
-  if (first.getUTCDate() === last.getUTCDate()) return `${first.getUTCDate()} ${mon}`;
-  return `${first.getUTCDate()}-${last.getUTCDate()} ${mon}`;
+  const monFirst = MONTH_SHORT[first.getUTCMonth()];
+  if (first.getUTCMonth() === last.getUTCMonth()) {
+    if (first.getUTCDate() === last.getUTCDate()) return `${first.getUTCDate()} ${monFirst}`;
+    return `${first.getUTCDate()}-${last.getUTCDate()} ${monFirst}`;
+  }
+  return `${first.getUTCDate()} ${monFirst} - ${last.getUTCDate()} ${MONTH_SHORT[last.getUTCMonth()]}`;
 }
 
 function normalizeWeeks(raw) {
