@@ -17,6 +17,13 @@ import { isDevSeedAllowed } from '../config/env';
 // Lihat db/sql.ts: string mentah + esc() terpusat agar jalan di pg-mem
 // maupun Postgres asli.
 
+// Kunci transaksi global (advisory, dilepas otomatis saat commit/rollback):
+// dua first-admin bersamaan wajib antre, jadi yang kedua membaca COUNT>0 setelah
+// yang pertama commit. Transaksi biasa tidak menutup race ini (phantom pada
+// READ COMMITTED: keduanya sama-sama melihat COUNT=0). Nilai bebas asal unik
+// untuk instalasi ini.
+const FIRST_ADMIN_LOCK_KEY = 20261002;
+
 // Throttle sederhana in-memory: max 10 POST /setup/first-admin per menit per IP.
 const firstAdminHits = new Map<string, number[]>();
 function throttleFirstAdmin(ip: string) {
@@ -82,6 +89,7 @@ export class SetupController {
     const password = await hashPassword(values.password);
     try {
       await this.db.transaction(async (tx: any) => {
+        await tx.execute(`SELECT pg_advisory_xact_lock(${FIRST_ADMIN_LOCK_KEY})` as any);
         const c: any = await tx.execute(sql`SELECT COUNT(*) AS c FROM "user"`);
         if (Number(rowsOf(c)[0]?.c ?? 0) > 0) {
           throw new HttpException(
