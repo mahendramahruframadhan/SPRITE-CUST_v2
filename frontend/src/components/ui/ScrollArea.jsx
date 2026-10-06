@@ -7,18 +7,21 @@ import { cn } from '../../lib/cn.js';
 // scroll utama (modal, drawer, panel, sidebar); spot kecil tetap .scrollbar-thin.
 //
 // Layout: Root (className di sini) harus punya batas tinggi (h-full, max-h-*
-// atau flex-1 + min-h-0 di induknya) supaya viewport bisa scroll.
+// atau flex-1 + min-h-0 di induknya) supaya viewport bisa scroll. Root hanya
+// max-h (tinggi auto) → `size-full` di viewport tak terpakai, jadi viewport
+// meng-clamp max-height warisan dari Root; tanpa ini panel panjang tak punya
+// scrollbar dan konten bawah terpotong.
 export function ScrollArea({ className, children, horizontal = false, viewportRef, ...props }) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn('relative', className)}
+      className={cn('relative overflow-hidden', className)}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+        className="size-full [max-height:inherit] rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>

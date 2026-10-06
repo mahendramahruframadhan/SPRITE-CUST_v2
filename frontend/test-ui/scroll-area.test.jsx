@@ -20,6 +20,29 @@ describe('ScrollArea', () => {
     expect(viewport).toHaveTextContent('Konten scrollable');
   });
 
+  // Regresi bug /clients: Root hanya max-h (tanpa tinggi pasti) membuat
+  // `size-full` (=height:100%) di viewport tidak terhadap, viewport tidak
+  // pernah overflow → Base UI tak merender scrollbar, panel terpotong.
+  // Solusi: viewport meng-clamp max-height warisan dari Root.
+  it('viewport meng-clamp max-height warisan dari Root', () => {
+    render(
+      <ScrollArea className="max-h-[440px]" data-testid="sa-max">
+        <p>Daftar panjang</p>
+      </ScrollArea>,
+    );
+    const viewport = screen.getByTestId('sa-max').querySelector('[data-slot="scroll-area-viewport"]');
+    expect(viewport.className).toContain('[max-height:inherit]');
+  });
+
+  it('Root meng-clip overflow agar viewport tak meluber keluar kotak', () => {
+    render(
+      <ScrollArea className="max-h-40" data-testid="sa-clip">
+        <p>Konten</p>
+      </ScrollArea>,
+    );
+    expect(screen.getByTestId('sa-clip').className).toContain('overflow-hidden');
+  });
+
   it('prop horizontal menambah scrollbar horizontal tanpa error', () => {
     render(
       <ScrollArea horizontal data-testid="sa-x">
