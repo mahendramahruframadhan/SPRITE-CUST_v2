@@ -24,8 +24,8 @@ const ROLE_BADGE = {
 const TABS = [
   { id: 'akun', label: 'Akun', desc: 'Profil, keamanan & sesi', icon: 'user' },
   { id: 'tampilan', label: 'Tampilan', desc: 'Tema & ukuran font', icon: 'sun' },
-  { id: 'master', label: 'Master Status', desc: 'Status Billing & Finance', icon: 'billing' },
-  { id: 'akses', label: 'Akses Saya', desc: 'Modul yang dapat diakses', icon: 'dashboard' },
+  { id: 'master', label: 'Master Status', desc: 'Status Billing & Finance', icon: 'list-checks' },
+  { id: 'akses', label: 'Akses Saya', desc: 'Modul yang dapat diakses', icon: 'key' },
   { id: 'roles', label: 'Hak Akses', desc: 'Kelola pengguna & izin', icon: 'roles', perm: 'roles' },
   { id: 'logs', label: 'Logs', desc: 'Riwayat aktivitas', icon: 'logs', perm: 'logs' },
   { id: 'sesi', label: 'Sesi', desc: 'Perangkat & keluar', icon: 'logout' },
@@ -388,7 +388,7 @@ export default function SettingsPage() {
             <div className="max-w-3xl space-y-5">
               {/* Profil */}
               <form onSubmit={saveProfile} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
-                <SectionHead icon="roles" title="Profil Saya" desc="Nama tampil, email & role akun" />
+                <SectionHead icon="user" title="Profil Saya" desc="Nama tampil, email & role akun" />
                 <div className="grid sm:grid-cols-2 gap-4">
                   <Field
                     label="Nama tampil"
@@ -581,7 +581,7 @@ export default function SettingsPage() {
 
           {safeTab === 'master' && (
             <div className="max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
-              <SectionHead icon="billing" title="Master Status Validasi" desc="Status Billing & Audit yang bisa dikonfigurasi. Status invoice (MENUNGGU / TERBIT / TERKIRIM / SUDAH DIBAYAR) dikunci alur dan tidak bisa diubah di sini." />
+              <SectionHead icon="list-checks" title="Master Status Validasi" desc="Status Billing & Audit yang bisa dikonfigurasi. Status invoice (MENUNGGU / TERBIT / TERKIRIM / SUDAH DIBAYAR) dikunci alur dan tidak bisa diubah di sini." />
               {!canEditMaster && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400">
                   Role Anda tidak memiliki akses Billing — daftar hanya bisa dilihat, hubungi admin untuk mengubah.
@@ -610,7 +610,7 @@ export default function SettingsPage() {
 
           {safeTab === 'akses' && (
             <div className="max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 space-y-4">
-              <SectionHead icon="dashboard" title="Akses Saya" desc={`${accessCount} dari ${myAccess.length} modul dapat diakses role ${role}`} />
+              <SectionHead icon="key" title="Akses Saya" desc={`${accessCount} dari ${myAccess.length} modul dapat diakses role ${role}`} />
               <ul className="grid sm:grid-cols-2 gap-2">
                 {myAccess.map((m) => (
                   <li

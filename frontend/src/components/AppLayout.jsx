@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions, menuPerm } from '../hooks/usePermissions.js';
 import { MODULES } from '../config/modules.js';
 import { getJSON, set as simpan } from '../lib/storage.js';
-import Icon from '../components/Icon.jsx';
+import Icon, { iconNav } from '../components/Icon.jsx';
 import AiChat from '../components/AiChat.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { ScrollArea } from '../components/ui/ScrollArea.jsx';
@@ -119,7 +119,7 @@ function IsiSidebar({ ciut, saatNavigasi = () => {}, pengguna, keluar, bisa, sak
               title={ciut ? m.title : undefined}
               className={`shell-nav ${ciut ? 'lg:justify-center lg:px-0' : ''}`}
             >
-              <Icon name={m.id === 'kasus' ? 'cases' : m.id === 'popinava' ? 'cfg' : m.id} />
+              <Icon name={iconNav(m.id)} />
               {!ciut && <span className="truncate">{m.title}</span>}
             </NavLink>
           );
