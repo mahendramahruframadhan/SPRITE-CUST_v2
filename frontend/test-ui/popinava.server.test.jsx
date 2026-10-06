@@ -195,7 +195,10 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
 
     // Riwayat outlet → kapan & siapa (entri server, bukan localStorage).
     fireEvent.click(await screen.findByRole('button', { name: 'Riwayat Toko IT' }));
-    const hist = await screen.findByRole('dialog', { name: /Riwayat outlet/ });
+    // Modal kini memakai InvoiceHistoryModal: nama dialog = judul (nama outlet),
+    // eyebrow "Riwayat Outlet" tampil di header gradien.
+    const hist = await screen.findByRole('dialog', { name: 'Toko IT' });
+    expect(within(hist).getByText('Riwayat Outlet')).toBeInTheDocument();
     expect(await within(hist).findByText('Nonaktifkan outlet')).toBeInTheDocument();
     expect(within(hist).getByText('Tambah outlet')).toBeInTheDocument();
     expect(within(hist).getByText('Ubah outlet')).toBeInTheDocument();

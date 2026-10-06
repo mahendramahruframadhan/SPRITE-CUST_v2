@@ -15,20 +15,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Switch } from '../components/ui/Switch.jsx';
-import { ScrollArea } from '../components/ui/ScrollArea.jsx';
-import { HistoryTracking } from '../components/ui/HistoryTracking.jsx';
 import { useConfirm } from '../components/ui/ConfirmProvider.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { usePopinava } from '../hooks/usePopinava.js';
 import { exportRecords } from '../lib/popinavaExport.js';
 import { groupRowsByBrand } from '../lib/popinavaGroup.js';
-import { getPopinavaHistory } from '../lib/api.js';
+import { getLogs, getPopinavaHistory } from '../lib/api.js';
 import { get as storageGet } from '../lib/storage.js';
 import { fmtDateID } from '../utils/contract.js';
 import ImportWizard from '../components/popinava/ImportWizard.jsx';
 import OutletDrawer from '../components/popinava/OutletDrawer.jsx';
 import AuditSchedule from '../components/popinava/AuditSchedule.jsx';
+import InvoiceHistoryModal from '../components/InvoiceHistoryModal.jsx';
 
 const INPUT_CLS =
   'w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
@@ -134,6 +133,11 @@ export default function PopiNavaPage() {
   const [historyFor, setHistoryFor] = useState(null);
   const [historyRows, setHistoryRows] = useState(null);
   const [historyErr, setHistoryErr] = useState(false);
+  // Modal riwayat log level halaman (activity_logs kategori 'popinava'):
+  // hanya Super Admin; rows null = masih memuat.
+  const [logOpen, setLogOpen] = useState(false);
+  const [logRows, setLogRows] = useState(null);
+  const [logErr, setLogErr] = useState(false);
 
   const offTag = serverOk === false ? ' (mode lokal, tersimpan di browser)' : '';
   const errMsg = (e) => e?.data?.message || e?.message || 'Gagal, coba lagi.';
@@ -258,10 +262,34 @@ export default function PopiNavaPage() {
     setHistoryFor(null);
   }
 
-  function fmtHistoryTime(s) {
-    const d = new Date(s);
-    if (Number.isNaN(d.getTime())) return String(s || '-');
-    return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  // Log aktivitas seluruh outlet: /roles/logs lalu saring kategori popinava
+  // (backend menulis kategori itu di tiap aksi POPI NAVA, fase frontend).
+  function openLogHistory() {
+    setLogOpen(true);
+    setLogRows(null);
+    setLogErr(false);
+    getLogs()
+      .then((r) => {
+        const rows = (Array.isArray(r) ? r : [])
+          .filter((e) => e?.category === 'popinava' && (e.action || e.act))
+          .map((e) => ({
+            who: e.who || 'system',
+            action: e.action || e.act,
+            detail: e.detail || null,
+            category: 'POPI NAVA',
+            createdAt: e.created_at || e.time,
+          }))
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setLogRows(rows);
+      })
+      .catch(() => {
+        setLogRows([]);
+        setLogErr(true);
+      });
+  }
+
+  function closeLogHistory() {
+    setLogOpen(false);
   }
 
   async function deleteOne(rec) {
@@ -464,6 +492,15 @@ export default function PopiNavaPage() {
             Jadwal Audit
           </Button>
         </div>
+        {/* Aksi (bukan mode): log aktivitas POPI NAVA — hanya Super Admin */}
+        {canSeeHistory && (
+          <Button variant="secondary" size="sm" onClick={openLogHistory}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Riwayat Log
+          </Button>
+        )}
         {localMode && (
           <span className="inline-flex items-center gap-2 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
             Mode lokal: backend /popinava belum tersambung, data tersimpan di browser
@@ -782,60 +819,32 @@ export default function PopiNavaPage() {
         localMode={localMode}
       />
       {historyFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            aria-hidden="true"
-            onClick={closeHistory}
-            className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
-          />
-          <div
-            role="dialog"
-            aria-label={`Riwayat outlet ${historyFor.deptChannelName}`}
-            className="relative w-full max-w-lg max-h-[80vh] overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl flex flex-col"
-          >
-            <div className="flex items-start justify-between gap-3 px-5 pt-5">
-              <div className="min-w-0">
-                <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">Riwayat outlet</h2>
-                <p className="text-[13px] text-slate-500 dark:text-slate-400 truncate">
-                  {historyFor.brandName} · {historyFor.deptChannelName}
-                </p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={closeHistory} aria-label="Tutup riwayat">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </Button>
-            </div>
-            <ScrollArea className="flex-1 min-h-0 px-5 pb-5">
-              <div className="mt-4">
-                {historyErr && (
-                  <p className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 text-sm text-slate-500 dark:text-slate-400">
-                    Riwayat hanya tersedia saat terhubung ke server.
-                  </p>
-                )}
-                {!historyErr && historyRows === null && (
-                  <p aria-busy="true" className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
-                    Memuat riwayat…
-                  </p>
-                )}
-                {!historyErr && historyRows !== null && historyRows.length === 0 && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Belum ada riwayat untuk outlet ini.</p>
-                )}
-                {!historyErr && historyRows !== null && historyRows.length > 0 && (
-                  <HistoryTracking
-                    steps={historyRows.map((h) => ({
-                      id: h.id ?? `${h.action}-${h.time}`,
-                      name: h.action,
-                      timestamp: fmtHistoryTime(h.time),
-                      description: `oleh ${h.who}${h.detail ? ` · ${h.detail}` : ''}`,
-                      isCompleted: true,
-                    }))}
-                  />
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-        </div>
+        <InvoiceHistoryModal
+          label="Riwayat Outlet"
+          title={historyFor.deptChannelName}
+          subtitle={historyFor.brandName}
+          loading={historyRows === null && !historyErr}
+          error={historyErr ? 'Riwayat hanya tersedia saat terhubung ke server.' : null}
+          history={(historyRows || []).map((h) => ({
+            who: h.who,
+            action: h.action,
+            detail: h.detail,
+            category: h.category === 'popinava' ? 'POPI NAVA' : h.category,
+            createdAt: h.time,
+          }))}
+          onClose={closeHistory}
+        />
+      )}
+      {logOpen && (
+        <InvoiceHistoryModal
+          label="Riwayat Log"
+          title="Aktivitas POPI NAVA"
+          subtitle={logRows === null || logErr ? null : `${logRows.length} aktivitas`}
+          loading={logRows === null && !logErr}
+          error={logErr ? 'Riwayat hanya tersedia saat terhubung ke server.' : null}
+          history={logRows || []}
+          onClose={closeLogHistory}
+        />
       )}
     </div>
   );
