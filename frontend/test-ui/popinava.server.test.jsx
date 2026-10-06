@@ -1,23 +1,29 @@
 // Integrasi frontend ↔ backend NYATA (bukan mock).
-// Prasyarat: backend dev jalan di http://localhost:5005 (npm run dev) dan ada
-// akun integrasi it.popinava@revota.id (Admin CS, popinava:1). Tanpa backend,
-// seluruh file ini di-skip agar npm run test:ui tetap hijau secara mandiri.
+// Prasyarat: backend dev jalan di http://localhost:5005 (npm run dev), akun
+// integrasi it.popinava@revota.id (Admin CS, popinava:1), dan akun Super Admin
+// admin@revota.id (riwayat per outlet digigit backend: 403 untuk role lain).
+// Tanpa backend, seluruh file ini di-skip agar npm run test:ui tetap hijau
+// secara mandiri.
 // Membuktikan: probe memakai data server sebagai sumber kebenaran (termasuk
 // saat server kosong — bukan seed lokal), create/edit/hapus via drawer &
 // aksi baris benar-benar POST/PATCH/DELETE ke /api/popinava, dan setiap
 // operasi tulis tercatat di activity_logs kategori popinava.
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, configure } from '@testing-library/react';
 
 const API = 'http://127.0.0.1:5005/api';
 vi.stubEnv('VITE_API_URL', API);
 vi.setConfig({ testTimeout: 20000 });
+// File ini menunggu backend NYATA yang berbagi CPU dengan 11 file uji lain +
+// sinkronisasi Sheets tiap 5 menit → tunggu async naik dari default 1000ms.
+configure({ asyncUtilTimeout: 8000 });
 
 const backendUp = await fetch(`${API}/health`)
   .then((r) => r.ok)
   .catch(() => false);
 
 let token = '';
+let saToken = '';
 const api = (p, opts = {}) =>
   fetch(`${API}${p}`, {
     ...opts,
@@ -99,6 +105,13 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
     });
     token = r.token;
     expect(token, 'sign-in integrasi harus menghasilkan token').toBeTruthy();
+    // Sesi Super Admin, hanya untuk panggilan riwayat per outlet (403 bagi role lain).
+    const rsa = await apiJson('/auth/sign-in/email', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'admin@revota.id', password: '12345' }),
+    });
+    saToken = rsa.token;
+    expect(saToken, 'sign-in Super Admin harus menghasilkan token').toBeTruthy();
     seedSession();
     // Bersihkan sisa run sebelumnya (hanya baris uji milik kita).
     const d = await apiJson('/popinava?page=1&pageSize=5000');
@@ -188,12 +201,19 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
     fireEvent.click(screen.getByRole('switch', { name: 'Status aktif Toko IT' }));
     const vdlg2 = await screen.findByRole('alertdialog');
     fireEvent.click(within(vdlg2).getByRole('button', { name: 'Ya, nonaktifkan' }));
-    await screen.findByText(/dinonaktifkan oleh IT Integrasi/);
+    // Toast datang setelah PUT balik dari backend; beri waktu lebih saat
+    // sinkronisasi Google Sheets tiap 5 menit sedang menekan server.
+    await screen.findByText(/dinonaktifkan oleh IT Integrasi/, {}, { timeout: 8000 });
     items = (await apiJson('/popinava?search=Toko%20IT')).items;
     expect(items.find((x) => x.dept_channel_name === 'Toko IT').status).toBe('inactive');
     expect(await logActions()).toContain('Nonaktifkan outlet');
 
     // Riwayat outlet → kapan & siapa (entri server, bukan localStorage).
+    // Backend menolak role selain Super Admin (403) meski popinava=1, jadi
+    // tukar token sesi ke Super Admin hanya untuk panggilan riwayat ini;
+    // api.js membaca token dari localStorage tiap request.
+    localStorage.setItem('authToken', saToken);
+    localStorage.setItem('userEmail', 'admin@revota.id');
     fireEvent.click(await screen.findByRole('button', { name: 'Riwayat Toko IT' }));
     // Modal kini memakai InvoiceHistoryModal: nama dialog = judul (nama outlet),
     // eyebrow "Riwayat Outlet" tampil di header gradien.
@@ -205,6 +225,10 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
     expect(within(hist).getAllByText(/oleh IT Integrasi/).length).toBeGreaterThan(0);
     fireEvent.click(within(hist).getByRole('button', { name: 'Tutup riwayat' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Tutup riwayat' })).toBeNull());
+
+    // Kembalikan sesi Admin CS untuk sisa test (toggle pulih + hapus).
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('userEmail', 'it.popinava@revota.id');
 
     // Pulihkan status aktif (tanpa modal) untuk test hapus berikutnya.
     fireEvent.click(screen.getByRole('switch', { name: 'Status aktif Toko IT' }));
