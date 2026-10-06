@@ -176,3 +176,5 @@ export const deletePopinava = (uuid) => req(`/popinava/${uuid}`, { method: 'DELE
 export const postPopinavaBulk = (body) => post('/popinava/bulk', body);
 // Riwayat aktivitas 1 outlet (activity_logs by record_uuid): kapan & siapa.
 export const getPopinavaHistory = (uuid) => get(`/popinava/${encodeURIComponent(uuid)}/history`);
+// Log aktivitas POPI NAVA (kategori 'popinava', urut terbaru) — khusus Super Admin.
+export const getPopinavaLogs = (limit) => get(`/popinava/logs${limit ? `?limit=${encodeURIComponent(limit)}` : ''}`);

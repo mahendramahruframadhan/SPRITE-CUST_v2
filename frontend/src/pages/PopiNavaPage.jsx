@@ -21,7 +21,7 @@ import { usePermissions } from '../hooks/usePermissions.js';
 import { usePopinava } from '../hooks/usePopinava.js';
 import { exportRecords } from '../lib/popinavaExport.js';
 import { groupRowsByBrand } from '../lib/popinavaGroup.js';
-import { getLogs, getPopinavaHistory } from '../lib/api.js';
+import { getPopinavaHistory, getPopinavaLogs } from '../lib/api.js';
 import { get as storageGet } from '../lib/storage.js';
 import { fmtDateID } from '../utils/contract.js';
 import ImportWizard from '../components/popinava/ImportWizard.jsx';
@@ -262,24 +262,23 @@ export default function PopiNavaPage() {
     setHistoryFor(null);
   }
 
-  // Log aktivitas seluruh outlet: /roles/logs lalu saring kategori popinava
-  // (backend menulis kategori itu di tiap aksi POPI NAVA, fase frontend).
+  // Log aktivitas seluruh outlet dari endpoint khusus /popinava/logs
+  // (server sudah menyaring kategori 'popinava' dan mengurutkan terbaru).
   function openLogHistory() {
     setLogOpen(true);
     setLogRows(null);
     setLogErr(false);
-    getLogs()
+    getPopinavaLogs()
       .then((r) => {
         const rows = (Array.isArray(r) ? r : [])
-          .filter((e) => e?.category === 'popinava' && (e.action || e.act))
+          .filter((e) => e && (e.action || e.act))
           .map((e) => ({
             who: e.who || 'system',
             action: e.action || e.act,
             detail: e.detail || null,
             category: 'POPI NAVA',
-            createdAt: e.created_at || e.time,
-          }))
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            createdAt: e.time || e.created_at,
+          }));
         setLogRows(rows);
       })
       .catch(() => {
