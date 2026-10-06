@@ -3,8 +3,10 @@ import { Button } from './ui/Button.jsx';
 import { ScrollArea } from './ui/ScrollArea.jsx';
 import { HistoryTracking } from './ui/HistoryTracking.jsx';
 
-// Modal timeline riwayat invoice + PDF per kasus (siapa, berbuat apa, kapan).
-// history: [{ who, action, detail, createdAt }] | title: nama file/kasus | onClose
+// Modal timeline riwayat (siapa, berbuat apa, kapan) — dipakai Finance/Audit
+// (invoice+PDF) dan POPI NAVA (log aktivitas + riwayat per outlet).
+// history: [{ who, action, detail, category, createdAt }] | title: nama entitas
+// label: eyebrow di header | loading/error: state muat & gagal | onClose
 const fmtTime = (s) => {
   const t = String(s || '');
   if (!t) return '-';
@@ -13,7 +15,7 @@ const fmtTime = (s) => {
   return h && h !== t ? `${d} ${h}` : d;
 };
 
-export default function InvoiceHistoryModal({ title, subtitle, history = [], onClose }) {
+export default function InvoiceHistoryModal({ title, subtitle, label = 'Riwayat Kasus', history = [], loading = false, error = null, onClose }) {
   const closeRef = useRef(null);
   // Stabil: simpan onClose di ref agar efek cukup dipasang sekali
   const onCloseRef = useRef(onClose);
@@ -45,7 +47,7 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
               </svg>
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-100">Riwayat Kasus</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-100">{label}</p>
               <h3 id="inv-history-title" className="mt-0.5 font-extrabold truncate" title={title}>{title}</h3>
               {subtitle && <p className="text-[11px] text-emerald-100/90 truncate">{subtitle}</p>}
             </div>
@@ -65,7 +67,11 @@ export default function InvoiceHistoryModal({ title, subtitle, history = [], onC
           </div>
         </div>
         <ScrollArea className="flex-1 min-h-0 px-5 py-4">
-          {history.length === 0 ? (
+          {loading ? (
+            <p aria-busy="true" className="text-center text-[13px] font-semibold text-slate-500 dark:text-slate-400 py-8 animate-pulse">Memuat riwayat…</p>
+          ) : error ? (
+            <p className="text-center text-[13px] font-semibold text-slate-500 dark:text-slate-400 py-8">{error}</p>
+          ) : history.length === 0 ? (
             <p className="text-center text-[13px] font-semibold text-slate-500 dark:text-slate-400 py-8">Belum ada riwayat tercatat.</p>
           ) : (
             <HistoryTracking

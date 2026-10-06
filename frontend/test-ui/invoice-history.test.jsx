@@ -26,4 +26,29 @@ describe('InvoiceHistoryModal', () => {
     render(<InvoiceHistoryModal title="Kasus A" history={[]} onClose={() => {}} />);
     expect(screen.getByText('Belum ada riwayat tercatat.')).toBeInTheDocument();
   });
+
+  it('prop label mengganti eyebrow header (dipakai POPI NAVA)', () => {
+    render(<InvoiceHistoryModal title="Toko A" label="Riwayat Outlet" history={[]} onClose={() => {}} />);
+    expect(screen.getByText('Riwayat Outlet')).toBeInTheDocument();
+    expect(screen.queryByText('Riwayat Kasus')).toBeNull();
+  });
+
+  it('loading → "Memuat riwayat…" tanpa daftar maupun empty state', () => {
+    render(<InvoiceHistoryModal title="Toko A" loading history={[]} onClose={() => {}} />);
+    expect(screen.getByText('Memuat riwayat…')).toBeInTheDocument();
+    expect(screen.queryByText('Belum ada riwayat tercatat.')).toBeNull();
+  });
+
+  it('error → pesan gagal diprioritaskan di atas daftar', () => {
+    render(
+      <InvoiceHistoryModal
+        title="Toko A"
+        error="Riwayat hanya tersedia saat terhubung ke server."
+        history={[]}
+        onClose={() => {}}
+      />
+    );
+    expect(screen.getByText('Riwayat hanya tersedia saat terhubung ke server.')).toBeInTheDocument();
+    expect(screen.queryByText('Belum ada riwayat tercatat.')).toBeNull();
+  });
 });
