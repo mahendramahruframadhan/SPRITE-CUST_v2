@@ -1,11 +1,12 @@
 import {
   Controller, Get, Post, Patch, Delete, Param, Body, Query, Req,
-  UseGuards, HttpException, HttpStatus, HttpCode,
+  UseGuards, HttpException, HttpStatus, HttpCode, ForbiddenException,
 } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { esc } from '../db/sql';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { SessionGuard } from '../auth/session.guard';
+import { resolveSessionUser } from '../auth/session';
 import { logActivity, resolveWho } from '../logs/activity';
 
 // Endpoint master outlet POPI NAVA (spec §9 fase backend): list/get/create/
@@ -90,6 +91,16 @@ async function rowByUuid(db: any, uuid: string): Promise<any | null> {
 export class PopinavaController {
   private db: any = getDb();
 
+  // Akses Super Admin, di samping PermGuard (pola ai-config): riwayat per
+  // outlet dan log POPI NAVA adalah data audit detail — role lain yang punya
+  // izin modul popinava (mis. Admin CS) tetap ditolak di level API.
+  private async requireSuperAdmin(req: any, code: string, message: string): Promise<void> {
+    const u = await resolveSessionUser(this.db, req);
+    if (u?.role !== 'Super Admin') {
+      throw new ForbiddenException({ code, message });
+    }
+  }
+
   @Get()
   @UseGuards(PermGuard)
   @Perm('popinava')
@@ -143,6 +154,39 @@ export class PopinavaController {
         statuses: await facet('status'),
       },
     };
+  }
+
+  // Log aktivitas POPI NAVA (activity_logs kategori 'popinava') — khusus
+  // Super Admin, dipakai tombol "Riwayat Log" di halaman POPI NAVA. Dideklarasi
+  // sebelum @Get(':uuid') supaya tidak tertangkap rute parameter.
+  // limit di-clamp 1..500 (default 200); q menyaring action/detail/who lewat
+  // placeholder terparameterisasi (input user tidak pernah disusun jadi SQL).
+  @Get('logs')
+  @UseGuards(PermGuard)
+  @Perm('popinava')
+  async logs(@Query('limit') limit?: string, @Query('q') q?: string, @Req() req?: any) {
+    await this.requireSuperAdmin(req, 'POPI_NAVA_LOGS_FORBIDDEN', 'Hanya Super Admin yang dapat melihat log POPI NAVA.');
+    const params: any[] = [];
+    const where: string[] = [`category='popinava'`];
+    const term = String(q ?? '').trim().replace(/[%_]/g, '').slice(0, 120);
+    if (term) {
+      params.push(`%${term}%`);
+      where.push(`(LOWER(action) LIKE LOWER($1) OR LOWER(detail) LIKE LOWER($1) OR LOWER(who) LIKE LOWER($1))`);
+    }
+    params.push(Math.min(500, Math.max(1, parseInt(String(limit ?? ''), 10) || 200)));
+    const r: any = await this.db.pq(
+      `SELECT id, who, action, category, detail, record_uuid, created_at FROM activity_logs
+       WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT $${params.length}`,
+      params,
+    );
+    return (r.rows || r).map((l: any) => ({
+      id: l.id,
+      who: l.who,
+      action: l.action,
+      category: l.category || null,
+      detail: l.detail || null,
+      time: l.created_at instanceof Date ? l.created_at.toISOString() : l.created_at,
+    }));
   }
 
   @Get(':uuid')
@@ -301,11 +345,13 @@ export class PopinavaController {
   }
 
   // Riwayat aktivitas 1 outlet: siapa mengubah apa dan kapan, untuk modal
-  // riwayat PopiNava. M-3: dijaga PermGuard popinava seperti list/detail.
+  // riwayat PopiNava. M-3: dijaga PermGuard popinava seperti list/detail;
+  // lapisan kedua: hanya Super Admin (POPI_NAVA_HISTORY_FORBIDDEN).
   @Get(':uuid/history')
   @UseGuards(PermGuard)
   @Perm('popinava')
-  async history(@Param('uuid') uuid: string) {
+  async history(@Param('uuid') uuid: string, @Req() req: any) {
+    await this.requireSuperAdmin(req, 'POPI_NAVA_HISTORY_FORBIDDEN', 'Hanya Super Admin yang dapat melihat riwayat outlet POPI NAVA.');
     if (!UUID_RE.test(uuid)) fail('INVALID_FORMAT', 'uuid harus format UUID 8-4-4-4-12.', HttpStatus.BAD_REQUEST);
     const r: any = await this.db.pq(
       `SELECT id, who, action, category, detail, created_at FROM activity_logs

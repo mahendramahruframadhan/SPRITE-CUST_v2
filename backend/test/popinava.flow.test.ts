@@ -170,12 +170,14 @@ describe('popinava endpoint + activity logs', () => {
   });
 
   it('GET :uuid/history → riwayat outlet terurut (kapan & siapa, tanpa log outlet lain)', async () => {
-    const h: any = await ctl.history(OUTLET.uuid);
+    // Lapisan kedua endpoint ini (khusus Super Admin) diuji terpisah di
+    // popinava.history.logs.test.ts; di sini alur normal dengan Super Admin.
+    const h: any = await ctl.history(OUTLET.uuid, reqWith(token));
     assert.ok(Array.isArray(h) && h.length >= 2, 'entri minimal create + set-status');
     assert.ok(h.some((x: any) => x.action === 'Tambah outlet'));
     assert.ok(h.some((x: any) => x.action === 'Nonaktifkan outlet'));
     assert.ok(h.every((x: any) => x.who && x.action && x.time), 'tiap entri punya who/action/time');
-    const other: any = await ctl.history('99999999-9999-4999-8999-999999999999');
+    const other: any = await ctl.history('99999999-9999-4999-8999-999999999999', reqWith(token));
     assert.equal(other.length, 0, 'uuid tanpa riwayat → kosong');
   });
 

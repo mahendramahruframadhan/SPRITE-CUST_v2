@@ -43,6 +43,7 @@ const MUST_GATE: [any, string, string][] = [
   [PopinavaController, 'list', 'popinava'],
   [PopinavaController, 'getById', 'popinava'],
   [PopinavaController, 'history', 'popinava'],
+  [PopinavaController, 'logs', 'popinava'],
   [AuditScheduleController, 'get', 'popinava'],
 ];
 
