@@ -188,7 +188,7 @@ function SlotCard({ slot, shot, outletUuid, onChanged, canWrite }) {
           )}
           <div className="mt-2 flex items-center justify-between gap-2">
             <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate min-w-0" title={shot.filename}>
-              {shot.filename} · {fmtKB(shot.size_bytes)}
+              {shot.filename} · {fmtKB(shot.sizeBytes)}
             </p>
             <div className="flex items-center gap-1.5 shrink-0">
               <button
@@ -238,7 +238,7 @@ export default function AuditShotsPanel({ outletUuid, canWrite = true }) {
   const bySlot = {};
   for (const s of shots) {
     if (s.status === 'failed') continue;
-    if (!bySlot[s.slot] || (bySlot[s.slot].created_at || '') < (s.created_at || '')) bySlot[s.slot] = s;
+    if (!bySlot[s.slot] || (bySlot[s.slot].createdAt || '') < (s.createdAt || '')) bySlot[s.slot] = s;
   }
 
   return (

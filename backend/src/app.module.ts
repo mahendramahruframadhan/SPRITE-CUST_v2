@@ -22,10 +22,12 @@ import { ClientsController } from './clients/clients.controller';
 import { ClientsService } from './clients/clients.service';
 import { PopinavaController } from './popinava/popinava.controller';
 import { AuditScheduleController } from './popinava/audit-schedule.controller';
+import { ShotsController } from './shots/shots.controller';
+import { ShotsService } from './shots/shots.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
-  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController, AuditScheduleController],
-  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService],
+  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController, AuditScheduleController, ShotsController],
+  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService, ShotsService],
 })
 export class AppModule {}

@@ -59,6 +59,8 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS audit_schedule (month TEXT PRIMARY KEY, weeks TEXT NOT NULL DEFAULT '{}', updated_by TEXT, updated_at TEXT);
     CREATE TABLE IF NOT EXISTS audit_history (id TEXT PRIMARY KEY, month TEXT NOT NULL, week_key TEXT NOT NULL, item_id TEXT NOT NULL, item_type TEXT, item_label TEXT, action TEXT NOT NULL, who TEXT, created_at TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS idx_audit_history_month ON audit_history(month);
+    CREATE TABLE IF NOT EXISTS audit_shots (id TEXT PRIMARY KEY, dept_uuid TEXT NOT NULL REFERENCES popinava_outlets(uuid) ON DELETE CASCADE, slot TEXT NOT NULL, filename TEXT NOT NULL, storage_key TEXT NOT NULL UNIQUE, size_bytes INTEGER DEFAULT 0, content_type TEXT, status TEXT NOT NULL DEFAULT 'uploading', uploaded_by TEXT, created_at TEXT NOT NULL, updated_at TEXT);
+    CREATE INDEX IF NOT EXISTS idx_audit_shots_dept ON audit_shots(dept_uuid);
     CREATE INDEX IF NOT EXISTS idx_audit_history_item ON audit_history(item_id);
   `;
 
