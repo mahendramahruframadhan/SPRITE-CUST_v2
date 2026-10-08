@@ -72,6 +72,14 @@ function UserIcon() {
   );
 }
 
+function KpiIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+    </svg>
+  );
+}
+
 function FilterField({ label, icon, children }) {
   return (
     <div className="min-w-0">
@@ -108,6 +116,7 @@ export default function HrReportPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [pic, setPic] = useState('');
+  const [groupKpi, setGroupKpi] = useState('');
 
   // Set rentang default (7 hari terakhir data) begitu data backend tiba
   useEffect(() => {
@@ -142,9 +151,9 @@ export default function HrReportPage() {
     const q = normPic(pic);
     return allCases.filter((c) => {
       const d = normDate8(c.dateIssue);
-      return (!f || d >= f) && (!t || d <= t) && (!q || normPic(c.assignTo) === q);
+      return (!f || d >= f) && (!t || d <= t) && (!q || normPic(c.assignTo) === q) && (!groupKpi || normKpi(c.groupKpi) === groupKpi);
     });
-  }, [from, to, pic, allCases]);
+  }, [from, to, pic, groupKpi, allCases]);
 
   const generatedAt = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -155,7 +164,7 @@ export default function HrReportPage() {
   const rangeLabel = from || to
     ? `${from ? fmtDate8(from.replace(/-/g, '')) : 'Awal'} — ${to ? fmtDate8(to.replace(/-/g, '')) : 'Akhir'}`
     : 'Semua tanggal';
-  const reportPeriod = rangeLabel + (pic ? ` · PIC: ${pic}` : '');
+  const reportPeriod = rangeLabel + (pic ? ` · PIC: ${pic}` : '') + (groupKpi ? ` · Group KPI: ${groupKpi}` : '');
 
   // Tanggal terbaru di data — acuan preset cepat (7/30 hari, bulan ini)
   const maxISO = useMemo(() => {
@@ -251,7 +260,7 @@ export default function HrReportPage() {
       <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
         <div className="flex flex-col xl:flex-row gap-4">
           <div className="flex-1 min-w-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <FilterField label="Tanggal Dari" icon={<CalendarIcon />}>
                 <input
                   type="date"
@@ -283,6 +292,19 @@ export default function HrReportPage() {
                   ))}
                 </select>
               </FilterField>
+              <FilterField label="Group KPI" icon={<KpiIcon />}>
+                <select
+                  value={groupKpi}
+                  onChange={(e) => setGroupKpi(e.target.value)}
+                  aria-label="Group KPI"
+                  className={dateCls}
+                >
+                  <option value="">— Semua Group KPI —</option>
+                  {KPI_COLS.map((k) => (
+                    <option key={k} value={k}>{k.replace('• ', '')}</option>
+                  ))}
+                </select>
+              </FilterField>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mr-1">Cepat:</span>
@@ -305,7 +327,7 @@ export default function HrReportPage() {
               <span className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" aria-hidden="true" />
               <Button
                 variant="ghost"
-                onClick={() => { setPic(''); setFrom(''); setTo(''); }}
+                onClick={() => { setPic(''); setFrom(''); setTo(''); setGroupKpi(''); }}
                 className="rounded-full text-xs"
               >
                 Reset
@@ -330,6 +352,11 @@ export default function HrReportPage() {
               {pic && (
                 <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                   PIC: <span className="text-brand-600 dark:text-brand-300">{pic}</span>
+                </p>
+              )}
+              {groupKpi && (
+                <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  Group KPI: <span className="text-brand-600 dark:text-brand-300">{groupKpi.replace('• ', '')}</span>
                 </p>
               )}
             </div>
@@ -455,7 +482,7 @@ export default function HrReportPage() {
             </table>
           </div>
           <div className="px-5 sm:px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-wrap items-center gap-x-4 gap-y-1 justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>Menampilkan {detailRows.length} dari {allCases.length} ticket{pic ? ` · PIC: ${pic}` : ''}</span>
+            <span>Menampilkan {detailRows.length} dari {allCases.length} ticket{pic ? ` · PIC: ${pic}` : ''}{groupKpi ? ` · Group KPI: ${groupKpi.replace('• ', '')}` : ''}</span>
             <span>Sumber: Google Sheets (sinkron)</span>
           </div>
         </div>
