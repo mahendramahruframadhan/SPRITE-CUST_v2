@@ -7,6 +7,7 @@ import { Button } from '../ui/Button.jsx';
 import { ScrollArea } from '../ui/ScrollArea.jsx';
 import { DEPT_NAMES, STATUSES, prepareRow, validateRow } from '../../lib/popinavaValidate.js';
 import { recordToSource } from '../../lib/popinavaRecord.js';
+import AuditShotsPanel from './AuditShotsPanel.jsx';
 
 const INPUT_CLS =
   'w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
@@ -40,7 +41,7 @@ function emptyValues() {
   return v;
 }
 
-export default function OutletDrawer({ open, mode, initial, onClose, onSave, onDelete, busy }) {
+export default function OutletDrawer({ open, mode, initial, onClose, onSave, onDelete, busy, canWrite = true }) {
   const [values, setValues] = useState(emptyValues);
   const [fieldErrors, setFieldErrors] = useState({});
   const [summary, setSummary] = useState([]);
@@ -218,6 +219,10 @@ export default function OutletDrawer({ open, mode, initial, onClose, onSave, onD
               </select>
             </div>
           </div>
+
+          {mode === 'edit' && initial?.uuid && (
+            <AuditShotsPanel outletUuid={initial.uuid} canWrite={canWrite} />
+          )}
 
           <div className="pt-1 pb-4 sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 -mx-5 px-5 mt-2 space-y-2">
             <div className="flex gap-2">

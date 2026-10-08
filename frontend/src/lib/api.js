@@ -193,3 +193,10 @@ export async function fetchCasesByGroupKpi(groupKpi = '') {
   }
   return out;
 }
+
+// Screenshot audit POPI/NAVA — presigned R2, pola sama seperti PDF invoice.
+export const requestShotUploadUrl = (body) => post('/popinava/audit-shots/upload-url', body);
+export const confirmShotUpload = (body) => post('/popinava/audit-shots/confirm', body);
+export const listShotsByOutlet = (uuid) => get(`/popinava/audit-shots/by-outlet/${uuid}`);
+export const requestShotDownloadUrl = (id, opts = {}) => get(`/popinava/audit-shots/${id}/download-url${opts.inline ? '?inline=1' : ''}`);
+export const deleteShot = (id) => req(`/popinava/audit-shots/${id}`, { method: 'DELETE' });
