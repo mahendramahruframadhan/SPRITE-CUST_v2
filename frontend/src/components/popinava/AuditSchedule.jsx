@@ -543,6 +543,7 @@ export default function AuditSchedule({ outlets, canWrite }) {
         outlet={detail && detail.item.type === 'outlet' ? outletByUuid.get(detail.item.uuid) : null}
         outlets={detail && detail.item.type === 'brand' ? outletsByBrand.get(detail.item.brand) || [] : []}
         onClose={() => setDetail(null)}
+        canWrite={canWrite}
       />
     </>
   );

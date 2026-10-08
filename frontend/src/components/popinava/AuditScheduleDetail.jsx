@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/Button.jsx';
 import { ScrollArea } from '../ui/ScrollArea.jsx';
 import { formatHistoryStamp, getAuditHistory } from '../../lib/auditSchedule.js';
+import AuditShotsPanel from './AuditShotsPanel.jsx';
 
 function Field({ label, value }) {
   if (!value) return null;
@@ -46,7 +47,7 @@ function OutletRow({ o }) {
   );
 }
 
-export default function AuditScheduleDetail({ open, item, monthKey, itemId, weekLabel, outlet, outlets, onClose }) {
+export default function AuditScheduleDetail({ open, item, monthKey, itemId, weekLabel, outlet, outlets, onClose, canWrite = true }) {
   const closeRef = useRef(null);
   const [history, setHistory] = useState([]);
 
@@ -136,7 +137,17 @@ export default function AuditScheduleDetail({ open, item, monthKey, itemId, week
                 </p>
                 <ul className="mt-1.5 space-y-2">
                   {outlets.map((o) => (
-                    <OutletRow key={o.uuid} o={o} />
+                    <li key={o.uuid} className="space-y-2">
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2.5 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1 text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{o.deptChannelName}</span>
+                          <StatusBadge status={o.status} />
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{[o.rvtCustcode, o.deptCode, o.deptName].filter(Boolean).join(' · ')}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{[o.isoCode, o.city, o.province, o.postcode, o.region].filter(Boolean).join(' · ')}</p>
+                      </div>
+                      <AuditShotsPanel outletUuid={o.uuid} canWrite={canWrite} />
+                    </li>
                   ))}
                 </ul>
               </section>
@@ -158,6 +169,11 @@ export default function AuditScheduleDetail({ open, item, monthKey, itemId, week
                     <StatusBadge status={outlet?.status} />
                   </div>
                 </div>
+                {(outlet?.uuid || item?.uuid) && (
+                  <div className="mt-3">
+                    <AuditShotsPanel outletUuid={outlet?.uuid || item?.uuid} canWrite={canWrite} />
+                  </div>
+                )}
               </section>
             )}
 

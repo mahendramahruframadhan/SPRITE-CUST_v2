@@ -809,7 +809,6 @@ export default function PopiNavaPage() {
         onClose={() => setDrawerOpen(false)}
         onSave={saveDrawer}
         onDelete={drawerMode === 'edit' && editing ? () => deleteOne(editing) : undefined}
-        canWrite={canWrite}
       />
       <ImportWizard
         open={wizardOpen}
