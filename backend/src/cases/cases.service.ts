@@ -17,6 +17,7 @@ export class CasesService {
     const status = q.status || '';
     const billingStatus = q.billingStatus || '';
     const assignTo = q.assignTo || q.pic || '';
+    const groupKpi = (q.groupKpi || q.group_kpi || '').trim();
     const from = (q.from || q.dateFrom || '').replace(/-/g, '');
     const to = (q.to || q.dateTo || '').replace(/-/g, '');
 
@@ -28,6 +29,15 @@ export class CasesService {
     if (status) { params.push(status); wheres.push(`status = ${ph()}`); }
     if (billingStatus) { params.push(billingStatus); wheres.push(`billing_status = ${ph()}`); }
     if (assignTo) { params.push(assignTo); wheres.push(`assign_to = ${ph()}`); }
+    if (groupKpi) {
+      const values = groupKpi.split(',').map((v: string) => v.trim()).filter(Boolean);
+      if (values.length === 1) {
+        params.push(values[0]); wheres.push(`group_kpi = ${ph()}`);
+      } else if (values.length > 1) {
+        const marks = values.map((v: string) => { params.push(v); return `$${params.length}`; });
+        wheres.push(`group_kpi IN (${marks.join(',')})`);
+      }
+    }
     if (from) { params.push(from); wheres.push(`date_issue >= ${ph()}`); }
     if (to) { params.push(to); wheres.push(`date_issue <= ${ph()}`); }
     if (keyword) {
@@ -55,6 +65,13 @@ export class CasesService {
     });
 
     return { data: (rows as any[]).map(mapRow), total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async groupKpis() {
+    const res: any = await this.db.pq(
+      `SELECT DISTINCT group_kpi AS k FROM assistance_records WHERE group_kpi IS NOT NULL AND group_kpi <> '' ORDER BY group_kpi`,
+    );
+    return (res.rows || res).map((r: any) => r.k);
   }
 
   async findOne(recordUuid: string) {

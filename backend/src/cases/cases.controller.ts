@@ -20,6 +20,11 @@ export class CasesController {
     return this.cases.stats();
   }
 
+  @Get('group-kpis')
+  async groupKpis() {
+    return this.cases.groupKpis();
+  }
+
   @Get(':uuid')
   async one(@Param('uuid') uuid: string) {
     const r = await this.cases.findOne(uuid);
