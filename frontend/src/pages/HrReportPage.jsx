@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { useCases } from '../hooks/useCases.js';
+import { fetchCasesByGroupKpi } from '../lib/api.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { moduleTone } from '../utils/tones.js';
@@ -145,15 +146,30 @@ export default function HrReportPage() {
     [picDisplay]
   );
 
+  // Filter Group KPI dijalankan di backend (WHERE group_kpi); tanggal & PIC tetap client-side.
+  const [serverCases, setServerCases] = useState(null);
+  const [serverLoading, setServerLoading] = useState(false);
+  useEffect(() => {
+    if (!groupKpi) { setServerCases(null); setServerLoading(false); return; }
+    let alive = true;
+    setServerLoading(true);
+    fetchCasesByGroupKpi(groupKpi).then(
+      (rows) => { if (alive) { setServerCases(rows); setServerLoading(false); } },
+      () => { if (alive) { setServerCases([]); setServerLoading(false); } },
+    );
+    return () => { alive = false; };
+  }, [groupKpi]);
+
   const filtered = useMemo(() => {
     const f = from.replace(/-/g, '');
     const t = to.replace(/-/g, '');
     const q = normPic(pic);
-    return allCases.filter((c) => {
+    const base = groupKpi ? (serverCases || []) : allCases;
+    return base.filter((c) => {
       const d = normDate8(c.dateIssue);
-      return (!f || d >= f) && (!t || d <= t) && (!q || normPic(c.assignTo) === q) && (!groupKpi || normKpi(c.groupKpi) === groupKpi);
+      return (!f || d >= f) && (!t || d <= t) && (!q || normPic(c.assignTo) === q);
     });
-  }, [from, to, pic, groupKpi, allCases]);
+  }, [from, to, pic, groupKpi, allCases, serverCases]);
 
   const generatedAt = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -417,7 +433,7 @@ export default function HrReportPage() {
                     </tr>
                   );
                 })}
-                {loading ? (
+                {loading || serverLoading ? (
                   <LoadingRow colSpan={KPI_COLS.length + 2} />
                 ) : picList.length === 0 && (
                   <EmptyRow colSpan={KPI_COLS.length + 2} compact>Tidak ada data pada periode ini</EmptyRow>
@@ -473,7 +489,7 @@ export default function HrReportPage() {
                     </td>
                   </tr>
                 ))}
-                {loading ? (
+                {loading || serverLoading ? (
                   <LoadingRow colSpan={7} />
                 ) : detailRows.length === 0 && (
                   <EmptyRow colSpan={7}>Tidak ada ticket pada periode & filter ini</EmptyRow>
@@ -482,7 +498,7 @@ export default function HrReportPage() {
             </table>
           </div>
           <div className="px-5 sm:px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-wrap items-center gap-x-4 gap-y-1 justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>Menampilkan {detailRows.length} dari {allCases.length} ticket{pic ? ` · PIC: ${pic}` : ''}{groupKpi ? ` · Group KPI: ${groupKpi.replace('• ', '')}` : ''}</span>
+            <span>Menampilkan {detailRows.length} dari {(groupKpi ? (serverCases || []).length : allCases.length)} ticket{pic ? ` · PIC: ${pic}` : ''}{groupKpi ? ` · Group KPI: ${groupKpi.replace('• ', '')}` : ''}</span>
             <span>Sumber: Google Sheets (sinkron)</span>
           </div>
         </div>

@@ -178,3 +178,18 @@ export const postPopinavaBulk = (body) => post('/popinava/bulk', body);
 export const getPopinavaHistory = (uuid) => get(`/popinava/${encodeURIComponent(uuid)}/history`);
 // Log aktivitas POPI NAVA (kategori 'popinava', urut terbaru) — khusus Super Admin.
 export const getPopinavaLogs = (limit) => get(`/popinava/logs${limit ? `?limit=${encodeURIComponent(limit)}` : ''}`);
+
+// GET /api/cases dengan filter group KPI server-side.
+export async function fetchCasesByGroupKpi(groupKpi = '') {
+  const qs = groupKpi ? `&groupKpi=${encodeURIComponent(groupKpi)}` : '';
+  const first = await get(`/cases?page=1&limit=100${qs}`);
+  const out = [...(first.data || [])];
+  const totalPages = first.totalPages || 1;
+  if (totalPages > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) => get(`/cases?page=${i + 2}&limit=100${qs}`))
+    );
+    rest.forEach((r) => out.push(...(r.data || [])));
+  }
+  return out;
+}
