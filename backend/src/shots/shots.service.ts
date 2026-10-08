@@ -53,6 +53,10 @@ export class ShotsService {
         region: process.env.R2_REGION || 'auto',
         endpoint: process.env.R2_ENDPOINT!,
         forcePathStyle: true,
+        // SDK ≥3.7xx menambah default checksum CRC32 ke URL presigned PUT —
+        // browser tidak mengirim header itu → CORS/signature gagal (ERR_FAILED).
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+        responseChecksumValidation: 'WHEN_REQUIRED',
         credentials: {
           accessKeyId: process.env.R2_ACCESS_KEY_ID!,
           secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,

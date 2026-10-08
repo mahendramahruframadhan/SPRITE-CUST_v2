@@ -46,6 +46,9 @@ export class PdfService {
         // (<bucket>.<endpoint>/...) yang DNS/sertifikatnya tidak valid → 404 +
         // ERR_SSL_VERSION_OR_CIPHER_MISMATCH saat PUT dari browser.
         forcePathStyle: true,
+        // Hotfix ERR_FAILED presigned PUT dari browser (lihat shots.service.ts).
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+        responseChecksumValidation: 'WHEN_REQUIRED',
         credentials: {
           accessKeyId: process.env.R2_ACCESS_KEY_ID!,
           secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
