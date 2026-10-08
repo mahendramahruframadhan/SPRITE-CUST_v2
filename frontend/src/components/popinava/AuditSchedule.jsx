@@ -28,6 +28,7 @@ import {
   saveSchedule,
   shiftMonthKey,
 } from '../../lib/auditSchedule.js';
+import { listShotsByOutlet } from '../../lib/api.js';
 
 function parseMonth(monthKey) {
   const [y, m] = monthKey.split('-').map(Number);
@@ -130,6 +131,36 @@ export default function AuditSchedule({ outlets, canWrite }) {
     }
     return m;
   }, [outlets]);
+
+  // Status foto audit per outlet: true bila slot LOCAL & WEB sudah terisi.
+  const [shotsComplete, setShotsComplete] = useState({});
+  const reloadShots = useCallback(async () => {
+    const uuids = new Set();
+    for (const k of WEEK_LABELS) {
+      for (const it of current[k]) {
+        if (it.type === 'brand') (outletsByBrand.get(it.brand) || []).forEach((o) => uuids.add(o.uuid));
+        else if (it.uuid) uuids.add(it.uuid);
+      }
+    }
+    const entries = await Promise.all(
+      [...uuids].map(async (u) => {
+        try {
+          const rows = await listShotsByOutlet(u);
+          const slots = new Set((rows || []).filter((r) => r.status !== 'failed').map((r) => r.slot));
+          return [u, slots.has('local') && slots.has('web')];
+        } catch {
+          return [u, false];
+        }
+      }),
+    );
+    setShotsComplete(Object.fromEntries(entries));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weeks, outletsByBrand]);
+
+  useEffect(() => {
+    if (weeks) reloadShots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weeks]);
 
   function toggleExpand(id) {
     setExpanded((prev) => {
@@ -374,6 +405,12 @@ export default function AuditSchedule({ outlets, canWrite }) {
                 current[k].map((item) => {
                   const isBrand = item.type === 'brand';
                   const brandOutlets = isBrand ? outletsByBrand.get(item.brand) || [] : [];
+                  // Audit dianggap selesai bila foto LOCAL & WEB sudah terupload
+                  // (outlet: outlet itu; brand: semua outlet brand wajib terpenuhi).
+                  const shotsDone = isBrand
+                    ? brandOutlets.length > 0 && brandOutlets.every((o) => shotsComplete[o.uuid])
+                    : !!shotsComplete[item.uuid];
+                  const done = item.audited || shotsDone;
                   const sub = isBrand
                     ? `${brandOutlets.length} outlet ikut`
                     : outletSub(outletByUuid.get(item.uuid));
@@ -398,13 +435,19 @@ export default function AuditSchedule({ outlets, canWrite }) {
                           openDetail(k, item);
                         }
                       }}
-                      className={`flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 dark:border-slate-800 px-3 py-2 transition hover:border-slate-300 dark:hover:border-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 ${
-                        drag?.id === item.id ? 'opacity-50' : ''
-                      } ${canWrite ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
+                      className={`flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 ${
+                        done
+                          ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-500/[0.07] hover:border-emerald-300 dark:hover:border-emerald-500/50'
+                          : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
+                      } ${drag?.id === item.id ? 'opacity-50' : ''} ${canWrite ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
                     >
                       <span
                         aria-hidden="true"
-                        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-600/10 text-brand-700 dark:text-brand-300 text-xs font-bold"
+                        className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold ${
+                          done
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-brand-600/10 text-brand-700 dark:text-brand-300'
+                        }`}
                       >
                         {(isBrand ? item.brand : item.brand || '-').slice(0, 1)}
                       </span>
@@ -446,7 +489,7 @@ export default function AuditSchedule({ outlets, canWrite }) {
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{sub}</p>
                         )}
                       </div>
-                      {item.audited && (
+                      {done && (
                         <span className="shrink-0 text-[10px] font-bold px-1.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30">
                           Sudah audit
                         </span>
@@ -544,6 +587,7 @@ export default function AuditSchedule({ outlets, canWrite }) {
         outlets={detail && detail.item.type === 'brand' ? outletsByBrand.get(detail.item.brand) || [] : []}
         onClose={() => setDetail(null)}
         canWrite={canWrite}
+        onChangedShots={reloadShots}
       />
     </>
   );

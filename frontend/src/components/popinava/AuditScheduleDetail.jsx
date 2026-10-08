@@ -47,7 +47,7 @@ function OutletRow({ o }) {
   );
 }
 
-export default function AuditScheduleDetail({ open, item, monthKey, itemId, weekLabel, outlet, outlets, onClose, canWrite = true }) {
+export default function AuditScheduleDetail({ open, item, monthKey, itemId, weekLabel, outlet, outlets, onClose, canWrite = true, onChangedShots }) {
   const closeRef = useRef(null);
   const [history, setHistory] = useState([]);
 
@@ -146,7 +146,7 @@ export default function AuditScheduleDetail({ open, item, monthKey, itemId, week
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{[o.rvtCustcode, o.deptCode, o.deptName].filter(Boolean).join(' · ')}</p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{[o.isoCode, o.city, o.province, o.postcode, o.region].filter(Boolean).join(' · ')}</p>
                       </div>
-                      <AuditShotsPanel outletUuid={o.uuid} canWrite={canWrite} />
+                      <AuditShotsPanel outletUuid={o.uuid} canWrite={canWrite} onChangedShots={onChangedShots} />
                     </li>
                   ))}
                 </ul>
@@ -171,7 +171,7 @@ export default function AuditScheduleDetail({ open, item, monthKey, itemId, week
                 </div>
                 {(outlet?.uuid || item?.uuid) && (
                   <div className="mt-3">
-                    <AuditShotsPanel outletUuid={outlet?.uuid || item?.uuid} canWrite={canWrite} />
+                    <AuditShotsPanel outletUuid={outlet?.uuid || item?.uuid} canWrite={canWrite} onChangedShots={onChangedShots} />
                   </div>
                 )}
               </section>

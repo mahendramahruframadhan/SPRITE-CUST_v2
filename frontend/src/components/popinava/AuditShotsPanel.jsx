@@ -221,7 +221,7 @@ function SlotCard({ slot, shot, outletUuid, onChanged, canWrite }) {
   );
 }
 
-export default function AuditShotsPanel({ outletUuid, canWrite = true }) {
+export default function AuditShotsPanel({ outletUuid, canWrite = true, onChangedShots }) {
   const [shots, setShots] = useState([]);
   const [loading, setLoading] = useState(false);
   const load = useCallback(() => {
@@ -230,8 +230,11 @@ export default function AuditShotsPanel({ outletUuid, canWrite = true }) {
     listShotsByOutlet(outletUuid).then(
       (rows) => setShots(Array.isArray(rows) ? rows : rows?.data || []),
       () => setShots([]),
-    ).finally(() => setLoading(false));
-  }, [outletUuid]);
+    ).finally(() => {
+      setLoading(false);
+      onChangedShots?.();
+    });
+  }, [outletUuid, onChangedShots]);
 
   useEffect(() => { load(); }, [load]);
 
