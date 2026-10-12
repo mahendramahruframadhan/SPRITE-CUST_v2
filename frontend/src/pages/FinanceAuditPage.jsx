@@ -25,7 +25,6 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
 import InvoiceHistoryModal from '../components/InvoiceHistoryModal.jsx';
 import TaxCell from '../components/TaxCell.jsx';
 import TaxModal from '../components/TaxModal.jsx';
-import TaxSummaryPanel from '../components/TaxSummaryPanel.jsx';
 
 /* eslint-disable react/forbid-elements --
    Halaman ini penuh kontrol mikro kustom per baris tabel: tombol ikon PDF
@@ -795,9 +794,6 @@ export default function FinanceAuditPage() {
           </div>
         </div>
       </Reveal>
-
-      {/* Rekap subtotal: Total Charges + PPN per baris (pajak per transaksi ON-CALL) */}
-      <TaxSummaryPanel total={total} rows={filtered} taxMap={taxMap} />
 
       {/* Table */}
       <Reveal className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">

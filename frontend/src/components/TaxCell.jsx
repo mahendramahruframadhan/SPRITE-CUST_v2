@@ -87,6 +87,13 @@ export default function TaxCell({ recordUuid, charges, billingStatus, tax, onEdi
         {pphOn ? 'PPH' : 'Non PPH'}
       </button>
 
+      <span
+        data-testid="row-subtotal"
+        className="block text-[11px] font-bold tabular-nums text-emerald-700 dark:text-emerald-400"
+      >
+        Subtotal {fmtMoney(charges + resolveTaxAmount(ppn, charges))}
+      </span>
+
       {pop.open && pop.pos &&
         createPortal(
           <div

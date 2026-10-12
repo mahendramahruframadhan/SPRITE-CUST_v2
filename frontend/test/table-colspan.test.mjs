@@ -1,5 +1,5 @@
 // Uji struktural tabel: setiap colSpan numerik (EmptyRow/LoadingRow) harus sama
-// dengan jumlah <th> pada tabel yang menaunginya — cegah sel melebar/sempit
+// dengan jumlah <th> pada tabel yang menaunginya, cegah sel melebar/sempit
 // diam-diam saat kolom berubah. Murni baca sumber (tanpa DOM).
 // Jalankan: npm test
 import { describe, it } from 'node:test';
