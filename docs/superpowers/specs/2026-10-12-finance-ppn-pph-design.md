@@ -13,7 +13,8 @@ Arah visual: `DESIGN.md` (dial ENERGY 2 / RHYTHM 2 / MOTION 1), filter antislop 
 Menambahkan tiga hal di halaman `/finance` (`frontend/src/pages/FinanceAuditPage.jsx`):
 
 1. **PPN** via dropdown `PPN / Non PPN`. Non PPN: PPN = 0, tidak ada modal.
-   PPN: modal input nilai rupiah yang diakumulasikan ke total charges.
+   PPN: modal dengan pilihan mode **Persen** atau **Rupiah** yang
+   diakumulasikan ke total charges.
 2. **PPH** via dropdown `PPH / Non PPH` (default Non PPH), input fleksibel:
    mode **Persen** (dihitung otomatis dari Total Charges) atau **Manual**
    (rupiah tetap).
@@ -52,7 +53,7 @@ Seluruh state level-halaman, disimpan di `localStorage` (tanpa API pada fase ini
 | No | Keputusan | Alasan (satu baris) |
 | --- | --- | --- |
 | D1 | `Subtotal = Total + PPN − PPH` (PPH mengurangi) | Praktik umum PPh dipotong saat pembayaran |
-| D2 | PPN selalu input rupiah manual di modal | Permintaan user: Non PPN tanpa modal, PPN dengan modal rupiah |
+| D2 | PPN dua mode di modal: **Persen** (default) atau **Rupiah**, dipilih di modal | Revisi user 2026-10-12: modal PPN bisa diisi rupiah maupun persen |
 | D3 | PPH dua mode: Persen (default) atau Manual | Permintaan user: input fleksibel, manual atau tidak terserah |
 | D4 | Base persen PPH = Total Charges (filter aktif) | DPP layanan umumnya tidak termasuk PPN |
 | D5 | Persistensi `localStorage` key `finance-tax-v1` | Fase frontend-only; sinkron API = fase 2 |
@@ -85,31 +86,38 @@ di antara panel Filter dan tabel (alur: filter -> rekap -> tabel). Props:
 
 Menu dropdown selalu punya dua item:
 
-- `PPN (isi rupiah)…` / `PPH (isi pajak)…` -> membuka modal (edit bila sudah aktif)
+- `PPN (isi pajak)…` / `PPH (isi pajak)…` -> membuka modal (edit bila sudah aktif)
 - `Non PPN (reset)` / `Non PPH (reset)` -> menonaktifkan dan menghapus nilai tersimpan
 
 ### 5.2 Modal PPN
 
 Gaya modal PAID: backdrop blur, header gradient emerald, `role="dialog"`
 `aria-modal="true"`, tutup via Escape, backdrop klik, dan tombol Batal.
+Struktur identik dengan modal PPH (5.3), termasuk toggle mode:
 
-- Input: `Nilai PPN (Rp)`, angka bulat >= 0 (hanya digit yang diterima).
-- Preview: `PPN ditambahkan ke subtotal: Rp X`.
-- Validasi inline: kosong/bukan angka/negatif -> tombol Simpan dinonaktifkan
-  + pesan error di bawah input (R-27).
-- Simpan -> `ppn = { enabled: true, amount }` -> tutup modal.
-- Non PPN -> `ppn = { enabled: false, amount: 0 }` (nilai lama dihapus).
+- **Persen** (default): input `% dari Total Charges` (desimal diizinkan),
+  preview `Rp round(total × % / 100)` yang ikut hidup bila `total` berubah.
+  Nilai tersimpan `mode + percent`; rupiah diturunkan ulang saat render.
+- **Rupiah**: input angka bulat >= 0 (hanya digit yang diterima), preview
+  `PPN ditambahkan ke subtotal: Rp X`.
+- Validasi inline: mode Persen: % kosong/negatif -> Simpan dinonaktifkan;
+  mode Rupiah: kosong/bukan angka/negatif -> Simpan dinonaktifkan, pesan
+  error di bawah input (R-27).
+- Simpan -> `ppn = { enabled: true, mode, percent?, amount }` -> tutup modal.
+- Non PPN -> `ppn = { enabled: false, mode: null, percent: 0, amount: 0 }`
+  (nilai lama dihapus).
 
 ### 5.3 Modal PPH
 
-Gaya identik dengan modal PPN, ditambah toggle mode:
+Gaya identik dengan modal PPN (termasuk toggle mode):
 
 - **Persen** (default): input `% dari Total Charges` (desimal diizinkan,
   mis. 2 / 0.5 / 0.3), preview `Rp round(total × % / 100)` yang ikut hidup
   bila `total` berubah. Nilai tersimpan adalah `mode + percent`; rupiah
   selalu diturunkan ulang dari `total` saat render.
-- **Manual**: input rupiah bulat >= 0, sama seperti modal PPN.
-- Simpan -> `pph = { enabled: true, mode, percent?, amount }`.
+- **Rupiah**: input rupiah bulat >= 0, sama seperti modal PPN.
+- Simpan -> `pph = { enabled: true, mode, percent?, amount }`, nilai `mode`
+  hanya `"percent"` atau `"rupiah"`.
 - Non PPH -> `pph = { enabled: false, mode: null, percent: 0, amount: 0 }`.
 
 ### 5.4 Aksesibilitas (R-32, R-26)
@@ -121,19 +129,20 @@ Gaya identik dengan modal PPN, ditambah toggle mode:
 
 ## 6. Data model & persistensi
 
-Bentuk di `localStorage['finance-tax-v1']`, dua kunci saja (`ppn`, `pph`):
+Bentuk di `localStorage['finance-tax-v1']`, dua kunci saja (`ppn`, `pph`),
+keduanya berbentuk sama (mode/percent dipakai bila `enabled`):
 
 ```json
 {
-  "ppn": { "enabled": true, "amount": 110000 },
+  "ppn": { "enabled": true, "mode": "rupiah", "percent": 0, "amount": 110000 },
   "pph": { "enabled": true, "mode": "percent", "percent": 2, "amount": 22000 }
 }
 ```
 
-Contoh lain isi `pph` (mode manual, dan keadaan non-aktif):
+Contoh lain isi salah satu kunci (mode persen, dan keadaan non-aktif):
 
 ```json
-{ "enabled": true, "mode": "manual", "percent": 0, "amount": 50000 }
+{ "enabled": true, "mode": "percent", "percent": 11, "amount": 110000 }
 { "enabled": false, "mode": null, "percent": 0, "amount": 0 }
 ```
 
@@ -142,7 +151,7 @@ Aturan:
 - Parse terjaga: JSON rusak/hilang -> default kedua pajak non-aktif.
 - Mode `percent`: `amount` selalu diturunkan ulang saat render, `amount`
   tersimpan hanya untuk keperluan tampilan sesaat (snapshot per refresh).
-- Mode `manual`: `amount` tetap sampai user mengubah atau mereset.
+- Mode `rupiah`: `amount` tetap sampai user mengubah atau mereset.
 - Simpan ke `localStorage` setiap kali state pajak berubah (subscribe
   `useEffect`).
 
@@ -152,8 +161,8 @@ Aturan:
 total (useMemo dari filtered, FinanceAuditPage)
   -> <TaxSummaryPanel total={total}>
        state ppn/pph (useState + localStorage)
-       -> taxSummary.js (fungsi murni): computeSubtotal, pphAmountFromPercent,
-          sanitizeTaxState, validateRpInput
+       -> taxSummary.js (fungsi murni): computeSubtotal, amountFromPercent
+          (dipakai PPN & PPH), sanitizeTaxState, validateRpInput
        -> render rincian + Subtotal Akhir
        -> dropdown (usePopover) -> modal (PPN | PPH) -> setState -> persist
 ```
@@ -176,20 +185,22 @@ supaya bisa diuji unit tanpa DOM.
 
 - `computeSubtotal`: kasus dua-duanya non, hanya PPN, hanya PPH, keduanya,
   hasil negatif (D8), input bukan angka -> angka 0.
-- `pphAmountFromPercent`: pembulatan ke rupiah bulat, persen 0, total 0,
-  persen desimal.
-- `sanitizeTaxState`: JSON rusak, objek parsial, angka negatif -> dinormalkan.
+- `amountFromPercent`: pembulatan ke rupiah bulat, persen 0, total 0,
+  persen desimal (dipakai modal PPN dan PPH).
+- `sanitizeTaxState`: JSON rusak, objek parsial, mode tak dikenal,
+  angka negatif -> dinormalkan.
 - `validateRpInput`: string digit, kosong, minus, desimal.
 
 ### E2E (`frontend/tests/finance-tax.e2e.ts`, `npx e2e`)
 
 1. Default: keduanya Non, subtotal = Total Charges, modal tidak pernah muncul.
-2. PPN 100.000 -> subtotal = total + 100.000 (angka persis).
-3. PPH manual 50.000 -> subtotal = total + 100.000 - 50.000.
-4. PPH mode persen 2% -> nilai = round(total x 0.02), subtotal ikut benar.
-5. Reset Non PPN / Non PPH -> subtotal kembali ke Total Charges.
-6. Escape menutup modal tanpa mengubah nilai.
-7. Reload halaman -> nilai pajak bertahan (localStorage).
+2. PPN rupiah 100.000 -> subtotal = total + 100.000 (angka persis).
+3. PPN mode persen 11% -> nilai = round(total x 0.11), subtotal ikut benar.
+4. PPH rupiah 50.000 -> subtotal = total + PPN - 50.000.
+5. PPH mode persen 2% -> nilai = round(total x 0.02), subtotal ikut benar.
+6. Reset Non PPN / Non PPH -> subtotal kembali ke Total Charges.
+7. Escape menutup modal tanpa mengubah nilai.
+8. Reload halaman -> nilai pajak bertahan (localStorage).
 
 ### Delivery Gate antislop (mode DURING)
 
@@ -202,8 +213,9 @@ Craftsmanship) dengan bukti per item, termasuk klik-manual setiap kontrol
 1. **Lib + unit test**: `frontend/src/lib/taxSummary.js` +
    `frontend/test/taxSummary.test.mjs` (RED -> GREEN).
 2. **Panel + PPN**: `frontend/src/components/TaxSummaryPanel.jsx` (rincian,
-   dropdown, modal PPN), mount di `FinanceAuditPage.jsx`, e2e bagian PPN.
-3. **PPH**: toggle mode persen/manual di modal PPH, perhitungan turunan,
+   dropdown, modal PPN dua mode persen/rupiah), mount di
+   `FinanceAuditPage.jsx`, e2e bagian PPN.
+3. **PPH**: dropdown & modal PPH (mode persen/rupiah), perhitungan turunan,
    e2e bagian PPH.
 4. **Persistensi + gate**: `localStorage` load/save, e2e reload, lint,
    build, unit+e2e penuh, Delivery Gate antislop.
