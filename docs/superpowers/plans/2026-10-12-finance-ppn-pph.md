@@ -45,12 +45,12 @@ Input/kondisi yang paling mungkin menggigit, dengan test yang menguncinya:
 **Interfaces:**
 - Consumes: (tidak ada, murni)
 - Produces (dipakai Task 2-4):
-  - `computeSubtotal({ total, ppn, pph }) -> number` — angka mentah non-angka di-coerce ke 0; hasil boleh negatif.
-  - `amountFromPercent(total, percent) -> number` — `Math.round(total * percent / 100)`; input tak valid/negatif -> 0.
-  - `resolveTaxAmount(entry, total) -> number` — `enabled !== true` -> 0; `mode === 'percent'` -> `amountFromPercent(total, entry.percent)`; selainnya -> `entry.amount` bila angka, else 0.
-  - `sanitizeTaxState(raw: string|null) -> { ppn: TaxEntry, pph: TaxEntry }` — `raw` bukan JSON valid -> default non-aktif; per kunci: `enabled` harus `=== true`; `mode` selain `'percent'` dianggap `'rupiah'` bila `amount` valid, dan `null` bila `enabled` false; `percent`/`amount` harus angka >= 0 selain itu 0.
-  - `validateRpInput(str: string) -> boolean` — cocok `/^\d+$/` (integer, boleh `0`).
-  - `validatePercentInput(str: string) -> boolean` — cocok `/^\d+(\.\d+)?$/` (boleh desimal).
+  - `computeSubtotal({ total, ppn, pph }) -> number` - angka mentah non-angka di-coerce ke 0; hasil boleh negatif.
+  - `amountFromPercent(total, percent) -> number` - `Math.round(total * percent / 100)`; input tak valid/negatif -> 0.
+  - `resolveTaxAmount(entry, total) -> number` - `enabled !== true` -> 0; `mode === 'percent'` -> `amountFromPercent(total, entry.percent)`; selainnya -> `entry.amount` bila angka, else 0.
+  - `sanitizeTaxState(raw: string|null) -> { ppn: TaxEntry, pph: TaxEntry }` - `raw` bukan JSON valid -> default non-aktif; per kunci: `enabled` harus `=== true`; `mode` selain `'percent'` dianggap `'rupiah'` bila `amount` valid, dan `null` bila `enabled` false; `percent`/`amount` harus angka >= 0 selain itu 0.
+  - `validateRpInput(str: string) -> boolean` - cocok `/^\d+$/` (integer, boleh `0`).
+  - `validatePercentInput(str: string) -> boolean` - cocok `/^\d+(\.\d+)?$/` (boleh desimal).
 
 - [ ] **Step 1: Tulis test yang gagal**
 
@@ -188,7 +188,7 @@ git commit -m "✅ test(frontend): lib taxSummary - rumus subtotal, persen, sani
 
 **Files:**
 - Create: `frontend/src/components/TaxSummaryPanel.jsx`
-- Modify: `frontend/src/pages/FinanceAuditPage.jsx` — import komponen; sisipkan `<TaxSummaryPanel total={total} />` di antara penutup Reveal Filter (baris 783) dan komentar `{/* Table */}` (baris 785)
+- Modify: `frontend/src/pages/FinanceAuditPage.jsx` - import komponen; sisipkan `<TaxSummaryPanel total={total} />` di antara penutup Reveal Filter (baris 783) dan komentar `{/* Table */}` (baris 785)
 - Test: `frontend/tests/finance-tax.e2e.ts` (baru; describe tags `['finance']`, `session: 'admin'`)
 
 **Interfaces:**
