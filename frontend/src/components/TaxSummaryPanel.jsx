@@ -19,14 +19,24 @@ import {
 
 const fmtMoney = (n) => 'Rp ' + (n || 0).toLocaleString('id-ID');
 const NON_AKTIF = sanitizeTaxState(null).ppn;
+const STORAGE_KEY = 'finance-tax-v1';
+// Pintu tunggal baca localStorage: sanitizeTaxState; gagal akses (mode privat,
+// larangan storage) -> default non-aktif.
+const readStoredTax = () => {
+  try {
+    return sanitizeTaxState(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    return sanitizeTaxState(null);
+  }
+};
 
 const rowCls = 'flex items-center justify-between gap-4';
 const labelCls = 'text-sm font-semibold text-slate-500 dark:text-slate-400';
 const valueCls = 'text-sm font-bold tabular-nums text-slate-800 dark:text-slate-100';
 
 export default function TaxSummaryPanel({ total }) {
-  const [ppn, setPpn] = useState(NON_AKTIF);
-  const [pph, setPph] = useState(NON_AKTIF);
+  const [ppn, setPpn] = useState(() => readStoredTax().ppn);
+  const [pph, setPph] = useState(() => readStoredTax().pph);
   const [modal, setModal] = useState(null);
 
   const ppnPop = usePopover({ width: 260 });
@@ -39,6 +49,13 @@ export default function TaxSummaryPanel({ total }) {
   useEffect(() => {
     if (pphPop.open) pphFirstRef.current?.focus();
   }, [pphPop.open]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ppn, pph }));
+    } catch {
+      /* storage diblokir: state tetap hidup di memori saja */
+    }
+  }, [ppn, pph]);
 
   const ppnAmount = resolveTaxAmount(ppn, total);
   const pphAmount = resolveTaxAmount(pph, total);

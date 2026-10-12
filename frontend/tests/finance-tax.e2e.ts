@@ -41,8 +41,10 @@ const parseRp = (t: string) =>
   /^Non /.test(t.trim()) ? 0 : Number(t.replace(/[^\d]/g, ''));
 // Data kasus dimuat async; tunggu total siap (>0) sebelum dipakai hitungan
 // ekspektasi. valueOf sudah retry, loop ini untuk kondisi nilai belum siap.
+// Deadline 120s: di bawah beban mesin (load 15+, swap aktif) fetch 23 halaman
+// /api/cases perlu >60s (teramati 91s+ pada run 15:05).
 const waitTotal = async (browser: any) => {
-  const deadline = Date.now() + 60000;
+  const deadline = Date.now() + 120000;
   let last = -1;
   while (Date.now() < deadline) {
     try {
@@ -54,7 +56,7 @@ const waitTotal = async (browser: any) => {
     }
     await new Promise((r) => setTimeout(r, 1000));
   }
-  throw new Error(`total tidak siap dalam 60s (nilai terakhir: ${last})`);
+  throw new Error(`total tidak siap dalam 120s (nilai terakhir: ${last})`);
 };
 
 describe('finance: PPN, PPH & subtotal', { tags: ['finance'] }, () => {
@@ -68,6 +70,30 @@ describe('finance: PPN, PPH & subtotal', { tags: ['finance'] }, () => {
 
     await screen.getByRole('button', { name: 'PPN: Non PPN' }).tap();
     const menu = screen.getByRole('menu', { name: 'Opsi PPN' });
+    await expect(menu).toBeVisible();
+
+    // Batal: isi nilai lalu batal, state tidak berubah.
+    await screen.getByRole('menuitem', { name: /^PPN \(isi pajak\)/ }).tap();
+    const dlg = screen.getByRole('dialog', { name: 'PPN' });
+    await expect(dlg).toBeVisible();
+    await dlg.getByLabel('Persen (%)').fill('50');
+    await dlg.getByRole('button', { name: 'Batal' }).tap();
+    await expect(dlg).toBeHidden();
+    await expectText(browser.locator('#tax-ppn-value'), 'Non PPN');
+
+    // Backdrop (area gelap): tutup dialog tanpa menyimpan.
+    // Posisi klik di pojok kiri-atas: titik tengah backdrop tertutup dialog.
+    await screen.getByRole('button', { name: 'PPN: Non PPN' }).tap();
+    await screen.getByRole('menuitem', { name: /^PPN \(isi pajak\)/ }).tap();
+    await expect(dlg).toBeVisible();
+    await dlg.getByLabel('Persen (%)').fill('30');
+    await browser
+      .locator('div.fixed.inset-0.z-50 > div.absolute.inset-0')
+      .tap({ position: { x: 6, y: 6 } });
+    await expect(dlg).toBeHidden();
+    await expectText(browser.locator('#tax-ppn-value'), 'Non PPN');
+
+    await screen.getByRole('button', { name: 'PPN: Non PPN' }).tap();
     await expect(menu).toBeVisible();
     await screen.getByRole('menuitem', { name: /^Non PPN \(reset\)/ }).tap();
     await expect(menu).toBeHidden();
@@ -173,7 +199,9 @@ describe('finance: PPN, PPH & subtotal', { tags: ['finance'] }, () => {
     const total = await waitTotal(browser);
 
     // Isi dulu keduanya supaya reset benar-benar membuktikan pemulihan.
-    await screen.getByRole('button', { name: 'PPN: Non PPN' }).tap();
+    // (Tap memakai regex: bila persistensi lintas-test aktif, nilai awal bisa
+    // menunjukkan pajak tersimpan; alur tetap menimpa dengan nilai uji.)
+    await screen.getByRole('button', { name: /^PPN: / }).tap();
     await screen.getByRole('menuitem', { name: /^PPN \(isi pajak\)/ }).tap();
     const ppnDlg = screen.getByRole('dialog', { name: 'PPN' });
     await expect(ppnDlg).toBeVisible();
@@ -182,7 +210,7 @@ describe('finance: PPN, PPH & subtotal', { tags: ['finance'] }, () => {
     await ppnDlg.getByRole('button', { name: 'Simpan' }).tap();
     await expect(ppnDlg).toBeHidden();
 
-    await screen.getByRole('button', { name: 'PPH: Non PPH' }).tap();
+    await screen.getByRole('button', { name: /^PPH: / }).tap();
     await screen.getByRole('menuitem', { name: /^PPH \(isi pajak\)/ }).tap();
     const pphDlg = screen.getByRole('dialog', { name: 'PPH' });
     await expect(pphDlg).toBeVisible();
@@ -201,5 +229,33 @@ describe('finance: PPN, PPH & subtotal', { tags: ['finance'] }, () => {
     await expectText(browser.locator('#tax-ppn-value'), 'Non PPN');
     await expectText(browser.locator('#tax-pph-value'), 'Non PPH');
     await expectText(browser.locator('#tax-subtotal-value'), rp(total));
+  });
+
+  test('nilai pajak bertahan setelah reload', { session: 'admin' }, async ({ app, screen, browser }) => {
+    await app.open('/finance');
+    await waitTotal(browser);
+
+    await screen.getByRole('button', { name: /^PPN: / }).tap();
+    await screen.getByRole('menuitem', { name: /^PPN \(isi pajak\)/ }).tap();
+    const dlg = screen.getByRole('dialog', { name: 'PPN' });
+    await expect(dlg).toBeVisible();
+    await dlg.getByRole('button', { name: 'Rupiah' }).tap();
+    await dlg.getByLabel('Nilai (Rp)').fill('100000');
+    await dlg.getByRole('button', { name: 'Simpan' }).tap();
+    await expect(dlg).toBeHidden();
+
+    // Navigasi ulang penuh: nilai harus bertahan dari localStorage.
+    await app.open('/finance');
+    const total = await waitTotal(browser);
+    await expectText(browser.locator('#tax-ppn-value'), rp(100000));
+    await expectText(browser.locator('#tax-subtotal-value'), rp(total + 100000));
+
+    // Kebersihan sesi: kembalikan kedua pajak ke Non.
+    await screen.getByRole('button', { name: /^PPN: / }).tap();
+    await screen.getByRole('menuitem', { name: /^Non PPN \(reset\)/ }).tap();
+    await screen.getByRole('button', { name: /^PPH: / }).tap();
+    await screen.getByRole('menuitem', { name: /^Non PPH \(reset\)/ }).tap();
+    await expectText(browser.locator('#tax-ppn-value'), 'Non PPN');
+    await expectText(browser.locator('#tax-pph-value'), 'Non PPH');
   });
 });
