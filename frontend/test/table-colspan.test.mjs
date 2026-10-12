@@ -14,7 +14,7 @@ const TABEL_NUMERIK = {
   'DashboardPage.jsx': [8, 8],
   'DataKasusPage.jsx': [13, 13],
   'BillingPage.jsx': [12, 12],
-  'FinanceAuditPage.jsx': [13, 13],
+  'FinanceAuditPage.jsx': [14, 14], // +kolom Pajak (PPN/PPH per baris ON-CALL)
   'HrReportPage.jsx': [7, 7], // tabel detail; rekap memakai ekspresi dinamis (tes terpisah)
   'MockupPage.jsx': [12, 12],
 };

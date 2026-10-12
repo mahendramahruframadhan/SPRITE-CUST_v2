@@ -1,25 +1,40 @@
-// Lib perhitungan pajak halaman Finance (PPN/PPH & subtotal).
+// Lib perhitungan pajak halaman Finance, model PER TRANSAKSI (baris ON-CALL):
+// PPN menambah charges baris; PPH hanya status on/off (tanpa potongan).
 // Jalankan: npm test
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   computeSubtotal, amountFromPercent, resolveTaxAmount,
-  sanitizeTaxState, validateRpInput, validatePercentInput,
+  sanitizeRowTax, sanitizeTaxMap, sumPpn, pphActiveCount,
+  isTaxableRow, validateRpInput, validatePercentInput,
 } from '../src/lib/taxSummary.js';
 
-describe('computeSubtotal', () => {
-  it('dua-duanya non: subtotal = total', () =>
-    assert.equal(computeSubtotal({ total: 100000, ppn: 0, pph: 0 }), 100000));
-  it('hanya PPN menambah', () =>
-    assert.equal(computeSubtotal({ total: 100000, ppn: 11000, pph: 0 }), 111000));
-  it('hanya PPH mengurangi', () =>
-    assert.equal(computeSubtotal({ total: 100000, ppn: 0, pph: 5000 }), 95000));
-  it('PPN + PPH bersamaan', () =>
-    assert.equal(computeSubtotal({ total: 100000, ppn: 11000, pph: 5000 }), 106000));
-  it('hasil negatif tampil apa adanya (D8)', () =>
-    assert.equal(computeSubtotal({ total: 1000, ppn: 0, pph: 5000 }), -4000));
+describe('isTaxableRow (kontrol pajak hanya baris ON-CALL)', () => {
+  it('ON-CALL (spasi/kecil-berbeda tetap dikenali) -> true', () => {
+    assert.equal(isTaxableRow('ON-CALL'), true);
+    assert.equal(isTaxableRow(' on-call '), true);
+    assert.equal(isTaxableRow('On Call'), true);
+  });
+  it('MONTHLY/FREE/kosong/bukan teks -> false', () => {
+    assert.equal(isTaxableRow('MONTHLY'), false);
+    assert.equal(isTaxableRow('FREE'), false);
+    assert.equal(isTaxableRow(''), false);
+    assert.equal(isTaxableRow(null), false);
+    assert.equal(isTaxableRow(42), false);
+  });
+});
+
+describe('computeSubtotal (revisi: PPH bukan pengurang)', () => {
+  it('tanpa PPN: subtotal = total charges', () =>
+    assert.equal(computeSubtotal({ total: 100000, ppn: 0 }), 100000));
+  it('PPN menambah total', () =>
+    assert.equal(computeSubtotal({ total: 100000, ppn: 11000 }), 111000));
+  it('parameter pph lama DIABAIKAN (tidak mengurangi subtotal)', () =>
+    assert.equal(computeSubtotal({ total: 100000, ppn: 11000, pph: 999999 }), 111000));
   it('input bukan angka dianggap 0', () =>
-    assert.equal(computeSubtotal({ total: 'abc', ppn: null, pph: undefined }), 0));
+    assert.equal(computeSubtotal({ total: 'abc', ppn: null }), 0));
+  it('negatif tampil apa adanya tanpa clamp', () =>
+    assert.equal(computeSubtotal({ total: -500, ppn: 0 }), -500));
 });
 
 describe('amountFromPercent', () => {
@@ -43,7 +58,7 @@ describe('resolveTaxAmount', () => {
   const off = { enabled: false, mode: null, percent: 0, amount: 0 };
   it('non-aktif -> 0 walau amount ada', () =>
     assert.equal(resolveTaxAmount({ ...off, amount: 999 }, 1000000), 0));
-  it('mode percent diturunkan dari total', () =>
+  it('mode percent diturunkan dari charges baris', () =>
     assert.equal(resolveTaxAmount({ enabled: true, mode: 'percent', percent: 11, amount: 1 }, 1000000), 110000));
   it('mode rupiah memakai amount tetap', () =>
     assert.equal(resolveTaxAmount({ enabled: true, mode: 'rupiah', percent: 0, amount: 50000 }, 1000000), 50000));
@@ -51,29 +66,91 @@ describe('resolveTaxAmount', () => {
     assert.equal(resolveTaxAmount({ enabled: true, mode: null, percent: 0, amount: 7000 }, 1), 7000));
 });
 
-describe('sanitizeTaxState', () => {
-  it('raw bukan JSON valid -> default non-aktif', () => {
-    assert.deepEqual(sanitizeTaxState('bukan json'), {
-      ppn: { enabled: false, mode: null, percent: 0, amount: 0 },
-      pph: { enabled: false, mode: null, percent: 0, amount: 0 },
-    });
-    assert.deepEqual(sanitizeTaxState(null), sanitizeTaxState('{'));
+describe('sanitizeRowTax', () => {
+  it('null/rusak -> { ppn: null, pph: false }', () => {
+    assert.deepEqual(sanitizeRowTax(null), { ppn: null, pph: false });
+    assert.deepEqual(sanitizeRowTax('bukan json'), { ppn: null, pph: false });
+    assert.deepEqual(sanitizeRowTax(42), { ppn: null, pph: false });
   });
-  it('objek parsial dilengkapi default', () => {
-    const out = sanitizeTaxState('{"ppn":{"enabled":true,"mode":"rupiah","amount":110000}}');
-    assert.equal(out.ppn.amount, 110000);
-    assert.deepEqual(out.pph, { enabled: false, mode: null, percent: 0, amount: 0 });
-  });
-  it('mode tak dikenal saat aktif dianggap rupiah', () => {
-    const out = sanitizeTaxState('{"ppn":{"enabled":true,"mode":"manual","amount":5000}}');
+  it('entri PPN valid dipertahankan, pph boolean', () => {
+    const out = sanitizeRowTax({ ppn: { enabled: true, mode: 'rupiah', percent: 0, amount: 50000 }, pph: true });
+    assert.equal(out.ppn.amount, 50000);
     assert.equal(out.ppn.mode, 'rupiah');
-    assert.equal(out.ppn.amount, 5000);
+    assert.equal(out.pph, true);
   });
-  it('angka negatif dinormalkan ke 0', () => {
-    const out = sanitizeTaxState('{"ppn":{"enabled":true,"mode":"rupiah","amount":-5},"pph":{"enabled":true,"mode":"percent","percent":-2}}');
+  it('PPN non-aktif dinormalkan ke null (bukan entri mati)', () => {
+    const out = sanitizeRowTax({ ppn: { enabled: false, mode: 'percent', percent: 5, amount: 0 }, pph: 'ya' });
+    assert.equal(out.ppn, null);
+    assert.equal(out.pph, false);
+  });
+  it('mode tak dikenal saat aktif dianggap rupiah; angka negatif ke 0', () => {
+    const out = sanitizeRowTax({ ppn: { enabled: true, mode: 'manual', amount: -5000 }, pph: 1 });
+    assert.equal(out.ppn.mode, 'rupiah');
     assert.equal(out.ppn.amount, 0);
-    assert.equal(out.pph.percent, 0);
+    assert.equal(out.pph, false);
   });
+  it('entri PPN bukan objek -> null', () => {
+    assert.equal(sanitizeRowTax({ ppn: 'hapus', pph: false }).ppn, null);
+  });
+});
+
+describe('sanitizeTaxMap', () => {
+  it('null/bukan JSON/kosong -> map kosong', () => {
+    assert.deepEqual(sanitizeTaxMap(null), {});
+    assert.deepEqual(sanitizeTaxMap('{rusak'), {});
+    assert.deepEqual(sanitizeTaxMap([]), {});
+    assert.deepEqual(sanitizeTaxMap('"str"'), {});
+  });
+  it('tiap kunci uuid disanitasi per-baris', () => {
+    const raw = { u1: { ppn: { enabled: true, mode: 'percent', percent: 10, amount: 0 }, pph: true }, u2: 'sampah' };
+    const out = sanitizeTaxMap(raw);
+    assert.equal(out.u1.ppn.percent, 10);
+    assert.equal(out.u1.pph, true);
+    assert.deepEqual(out.u2, { ppn: null, pph: false });
+  });
+  it('diterima juga sebagai string JSON', () => {
+    const out = sanitizeTaxMap('{"u1":{"pph":true}}');
+    assert.equal(out.u1.pph, true);
+    assert.equal(out.u1.ppn, null);
+  });
+});
+
+describe('sumPpn', () => {
+  const rows = [
+    { recordUuid: 'a', charges: 1000000 },
+    { recordUuid: 'b', charges: 500000 },
+    { recordUuid: 'c', charges: 300000 },
+  ];
+  it('menjumlahkan PPN aktif per baris (persen di basis charges baris)', () => {
+    const map = {
+      a: { ppn: { enabled: true, mode: 'percent', percent: 10, amount: 0 }, pph: false },
+      b: { ppn: { enabled: true, mode: 'rupiah', percent: 0, amount: 25000 }, pph: true },
+    };
+    assert.equal(sumPpn(rows, map), 100000 + 25000);
+  });
+  it('status PPH tidak mempengaruhi jumlah PPN', () => {
+    const map = { a: { ppn: { enabled: true, mode: 'rupiah', percent: 0, amount: 7000 }, pph: true } };
+    assert.equal(sumPpn(rows, map), 7000);
+  });
+  it('map kosong / entri tanpa PPN -> 0', () => {
+    assert.equal(sumPpn(rows, {}), 0);
+    assert.equal(sumPpn(rows, { a: { ppn: null, pph: true } }), 0);
+    assert.equal(sumPpn([], { a: { ppn: { enabled: true, mode: 'rupiah', percent: 0, amount: 1 }, pph: false } }), 0);
+  });
+});
+
+describe('pphActiveCount', () => {
+  const rows = [{ recordUuid: 'a' }, { recordUuid: 'b' }, { recordUuid: 'c' }];
+  it('menghitung baris dengan status PPH aktif', () => {
+    const map = { a: { ppn: null, pph: true }, b: { ppn: null, pph: false }, c: { ppn: null, pph: true } };
+    assert.equal(pphActiveCount(rows, map), 2);
+  });
+  it('pph truthy non-boolean tidak dihitung (harus boolean hasil sanitize)', () => {
+    const map = { a: { pph: 'ya' }, b: { pph: 1 } };
+    assert.equal(pphActiveCount(rows, map), 0);
+  });
+  it('map kosong -> 0', () =>
+    assert.equal(pphActiveCount(rows, {}), 0));
 });
 
 describe('validateRpInput', () => {
