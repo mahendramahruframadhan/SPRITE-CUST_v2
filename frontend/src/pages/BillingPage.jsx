@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Reveal } from '../components/Reveal.jsx';
 import { Doughnut, Bar, Pie } from 'react-chartjs-2';
 import { useRangedCases } from '../hooks/useCases.js';
 import { getAuditMap } from '../lib/api.js';
+import { buildBillingCsv, billingCsvFilename } from '../lib/billingExport.js';
+import { usePopover } from '../hooks/usePopover.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { moduleTone, billingTone } from '../utils/tones.js';
@@ -91,6 +94,13 @@ export default function BillingPage() {
   const [editBusy, setEditBusy] = useState(false);
   const [editErr, setEditErr] = useState('');
   const confirm = useConfirm();
+  // Dropdown export: usePopover (portal ke body) agar tidak terpotong
+  // overflow-hidden hero; tutup otomatis saat klik di luar / Escape.
+  const exportPop = usePopover({ width: 300 });
+  const exportFirstItemRef = useRef(null);
+  useEffect(() => {
+    if (exportPop.open) exportFirstItemRef.current?.focus();
+  }, [exportPop.open]);
 
   async function hapusStatusAction(nama) {
     const dipakai = Object.values(caseAuditStatus).filter((s) => s === nama).length;
@@ -296,28 +306,22 @@ export default function BillingPage() {
     recordActivity(`mengubah status validasi ${label}`, `menjadi ${action}`, 'Validasi');
   }
 
-  function exportData() {
-    const headers = ['NO', 'DATE ISSUE', 'CLIENT', 'ISSUE', 'PIC NAME', 'MODULE', 'BILLING STATUS', 'BILLING CATEGORY', 'SUPPORT TYPE', 'CHARGES', 'STATUS VALIDASI', 'COMPLETION NOTES', 'RECORD_UUID'];
-    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const csv = [
-      headers.join(','),
-      ...catItems.map((c) =>
-        [
-          c.no, c.dateIssue, c.client, c.issue, c.picName, c.module, c.billingStatus, c.billingCategory,
-          c.supportType, c.charges, caseAuditStatus[c.recordUuid] || '', c.completionNotes, c.recordUuid,
-        ]
-          .map(esc)
-          .join(',')
-      ),
-    ].join('\n');
+  function exportData(scope) {
+    const rows = scope === 'all' ? filtered : catItems;
+    const csv = buildBillingCsv(rows, caseAuditStatus);
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `billing-audit-${cat.toLowerCase()}.csv`;
+    a.download = billingCsvFilename(scope, cat);
     a.click();
     URL.revokeObjectURL(url);
-    notify(`Export ${catItems.length} kasus ${cat} berhasil diunduh.`, 'success');
+    notify(
+      scope === 'all'
+        ? `Export ${rows.length} kasus (semua kategori) berhasil diunduh.`
+        : `Export ${rows.length} kasus ${cat} berhasil diunduh.`,
+      'success'
+    );
   }
 
   const CAT_META = {
@@ -412,17 +416,65 @@ export default function BillingPage() {
             </button>
             {/* eslint-disable-next-line react/forbid-elements -- tombol hero bertema per kategori (pengecualian tercatat) */}
             <button
-              onClick={exportData}
+              ref={exportPop.rootRef}
+              type="button"
+              onClick={() => exportPop.setOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={exportPop.open}
               className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98]"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
               Export CSV
+              <svg
+                className={`w-3.5 h-3.5 transition-transform motion-reduce:transition-none ${exportPop.open ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
             </button>
           </div>
         </div>
       </Reveal>
+
+      {/* Menu pilihan cakupan export (portal ke body agar tidak terpotong hero) */}
+      {exportPop.open &&
+        exportPop.pos &&
+        createPortal(
+          <div
+            ref={exportPop.popRef}
+            role="menu"
+            aria-label="Opsi export CSV"
+            style={{ left: exportPop.pos.left, top: exportPop.pos.top, width: exportPop.pos.width }}
+            className={`fixed z-[70] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-1.5 animate-fade-in-fast ${exportPop.pos.up ? 'origin-bottom' : 'origin-top'}`}
+          >
+            <Button
+              ref={exportFirstItemRef}
+              role="menuitem"
+              onClick={() => { exportPop.setOpen(false); exportData('category'); }}
+              className="w-full justify-start text-left py-2.5 text-slate-700 dark:text-slate-200"
+            >
+              <span className="flex flex-col items-start min-w-0">
+                <span className="text-sm font-bold">Kategori ini ({cat})</span>
+                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{catItems.length} kasus</span>
+              </span>
+            </Button>
+            <Button
+              role="menuitem"
+              onClick={() => { exportPop.setOpen(false); exportData('all'); }}
+              className="w-full justify-start text-left py-2.5 text-slate-700 dark:text-slate-200"
+            >
+              <span className="flex flex-col items-start min-w-0">
+                <span className="text-sm font-bold">Semua kategori</span>
+                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  {filtered.length} kasus · ON-CALL, MONTHLY &amp; FREE
+                </span>
+              </span>
+            </Button>
+          </div>,
+          document.body
+        )}
 
       {/* KPI */}
       <Reveal className="stat-grid">
