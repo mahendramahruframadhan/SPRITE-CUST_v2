@@ -36,6 +36,9 @@ const expectText = async (loc: any, text: string, timeoutMs = 60000) => {
 };
 const readNum = async (browser: any, sel: string) =>
   Number((await valueOf(browser, sel)).replace(/[^\d]/g, ''));
+// Teks nilai pajak: 'Non PPN'/'Non PPH' -> 0, selainnya angka rupiah.
+const parseRp = (t: string) =>
+  /^Non /.test(t.trim()) ? 0 : Number(t.replace(/[^\d]/g, ''));
 // Data kasus dimuat async; tunggu total siap (>0) sebelum dipakai hitungan
 // ekspektasi. valueOf sudah retry, loop ini untuk kondisi nilai belum siap.
 const waitTotal = async (browser: any) => {
@@ -125,5 +128,78 @@ describe('finance: PPN, PPH & subtotal', { tags: ['finance'] }, () => {
 
     await expect(dlg).toBeHidden();
     await expectText(browser.locator('#tax-ppn-value'), before);
+  });
+
+  test('PPH mode Rupiah 50000 mengurangi subtotal', { session: 'admin' }, async ({ app, screen, browser }) => {
+    await app.open('/finance');
+    const total = await waitTotal(browser);
+
+    await screen.getByRole('button', { name: 'PPH: Non PPH' }).tap();
+    await screen.getByRole('menuitem', { name: /^PPH \(isi pajak\)/ }).tap();
+    const dlg = screen.getByRole('dialog', { name: 'PPH' });
+    await expect(dlg).toBeVisible();
+    await dlg.getByRole('button', { name: 'Rupiah' }).tap();
+    await dlg.getByLabel('Nilai (Rp)').fill('50000');
+    await dlg.getByRole('button', { name: 'Simpan' }).tap();
+
+    await expect(dlg).toBeHidden();
+    const ppn = parseRp(await valueOf(browser, '#tax-ppn-value'));
+    await expectText(browser.locator('#tax-pph-value'), rp(50000));
+    await expectText(browser.locator('#tax-subtotal-value'), rp(total + ppn - 50000));
+  });
+
+  test('PPH mode Persen 2% diturunkan dari total', { session: 'admin' }, async ({ app, screen, browser }) => {
+    await app.open('/finance');
+    const total = await waitTotal(browser);
+    const expectedPph = Math.round(total * 0.02);
+
+    await screen.getByRole('button', { name: /^PPH: / }).tap();
+    await screen.getByRole('menuitem', { name: /^PPH \(isi pajak\)/ }).tap();
+    const dlg = screen.getByRole('dialog', { name: 'PPH' });
+    await expect(dlg).toBeVisible();
+    await dlg.getByRole('button', { name: 'Persen' }).tap();
+    await dlg.getByLabel('Persen (%)').fill('2');
+    await expectText(dlg.getByText(/Perkiraan nilai/), `Perkiraan nilai: ${rp(expectedPph)}`);
+    await dlg.getByRole('button', { name: 'Simpan' }).tap();
+
+    await expect(dlg).toBeHidden();
+    const ppn = parseRp(await valueOf(browser, '#tax-ppn-value'));
+    await expectText(browser.locator('#tax-pph-value'), rp(expectedPph));
+    await expectText(browser.locator('#tax-subtotal-value'), rp(total + ppn - expectedPph));
+  });
+
+  test('reset Non PPN & Non PPH mengembalikan subtotal ke Total Charges', { session: 'admin' }, async ({ app, screen, browser }) => {
+    await app.open('/finance');
+    const total = await waitTotal(browser);
+
+    // Isi dulu keduanya supaya reset benar-benar membuktikan pemulihan.
+    await screen.getByRole('button', { name: 'PPN: Non PPN' }).tap();
+    await screen.getByRole('menuitem', { name: /^PPN \(isi pajak\)/ }).tap();
+    const ppnDlg = screen.getByRole('dialog', { name: 'PPN' });
+    await expect(ppnDlg).toBeVisible();
+    await ppnDlg.getByRole('button', { name: 'Rupiah' }).tap();
+    await ppnDlg.getByLabel('Nilai (Rp)').fill('100000');
+    await ppnDlg.getByRole('button', { name: 'Simpan' }).tap();
+    await expect(ppnDlg).toBeHidden();
+
+    await screen.getByRole('button', { name: 'PPH: Non PPH' }).tap();
+    await screen.getByRole('menuitem', { name: /^PPH \(isi pajak\)/ }).tap();
+    const pphDlg = screen.getByRole('dialog', { name: 'PPH' });
+    await expect(pphDlg).toBeVisible();
+    await pphDlg.getByRole('button', { name: 'Rupiah' }).tap();
+    await pphDlg.getByLabel('Nilai (Rp)').fill('50000');
+    await pphDlg.getByRole('button', { name: 'Simpan' }).tap();
+    await expect(pphDlg).toBeHidden();
+
+    await expectText(browser.locator('#tax-subtotal-value'), rp(total + 100000 - 50000));
+
+    await screen.getByRole('button', { name: /^PPN: / }).tap();
+    await screen.getByRole('menuitem', { name: /^Non PPN \(reset\)/ }).tap();
+    await screen.getByRole('button', { name: /^PPH: / }).tap();
+    await screen.getByRole('menuitem', { name: /^Non PPH \(reset\)/ }).tap();
+
+    await expectText(browser.locator('#tax-ppn-value'), 'Non PPN');
+    await expectText(browser.locator('#tax-pph-value'), 'Non PPH');
+    await expectText(browser.locator('#tax-subtotal-value'), rp(total));
   });
 });
