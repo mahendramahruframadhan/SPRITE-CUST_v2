@@ -138,6 +138,25 @@
   .print-kop {
     display: none;
   }
+
+  /* Baris rekap ala laporan: label + nilai terpisah garis bawah,
+     ganti tabel kosong-per-kolom — terasa dokumen, bukan dashboard */
+  .report-row {
+    @apply flex items-baseline justify-between gap-4 py-3.5 border-b border-dashed border-slate-200 dark:border-slate-700 last:border-b-0;
+  }
+  .report-row-label {
+    @apply text-sm font-semibold text-slate-600 dark:text-slate-300 shrink-0;
+  }
+  .report-row-value {
+    @apply text-base font-extrabold tabular-nums text-right text-slate-900 dark:text-white whitespace-nowrap;
+  }
+  /* Seksi laporan (kartu rekap kecil) */
+  .report-card {
+    @apply bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)];
+  }
+  .report-card-title {
+    @apply text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400 mb-2;
+  }
 }
 
 /* ===== Cetak Report Summary: kop tampil, chrome aplikasi hilang ===== */
@@ -170,5 +189,76 @@
   .page {
     max-width: none;
     padding: 0;
+  }
+  .dark .report-card,
+  .dark .bg-slate-900,
+  .dark .bg-slate-800 {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .dark .report-row,
+  .dark .divide-slate-800 > * {
+    border-color: #e2e8f0 !important;
+  }
+  .dark .text-slate-900,
+  .dark .text-slate-100,
+  .dark .text-slate-800,
+  .dark .text-slate-700,
+  .dark .text-slate-200 {
+    color: #000000 !important;
+  }
+  .dark .text-slate-400,
+  .dark .text-slate-500,
+  .dark .text-slate-300,
+  .dark .text-slate-600 {
+    color: #334155 !important;
+  }
+  .dark .text-emerald-400,
+  .dark .text-emerald-600,
+  .dark .text-emerald-700,
+  .dark .text-emerald-500 {
+    color: #047857 !important;
+  }
+  .dark .text-rose-400,
+  .dark .text-rose-600,
+  .dark .text-rose-500 {
+    color: #e11d48 !important;
+  }
+  .dark .text-amber-400,
+  .dark .text-amber-600,
+  .dark .text-amber-500 {
+    color: #d97706 !important;
+  }
+  .dark .text-sky-400,
+  .dark .text-sky-600,
+  .dark .text-sky-500 {
+    color: #0284c7 !important;
+  }
+  .dark .text-violet-400,
+  .dark .text-violet-600,
+  .dark .text-violet-500 {
+    color: #7c3aed !important;
+  }
+  .dark .text-brand-300,
+  .dark .text-brand-600,
+  .dark .text-brand-500 {
+    color: #4a4fe9 !important;
+  }
+  .dark .bg-slate-800,
+  .dark .bg-slate-700,
+  .dark .bg-slate-600 {
+    background-color: #f8fafc !important;
+  }
+  .dark .border-slate-700,
+  .dark .border-slate-800,
+  .dark .border-slate-600 {
+    border-color: #cbd5e1 !important;
+  }
+  .dark .shadow-2xl,
+  .dark .shadow-xl,
+  .dark .shadow-lg,
+  .dark .shadow-md,
+  .dark .shadow-sm {
+    box-shadow: none !important;
   }
 }
