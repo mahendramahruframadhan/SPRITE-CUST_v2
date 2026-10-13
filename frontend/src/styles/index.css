@@ -133,4 +133,42 @@
   .subnav-tab-inactive {
     @apply text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800;
   }
+
+  /* Kop cetak halaman Report: tersembunyi di layar, tampil saat print */
+  .print-kop {
+    display: none;
+  }
+}
+
+/* ===== Cetak Report Summary: kop tampil, chrome aplikasi hilang ===== */
+@media print {
+  .print-kop {
+    display: block;
+    margin-bottom: 16px;
+    color: #000;
+  }
+  .print-kop h1 {
+    font-size: 20px;
+    font-weight: 800;
+  }
+  .print-kop p {
+    font-size: 12px;
+    color: #333;
+  }
+  .no-print {
+    display: none !important;
+  }
+  /* Chrome shell (sidebar, drawer, topbar) ikut hilang saat cetak */
+  aside,
+  main > header {
+    display: none !important;
+  }
+  main.shell-main {
+    margin-left: 0 !important;
+  }
+  /* Paksa latar terang agar hemat tinta & terbaca di kertas */
+  .page {
+    max-width: none;
+    padding: 0;
+  }
 }

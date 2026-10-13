@@ -6,8 +6,6 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildReportSummary } from '../src/lib/reportSummary.js';
 
-const VALID = 'VALID - SIAP INVOICE';
-
 describe('buildReportSummary (pool tervalidasi)', () => {
   it('charges + PPN persen ON-CALL, PPh hanya count', () => {
     const rows = [
