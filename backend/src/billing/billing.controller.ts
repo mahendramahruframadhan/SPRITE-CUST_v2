@@ -146,4 +146,21 @@ export class BillingController {
     await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status invoice ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `menjadi ${status}${invNo ? ` • no. invoice ${invNo}` : ''}`, recordUuid: uuid });
     return { ok:true, recordUuid: uuid, status };
   }
+  // Pajak per baris ON-CALL: PPN menambah charges, PPH hanya penanda status.
+  // Guard ketat (validasi, kunci PAID, batas ON-CALL) menyusul di task guard.
+  @Patch('cases/:uuid/tax')
+  @UseGuards(PermGuard)
+  @Perm('finance')
+  async tax(@Param('uuid') uuid: string, @Body() body: any, @Req() req: any) {
+    const pph = body?.pph === true;
+    const rawPpn = body?.ppn ?? null;
+    const ppn = rawPpn && rawPpn.enabled !== false
+      ? { mode: rawPpn.mode, percent: Number(rawPpn.percent || 0), amount: Number(rawPpn.amount || 0) }
+      : null;
+    const now = new Date().toISOString();
+    const who = await resolveWho(this.db, req);
+    await this.db.pq(`INSERT INTO case_tax (record_uuid,ppn_mode,ppn_percent,ppn_amount,pph,updated_by,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (record_uuid) DO UPDATE SET ppn_mode=EXCLUDED.ppn_mode, ppn_percent=EXCLUDED.ppn_percent, ppn_amount=EXCLUDED.ppn_amount, pph=EXCLUDED.pph, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at`, [uuid, ppn?.mode || null, ppn?.percent ?? null, ppn?.amount ?? null, pph ? 1 : 0, who, now]);
+    await logActivity(this.db, { who, action: `mengubah pajak ${await caseLabel(this.db, uuid)}`, category: 'Pajak', detail: ppn ? `PPN ${ppn.mode === 'percent' ? `${ppn.percent}%` : `Rp ${ppn.amount}`}${pph ? ' + PPH' : ''}` : `Non PPN${pph ? ', PPH aktif' : ''}`, recordUuid: uuid });
+    return { ok: true, recordUuid: uuid, tax: { ppn, pph } };
+  }
 }
