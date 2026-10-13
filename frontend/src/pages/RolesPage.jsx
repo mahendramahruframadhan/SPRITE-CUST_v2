@@ -40,6 +40,7 @@ const MODULES = [
   { id: 'billing', name: 'Billing & Audit', desc: 'Validasi tagihan sebelum invoice' },
   { id: 'finance', name: 'Finance Audit', desc: 'Penerbitan invoice kasus tervalidasi' },
   { id: 'report', name: 'Report Summary', desc: 'Rekap tervalidasi untuk manajemen' },
+  { id: 'analytics', name: 'Analitik', desc: 'Tren, distribusi & KPI kasus tervalidasi' },
   { id: 'mockup', name: 'Dashboard Mockup', desc: 'Mockup data Google Sheets' },
   { id: 'roles', name: 'Hak Akses', desc: 'Kelola pengguna & izin' },
   { id: 'settings', name: 'Pengaturan', desc: 'Pengaturan akun & preferensi saya' },
