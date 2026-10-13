@@ -39,6 +39,7 @@ const MODULES = [
   { id: 'popinava', name: 'POPI NAVA', desc: 'Master data outlet & brand POPI NAVA' },
   { id: 'billing', name: 'Billing & Audit', desc: 'Validasi tagihan sebelum invoice' },
   { id: 'finance', name: 'Finance Audit', desc: 'Penerbitan invoice kasus tervalidasi' },
+  { id: 'report', name: 'Report Summary', desc: 'Rekap tervalidasi untuk manajemen' },
   { id: 'mockup', name: 'Dashboard Mockup', desc: 'Mockup data Google Sheets' },
   { id: 'roles', name: 'Hak Akses', desc: 'Kelola pengguna & izin' },
   { id: 'settings', name: 'Pengaturan', desc: 'Pengaturan akun & preferensi saya' },
