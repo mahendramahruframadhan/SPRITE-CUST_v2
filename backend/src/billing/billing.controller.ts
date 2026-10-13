@@ -147,16 +147,45 @@ export class BillingController {
     return { ok:true, recordUuid: uuid, status };
   }
   // Pajak per baris ON-CALL: PPN menambah charges, PPH hanya penanda status.
-  // Guard ketat (validasi, kunci PAID, batas ON-CALL) menyusul di task guard.
+  // Urutan guard: bentuk body dulu, lalu keberadaan kasus, batas ON-CALL,
+  // terakhir kunci PAID.
   @Patch('cases/:uuid/tax')
   @UseGuards(PermGuard)
   @Perm('finance')
   async tax(@Param('uuid') uuid: string, @Body() body: any, @Req() req: any) {
-    const pph = body?.pph === true;
-    const rawPpn = body?.ppn ?? null;
-    const ppn = rawPpn && rawPpn.enabled !== false
-      ? { mode: rawPpn.mode, percent: Number(rawPpn.percent || 0), amount: Number(rawPpn.amount || 0) }
-      : null;
+    const bad = (msg: string) => new HttpException({ code: 'TAX_INVALID', message: msg }, 422);
+    if (!body || typeof body !== 'object') throw bad('Body pajak wajib objek { ppn, pph }.');
+    if (typeof body.pph !== 'boolean') throw bad('Status PPH wajib boolean.');
+    const pph = body.pph === true;
+    const rawPpn = body.ppn ?? null;
+    let ppn: { mode: string; percent: number; amount: number } | null = null;
+    if (rawPpn && rawPpn.enabled !== false) {
+      if (typeof rawPpn !== 'object') throw bad('Entri PPN wajib objek atau null.');
+      if (rawPpn.mode !== 'percent' && rawPpn.mode !== 'rupiah') throw bad('Mode PPN hanya persen atau rupiah.');
+      if (rawPpn.mode === 'percent') {
+        if (typeof rawPpn.percent !== 'number' || !Number.isFinite(rawPpn.percent) || rawPpn.percent <= 0 || rawPpn.percent > 100) {
+          throw bad('Persen PPN wajib angka 0 < p <= 100.');
+        }
+        ppn = { mode: 'percent', percent: rawPpn.percent, amount: Number(rawPpn.amount || 0) };
+      } else {
+        if (typeof rawPpn.amount !== 'number' || !Number.isInteger(rawPpn.amount) || rawPpn.amount < 0) {
+          throw bad('Nilai rupiah PPN wajib bilangan bulat >= 0.');
+        }
+        ppn = { mode: 'rupiah', percent: 0, amount: rawPpn.amount };
+      }
+    }
+    const c: any = await this.db.pq(`SELECT billing_status FROM assistance_records WHERE record_uuid=$1 LIMIT 1`, [uuid]);
+    const caseRow = (c.rows || c)[0];
+    if (!caseRow) throw new HttpException({ code: 'NOT_FOUND', message: 'Kasus tidak ditemukan.' }, HttpStatus.NOT_FOUND);
+    const bs = String(caseRow.billing_status || caseRow.billingstatus || '').replace(/[\s-]/g, '').toUpperCase();
+    if (bs !== 'ONCALL') {
+      throw new HttpException({ code: 'TAX_NOT_ONCALL', message: 'Pajak hanya untuk transaksi ON-CALL.' }, 422);
+    }
+    const inv: any = await this.db.pq(`SELECT status FROM invoice_status WHERE record_uuid=$1 LIMIT 1`, [uuid]);
+    const invStatus = String((inv.rows || inv)[0]?.status || '').trim().toUpperCase();
+    if (invStatus === 'PAID') {
+      throw new HttpException({ code: 'TAX_PAID_LOCKED', message: 'Pajak terkunci karena invoice sudah PAID (lunas).' }, 422);
+    }
     const now = new Date().toISOString();
     const who = await resolveWho(this.db, req);
     await this.db.pq(`INSERT INTO case_tax (record_uuid,ppn_mode,ppn_percent,ppn_amount,pph,updated_by,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (record_uuid) DO UPDATE SET ppn_mode=EXCLUDED.ppn_mode, ppn_percent=EXCLUDED.ppn_percent, ppn_amount=EXCLUDED.ppn_amount, pph=EXCLUDED.pph, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at`, [uuid, ppn?.mode || null, ppn?.percent ?? null, ppn?.amount ?? null, pph ? 1 : 0, who, now]);
