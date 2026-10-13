@@ -1,4 +1,4 @@
-// Uji GET billing/tax-map — node:test + pg-mem, DDL mandiri.
+// Uji GET billing/tax-map (node:test + pg-mem, DDL mandiri).
 // Jangan edit helpers/pgmem.ts (milik kerjaan orang lain); tabel case_tax
 // dibuat di file ini. Jalankan: npm test
 process.env.DATABASE_URL = '';

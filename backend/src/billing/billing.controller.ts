@@ -55,7 +55,7 @@ export class BillingController {
     }
     return { ok: true, map };
   }
-  // Peta pajak per kasus — dipakai frontend menyinkronkan tampilan lokal
+  // Peta pajak per kasus: dipakai frontend menyinkronkan tampilan lokal
   // dengan kebenaran backend saat halaman dimuat. Baca terbuka seperti GET lain.
   @Get('billing/tax-map')
   @UseGuards(PermGuard)
