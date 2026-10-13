@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { useRangedCases } from '../hooks/useCases.js';
 import { useAuditState } from '../hooks/useAuditState.js';
@@ -8,10 +8,13 @@ import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { getAuditMap, getInvoiceMap } from '../lib/api.js';
 import { buildReportSummary } from '../lib/reportSummary.js';
+import { resolveTaxAmount } from '../lib/taxSummary.js';
 import { buildReportCsv, reportCsvFilename } from '../lib/reportExport.js';
 import FilterLabel from '../components/FilterLabel.jsx';
-import { EmptyRow, LoadingRow } from '../components/DataTable.jsx';
+import { EmptyRow, LoadingRow, Pill } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
+import { fmtDate8 } from '../utils/format.js';
+import { invLabel, invoiceTone } from '../utils/tones.js';
 
 // Halaman Report Summary: dokumen rekap read-only kasus tervalidasi
 // (VALID - SIAP INVOICE, ON-CALL + MONTHLY) untuk manajemen.
@@ -109,6 +112,15 @@ export default function ReportSummaryPage() {
   const todayLabel = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const paidShare = summary.subtotal > 0 ? Math.round((summary.paid.subtotal / summary.subtotal) * 100) : 0;
 
+  // Tabel detail: cari + paginasi (ikut pola BillingPage).
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, from, to, perPage, caseAuditStatus]);
+
   // Tiga KPI uang di kolom kiri (Charges / PPN / Subtotal Akhir).
   const financeKpi = [
     { t: 'Total Charges', v: summary.charges, sub: 'Σ charges pool', color: 'text-sky-600', darkColor: 'dark:text-sky-400', accent: 'from-sky-400 to-blue-600' },
@@ -132,6 +144,41 @@ export default function ReportSummaryPage() {
     ['ON-CALL', summary.byBilling['ON-CALL']],
     ['MONTHLY', summary.byBilling['MONTHLY']],
   ];
+
+  // Baris detail per kasus: PPN per baris (0 untuk MONTHLY), subtotal,
+  // flag PPh, status invoice — semua dari sumber yang sama dengan rekap.
+  const detailItems = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return validatedPool
+      .filter((c) =>
+        !needle ||
+        `${c.no} ${c.client} ${c.billingStatus}`.toLowerCase().includes(needle)
+      )
+      .map((c) => {
+        const charges = +c.charges || 0;
+        const ppn = resolveTaxAmount(taxMap?.[c.recordUuid]?.ppn, charges);
+        return {
+          ...c,
+          charges,
+          ppn,
+          subtotal: charges + ppn,
+          pph: taxMap?.[c.recordUuid]?.pph === true,
+          invStatus: invoiceStatus[c.recordUuid] || defaultInvoiceStatus,
+        };
+      });
+  }, [validatedPool, taxMap, invoiceStatus, defaultInvoiceStatus, q]);
+
+  const detailTotal = detailItems.reduce((a, c) => a + c.subtotal, 0);
+  const totalPages = Math.max(1, Math.ceil(detailItems.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const paged = detailItems.slice((safePage - 1) * perPage, safePage * perPage);
+  const pageNums = (() => {
+    const start = Math.max(1, Math.min(safePage - 2, totalPages - 4));
+    const end = Math.min(totalPages, start + 4);
+    const arr = [];
+    for (let i = start; i <= end; i++) arr.push(i);
+    return arr;
+  })();
 
   function exportData() {
     const csv = buildReportCsv(summary, { periode: periodeLabel });
@@ -344,6 +391,142 @@ export default function ReportSummaryPage() {
               {' '}· Outstanding <span className="font-bold text-rose-600 dark:text-rose-400 tabular-nums">{fmtMoney(summary.outstanding.subtotal)}</span>
             </p>
           </div>
+        </div>
+      </Reveal>
+
+      {/* ===== Detail kasus tervalidasi (per baris) ===== */}
+      <Reveal className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Detail Kasus Tervalidasi</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {loading ? 'Memuat dari backend…' : `${detailItems.length} kasus · total subtotal ${fmtMoney(detailTotal)}`}
+              </p>
+            </div>
+            <div className="ml-auto relative no-print">
+              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Cari no / brand…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className="pl-9 pr-3 py-2.5 min-h-[44px] w-full sm:w-auto text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm min-w-[880px]">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
+                <th className="px-6 py-3 font-bold">No</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Tanggal</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Brand</th>
+                <th className="px-4 py-3 font-bold text-right whitespace-nowrap">Charges</th>
+                <th className="px-4 py-3 font-bold text-right whitespace-nowrap">PPN</th>
+                <th className="px-4 py-3 font-bold text-right whitespace-nowrap">Subtotal</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">PPh</th>
+                <th className="px-6 py-3 font-bold whitespace-nowrap">Status Invoice</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {paged.map((c) => (
+                <tr key={c.recordUuid} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition">
+                  <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no || '-'}</td>
+                  <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                  <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{c.client || '-'}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtMoney(c.charges)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtMoney(c.ppn)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{fmtMoney(c.subtotal)}</td>
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    {c.pph ? (
+                      <span className="text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-1 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20">Ya</span>
+                    ) : (
+                      <span className="text-xs text-slate-400 dark:text-slate-500">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-3.5 whitespace-nowrap">
+                    <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
+                  </td>
+                </tr>
+              ))}
+              {loading ? (
+                <LoadingRow colSpan={8} />
+              ) : invalidRange ? (
+                <EmptyRow colSpan={8}>Rentang tanggal tidak valid (Date From melebihi Date Until)</EmptyRow>
+              ) : detailItems.length === 0 && (
+                <EmptyRow colSpan={8}>Tidak ada data tervalidasi pada periode ini</EmptyRow>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* Varian kartu untuk HP */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {paged.map((c) => (
+            <div key={c.recordUuid} className="px-5 py-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{c.client || '-'} <span className="font-medium text-slate-400">#{c.no || '-'}</span></p>
+                <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
+              </div>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)}{c.pph ? ' · PPh' : ''}</p>
+              <div className="mt-2 flex items-baseline justify-between gap-2 text-sm tabular-nums">
+                <span className="text-slate-500 dark:text-slate-400">Charges {fmtMoney(c.charges)} + PPN {fmtMoney(c.ppn)}</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{fmtMoney(c.subtotal)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="no-print px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
+          <span className="tabular-nums">
+            Menampilkan {detailItems.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, detailItems.length)} dari {detailItems.length} data
+          </span>
+          <div className="flex items-center gap-1 ml-auto overflow-x-auto max-w-full scrollbar-thin">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              aria-label="Halaman sebelumnya"
+              className="shrink-0 font-bold disabled:opacity-40"
+            >
+              ‹
+            </Button>
+            {pageNums.map((n) => (
+              <Button
+                key={n}
+                variant={n === safePage ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setPage(n)}
+                aria-current={n === safePage ? 'page' : undefined}
+                className="shrink-0 font-bold"
+              >
+                {n}
+              </Button>
+            ))}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              aria-label="Halaman berikutnya"
+              className="shrink-0 font-bold disabled:opacity-40"
+            >
+              ›
+            </Button>
+          </div>
+          <select
+            value={perPage}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+            className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-200"
+          >
+            <option value={10}>10 / halaman</option>
+            <option value={50}>50 / halaman</option>
+            <option value={100}>100 / halaman</option>
+          </select>
+          <span className="tabular-nums">Total subtotal: <span className="text-base font-extrabold text-slate-900 dark:text-white">{fmtMoney(detailTotal)}</span></span>
         </div>
       </Reveal>
     </div>
