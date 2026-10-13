@@ -13,7 +13,7 @@ const fmtMoney = (n) => 'Rp ' + (n || 0).toLocaleString('id-ID');
 
 // Sel pajak satu baris transaksi: hanya baris ON-CALL yang punya kontrol
 // (chip PPN membuka menu isi/reset, chip PPH saklar status), baris lain '-'.
-export default function TaxCell({ recordUuid, charges, billingStatus, tax, onEditPpn, onSavePpn, onTogglePph }) {
+export default function TaxCell({ recordUuid, charges, billingStatus, tax, pending, onEditPpn, onSavePpn, onTogglePph }) {
   const pop = usePopover({ width: 240 });
   const firstRef = useRef(null);
   useEffect(() => {
@@ -92,6 +92,7 @@ export default function TaxCell({ recordUuid, charges, billingStatus, tax, onEdi
         className="block text-[11px] font-bold tabular-nums text-emerald-700 dark:text-emerald-400"
       >
         Subtotal {fmtMoney(charges + resolveTaxAmount(ppn, charges))}
+        {pending && <span title="Menunggu sinkron ke server" className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />}
       </span>
 
       {pop.open && pop.pos &&

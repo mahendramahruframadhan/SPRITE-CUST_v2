@@ -77,6 +77,33 @@ export function pphActiveCount(rows, taxMap) {
   return (rows || []).filter((r) => taxMap?.[r.recordUuid]?.pph === true).length;
 }
 
+// Normalisasi satu baris bentuk server ({ppn:{mode,percent,amount}|null}
+// tanpa flag enabled: keberadaan objek berarti aktif) ke bentuk TaxEntry lokal.
+export function normalizeServerRow(raw) {
+  const o = raw && typeof raw === 'object' ? raw : {};
+  const p = o.ppn && typeof o.ppn === 'object' ? o.ppn : null;
+  const ppn = p && (p.mode === 'percent' || p.mode === 'rupiah')
+    ? { enabled: true, mode: p.mode, percent: nonNeg(p.percent), amount: nonNeg(p.amount) }
+    : null;
+  return { ppn, pph: o.pph === true };
+}
+
+// Gabung map server (kebenaran) dengan outbox lokal: per baris, entri
+// outbox menimpa entri server seutuhnya (last-write-wins per baris).
+export function mergeTaxMaps(server, outbox) {
+  const s = server && typeof server === 'object' ? server : {};
+  const o = outbox && typeof outbox === 'object' ? outbox : {};
+  return { ...s, ...o };
+}
+
+// Hasil PATCH satu baris terhadap outbox: sukses berarti entri terkonfirmasi
+// server sehingga key dihapus (evict-on-ack); gagal berarti key dipertahankan.
+export function applySaveResult(outbox, uuid, ok) {
+  const o = outbox && typeof outbox === 'object' ? { ...outbox } : {};
+  if (ok) delete o[uuid];
+  return o;
+}
+
 // Baris yang layak dikontrol pajak: ON-CALL saja (bandingkan tanpa
 // spasi/tanda baca, huruf bebas).
 export function isTaxableRow(billingStatus) {

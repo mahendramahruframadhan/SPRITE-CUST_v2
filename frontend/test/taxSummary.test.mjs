@@ -5,8 +5,10 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   computeSubtotal, amountFromPercent, resolveTaxAmount,
-  sanitizeRowTax, sanitizeTaxMap, sumPpn, pphActiveCount,
-  isTaxableRow, validateRpInput, validatePercentInput,
+  sanitizeRowTax, sanitizeTaxMap, normalizeServerRow,
+  sumPpn, pphActiveCount,
+  isTaxableRow, mergeTaxMaps, applySaveResult,
+  validateRpInput, validatePercentInput,
 } from '../src/lib/taxSummary.js';
 
 describe('isTaxableRow (kontrol pajak hanya baris ON-CALL)', () => {
@@ -151,6 +153,57 @@ describe('pphActiveCount', () => {
   });
   it('map kosong -> 0', () =>
     assert.equal(pphActiveCount(rows, {}), 0));
+});
+
+describe('normalizeServerRow (bentuk server tanpa flag enabled)', () => {
+  it('ppn object valid menjadi entri aktif', () =>
+    assert.deepEqual(
+      normalizeServerRow({ ppn: { mode: 'percent', percent: 10, amount: 0 }, pph: true }),
+      { ppn: { enabled: true, mode: 'percent', percent: 10, amount: 0 }, pph: true }));
+  it('ppn null tetap null; pph non-boolean menjadi false', () =>
+    assert.deepEqual(normalizeServerRow({ ppn: null, pph: 1 }), { ppn: null, pph: false }));
+  it('mode tak dikenal atau bukan objek menjadi null', () => {
+    assert.equal(normalizeServerRow({ ppn: { mode: 'manual', amount: 5 }, pph: false }).ppn, null);
+    assert.equal(normalizeServerRow({ ppn: 'hapus', pph: false }).ppn, null);
+    assert.deepEqual(normalizeServerRow(null), { ppn: null, pph: false });
+  });
+  it('angka negatif dinormalkan ke 0', () => {
+    const out = normalizeServerRow({ ppn: { mode: 'rupiah', percent: 0, amount: -5 }, pph: false });
+    assert.equal(out.ppn.amount, 0);
+    assert.equal(out.ppn.enabled, true);
+  });
+});
+
+describe('mergeTaxMaps (outbox menang per baris)', () => {
+  it('server kosong + outbox tampil apa adanya', () =>
+    assert.deepEqual(mergeTaxMaps({}, { a: { ppn: null, pph: true } }), { a: { ppn: null, pph: true } }));
+  it('baris outbox menimpa baris server seutuhnya', () =>
+    assert.deepEqual(
+      mergeTaxMaps({ a: { ppn: { mode: 'rupiah', percent: 0, amount: 1 }, pph: false } }, { a: { ppn: null, pph: true } }),
+      { a: { ppn: null, pph: true } }));
+  it('baris tanpa outbox memakai nilai server', () =>
+    assert.deepEqual(
+      mergeTaxMaps({ a: { ppn: null, pph: true }, b: { ppn: null, pph: false } }, { a: { ppn: null, pph: false } }),
+      { a: { ppn: null, pph: false }, b: { ppn: null, pph: false } }));
+});
+
+describe('applySaveResult (evict-on-ack)', () => {
+  it('sukses menghapus key dari outbox', () =>
+    assert.deepEqual(applySaveResult({ a: { ppn: null, pph: true } }, 'a', true), {}));
+  it('gagal mempertahankan key (data tak hilang)', () =>
+    assert.deepEqual(applySaveResult({ a: { ppn: null, pph: true } }, 'a', false), { a: { ppn: null, pph: true } }));
+  it('key lain tidak tersentuh', () =>
+    assert.deepEqual(
+      applySaveResult({ a: { ppn: null, pph: true }, b: { ppn: null, pph: true } }, 'a', true),
+      { b: { ppn: null, pph: true } }));
+});
+
+describe('resolveTaxAmount mengikuti charges terbaru', () => {
+  it('persen sama di-resolve ulang saat charges berubah (sync Sheets)', () => {
+    const entry = { enabled: true, mode: 'percent', percent: 10, amount: 0 };
+    assert.equal(resolveTaxAmount(entry, 1000000), 100000);
+    assert.equal(resolveTaxAmount(entry, 500000), 50000);
+  });
 });
 
 describe('validateRpInput', () => {

@@ -448,8 +448,8 @@ export default function FinanceAuditPage() {
   const { cases: allCases, loading } = useCases();
   const { invoiceActions, invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
   // Pajak per transaksi: kontrol hanya di baris ON-CALL (via TaxCell),
-  // rekap panel menjumlahkan dari taxMap ini.
-  const { taxMap, setPpn, togglePph } = useFinanceTax();
+  // map server adalah kebenaran, localStorage hanya outbox antrean.
+  const { taxMap, pendingUuids, setPpn, togglePph } = useFinanceTax({ notify });
   const [taxModalRow, setTaxModalRow] = useState(null);
   const [filters, setFilter, resetFilterValues] = useFilters({ from: '', to: '', brand: '', invFilter: '' });
   const { from, to, brand, invFilter } = filters;
@@ -877,6 +877,7 @@ export default function FinanceAuditPage() {
                       charges={+c.charges || 0}
                       billingStatus={c.billingStatus}
                       tax={taxMap[c.recordUuid]}
+                      pending={(pendingUuids || []).includes(c.recordUuid)}
                       onEditPpn={openTaxModal}
                       onSavePpn={setPpn}
                       onTogglePph={togglePph}

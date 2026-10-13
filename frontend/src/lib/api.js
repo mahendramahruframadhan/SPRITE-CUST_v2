@@ -129,6 +129,8 @@ export const patchInvoice = (uuid, status, extra = {}) => patch(`/cases/${uuid}/
 export const getBillingStats = () => get('/billing/stats');
 export const getInvoiceMap = () => get('/billing/invoice-map');
 export const getAuditMap = () => get('/billing/audit-map');
+export const getTaxMap = () => get('/billing/tax-map');
+export const patchTax = (uuid, body) => patch(`/cases/${uuid}/tax`, body);
 export const triggerSync = () => post('/sync/trigger', {});
 export const getSyncLogs = () => get('/sync/logs');
 export const signIn = (email, password) => post('/auth/sign-in/email', { email, password });
