@@ -55,6 +55,25 @@ export class BillingController {
     }
     return { ok: true, map };
   }
+  // Peta pajak per kasus — dipakai frontend menyinkronkan tampilan lokal
+  // dengan kebenaran backend saat halaman dimuat. Baca terbuka seperti GET lain.
+  @Get('billing/tax-map')
+  @UseGuards(PermGuard)
+  @Perm('finance')
+  async taxMap() {
+    const r: any = await this.db.execute(`SELECT record_uuid, ppn_mode, ppn_percent, ppn_amount, pph FROM case_tax` as any);
+    const map: Record<string, { ppn: { mode: string; percent: number; amount: number } | null; pph: boolean }> = {};
+    for (const x of (r.rows || r || [])) {
+      const uuid = x && (x.record_uuid || x.recorduuid);
+      if (!uuid) continue;
+      const mode = x.ppn_mode || x.ppnmode;
+      map[uuid] = {
+        ppn: mode ? { mode, percent: Number(x.ppn_percent ?? x.ppnpercent ?? 0), amount: Number(x.ppn_amount ?? x.ppnamount ?? 0) } : null,
+        pph: Number(x.pph ?? 0) === 1,
+      };
+    }
+    return { ok: true, map };
+  }
   @Patch('cases/:uuid/audit')
   @UseGuards(PermGuard)
   @Perm('billing')
