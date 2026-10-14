@@ -33,6 +33,32 @@ function monthLabel(key: string): string {
   return `${ID_MONTHS[Number(m[2]) - 1]} ${m[1]}`;
 }
 
+// Tanggal WIB hari ini 'YYYY-MM-DD' (offset +7, tanpa DST).
+function todayWIB(now = Date.now()): string {
+  return new Date(now + 7 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+// 'YYYYMMDD' -> umur hari kalender thd today 'YYYY-MM-DD', null bila tak valid.
+function ageDaysOf(dateIssue: any, today: string): number | null {
+  const m = String(dateIssue || '').match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (d.getFullYear() !== Number(m[1]) || d.getMonth() !== Number(m[2]) - 1 || d.getDate() !== Number(m[3])) return null;
+  const t = new Date(`${today}T00:00:00`);
+  if (Number.isNaN(t.getTime())) return null;
+  const local = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const tLocal = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+  return Math.round((tLocal.getTime() - local.getTime()) / 86400000);
+}
+
+const AGING_BUCKETS = [
+  { key: '0-30', label: '0–30 hari', min: 0, max: 30, status: 'Baik' },
+  { key: '31-60', label: '31–60 hari', min: 31, max: 60, status: 'Normal' },
+  { key: '61-90', label: '61–90 hari', min: 61, max: 90, status: 'Perhatian' },
+  { key: '91-180', label: '91–180 hari', min: 91, max: 180, status: 'Risiko' },
+  { key: '>180', label: '>180 hari', min: 181, max: Infinity, status: 'Risiko' },
+];
+
 const mapRow = (r: any) => ({
   no: r.no,
   dateIssue: r.date_issue,
@@ -67,7 +93,7 @@ const mapRow = (r: any) => ({
 export class AnalyticsService {
   private db: any = getDb();
 
-  private async poolRows(from: string, to: string) {
+  private async poolRows(from: string, to: string, opts: { brand?: string; module?: string } = {}) {
     const f = String(from || '').replace(/-/g, '');
     const t = String(to || '').replace(/-/g, '');
     const res: any = await this.db.pq(
@@ -75,15 +101,20 @@ export class AnalyticsService {
       [f, t],
     );
     const rows = (res.rows || res || []) as any[];
-    return rows.filter(inPool).map((r) => {
-      const charges = Number(r.charges) || 0;
-      const ppn = ppnOf(r);
-      return { ...r, charges, ppn, subtotal: charges + ppn, pph: Number(r.pph ?? 0) === 1 };
-    });
+    const brand = String(opts.brand || '');
+    const module = String(opts.module || '');
+    return rows
+      .filter(inPool)
+      .filter((r) => (!brand || r.client === brand) && (!module || r.module === module))
+      .map((r) => {
+        const charges = Number(r.charges) || 0;
+        const ppn = ppnOf(r);
+        return { ...r, charges, ppn, subtotal: charges + ppn, pph: Number(r.pph ?? 0) === 1 };
+      });
   }
 
-  async getOverview(from: string, to: string) {
-    const pool = await this.poolRows(from, to);
+  async getOverview(from: string, to: string, opts: { brand?: string; module?: string; today?: string } = {}) {
+    const pool = await this.poolRows(from, to, opts);
     const charges = pool.reduce((a, r) => a + r.charges, 0);
     const ppn = pool.reduce((a, r) => a + r.ppn, 0);
     const subtotal = charges + ppn;
@@ -139,6 +170,37 @@ export class AnalyticsService {
 
     const paid = summarize(pool.filter((r) => invOf(r) === 'PAID'));
     const outstanding = summarize(pool.filter((r) => invOf(r) !== 'PAID'));
+    const byBilling = {
+      'ON-CALL': summarize(pool.filter((r) => isOnCall(r.billing_status))),
+      MONTHLY: summarize(pool.filter((r) => isMonthly(r.billing_status))),
+    };
+
+    const today = String(opts.today || todayWIB());
+    const outstandingRows = pool.filter((r) => invOf(r) !== 'PAID');
+    const buckets = AGING_BUCKETS.map((b) => ({ ...b, count: 0, subtotal: 0, percentage: 0 }));
+    let invalid = 0;
+    for (const r of outstandingRows) {
+      const age = ageDaysOf(r.date_issue, today);
+      if (age === null) {
+        invalid += 1;
+        continue;
+      }
+      const b = buckets.find((x) => Math.max(0, age) >= x.min && Math.max(0, age) <= x.max);
+      if (!b) {
+        invalid += 1;
+        continue;
+      }
+      b.count += 1;
+      b.subtotal += r.subtotal;
+    }
+    const agingTotal = { count: buckets.reduce((a, b) => a + b.count, 0), subtotal: buckets.reduce((a, b) => a + b.subtotal, 0) };
+    for (const b of buckets) b.percentage = agingTotal.subtotal > 0 ? Math.round((b.subtotal / agingTotal.subtotal) * 100) : 0;
+    const aging = { buckets, total: agingTotal, invalid };
+
+    const top = [...outstandingRows]
+      .sort((a, b) => b.subtotal - a.subtotal)
+      .slice(0, 10)
+      .map((r) => ({ ...mapRow(r), ppn: r.ppn, subtotal: r.subtotal, pph: r.pph, ageDays: ageDaysOf(r.date_issue, today) }));
 
     return {
       kpis: { count: pool.length, charges, ppn, subtotal, pphCount: pool.filter((r) => r.pph).length, paid, outstanding },
@@ -146,12 +208,15 @@ export class AnalyticsService {
       byInvoice: byInvoiceSum,
       byBrand,
       byModule,
+      byBilling,
+      aging,
+      top,
     };
   }
 
-  async getDrilldown(opts: { dim: string; key: string; from: string; to: string; q?: string; page?: number; limit?: number }) {
+  async getDrilldown(opts: { dim: string; key: string; from: string; to: string; q?: string; page?: number; limit?: number; brand?: string; module?: string }) {
     const { dim, key } = opts;
-    const pool = await this.poolRows(opts.from, opts.to);
+    const pool = await this.poolRows(opts.from, opts.to, { brand: opts.brand, module: opts.module });
     const scoped = dim ? pool.filter((r) => (dim === 'brand' ? r.client || '-' : r.module || '-') === key) : pool;
     const needle = String(opts.q || '').trim().toLowerCase();
     const searched = needle
