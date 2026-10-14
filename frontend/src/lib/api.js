@@ -182,17 +182,19 @@ export const getPopinavaHistory = (uuid) => get(`/popinava/${encodeURIComponent(
 export const getPopinavaLogs = (limit) => get(`/popinava/logs${limit ? `?limit=${encodeURIComponent(limit)}` : ''}`);
 
 // Analitik backend (overview agregasi + drilldown paginated server-side).
-export async function fetchAnalyticsOverview({ from = '', to = '' } = {}) {
-  const qs = `${from ? `?from=${encodeURIComponent(from)}` : '?from=1970-01-01'}${to ? `&to=${encodeURIComponent(to)}` : '&to=2999-12-31'}`;
+export async function fetchAnalyticsOverview({ from = '', to = '', brand = '', module = '' } = {}) {
+  const qs = `${from ? `?from=${encodeURIComponent(from)}` : '?from=1970-01-01'}${to ? `&to=${encodeURIComponent(to)}` : '&to=2999-12-31'}${brand ? `&brand=${encodeURIComponent(brand)}` : ''}${module ? `&module=${encodeURIComponent(module)}` : ''}`;
   return get(`/analytics/overview${qs}`);
 }
-export async function fetchAnalyticsDrilldown({ dim = '', key = '', from = '', to = '', q = '', page = 1, limit = 10 } = {}) {
+export async function fetchAnalyticsDrilldown({ dim = '', key = '', from = '', to = '', q = '', page = 1, limit = 10, brand = '', module = '' } = {}) {
   const p = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (dim) p.set('dim', dim);
   if (key) p.set('key', key);
   if (from) p.set('from', from);
   if (to) p.set('to', to);
   if (q) p.set('q', q);
+  if (brand) p.set('brand', brand);
+  if (module) p.set('module', module);
   return get(`/analytics/drilldown?${p.toString()}`);
 }
 
