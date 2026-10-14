@@ -160,7 +160,44 @@
 }
 
 /* ===== Cetak Report Summary: kop tampil, chrome aplikasi hilang ===== */
+@page {
+  size: A4;
+  margin: 12mm;
+}
 @media print {
+  /* Warna badge/bar dipertahankan di kertas */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Tabel panjang: ulang header tiap halaman, baris tak terpotong */
+  thead {
+    display: table-header-group;
+  }
+  tr {
+    break-inside: avoid;
+  }
+  /* Kartu rekap utuh satu halaman bila muat */
+  .report-card {
+    break-inside: avoid;
+  }
+  /* Cetak per section: hanya [data-section] bertanda .print-keep yang tampil */
+  body.printing-section .page [data-section]:not(.print-keep) {
+    display: none !important;
+  }
+  /* Hero gradien: matikan bg + paksa teks hitam (bg browser tak tercetak) */
+  [data-section='hero'] {
+    background: none !important;
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+  [data-section='hero'] div[aria-hidden='true'] {
+    display: none !important;
+  }
+  [data-section='hero'] * {
+    color: #000 !important;
+    border-color: #cbd5e1 !important;
+  }
   .print-kop {
     display: block;
     margin-bottom: 16px;

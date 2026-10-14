@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 // (MOTION 2, dial DESIGN.md). Tanpa cascade delay antar kartu.
 // innerKey: untuk konten yang perlu animasi ulang saat identitas berubah
 // (mis. ganti tab) — key dipasang di motion.div dalam.
-export function Reveal({ children, className = '', innerKey }) {
+export function Reveal({ children, className = '', innerKey, ...rest }) {
   return (
     <motion.div
       key={innerKey}
@@ -13,6 +13,7 @@ export function Reveal({ children, className = '', innerKey }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-48px' }}
       transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+      {...rest}
     >
       {children}
     </motion.div>

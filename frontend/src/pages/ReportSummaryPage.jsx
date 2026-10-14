@@ -11,6 +11,7 @@ import { buildReportSummary } from '../lib/reportSummary.js';
 import { buildAgingBuckets, getTopOutstanding, buildGroupBreakdown, ageDays } from '../lib/reportAging.js';
 import { resolveTaxAmount } from '../lib/taxSummary.js';
 import { buildReportCsv, reportCsvFilename } from '../lib/reportExport.js';
+import { printSection } from '../lib/printSection.js';
 import FilterLabel from '../components/FilterLabel.jsx';
 import { EmptyRow, LoadingRow, Pill } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
@@ -46,6 +47,24 @@ const moneySize = (v) => {
   if (len > 13) return 'text-[20px]';
   return 'text-[22px]';
 };
+
+// Tombol cetak satu section (A4). Disembunyikan saat print.
+function PrintBtn({ id, label }) {
+  return (
+    <button
+      type="button"
+      onClick={() => printSection(id)}
+      title={`Cetak ${label}`}
+      aria-label={`Cetak ${label}`}
+      className="no-print inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-emerald-600 dark:text-slate-500 dark:hover:text-emerald-400 transition min-h-[44px] px-2"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-12-3h12v6H6v-6z" />
+      </svg>
+      Cetak
+    </button>
+  );
+}
 
 // Baris rekap dokumen: label di kiri, nilai di kanan, garis putus-putus.
 function ReportRow({ label, value, cls = 'text-slate-900 dark:text-white' }) {
@@ -241,7 +260,7 @@ export default function ReportSummaryPage() {
       </div>
 
       {/* ===== HERO (juga jadi kop dokumen saat print) ===== */}
-      <Reveal className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#064e3b] via-[#059669] to-[#10b981] text-white shadow-2xl shadow-emerald-600/25">
+      <Reveal data-section="hero" className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#064e3b] via-[#059669] to-[#10b981] text-white shadow-2xl shadow-emerald-600/25">
         <div aria-hidden="true" className="absolute -right-24 -top-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
         <div aria-hidden="true" className="absolute -left-16 -bottom-28 w-80 h-80 bg-teal-300/20 rounded-full blur-3xl" />
         <div className="relative p-6 sm:p-8">
@@ -370,7 +389,11 @@ export default function ReportSummaryPage() {
       )}
 
       {/* ===== Ringkasan Keuangan: 3 kartu uang + kartu info ===== */}
-      <Reveal className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <Reveal data-section="kpi" className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-5 flex items-center justify-between">
+          <h3 className="report-card-title !mb-0">Ringkasan Keuangan</h3>
+          <PrintBtn id="kpi" label="Ringkasan Keuangan" />
+        </div>
         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {financeKpi.map((d) => (
             <div key={d.t} className="group relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)] hover:shadow-xl hover:-translate-y-1 hover:border-transparent transition-all duration-300">
@@ -405,8 +428,11 @@ export default function ReportSummaryPage() {
 
       {/* ===== Dua kartu rekap kecil: status invoice + billing status ===== */}
       <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="report-card">
-          <h3 className="report-card-title">Rincian per Status Invoice</h3>
+        <div className="report-card" data-section="rekap-invoice">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="report-card-title !mb-0">Rincian per Status Invoice</h3>
+            <PrintBtn id="rekap-invoice" label="Rincian per Status Invoice" />
+          </div>
           {loading ? (
             <table className="w-full text-sm"><tbody><LoadingRow colSpan={2} /></tbody></table>
           ) : invalidRange ? (
@@ -427,8 +453,11 @@ export default function ReportSummaryPage() {
           )}
         </div>
 
-        <div className="report-card">
-          <h3 className="report-card-title">Rincian per Billing Status</h3>
+        <div className="report-card" data-section="rekap-billing">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="report-card-title !mb-0">Rincian per Billing Status</h3>
+            <PrintBtn id="rekap-billing" label="Rincian per Billing Status" />
+          </div>
           {byBillingRows.map(([bs, b]) => (
             <ReportRow
               key={bs}
@@ -451,8 +480,11 @@ export default function ReportSummaryPage() {
 
       {/* ===== Aging tunggakan (outstanding) + Top 10 ===== */}
       <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="report-card">
-          <h3 className="report-card-title">Aging Tunggakan</h3>
+        <div className="report-card" data-section="aging">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="report-card-title !mb-0">Aging Tunggakan</h3>
+            <PrintBtn id="aging" label="Aging Tunggakan" />
+          </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1 mb-3">
             Umur = hari ini − tanggal issue · {aging.total.count.toLocaleString('id-ID')} kasus belum dibayar
             {aging.invalid > 0 && ` · ${aging.invalid} tanpa tanggal valid dikecualikan`}
@@ -480,8 +512,11 @@ export default function ReportSummaryPage() {
           )}
         </div>
 
-        <div className="report-card">
-          <h3 className="report-card-title">Top 10 Tunggakan Terbesar</h3>
+        <div className="report-card" data-section="top10">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="report-card-title !mb-0">Top 10 Tunggakan Terbesar</h3>
+            <PrintBtn id="top10" label="Top 10 Tunggakan" />
+          </div>
           {loading ? (
             <table className="w-full text-sm"><tbody><LoadingRow colSpan={2} /></tbody></table>
           ) : top10.length === 0 ? (
@@ -507,9 +542,12 @@ export default function ReportSummaryPage() {
 
       {/* ===== Breakdown per brand + per module ===== */}
       <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {[{ title: 'Nilai per Brand', rows: brandBreak }, { title: 'Nilai per Module', rows: moduleBreak }].map((s) => (
-          <div key={s.title} className="report-card">
-            <h3 className="report-card-title">{s.title}</h3>
+        {[{ sec: 'break-brand', title: 'Nilai per Brand', rows: brandBreak }, { sec: 'break-module', title: 'Nilai per Module', rows: moduleBreak }].map((s) => (
+          <div key={s.title} className="report-card" data-section={s.sec}>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="report-card-title !mb-0">{s.title}</h3>
+              <PrintBtn id={s.sec} label={s.title} />
+            </div>
             {loading ? (
               <table className="w-full text-sm"><tbody><LoadingRow colSpan={2} /></tbody></table>
             ) : s.rows.length === 0 ? (
@@ -533,7 +571,7 @@ export default function ReportSummaryPage() {
       </Reveal>
 
       {/* ===== Detail kasus tervalidasi (per baris) ===== */}
-      <Reveal className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">
+      <Reveal data-section="detail" className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex flex-wrap items-center gap-3">
             <div>
@@ -542,7 +580,9 @@ export default function ReportSummaryPage() {
                 {loading ? 'Memuat dari backend…' : `${detailItems.length} kasus · total subtotal ${fmtMoney(detailTotal)}`}
               </p>
             </div>
-            <div className="ml-auto relative no-print">
+            <div className="ml-auto flex items-center gap-2">
+              <PrintBtn id="detail" label="Detail Kasus" />
+              <div className="relative no-print">
               <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
@@ -553,6 +593,7 @@ export default function ReportSummaryPage() {
                 onChange={(e) => setQ(e.target.value)}
                 className="pl-9 pr-3 py-2.5 min-h-[44px] w-full sm:w-auto text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition"
               />
+              </div>
             </div>
           </div>
         </div>
