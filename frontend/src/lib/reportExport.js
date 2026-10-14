@@ -8,7 +8,7 @@ function sectionRow(label, b) {
   return [label, b.count, b.charges, b.ppn, b.subtotal].map(esc).join(',');
 }
 
-export function buildReportCsv(summary, { periode = '' } = {}) {
+export function buildReportCsv(summary, { periode = '', aging = null, top = [], brandBreak = [], moduleBreak = [] } = {}) {
   const s = summary || {};
   const byInvoice = s.byInvoice && typeof s.byInvoice === 'object' ? s.byInvoice : {};
   const byBilling = s.byBilling && typeof s.byBilling === 'object' ? s.byBilling : {};
@@ -31,6 +31,33 @@ export function buildReportCsv(summary, { periode = '' } = {}) {
     ['SUBTOTAL AKHIR', s.subtotal ?? 0].map(esc).join(','),
     [`KASUS BER-FLAG PPh (tanpa potongan): ${s.pphCount ?? 0}`].map(esc).join(','),
   ];
+  if (aging && Array.isArray(aging.buckets)) {
+    lines.push(
+      '',
+      ['AGING TUNGGAKAN (umur = hari ini - tanggal issue)'].map(esc).join(','),
+      ['BUCKET', 'STATUS', 'JUMLAH KASUS', 'SUBTOTAL'].join(','),
+      ...aging.buckets.map((b) => [b.label, b.status, b.count, b.subtotal].map(esc).join(',')),
+      ['TOTAL TUNGGAKAN', '', aging.total?.count ?? 0, aging.total?.subtotal ?? 0].map(esc).join(','),
+    );
+  }
+  if (Array.isArray(top) && top.length) {
+    lines.push(
+      '',
+      ['TOP 10 TUNGGAKAN TERBESAR'].map(esc).join(','),
+      ['RANK', 'NO', 'BRAND', 'TANGGAL', 'SUBTOTAL', 'STATUS INVOICE'].join(','),
+      ...top.slice(0, 10).map((c, i) => [i + 1, c.no ?? '', c.client ?? '', c.dateIssue ?? '', c.subtotal ?? 0, c.invStatus ?? ''].map(esc).join(',')),
+    );
+  }
+  for (const [title, rows] of [['NILAI PER BRAND', brandBreak], ['NILAI PER MODULE', moduleBreak]]) {
+    if (Array.isArray(rows) && rows.length) {
+      lines.push(
+        '',
+        [title].map(esc).join(','),
+        cols,
+        ...rows.map((g) => sectionRow(g.name, g)),
+      );
+    }
+  }
   return lines.join('\n');
 }
 

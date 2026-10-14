@@ -8,6 +8,7 @@ import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { getAuditMap, getInvoiceMap } from '../lib/api.js';
 import { buildReportSummary } from '../lib/reportSummary.js';
+import { buildAgingBuckets, getTopOutstanding, buildGroupBreakdown, ageDays } from '../lib/reportAging.js';
 import { resolveTaxAmount } from '../lib/taxSummary.js';
 import { buildReportCsv, reportCsvFilename } from '../lib/reportExport.js';
 import FilterLabel from '../components/FilterLabel.jsx';
@@ -23,6 +24,20 @@ const VALID_TAG = 'VALID - SIAP INVOICE';
 
 function fmtMoney(n) {
   return 'Rp ' + (n || 0).toLocaleString('id-ID');
+}
+
+// Badge + bar aging: Baik (hijau), Normal (biru), Perhatian (kuning), Risiko (merah).
+function riskTone(s) {
+  if (s === 'Baik') return 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20';
+  if (s === 'Normal') return 'text-sky-700 bg-sky-50 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20';
+  if (s === 'Perhatian') return 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20';
+  return 'text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20';
+}
+function riskBar(s) {
+  if (s === 'Baik') return 'bg-emerald-500';
+  if (s === 'Normal') return 'bg-sky-500';
+  if (s === 'Perhatian') return 'bg-amber-500';
+  return 'bg-rose-500';
 }
 
 const moneySize = (v) => {
@@ -60,8 +75,9 @@ export default function ReportSummaryPage() {
   };
   const [filters, , resetFilterValues, setManyFilters] = useFilters({
     month: monthKey(), from: rangeOfMonth(monthKey()).from, to: rangeOfMonth(monthKey()).to,
+    brand: '', module: '',
   });
-  const { month, from, to } = filters;
+  const { month, from, to, brand, module } = filters;
   const { cases: allCases, loading, error } = useRangedCases(from, to);
   const applyMonth = (ym) => {
     const r = rangeOfMonth(ym);
@@ -102,9 +118,17 @@ export default function ReportSummaryPage() {
     [allCases, caseAuditStatus]
   );
 
+  // Opsi filter + penyempitan seluruh halaman per brand/module.
+  const brandOpts = useMemo(() => [...new Set(validatedPool.map((c) => c.client).filter(Boolean))].sort(), [validatedPool]);
+  const moduleOpts = useMemo(() => [...new Set(validatedPool.map((c) => c.module).filter(Boolean))].sort(), [validatedPool]);
+  const scopedPool = useMemo(
+    () => validatedPool.filter((c) => (!brand || c.client === brand) && (!module || c.module === module)),
+    [validatedPool, brand, module]
+  );
+
   const summary = useMemo(
-    () => buildReportSummary(validatedPool, taxMap, invoiceStatus, defaultInvoiceStatus),
-    [validatedPool, taxMap, invoiceStatus, defaultInvoiceStatus]
+    () => buildReportSummary(scopedPool, taxMap, invoiceStatus, defaultInvoiceStatus),
+    [scopedPool, taxMap, invoiceStatus, defaultInvoiceStatus]
   );
 
   const invalidRange = from && to && from > to;
@@ -119,7 +143,7 @@ export default function ReportSummaryPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [q, from, to, perPage, caseAuditStatus]);
+  }, [q, from, to, perPage, brand, module, caseAuditStatus]);
 
   // Tiga KPI uang di kolom kiri (Charges / PPN / Subtotal Akhir).
   const financeKpi = [
@@ -147,14 +171,11 @@ export default function ReportSummaryPage() {
 
   // Baris detail per kasus: PPN per baris (0 untuk MONTHLY), subtotal,
   // flag PPh, status invoice — semua dari sumber yang sama dengan rekap.
-  const detailItems = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return validatedPool
-      .filter((c) =>
-        !needle ||
-        `${c.no} ${c.client} ${c.billingStatus}`.toLowerCase().includes(needle)
-      )
-      .map((c) => {
+  // scopedRows = tanpa filter cari (dipakai aging/top/breakdown);
+  // detailItems = scopedRows + filter cari (dipakai tabel).
+  const scopedRows = useMemo(
+    () =>
+      scopedPool.map((c) => {
         const charges = +c.charges || 0;
         const ppn = resolveTaxAmount(taxMap?.[c.recordUuid]?.ppn, charges);
         return {
@@ -165,8 +186,24 @@ export default function ReportSummaryPage() {
           pph: taxMap?.[c.recordUuid]?.pph === true,
           invStatus: invoiceStatus[c.recordUuid] || defaultInvoiceStatus,
         };
-      });
-  }, [validatedPool, taxMap, invoiceStatus, defaultInvoiceStatus, q]);
+      }),
+    [scopedPool, taxMap, invoiceStatus, defaultInvoiceStatus]
+  );
+  const detailItems = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return scopedRows.filter(
+      (c) =>
+        !needle ||
+        `${c.no} ${c.client} ${c.billingStatus}`.toLowerCase().includes(needle)
+    );
+  }, [scopedRows, q]);
+
+  // Section baru: aging tunggakan + top outstanding + breakdown.
+  const outstandingRows = useMemo(() => scopedRows.filter((c) => c.invStatus !== 'PAID'), [scopedRows]);
+  const aging = useMemo(() => buildAgingBuckets(outstandingRows), [outstandingRows]);
+  const top10 = useMemo(() => getTopOutstanding(outstandingRows, 10), [outstandingRows]);
+  const brandBreak = useMemo(() => buildGroupBreakdown(scopedRows, (c) => c.client), [scopedRows]);
+  const moduleBreak = useMemo(() => buildGroupBreakdown(scopedRows, (c) => c.module), [scopedRows]);
 
   const detailTotal = detailItems.reduce((a, c) => a + c.subtotal, 0);
   const totalPages = Math.max(1, Math.ceil(detailItems.length / perPage));
@@ -181,7 +218,7 @@ export default function ReportSummaryPage() {
   })();
 
   function exportData() {
-    const csv = buildReportCsv(summary, { periode: periodeLabel });
+    const csv = buildReportCsv(summary, { periode: periodeLabel, aging, top: top10, brandBreak, moduleBreak });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -301,6 +338,24 @@ export default function ReportSummaryPage() {
           >
             Reset
           </Button>
+          <div>
+            <FilterLabel>Brand</FilterLabel>
+            <select value={brand} onChange={(e) => setManyFilters({ brand: e.target.value })} className={filterCls}>
+              <option value="">Semua brand</option>
+              {brandOpts.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <FilterLabel>Module</FilterLabel>
+            <select value={module} onChange={(e) => setManyFilters({ module: e.target.value })} className={filterCls}>
+              <option value="">Semua module</option>
+              {moduleOpts.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
           <div className="ml-auto text-xs text-slate-500 dark:text-slate-400">
             Periode:{' '}
             <span className="font-semibold text-slate-600 dark:text-slate-300">{periodeLabel}</span>
@@ -392,6 +447,89 @@ export default function ReportSummaryPage() {
             </p>
           </div>
         </div>
+      </Reveal>
+
+      {/* ===== Aging tunggakan (outstanding) + Top 10 ===== */}
+      <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="report-card">
+          <h3 className="report-card-title">Aging Tunggakan</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1 mb-3">
+            Umur = hari ini − tanggal issue · {aging.total.count.toLocaleString('id-ID')} kasus belum dibayar
+            {aging.invalid > 0 && ` · ${aging.invalid} tanpa tanggal valid dikecualikan`}
+          </p>
+          {loading ? (
+            <table className="w-full text-sm"><tbody><LoadingRow colSpan={2} /></tbody></table>
+          ) : (
+            <>
+              {aging.buckets.map((b) => (
+                <div key={b.key} className="mb-3">
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="font-bold text-slate-700 dark:text-slate-200">
+                      {b.label} <span className={`ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${riskTone(b.status)}`}>{b.status}</span>
+                    </span>
+                    <span className="tabular-nums font-extrabold text-slate-900 dark:text-white">{fmtMoney(b.subtotal)}</span>
+                  </div>
+                  <div className="mt-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden" role="progressbar" aria-valuenow={b.percentage} aria-valuemin={0} aria-valuemax={100} aria-label={`${b.label} ${b.percentage}%`}>
+                    <div className={`h-full rounded-full ${riskBar(b.status)}`} style={{ width: `${b.percentage}%` }} />
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{b.count.toLocaleString('id-ID')} kasus · {b.percentage}% dari tunggakan</p>
+                </div>
+              ))}
+              <ReportRow label="TOTAL TUNGGAKAN" value={fmtMoney(aging.total.subtotal)} cls="text-rose-600 dark:text-rose-400" />
+            </>
+          )}
+        </div>
+
+        <div className="report-card">
+          <h3 className="report-card-title">Top 10 Tunggakan Terbesar</h3>
+          {loading ? (
+            <table className="w-full text-sm"><tbody><LoadingRow colSpan={2} /></tbody></table>
+          ) : top10.length === 0 ? (
+            <table className="w-full text-sm"><tbody><EmptyRow colSpan={2}>Tidak ada tunggakan pada periode ini</EmptyRow></tbody></table>
+          ) : (
+            <table className="w-full text-sm">
+              <tbody>
+                {top10.map((c, i) => (
+                  <tr key={c.recordUuid} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                    <td className="py-2 pr-2 text-slate-400 dark:text-slate-500 tabular-nums w-8">{i + 1}</td>
+                    <td className="py-2 pr-2">
+                      <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{c.client || '-'} <span className="font-medium text-slate-400">#{c.no || '-'}</span></p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {ageDays(c.dateIssue) ?? '-'} hari · {invLabel(c.invStatus)}</p>
+                    </td>
+                    <td className="py-2 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{fmtMoney(c.subtotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </Reveal>
+
+      {/* ===== Breakdown per brand + per module ===== */}
+      <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {[{ title: 'Nilai per Brand', rows: brandBreak }, { title: 'Nilai per Module', rows: moduleBreak }].map((s) => (
+          <div key={s.title} className="report-card">
+            <h3 className="report-card-title">{s.title}</h3>
+            {loading ? (
+              <table className="w-full text-sm"><tbody><LoadingRow colSpan={2} /></tbody></table>
+            ) : s.rows.length === 0 ? (
+              <table className="w-full text-sm"><tbody><EmptyRow colSpan={2}>Tidak ada data pada periode ini</EmptyRow></tbody></table>
+            ) : (
+              s.rows.slice(0, 8).map((g) => (
+                <div key={g.name} className="mb-3">
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="font-bold text-slate-700 dark:text-slate-200 truncate">{g.name}</span>
+                    <span className="tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{fmtMoney(g.subtotal)}</span>
+                  </div>
+                  <div className="mt-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden" role="progressbar" aria-valuenow={g.percentage} aria-valuemin={0} aria-valuemax={100} aria-label={`${g.name} ${g.percentage}%`}>
+                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-600" style={{ width: `${g.percentage}%` }} />
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{g.count.toLocaleString('id-ID')} kasus · {g.percentage}% dari subtotal</p>
+                </div>
+              ))
+            )}
+          </div>
+        ))}
       </Reveal>
 
       {/* ===== Detail kasus tervalidasi (per baris) ===== */}
