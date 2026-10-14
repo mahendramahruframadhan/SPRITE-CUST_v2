@@ -7,20 +7,17 @@ import { get as storageGet, set as storageSet, remove as storageRemove } from '.
 // modul ini tanpa bundler dan harus tetap bisa jalan.
 export const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || '/api';
 
-// Token sesi (diisi saat login, dikirim sebagai x-auth-token di setiap request).
-// Backend (PermGuard) HANYA memvalidasi token ini untuk endpoint tulis —
-// x-user-email tidak lagi dipercaya untuk otorisasi.
-export const getAuthToken = () => storageGet('authToken', '');
-export const setAuthToken = (t) => (t ? storageSet('authToken', t) : storageRemove('authToken'));
-
+// Sesi cookie httpOnly (M3): browser mengirim cookie otomatis via
+// credentials:include — token TIDAK PERNAH disimpan di localStorage atau
+// dikirim via header (menutup jalur eksfiltrasi XSS). Backend
+// (PermGuard) memvalidasi cookie sesi ini; x-user-email hanya display.
 // Anti-redirect-ganda bila banyak request 401 bersamaan.
 let redirectingToLogin = false;
 
 async function req(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json', 'x-user-email': storageGet('userEmail', '') };
-  const token = getAuthToken();
-  if (token) headers['x-auth-token'] = token;
   const res = await fetch(`${API_BASE}${path}`, {
+    credentials: 'include',
     headers,
     ...opts,
     ...(opts.body && typeof opts.body !== 'string' ? { body: JSON.stringify(opts.body) } : {}),
@@ -135,7 +132,7 @@ export const triggerSync = () => post('/sync/trigger', {});
 export const getSyncLogs = () => get('/sync/logs');
 export const signIn = (email, password) => post('/auth/sign-in/email', { email, password });
 export const signUp = (email, password, name, role) => post('/auth/sign-up/email', { email, password, name, role });
-export const signOut = () => post('/auth/sign-out', { token: getAuthToken() });
+export const signOut = () => post('/auth/sign-out', {});
 export const getSession = () => get('/auth/session');
 export const getUsers = () => get('/users');
 export const patchUser = (id, body) => patch(`/users/${id}`, body);

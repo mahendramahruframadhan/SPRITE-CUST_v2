@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, UseGuards, Req, HttpException, HttpStatus } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 import { SessionGuard } from '../auth/session.guard';
+import { consumeRateLimit } from '../auth/rate-limit';
 import { getSecret } from '../config/app-secret';
 
 export const maskKey = (k: string) => (!k ? '' : k.length <= 4 ? '••••' : `••••${k.slice(-4)}`);
@@ -17,7 +18,10 @@ export const parseAiRateLimit = (raw: string | undefined): number => {
 const AI_MAX_REQUESTS_PER_MINUTE = parseAiRateLimit(process.env.AI_MAX_REQUESTS_PER_MINUTE);
 const AI_MAX_MESSAGES = 8;
 const AI_MAX_MESSAGE_CHARS = 2000;
-const aiHits = new Map<string, number[]>();
+
+// F3: kuota AI memakai store bersama di auth/rate-limit — entri kedaluwarsa
+// ikut tersapu (dulu Map lokal aiHits tak pernah dihapus → kebocoran memori).
+const AI_QUOTA_WINDOW_MS = 60_000;
 
 // Cakupan ditutup (review M-2): metadata cloud 169.254, CGNAT 100.64/10,
 // 0.0.0.0, benchmark 198.18/19, IPv6 link-local fe80 & ULA fc/fd, plus alamat
@@ -67,17 +71,8 @@ export const normalizeAiBaseUrl = (value: any): string | null => {
   }
 };
 
-const consumeAiQuota = (key: string): boolean => {
-  const now = Date.now();
-  const hits = (aiHits.get(key) || []).filter((time) => now - time < 60_000);
-  if (hits.length >= AI_MAX_REQUESTS_PER_MINUTE) {
-    aiHits.set(key, hits);
-    return false;
-  }
-  hits.push(now);
-  aiHits.set(key, hits);
-  return true;
-};
+const consumeAiQuota = (key: string): boolean =>
+  consumeRateLimit(`ai:chat:${key}`, AI_MAX_REQUESTS_PER_MINUTE, AI_QUOTA_WINDOW_MS);
 
 // Konfigurasi SPRITE AI — asisten resmi project SPRITE-CUST_v2 (diatur pemilik,
 // abaikan bila sudah diimplementasikan). Aturan: HANYA jawab seputar project

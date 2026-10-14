@@ -178,8 +178,15 @@ export class ShotsService {
     try {
       await s3.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: row.storage_key }));
     } catch (e) {
-      this.logger.warn(`Hapus R2 gagal (DB tidak disentuh): ${(e as any)?.message}`);
-      fail('R2_DELETE_FAILED', 'Gagal menghapus file di penyimpanan — data dipertahankan, coba lagi.', HttpStatus.BAD_GATEWAY);
+      // Fail-closed hanya untuk file yang sudah terverifikasi tersimpan: metadata
+      // tak boleh hilang sementara objeknya masih ada di bucket (yatim tanpa
+      // metadata). Row belum completed (upload gagal/never confirm → objek
+      // praktis tidak ada) tetap boleh dihapus supaya user tidak terkunci.
+      if (row.status === 'completed') {
+        this.logger.warn(`Hapus R2 gagal (DB tidak disentuh): ${(e as any)?.message}`);
+        fail('R2_DELETE_FAILED', 'Gagal menghapus file di penyimpanan — data dipertahankan, coba lagi.', HttpStatus.BAD_GATEWAY);
+      }
+      this.logger.warn(`Hapus R2 dilewati untuk row ${row.status} (${id}): ${(e as any)?.message}`);
     }
     await this.db.pq(`DELETE FROM audit_shots WHERE id=$1`, [id]);
     await logActivity(this.db, { who, action: `menghapus screenshot audit (${row.slot.toUpperCase()})`, category: 'popinava', detail: row.filename, recordUuid: row.dept_uuid });

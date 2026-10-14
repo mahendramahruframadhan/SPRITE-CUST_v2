@@ -4,16 +4,15 @@ process.env.DATABASE_URL = '';
 
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { setupTables, seedUser, seedCase, db } from './helpers/pgmem.ts';
+import { setupTables, seedUser, seedCase, db, loginAs } from './helpers/pgmem.ts';
 import { BillingController } from '../src/billing/billing.controller.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
 
 const UUID = 'tax-case-3';
 
 async function superToken() {
-  const ctl = new AuthController();
-  const r: any = await ctl.signIn({ email: 'taxsa3@revota.id', password: 'password123' }, {});
-  return r.token as string;
+  const { token } = await loginAs('taxsa3@revota.id');
+  return token as string;
 }
 const reqWith = (token: string) => ({ headers: { 'x-auth-token': token } });
 

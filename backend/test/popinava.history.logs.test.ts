@@ -5,7 +5,7 @@
 // q memakai placeholder terparameterisasi. Jalankan: npm test
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { setupTables, seedUser, db } from './helpers/pgmem.ts';
+import { setupTables, seedUser, db, loginAs } from './helpers/pgmem.ts';
 import { PopinavaController } from '../src/popinava/popinava.controller.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
 import { PermGuard } from '../src/auth/perm.guard.ts';
@@ -17,8 +17,8 @@ const codeOf = (e: any) => e?.response?.code || e?.code;
 
 async function tokenFor(role: string, email: string): Promise<string> {
   await seedUser(role, email);
-  const r: any = await new AuthController().signIn({ email, password: 'password123' }, {});
-  return r.token as string;
+  const r: any = await loginAs(email, 'password123');
+  return r.token;
 }
 
 describe('popinava: riwayat & log khusus Super Admin', () => {

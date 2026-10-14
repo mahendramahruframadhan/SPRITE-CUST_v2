@@ -13,7 +13,7 @@
 // ENDPOINT_NOT_IMPLEMENTED), akun pertama fallback ke sign-up reguler agar
 // UI tetap bisa dipakai. Mode demo offline: ?demo=1.
 
-import { API_BASE, signUp as apiSignUp, getAuthToken } from '../../lib/api.js';
+import { API_BASE, signUp as apiSignUp } from '../../lib/api.js';
 import { get, set as storageSet } from '../../lib/storage.js';
 import { normalizeEmail } from './validation.js';
 
@@ -23,10 +23,10 @@ async function tryJson(path, opts = {}, extraHeaders = {}) {
   let res;
   try {
     res = await fetch(`${API_BASE}${path}`, {
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         'x-user-email': get('userEmail', ''),
-        ...(getAuthToken() ? { 'x-auth-token': getAuthToken() } : {}),
         ...extraHeaders,
       },
       ...opts,

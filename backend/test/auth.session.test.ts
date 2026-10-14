@@ -2,7 +2,7 @@
 // Jalankan: npm test
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { setupTables, seedUser, db } from './helpers/pgmem.ts';
+import { setupTables, seedUser, db, loginAs } from './helpers/pgmem.ts';
 import { createSession, destroySession, resolveSessionUser, SESSION_TTL_MS } from '../src/auth/session.ts';
 import { hashPassword, isLegacyPassword, verifyPassword } from '../src/auth/password.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
@@ -23,14 +23,13 @@ describe('auth session (P1-3)', () => {
     setupTables();
   });
 
-  it('sign-in mengeluarkan token sesi yang valid untuk guard', async () => {
+  it('sign-in mengeluarkan sesi cookie yang valid untuk guard (tanpa token di body)', async () => {
     await seedUser('Super Admin', 'sa@revota.id');
-    const ctl = new AuthController();
-    const r: any = await ctl.signIn({ email: 'sa@revota.id', password: 'password123' }, {});
-    assert.ok(r.token && r.token.length >= 32, 'token harus ada');
-    assert.equal(r.user.role, 'Super Admin');
+    const { user, token } = await loginAs('sa@revota.id');
+    assert.ok(token && token.length >= 32, 'cookie sesi harus ada');
+    assert.equal(user.role, 'Super Admin');
     const guard = new PermGuard(reflectorStub as any);
-    assert.equal(await guard.canActivate(guardCtx(reqWith(r.token)) as any), true);
+    assert.equal(await guard.canActivate(guardCtx(reqWith(token)) as any), true);
   });
 
   it('tanpa token / token ngawur → 401 (frontend mengarah login ulang)', async () => {
@@ -41,33 +40,31 @@ describe('auth session (P1-3)', () => {
 
   it('role tanpa izin modul DITOLAK, Super Admin lolos', async () => {
     await seedUser('Viewer', 'viewer@revota.id');
-    const ctl = new AuthController();
-    const v: any = await ctl.signIn({ email: 'viewer@revota.id', password: 'password123' }, {});
+    const { token } = await loginAs('viewer@revota.id');
     const guard = new PermGuard(reflectorStub as any);
-    assert.equal(await guard.canActivate(guardCtx(reqWith(v.token)) as any), false);
+    assert.equal(await guard.canActivate(guardCtx(reqWith(token)) as any), false);
     await db().execute(`INSERT INTO role_permissions (role, module, allowed) VALUES ('Viewer','billing',1)` as any);
-    assert.equal(await guard.canActivate(guardCtx(reqWith(v.token)) as any), true);
+    assert.equal(await guard.canActivate(guardCtx(reqWith(token)) as any), true);
   });
 
   it('sign-out mencabut token; sesi kedaluwarsa dibersihkan', async () => {
     await seedUser('Support', 'sup@revota.id');
+    const { token } = await loginAs('sup@revota.id');
+    assert.ok(await resolveSessionUser(db(), reqWith(token)));
     const ctl = new AuthController();
-    const s: any = await ctl.signIn({ email: 'sup@revota.id', password: 'password123' }, {});
-    assert.ok(await resolveSessionUser(db(), reqWith(s.token)));
-    await ctl.signOut({ token: s.token }, reqWith(s.token));
-    assert.equal(await resolveSessionUser(db(), reqWith(s.token)), null);
+    await ctl.signOut({ token }, reqWith(token));
+    assert.equal(await resolveSessionUser(db(), reqWith(token)), null);
 
-    const s2: any = await ctl.signIn({ email: 'sup@revota.id', password: 'password123' }, {});
+    const second = await loginAs('sup@revota.id');
     // paksa kedaluwarsa langsung di DB
-    await db().execute(`UPDATE session SET expires_at='2000-01-01T00:00:00.000Z' WHERE token='${s2.token}'` as any);
-    assert.equal(await resolveSessionUser(db(), reqWith(s2.token)), null);
+    await db().execute(`UPDATE session SET expires_at='2000-01-01T00:00:00.000Z' WHERE token='${second.token}'` as any);
+    assert.equal(await resolveSessionUser(db(), reqWith(second.token)), null);
   });
 
   it('login baru mengusir sesi lama (satu sesi aktif)', async () => {
     await seedUser('Finance', 'fin@revota.id');
-    const ctl = new AuthController();
-    const a: any = await ctl.signIn({ email: 'fin@revota.id', password: 'password123' }, {});
-    const b: any = await ctl.signIn({ email: 'fin@revota.id', password: 'password123' }, {});
+    const a = await loginAs('fin@revota.id');
+    const b = await loginAs('fin@revota.id');
     assert.notEqual(a.token, b.token);
     assert.equal(await resolveSessionUser(db(), reqWith(a.token)), null);
     assert.ok(await resolveSessionUser(db(), reqWith(b.token)));

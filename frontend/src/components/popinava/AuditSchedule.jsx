@@ -146,7 +146,7 @@ export default function AuditSchedule({ outlets, canWrite }) {
       [...uuids].map(async (u) => {
         try {
           const rows = await listShotsByOutlet(u);
-          const slots = new Set((rows || []).filter((r) => r.status !== 'failed').map((r) => r.slot));
+          const slots = new Set((rows || []).filter((r) => r.status === 'completed').map((r) => r.slot));
           return [u, slots.has('local') && slots.has('web')];
         } catch {
           return [u, false];
@@ -489,11 +489,14 @@ export default function AuditSchedule({ outlets, canWrite }) {
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{sub}</p>
                         )}
                       </div>
-                      {done && (
-                        <span className="shrink-0 text-[10px] font-bold px-1.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30">
-                          Sudah audit
-                        </span>
-                      )}
+{done && (
+        <span className="shrink-0 text-[10px] font-bold px-1.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30">
+          Sudah audit
+        </span>
+      )}
+      {shotsDone && !item.audited && (
+        <span className="sr-only">Foto LOCAL dan WEB sudah lengkap</span>
+      )}
                       <span className="shrink-0 text-[10px] font-bold px-1.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/30">
                         {k}
                       </span>

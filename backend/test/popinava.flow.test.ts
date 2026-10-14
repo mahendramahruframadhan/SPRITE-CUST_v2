@@ -3,7 +3,7 @@
 // server + audit log kategori 'popinava'. Jalankan: npm test
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { setupTables, seedUser, db } from './helpers/pgmem.ts';
+import { setupTables, seedUser, db, loginAs } from './helpers/pgmem.ts';
 import { PopinavaController } from '../src/popinava/popinava.controller.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
 import { esc } from '../src/db/sql.ts';
@@ -31,9 +31,8 @@ const OUTLET = {
 };
 
 async function superToken() {
-  const ctl = new AuthController();
-  const r: any = await ctl.signIn({ email: 'popisa@revota.id', password: 'password123' }, {});
-  return r.token as string;
+  const { token } = await loginAs('popisa@revota.id');
+  return token as string;
 }
 const reqWith = (token: string) => ({ headers: { 'x-auth-token': token } });
 

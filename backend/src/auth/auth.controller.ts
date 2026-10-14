@@ -2,7 +2,7 @@ import { Controller, Post, Body, Req, Res, Get, HttpCode, HttpException, HttpSta
 import { getDb } from '../db/drizzle.service';
 import * as crypto from 'crypto';
 import { pickRole, validateRegistration } from './register.validation';
-import { createSession, destroySession, resolveSessionUser, SESSION_TTL_MS } from './session';
+import { createSession, destroySession, resolveSessionUser, readSessionToken, SESSION_TTL_MS } from './session';
 import { hashPassword, verifyPassword } from './password';
 import { rowsOf } from '../db/sql';
 import { logActivity } from '../logs/activity';
@@ -66,6 +66,13 @@ export class AuthController {
 
     const canAssignRole = await requesterIsSuperAdmin(this.db, req);
     const role = canAssignRole ? pickRole(body.role) : 'Viewer';
+    // F5: pendaftar mandiri disimpan active=0 (butuh aktivasi admin lewat
+    // PATCH /users/:id). Tanpa ini, registrasi terbuka langsung menghasilkan
+    // sesi valid — dan beberapa endpoint (mis. GET /cases) hanya berbasis
+    // sesi tanpa cek modul, jadi pendaftar langsung bisa membaca data.
+    // Hanya akun yang dibuat Super Admin (form tambah pengguna di /roles)
+    // yang langsung aktif.
+    const active = canAssignRole ? 1 : 0;
 
     const dup: any = await this.db.pq(`SELECT id FROM "user" WHERE lower(email) = $1 LIMIT 1`, [values.email]);
     if (rowsOf(dup)[0]) {
@@ -80,8 +87,8 @@ export class AuthController {
     const password = await hashPassword(values.password);
     try {
       await this.db.pq(
-        `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES ($1, $2, $3, 1, $4, 1, $5, $5)`,
-        [id, values.name, values.email, role, now],
+        `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES ($1, $2, $3, 1, $4, $5, $6, $6)`,
+        [id, values.name, values.email, role, active, now],
       );
       await this.db.pq(
         `INSERT INTO account (id, account_id, provider_id, user_id, password, created_at, updated_at) VALUES ($1, $2, 'credential', $3, $4, $5, $5)`,
@@ -93,7 +100,12 @@ export class AuthController {
         HttpStatus.CONFLICT,
       );
     }
-    return { user: { id, name: values.name, email: values.email, role } };
+    // pendingActivation hanya muncul bila akun menunggu aktivasi admin —
+    // frontend bisa membedakan "langsung bisa login" vs "tunggu aktivasi".
+    return {
+      user: { id, name: values.name, email: values.email, role },
+      ...(active ? {} : { pendingActivation: true }),
+    };
   }
 
   @Post('sign-in/email')
@@ -132,11 +144,13 @@ export class AuthController {
       return { error: 'invalid credentials' };
     }
     // Token sesi server-side (disimpan di tabel session, kedaluwarsa 7 hari).
-    // Frontend wajib mengirimnya via header x-auth-token di setiap request tulis.
+    // Frontend TIDAK menerima token mentah di body (M3: token tidak boleh
+    // masuk realm JS/localStorage) — browser memakai cookie httpOnly yang
+    // di-set di bawah dan terkirim otomatis via credentials:include.
     const token = await createSession(this.db, row.id);
     // set cookie seperti Better Auth (kompatibilitas klien lama). Flags
     // aman M3: httpOnly + sameSite=lax + maxAge=ttl; secure hanya production
-    // (dev jalan di http://localhost). Migrasi penuh ke cookie → README.
+    // (dev jalan di http://localhost).
     res?.cookie?.('better-auth.session_token', token, {
       httpOnly: true,
       path: '/',
@@ -144,13 +158,15 @@ export class AuthController {
       maxAge: SESSION_TTL_MS,
       secure: process.env.NODE_ENV === 'production',
     });
-    return { user: { id: row.id, name: row.name, email: row.email, role: row.role || 'Viewer' }, token };
+    return { user: { id: row.id, name: row.name, email: row.email, role: row.role || 'Viewer' } };
   }
 
   @Post('sign-out')
-  async signOut(@Body() body: any, @Req() req: any) {
-    const token = String(body?.token || req?.headers?.['x-auth-token'] || '');
+  async signOut(@Body() body: any, @Req() req: any, @Res({ passthrough: true }) res: any) {
+    const token = String(body?.token || readSessionToken(req) || '');
     await destroySession(this.db, token);
+    // Hapus cookie sesi di browser (pasangan set-cookie saat sign-in).
+    res?.clearCookie?.('better-auth.session_token', { path: '/' });
     return { ok: true };
   }
 

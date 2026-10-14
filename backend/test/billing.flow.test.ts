@@ -3,7 +3,7 @@
 // Jalankan: npm test
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { setupTables, seedUser, seedCase, db } from './helpers/pgmem.ts';
+import { setupTables, seedUser, seedCase, db, loginAs } from './helpers/pgmem.ts';
 import { BillingController } from '../src/billing/billing.controller.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
 import { esc } from '../src/db/sql.ts';
@@ -11,9 +11,8 @@ import { esc } from '../src/db/sql.ts';
 const UUID = 'flow-case-1';
 
 async function superToken() {
-  const ctl = new AuthController();
-  const r: any = await ctl.signIn({ email: 'flowsa@revota.id', password: 'password123' }, {});
-  return r.token as string;
+  const { token } = await loginAs('flowsa@revota.id');
+  return token as string;
 }
 const reqWith = (token: string) => ({ headers: { 'x-auth-token': token } });
 async function actionOf(uuid: string) {

@@ -8,7 +8,7 @@
 // node:test bawaan; jalankan: npm test
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { setupTables, seedUser, db } from './helpers/pgmem.ts';
+import { setupTables, seedUser, db, loginAs } from './helpers/pgmem.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
 import { PermGuard } from '../src/auth/perm.guard.ts';
 import { SessionGuard } from '../src/auth/session.guard.ts';
@@ -61,9 +61,8 @@ describe('M-4 POST /roles/logs dijaga izin logs', () => {
 
     const signIn = async (role: string, email: string) => {
       await seedUser(role, email);
-      const ctl = new AuthController();
-      const r: any = await ctl.signIn({ email, password: 'password123' }, {});
-      return r.token;
+      const { token } = await loginAs(email);
+      return token;
     };
     const supToken = await signIn('Support', 'sup-m4@revota.id');
     const finToken = await signIn('Finance', 'fin-m4@revota.id');
