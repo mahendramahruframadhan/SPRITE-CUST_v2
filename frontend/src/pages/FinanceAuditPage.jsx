@@ -452,7 +452,7 @@ export default function FinanceAuditPage() {
   // bisa menampilkannya. Default: lokal dulu, lalu sinkron server.
   const metaSavedRef = useRef({});
   useEffect(() => {
-    const timers: Record<string, ReturnType<typeof setTimeout>> = {};
+    const timers = {};
     for (const [uuid, meta] of Object.entries(invoiceMeta)) {
       const key = `${meta.no || ''}|${meta.note || ''}`;
       if (metaSavedRef.current[uuid] === key) continue;
