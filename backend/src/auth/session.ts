@@ -3,11 +3,29 @@ import { rowsOf } from '../db/sql';
 
 // Sesi token server-side (tabel `session`, sudah ada di DDL initDb).
 // Alur: sign-in memverifikasi password → createSession menyimpan token acak +
-// expiry 7 hari → frontend mengirimnya via header x-auth-token di SETIAP
-// request → PermGuard memvalidasi TOKEN (bukan email) sebelum cek role.
-// Tanpa token valid → 403. Header x-user-email tidak lagi dipercaya untuk
+// expiry 7 hari → token dikirim sebagai cookie httpOnly
+// `better-auth.session_token` (otomatis oleh browser) dengan fallback header
+// x-auth-token (kompatibilitas skrip/test) → PermGuard memvalidasi TOKEN
+// (bukan email) sebelum cek role.
+// Tanpa token valid → 401. Header x-user-email tidak lagi dipercaya untuk
 // otorisasi (tetap dikirim frontend untuk kompatibilitas display).
 export const SESSION_TTL_MS = 7 * 24 * 3600 * 1000;
+export const SESSION_COOKIE = 'better-auth.session_token';
+
+// Ambil token sesi dari header (prioritas) atau cookie httpOnly.
+export function readSessionToken(req: any): string {
+  const fromHeader = String(req?.headers?.['x-auth-token'] || '').trim();
+  if (fromHeader) return fromHeader;
+  const raw = String(req?.headers?.cookie || '');
+  for (const part of raw.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx < 0) continue;
+    if (part.slice(0, idx).trim() === SESSION_COOKIE) {
+      return part.slice(idx + 1).trim();
+    }
+  }
+  return '';
+}
 
 // Parameter binding: token/user id dari luar dikirim terpisah ($n), bukan
 // disisipkan ke string SQL (Imp#1).
@@ -35,7 +53,7 @@ export async function destroySession(db: any, token: string): Promise<void> {
 // (baris kedaluwarsa ikut dibersihkan) / akun dinonaktifkan.
 export async function resolveSessionUser(db: any, req: any): Promise<any | null> {
   try {
-    const token = String(req?.headers?.['x-auth-token'] || '').trim();
+    const token = readSessionToken(req);
     if (!token || token.length > 256) return null;
     const r: any = await db.pq(
       `SELECT u.id, u.name, u.email, u.role, u.active, s.expires_at AS session_expires FROM session s JOIN "user" u ON u.id = s.user_id WHERE s.token = $1 LIMIT 1`,

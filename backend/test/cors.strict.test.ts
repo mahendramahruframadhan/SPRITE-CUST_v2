@@ -1,19 +1,16 @@
-// Uji H6: CORS tidak boleh credentialed + tidak boleh membuka seluruh subnet.
-// Dulu: credentials:true + regex ^http://192.168.\d+.\d+(:\d+)?$ dkk —
-// perangkat APAPUN di LAN bisa membaca respons API ber-credential. Auth di
-// sini berbasis header x-auth-token (bukan cookie), jadi credentials:true
-// tidak dibutuhkan sama sekali.
+// Uji H6 + M3: CORS tidak boleh membuka seluruh subnet (origin eksplisit
+// saja), dan credentials:true WAJIB karena auth kini memakai cookie httpOnly.
 // node:test murni (tanpa boot server). Jalankan: npm test
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildCorsOptions } from '../src/config/cors.ts';
 
 describe('H6 — CORS ketat', () => {
-  it('tidak memakai credentials (auth berbasis header, bukan cookie)', () => {
+  it('memakai credentials (auth cookie httpOnly butuh kredensial browser)', () => {
     const saved = process.env.FRONTEND_URL;
     process.env.FRONTEND_URL = 'http://localhost:5173';
     try {
-      assert.equal(buildCorsOptions().credentials, false);
+      assert.equal(buildCorsOptions().credentials, true);
     } finally {
       if (saved === undefined) delete process.env.FRONTEND_URL;
       else process.env.FRONTEND_URL = saved;

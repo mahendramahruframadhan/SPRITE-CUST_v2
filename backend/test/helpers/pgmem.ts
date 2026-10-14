@@ -5,6 +5,7 @@ process.env.DATABASE_URL = '';
 
 import { getDb, getMemDb } from '../../src/db/drizzle.service.ts';
 import { hashPassword } from '../../src/auth/password.ts';
+import { AuthController } from '../../src/auth/auth.controller.ts';
 import { esc } from '../../src/db/sql.ts';
 
 export function db() {
@@ -17,10 +18,13 @@ export function setupTables() {
     `CREATE TABLE IF NOT EXISTS "user" (id TEXT PRIMARY KEY, name TEXT, email TEXT, role TEXT, active INTEGER, email_verified INTEGER, created_at TEXT, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS account (id TEXT PRIMARY KEY, account_id TEXT, provider_id TEXT, user_id TEXT, password TEXT, created_at TEXT, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS session (id TEXT PRIMARY KEY, expires_at TIMESTAMP, token TEXT UNIQUE, created_at TIMESTAMP, updated_at TIMESTAMP, user_id TEXT)`,
-    `CREATE TABLE IF NOT EXISTS role_permissions (role TEXT, module TEXT, allowed INTEGER)`,
+    // Cermin skema init.ts (updated_at), tanpa PRIMARY KEY agar test yang
+    // men-seed baris duplikat tetap jalan — kode menulis tidak boleh bergantung
+    // pada ON CONFLICT (lihat putPerms).
+    `CREATE TABLE IF NOT EXISTS role_permissions (role TEXT, module TEXT, allowed INTEGER, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS assistance_records (record_uuid TEXT PRIMARY KEY, no TEXT, client TEXT)`,
     `CREATE TABLE IF NOT EXISTS audit_status (record_uuid TEXT PRIMARY KEY, action TEXT, updated_at TEXT)`,
-    `CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY, status TEXT, updated_at TEXT, payment_note TEXT, paid_at TEXT, paid_by TEXT)`,
+    `CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY, status TEXT, updated_at TEXT, payment_note TEXT, invoice_no TEXT, keterangan TEXT, paid_at TEXT, paid_by TEXT)`,
     `CREATE TABLE IF NOT EXISTS invoice_pdfs (id TEXT PRIMARY KEY, record_uuid TEXT, filename TEXT, storage_key TEXT, size_bytes INTEGER, status TEXT, uploaded_by TEXT, created_at TEXT, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS activity_logs (id TEXT PRIMARY KEY, who TEXT, action TEXT, category TEXT, detail TEXT, record_uuid TEXT, created_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)`,
@@ -50,4 +54,14 @@ export async function seedCase(uuid = 'case-uuid-1', no = '1', client = 'BRAND-A
     `INSERT INTO assistance_records (record_uuid, no, client) VALUES ('${esc(uuid)}','${esc(no)}','${esc(client)}') ON CONFLICT (record_uuid) DO NOTHING` as any,
   );
   return uuid;
+}
+
+// Login via controller dan ambil token dari Set-Cookie (kontrak M3: body
+// TIDAK lagi memuat token mentah). Dipakai test yang butuh sesi valid.
+export async function loginAs(email: string, password = 'password123') {
+  const ctl = new AuthController();
+  let token = '';
+  const res = { cookie: (_name: string, value: string) => { token = value; } };
+  const r: any = await ctl.signIn({ email, password }, {}, res as any);
+  return { user: r?.user, error: r?.error, token };
 }

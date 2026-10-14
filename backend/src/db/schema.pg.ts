@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, real, timestamp, index } from 'drizzle-orm/pg-core';
 
 // Real Postgres schema — used when DATABASE_URL is postgres://
 // For local dev we use pg-mem in-memory (same schema) — no Docker needed
@@ -103,8 +103,21 @@ export const invoiceStatus = pgTable('invoice_status', {
   updatedAt: text('updated_at'),
   // Bukti pembayaran saat status menjadi PAID (diisi via PATCH invoice).
   paymentNote: text('payment_note'),
+  invoiceNo: text('invoice_no'),
+  keterangan: text('keterangan'),
   paidAt: text('paid_at'),
   paidBy: text('paid_by'),
+});
+
+// Pajak per transaksi ON-CALL: satu baris per kasus (diisi via PATCH tax).
+export const caseTax = pgTable('case_tax', {
+  recordUuid: text('record_uuid').primaryKey().references(() => assistanceRecords.recordUuid, { onDelete: 'cascade' }),
+  ppnMode: text('ppn_mode'),
+  ppnPercent: real('ppn_percent'),
+  ppnAmount: integer('ppn_amount'),
+  pph: integer('pph').default(0),
+  updatedBy: text('updated_by'),
+  updatedAt: text('updated_at'),
 });
 
 export const syncLogs = pgTable('sync_logs', {

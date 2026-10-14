@@ -4,16 +4,15 @@
 // guard: 401 tanpa sesi, 403 role tanpa izin popinava. Jalankan: npm test
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { setupTables, seedUser, db } from './helpers/pgmem.ts';
+import { setupTables, seedUser, db, loginAs } from './helpers/pgmem.ts';
 import { AuditScheduleController } from '../src/popinava/audit-schedule.controller.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
 import { PermGuard } from '../src/auth/perm.guard.ts';
 import { Reflector } from '@nestjs/core';
 
 async function tokenFor(email: string) {
-  const ctl = new AuthController();
-  const r: any = await ctl.signIn({ email, password: 'password123' }, {});
-  return r.token as string;
+  const { token } = await loginAs(email);
+  return token as string;
 }
 const reqWith = (token: string) => ({ headers: { 'x-auth-token': token } });
 

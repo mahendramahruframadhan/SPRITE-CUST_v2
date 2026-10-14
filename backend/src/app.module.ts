@@ -24,10 +24,12 @@ import { PopinavaController } from './popinava/popinava.controller';
 import { AuditScheduleController } from './popinava/audit-schedule.controller';
 import { ShotsController } from './shots/shots.controller';
 import { ShotsService } from './shots/shots.service';
+import { AnalyticsController } from './analytics/analytics.controller';
+import { AnalyticsService } from './analytics/analytics.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
-  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController, AuditScheduleController, ShotsController],
-  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService, ShotsService],
+  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController, AuditScheduleController, ShotsController, AnalyticsController],
+  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService, ShotsService, AnalyticsService],
 })
 export class AppModule {}

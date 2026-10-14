@@ -1,5 +1,5 @@
 // Uji struktural tabel: setiap colSpan numerik (EmptyRow/LoadingRow) harus sama
-// dengan jumlah <th> pada tabel yang menaunginya — cegah sel melebar/sempit
+// dengan jumlah <th> pada tabel yang menaunginya, cegah sel melebar/sempit
 // diam-diam saat kolom berubah. Murni baca sumber (tanpa DOM).
 // Jalankan: npm test
 import { describe, it } from 'node:test';
@@ -14,7 +14,7 @@ const TABEL_NUMERIK = {
   'DashboardPage.jsx': [8, 8],
   'DataKasusPage.jsx': [13, 13],
   'BillingPage.jsx': [12, 12],
-  'FinanceAuditPage.jsx': [13, 13],
+  'FinanceAuditPage.jsx': [14, 14], // +kolom Pajak (PPN/PPH per baris ON-CALL)
   'HrReportPage.jsx': [7, 7], // tabel detail; rekap memakai ekspresi dinamis (tes terpisah)
   'MockupPage.jsx': [12, 12],
 };

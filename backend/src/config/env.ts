@@ -36,3 +36,37 @@ export function isProduction(): boolean {
 export function isDevSeedAllowed(): boolean {
   return nodeEnv() === 'development';
 }
+
+// F4 — Express `trust proxy` HANYA dari parser ini (main.ts memakainya).
+// Fail-closed konsisten filosofi di atas: kosong, salah kapitalisasi, berspasi,
+// pecahan, negatif, dan sinonim bebas ('yes') semuanya = proxy TIDAK dipercaya.
+// Konsekuensi tanpa ini: di belakang reverse proxy/LB semua request berasal
+// dari IP proxy → kunci rate-limit (signin/signup/first-admin/AI) seragam →
+// pelambatan brute-force mati dan satu penyerang bisa mengunci akun orang.
+// Nilai: 'true' → percaya semua; digit murni > 0 → jumlah hop; selain itu false.
+export function trustProxy(raw: string | undefined = process.env.TRUST_PROXY): boolean | number | false {
+  const v = String(raw ?? '');
+  if (v === 'true') return true;
+  if (v === 'false' || v === '') return false;
+  if (/^[0-9]+$/.test(v)) {
+    const n = Number(v);
+    return n > 0 ? n : false;
+  }
+  return false;
+}
+
+// F7 — mode development mem-bind 0.0.0.0 (terbuka di LAN) dan SETUP_TOKEN
+// dapat dilewati; boot wajib memperingatkan operator. Perilaku TIDAK diubah —
+// hanya visibilitas (main.ts mencatatnya ke log saat bootstrap).
+export function devModeWarnings(): string[] {
+  if (isProduction()) return [];
+  const warnings = [
+    'MODE DEVELOPMENT: server mem-bind 0.0.0.0 (terbuka di LAN) dan SETUP_TOKEN dapat dilewati — jangan dipakai untuk data produksi.',
+  ];
+  if (trustProxy() === false) {
+    warnings.push(
+      'TRUST_PROXY belum diset: di belakang reverse proxy/LB, IP asli pelanggan tidak terbaca sehingga rate-limit jadi seragam untuk semua orang. Set TRUST_PROXY=<jumlah hop>.',
+    );
+  }
+  return warnings;
+}

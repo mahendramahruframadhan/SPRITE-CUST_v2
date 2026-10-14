@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
-import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, getInvoiceMap, getAuditMap } from '../lib/api.js';
+import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, patchInvoiceMeta, getInvoiceMap, getAuditMap } from '../lib/api.js';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
+import { useFinanceTax } from '../hooks/useFinanceTax.js';
 import { recordActivity } from '../lib/activity.js';
 import DatePickerInput from '../components/DatePickerInput.jsx';
 import BrandCombobox from '../components/BrandCombobox.jsx';
@@ -22,6 +23,8 @@ import { useAuth } from '../context/AuthContext.jsx';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
 import InvoiceHistoryModal from '../components/InvoiceHistoryModal.jsx';
+import TaxCell from '../components/TaxCell.jsx';
+import TaxModal from '../components/TaxModal.jsx';
 
 /* eslint-disable react/forbid-elements --
    Halaman ini penuh kontrol mikro kustom per baris tabel: tombol ikon PDF
@@ -444,9 +447,48 @@ export default function FinanceAuditPage() {
   const { caseAuditStatus, syncAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
   const { invoiceActions, invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
+
+  // Simpan no. invoice + keterangan ke backend (debounce) agar Analytics/Report
+  // bisa menampilkannya. Default: lokal dulu, lalu sinkron server.
+  const metaSavedRef = useRef({});
+  useEffect(() => {
+    const timers: Record<string, ReturnType<typeof setTimeout>> = {};
+    for (const [uuid, meta] of Object.entries(invoiceMeta)) {
+      const key = `${meta.no || ''}|${meta.note || ''}`;
+      if (metaSavedRef.current[uuid] === key) continue;
+      timers[uuid] = setTimeout(async () => {
+        try {
+          await patchInvoiceMeta(uuid, meta.no || '', meta.note || '');
+          metaSavedRef.current[uuid] = key;
+        } catch {
+          // gagal simpan — lokal tetap ada, coba lagi saat perubahan berikutnya
+        }
+      }, 800);
+    }
+    return () => Object.values(timers).forEach((t) => clearTimeout(t));
+  }, [invoiceMeta]);
+  // Pajak per transaksi: kontrol hanya di baris ON-CALL (via TaxCell),
+  // map server adalah kebenaran, localStorage hanya outbox antrean.
+  const { taxMap, pendingUuids, setPpn, togglePph } = useFinanceTax({ notify });
+  const [taxModalRow, setTaxModalRow] = useState(null);
   const [filters, setFilter, resetFilterValues] = useFilters({ from: '', to: '', brand: '', invFilter: '' });
   const { from, to, brand, invFilter } = filters;
   const [detailUuid, setDetailUuid] = useState(null);
+  const [searchParams] = useSearchParams();
+  // Deep-link dari /report: ?uuid=<recordUuid> → saring ke brand kasus
+  // itu + bukakan popup detailnya. Jalan sekali setelah data termuat;
+  // uuid tak dikenal diabaikan (halaman normal).
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || !allCases.length) return;
+    const uuid = searchParams.get('uuid');
+    if (!uuid) return;
+    deepLinked.current = true;
+    const c = allCases.find((x) => x.recordUuid === uuid);
+    if (!c) return;
+    if (c.client) setFilter('brand', c.client);
+    setDetailUuid(uuid);
+  }, [allCases, searchParams, setFilter]);
   // Bukti pembayaran per kasus dari backend (invoice-map.notes) — tampil di baris SUDAH DIBAYAR.
   const [payNotes, setPayNotes] = useState({});
   // Target modal Paid: { uuid, label, amount } + isi keterangan + busy.
@@ -545,6 +587,12 @@ export default function FinanceAuditPage() {
 
   const total = filtered.reduce((a, c) => a + (+c.charges || 0), 0);
 
+  // Buka TaxModal PPN untuk satu baris transaksi ON-CALL.
+  function openTaxModal(uuid) {
+    const row = filtered.find((x) => x.recordUuid === uuid) || null;
+    if (row) setTaxModalRow(row);
+  }
+
   // Ubah status invoice manual: hanya PAID yang diizinkan server (422 bila dilanggar).
   // PAID selalu lewat modal keterangan pembayaran (wajib diisi) — bukan PATCH langsung.
   // Lokal diubah HANYA setelah server sukses — sinkron, bukan optimistic.
@@ -600,7 +648,7 @@ export default function FinanceAuditPage() {
     const invNo = (meta.no || '').trim();
     setPayBusy(true);
     try {
-      const r = await patchInvoice(uuid, 'PAID', { paymentNote: note, ...(invNo ? { invoiceNo: invNo } : {}) });
+      const r = await patchInvoice(uuid, 'PAID', { paymentNote: note, keterangan: meta.note || '', ...(invNo ? { invoiceNo: invNo } : {}) });
       syncInvoiceStatus(uuid, 'PAID');
       setPayNotes((prev) => ({ ...prev, [uuid]: { note, paidAt: new Date().toISOString(), paidBy: user?.name || user?.email || '' } }));
       setPaidTarget(null);
@@ -813,6 +861,7 @@ export default function FinanceAuditPage() {
                 <th className="px-4 py-3 font-bold">Billing Status</th>
                 <th className="px-4 py-3 font-bold">Billing Category</th>
                 <th className="px-4 py-3 font-bold text-right">Charges</th>
+                <th className="px-4 py-3 font-bold">Pajak</th>
                 <th className="px-4 py-3 font-bold">Status Invoice</th>
                 <th className="px-4 py-3 font-bold">Upload PDF</th>
                 <th className="px-4 py-3 font-bold">No. Invoice</th>
@@ -857,6 +906,18 @@ export default function FinanceAuditPage() {
                     <Pill tone="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700">{c.billingCategory || '-'}</Pill>
                   </td>
                   <td className={`px-4 py-3.5 text-right tabular-nums whitespace-nowrap ${+c.charges > 0 ? 'font-extrabold text-amber-700 dark:text-amber-400' : 'font-semibold text-slate-300 dark:text-slate-600'}`}>{fmtMoney(c.charges)}</td>
+                  <td className="px-4 py-3.5">
+                    <TaxCell
+                      recordUuid={c.recordUuid}
+                      charges={+c.charges || 0}
+                      billingStatus={c.billingStatus}
+                      tax={taxMap[c.recordUuid]}
+                      pending={(pendingUuids || []).includes(c.recordUuid)}
+                      onEditPpn={openTaxModal}
+                      onSavePpn={setPpn}
+                      onTogglePph={togglePph}
+                    />
+                  </td>
                   <td className="px-4 py-3.5">
                     {(() => {
                       const cur = invoiceStatus[c.recordUuid] || defaultInvoiceStatus;
@@ -975,9 +1036,9 @@ export default function FinanceAuditPage() {
                 );
               })}
               {loading ? (
-                <LoadingRow colSpan={13} />
+                <LoadingRow colSpan={14} />
               ) : filtered.length === 0 && (
-                <EmptyRow colSpan={13}>
+                <EmptyRow colSpan={14}>
                   Belum ada kasus tervalidasi — validasi dulu kasus di menu{' '}
                   <Link to="/billing" className="font-semibold text-emerald-600 hover:underline">
                     Billing &amp; Audit
@@ -1038,6 +1099,16 @@ export default function FinanceAuditPage() {
           />
         );
       })()}
+
+      {/* Modal PPN satu baris transaksi ON-CALL */}
+      {taxModalRow && (
+        <TaxModal
+          entry={taxMap[taxModalRow.recordUuid]?.ppn || null}
+          charges={+taxModalRow.charges || 0}
+          onSave={(entry) => { setPpn(taxModalRow.recordUuid, entry); setTaxModalRow(null); }}
+          onClose={() => setTaxModalRow(null)}
+        />
+      )}
 
       {/* Modal PAID: keterangan pembayaran wajib, status jadi SUDAH DIBAYAR (hijau) */}
       {paidTarget && (

@@ -7,12 +7,12 @@ import { esc } from './sql';
 import { isDevSeedAllowed } from '../config/env';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
-const ROLE_PERMS: Record<string, Record<string, number>> = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
-  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, popinava: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
-  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, popinava: 0, billing: 1, finance: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 0, finance: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+export const ROLE_PERMS: Record<string, Record<string, number>> = {
+  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
+  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 0, report: 0, analytics: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
+  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, popinava: 0, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
+  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
 };
 
 export async function initDb() {
@@ -38,7 +38,8 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS account (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, provider_id TEXT NOT NULL, user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE, access_token TEXT, refresh_token TEXT, id_token TEXT, access_token_expires_at TIMESTAMP, refresh_token_expires_at TIMESTAMP, scope TEXT, password TEXT, created_at TIMESTAMP, updated_at TIMESTAMP);
     CREATE TABLE IF NOT EXISTS verification (id TEXT PRIMARY KEY, identifier TEXT NOT NULL, value TEXT NOT NULL, expires_at TIMESTAMP NOT NULL, created_at TIMESTAMP, updated_at TIMESTAMP);
     CREATE TABLE IF NOT EXISTS audit_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, action TEXT NOT NULL DEFAULT 'BELUM DIVALIDASI', updated_by TEXT, updated_at TEXT);
-    CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'MENUNGGU INVOICE', updated_by TEXT, updated_at TEXT, payment_note TEXT, paid_at TEXT, paid_by TEXT);
+    CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'MENUNGGU INVOICE', updated_by TEXT, updated_at TEXT, payment_note TEXT, invoice_no TEXT, keterangan TEXT, paid_at TEXT, paid_by TEXT);
+    CREATE TABLE IF NOT EXISTS case_tax (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, ppn_mode TEXT, ppn_percent REAL, ppn_amount INTEGER, pph INTEGER DEFAULT 0, updated_by TEXT, updated_at TEXT);
     CREATE TABLE IF NOT EXISTS sync_logs (id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL, rows_processed INTEGER DEFAULT 0, error_message TEXT, source TEXT DEFAULT 'sheets');
     CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT);
     CREATE TABLE IF NOT EXISTS app_secrets (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT);
@@ -204,7 +205,7 @@ export async function initDb() {
       } catch {}
     }
     // Kolom bukti pembayaran invoice_status untuk DB lama
-    for (const col of ['payment_note TEXT', 'paid_at TEXT', 'paid_by TEXT']) {
+    for (const col of ['payment_note TEXT', 'invoice_no TEXT', 'keterangan TEXT', 'paid_at TEXT', 'paid_by TEXT']) {
       try {
         await q(`ALTER TABLE invoice_status ADD COLUMN IF NOT EXISTS ${col}`);
       } catch {}
@@ -279,6 +280,24 @@ export async function initDb() {
       const popinavaSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 1, Support: 0, Finance: 0, Viewer: 0 };
       for (const [role, allowed] of Object.entries(popinavaSeed)) {
         await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','popinava',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
+      }
+    } catch {}
+    // Backfill izin modul 'analytics' (halaman Analitik) untuk DB lama —
+    // cermin DEFAULT_PERMS frontend: Super Admin + Finance boleh buka.
+    try {
+      const now = new Date().toISOString();
+      const analyticsSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 0, Support: 0, Finance: 1, Viewer: 0 };
+      for (const [role, allowed] of Object.entries(analyticsSeed)) {
+        await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','analytics',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
+      }
+    } catch {}
+    // Backfill izin modul 'report' (halaman Report Summary) untuk DB lama —
+    // cermin DEFAULT_PERMS frontend: Super Admin + Finance boleh buka.
+    try {
+      const now = new Date().toISOString();
+      const reportSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 0, Support: 0, Finance: 1, Viewer: 0 };
+      for (const [role, allowed] of Object.entries(reportSeed)) {
+        await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','report',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
       }
     } catch {}
     // Seed master status Billing/Finance (dikelola dari Pengaturan) —

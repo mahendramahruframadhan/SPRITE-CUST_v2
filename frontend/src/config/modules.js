@@ -14,6 +14,8 @@ export const MODULES = [
   { group: 'Keuangan' },
   { path: '/billing', id: 'billing', title: 'Billing & Audit', sub: 'Validasi tagihan sebelum diterbitkan invoice' },
   { path: '/finance', id: 'finance', title: 'Finance Audit', sub: 'Penerbitan invoice kasus tervalidasi' },
+  { path: '/report', id: 'report', title: 'Report Summary', sub: 'Rekap tervalidasi untuk manajemen' },
+  { path: '/analytics', id: 'analytics', title: 'Analitik', sub: 'Tren, distribusi & KPI kasus tervalidasi' },
   { group: 'Administrasi' },
   // Hak Akses & Logs pindah ke dalam menu Pengaturan (tab) — rute tetap hidup, hanya disembunyikan dari sidebar
   { path: '/roles', id: 'roles', title: 'Hak Akses', sub: 'Kelola pengguna, role & izin modul', hide: true },

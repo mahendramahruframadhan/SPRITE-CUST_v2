@@ -7,20 +7,17 @@ import { get as storageGet, set as storageSet, remove as storageRemove } from '.
 // modul ini tanpa bundler dan harus tetap bisa jalan.
 export const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || '/api';
 
-// Token sesi (diisi saat login, dikirim sebagai x-auth-token di setiap request).
-// Backend (PermGuard) HANYA memvalidasi token ini untuk endpoint tulis —
-// x-user-email tidak lagi dipercaya untuk otorisasi.
-export const getAuthToken = () => storageGet('authToken', '');
-export const setAuthToken = (t) => (t ? storageSet('authToken', t) : storageRemove('authToken'));
-
+// Sesi cookie httpOnly (M3): browser mengirim cookie otomatis via
+// credentials:include — token TIDAK PERNAH disimpan di localStorage atau
+// dikirim via header (menutup jalur eksfiltrasi XSS). Backend
+// (PermGuard) memvalidasi cookie sesi ini; x-user-email hanya display.
 // Anti-redirect-ganda bila banyak request 401 bersamaan.
 let redirectingToLogin = false;
 
 async function req(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json', 'x-user-email': storageGet('userEmail', '') };
-  const token = getAuthToken();
-  if (token) headers['x-auth-token'] = token;
   const res = await fetch(`${API_BASE}${path}`, {
+    credentials: 'include',
     headers,
     ...opts,
     ...(opts.body && typeof opts.body !== 'string' ? { body: JSON.stringify(opts.body) } : {}),
@@ -126,14 +123,17 @@ export const getHealth = () => get('/health');
 export const createCase = (body) => post('/cases', body);
 export const patchAudit = (uuid, action) => patch(`/cases/${uuid}/audit`, { action });
 export const patchInvoice = (uuid, status, extra = {}) => patch(`/cases/${uuid}/invoice`, { status, ...extra });
+export const patchInvoiceMeta = (uuid, invoiceNo, keterangan) => patch(`/billing/invoice-meta/${uuid}`, { invoiceNo, keterangan });
 export const getBillingStats = () => get('/billing/stats');
 export const getInvoiceMap = () => get('/billing/invoice-map');
 export const getAuditMap = () => get('/billing/audit-map');
+export const getTaxMap = () => get('/billing/tax-map');
+export const patchTax = (uuid, body) => patch(`/cases/${uuid}/tax`, body);
 export const triggerSync = () => post('/sync/trigger', {});
 export const getSyncLogs = () => get('/sync/logs');
 export const signIn = (email, password) => post('/auth/sign-in/email', { email, password });
 export const signUp = (email, password, name, role) => post('/auth/sign-up/email', { email, password, name, role });
-export const signOut = () => post('/auth/sign-out', { token: getAuthToken() });
+export const signOut = () => post('/auth/sign-out', {});
 export const getSession = () => get('/auth/session');
 export const getUsers = () => get('/users');
 export const patchUser = (id, body) => patch(`/users/${id}`, body);
@@ -178,6 +178,23 @@ export const postPopinavaBulk = (body) => post('/popinava/bulk', body);
 export const getPopinavaHistory = (uuid) => get(`/popinava/${encodeURIComponent(uuid)}/history`);
 // Log aktivitas POPI NAVA (kategori 'popinava', urut terbaru) — khusus Super Admin.
 export const getPopinavaLogs = (limit) => get(`/popinava/logs${limit ? `?limit=${encodeURIComponent(limit)}` : ''}`);
+
+// Analitik backend (overview agregasi + drilldown paginated server-side).
+export async function fetchAnalyticsOverview({ from = '', to = '', brand = '', module = '' } = {}) {
+  const qs = `${from ? `?from=${encodeURIComponent(from)}` : '?from=1970-01-01'}${to ? `&to=${encodeURIComponent(to)}` : '&to=2999-12-31'}${brand ? `&brand=${encodeURIComponent(brand)}` : ''}${module ? `&module=${encodeURIComponent(module)}` : ''}`;
+  return get(`/analytics/overview${qs}`);
+}
+export async function fetchAnalyticsDrilldown({ dim = '', key = '', from = '', to = '', q = '', page = 1, limit = 10, brand = '', module = '' } = {}) {
+  const p = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (dim) p.set('dim', dim);
+  if (key) p.set('key', key);
+  if (from) p.set('from', from);
+  if (to) p.set('to', to);
+  if (q) p.set('q', q);
+  if (brand) p.set('brand', brand);
+  if (module) p.set('module', module);
+  return get(`/analytics/drilldown?${p.toString()}`);
+}
 
 // GET /api/cases dengan filter group KPI server-side.
 export async function fetchCasesByGroupKpi(groupKpi = '') {

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { signIn as apiSignIn, signOut as apiSignOut, getSession, getAuthToken, setAuthToken } from '../lib/api.js';
+import { signIn as apiSignIn, signOut as apiSignOut, getSession } from '../lib/api.js';
 import { get, set as storageSet, remove as storageRemove } from '../lib/storage.js';
 
 // Role per email (backend menyimpan user tanpa role) + akun demo yang di-seed backend
@@ -15,9 +15,9 @@ export const MOCK_USERS = {
 const AuthContext = createContext(null);
 
 function readSession() {
-  // Sesi lama (tanpa token) dianggap kedaluwarsa — user login ulang sekali
-  // untuk mendapatkan token sesi (wajib untuk endpoint tulis sejak P1-3).
-  if (get('loggedIn') !== 'true' || !getAuthToken()) return null;
+  // Profil lokal; kebenaran sesi ada di cookie httpOnly yang divalidasi
+  // backend via GET /auth/session saat boot (tanpa token di localStorage).
+  if (get('loggedIn') !== 'true') return null;
   return {
     email: get('userEmail', ''),
     name: get('userName', 'Pengguna'),
@@ -26,8 +26,7 @@ function readSession() {
 }
 
 function clearSession() {
-  storageRemove('loggedIn', 'userEmail', 'userName', 'userRole');
-  setAuthToken('');
+  storageRemove('loggedIn', 'userEmail', 'userName', 'userRole', 'authToken');
 }
 
 export function AuthProvider({ children }) {
@@ -39,10 +38,10 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  // Validasi token ke backend saat boot (mis. backend restart pg-mem atau
-  // token dicabut) — token tak valid = paksa login ulang, bukan state basi.
+  // Validasi sesi cookie ke backend saat boot (mis. backend restart pg-mem
+  // atau sesi dicabut) — tanpa sesi valid = paksa login ulang, bukan state basi.
   useEffect(() => {
-    if (get('loggedIn') !== 'true' || !getAuthToken()) return;
+    if (get('loggedIn') !== 'true') return;
     let ignore = false;
     getSession()
       .then((r) => {
@@ -74,8 +73,9 @@ export function AuthProvider({ children }) {
           throw new Error('Backend tidak terjangkau — pastikan backend jalan di port 5005.');
         }
         if (!r || r.error || !r.user) throw new Error('Email atau password salah.');
-        if (!r.token) throw new Error('Backend tidak mengeluarkan token sesi — hubungi admin.');
-        // Role dari backend (diatur admin di /roles) → MOCK → Viewer
+        // Sesi dipegang cookie httpOnly oleh browser (M3) — frontend TIDAK
+        // menyimpan token apa pun. Role dari backend (diatur admin di /roles)
+        // → MOCK → Viewer
         const u = {
           name: r.user.name || key.split('@')[0],
           role: r.user.role || MOCK_USERS[key]?.role || 'Viewer',
@@ -84,7 +84,6 @@ export function AuthProvider({ children }) {
         storageSet('userEmail', key);
         storageSet('userName', u.name);
         storageSet('userRole', u.role);
-        setAuthToken(r.token);
         const session = { email: key, name: u.name, role: u.role };
         setUser(session);
         return session;

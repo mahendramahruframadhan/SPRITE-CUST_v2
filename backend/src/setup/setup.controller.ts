@@ -5,6 +5,7 @@ import { getDb } from '../db/drizzle.service';
 import { logActivity } from '../logs/activity';
 import { validateRegistration } from '../auth/register.validation';
 import { hashPassword } from '../auth/password';
+import { consumeRateLimit } from '../auth/rate-limit';
 import { esc, rowsOf } from '../db/sql';
 import { isDevSeedAllowed } from '../config/env';
 
@@ -24,19 +25,18 @@ import { isDevSeedAllowed } from '../config/env';
 // untuk instalasi ini.
 const FIRST_ADMIN_LOCK_KEY = 20261002;
 
-// Throttle sederhana in-memory: max 10 POST /setup/first-admin per menit per IP.
-const firstAdminHits = new Map<string, number[]>();
+// Throttle sederhana in-memory: max 10 POST /setup/first-admin per menit per
+// IP. F3: memakai store bersama di auth/rate-limit agar entri kedaluwarsa
+// ikut tersapu (dulu Map lokal tak pernah dihapus → kebocoran memori).
+const FIRST_ADMIN_MAX_HITS = 10;
+const FIRST_ADMIN_WINDOW_MS = 60_000;
 function throttleFirstAdmin(ip: string) {
-  const now = Date.now();
-  const list = (firstAdminHits.get(ip) || []).filter((t) => now - t < 60_000);
-  if (list.length >= 10) {
+  if (!consumeRateLimit(`setup:first-admin:${ip}`, FIRST_ADMIN_MAX_HITS, FIRST_ADMIN_WINDOW_MS)) {
     throw new HttpException(
       { code: 'RATE_LIMITED', message: 'Terlalu banyak percobaan. Coba lagi semenit lagi.' },
       HttpStatus.TOO_MANY_REQUESTS,
     );
   }
-  list.push(now);
-  firstAdminHits.set(ip, list);
 }
 
 @Controller('setup')

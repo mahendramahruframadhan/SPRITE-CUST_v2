@@ -3,7 +3,7 @@
 // Jalankan: npm test
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { setupTables, seedUser, seedCase, db } from './helpers/pgmem.ts';
+import { setupTables, seedUser, seedCase, db, loginAs } from './helpers/pgmem.ts';
 import { BillingController } from '../src/billing/billing.controller.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
 import { esc } from '../src/db/sql.ts';
@@ -11,9 +11,8 @@ import { esc } from '../src/db/sql.ts';
 const UUID = 'flow-case-1';
 
 async function superToken() {
-  const ctl = new AuthController();
-  const r: any = await ctl.signIn({ email: 'flowsa@revota.id', password: 'password123' }, {});
-  return r.token as string;
+  const { token } = await loginAs('flowsa@revota.id');
+  return token as string;
 }
 const reqWith = (token: string) => ({ headers: { 'x-auth-token': token } });
 async function actionOf(uuid: string) {
@@ -72,6 +71,15 @@ describe('billing flow', () => {
       `INSERT INTO invoice_pdfs (id, record_uuid, filename, storage_key, size_bytes, status, uploaded_by, created_at, updated_at) VALUES ('pdf-t3','${UUID}','inv.pdf','k/t3',100,'completed','t','${now}','${now}')` as any,
     );
     await assert.rejects(() => ctl.invoice(UUID, { status: 'PAID' }, reqWith(token)), (e: any) => e?.response?.code === 'PAYMENT_NOTE_REQUIRED');
+  });
+
+  it('invoice-meta menyimpan no. invoice + keterangan untuk Analytics/Report', async () => {
+    const r: any = await ctl.invoiceMeta(UUID, { invoiceNo: 'INV-001', keterangan: 'transfer lunas' }, reqWith(token));
+    assert.equal(r.ok, true);
+    assert.equal(r.invoiceNo, 'INV-001');
+    const m: any = await ctl.invoiceMap();
+    assert.equal(m.metas[UUID].invoiceNo, 'INV-001');
+    assert.equal(m.metas[UUID].keterangan, 'transfer lunas');
   });
 
   it('PAID sukses dengan PDF completed + notes; undo satu langkah', async () => {

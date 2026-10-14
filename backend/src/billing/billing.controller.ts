@@ -24,7 +24,7 @@ export class BillingController {
   @UseGuards(PermGuard)
   @Perm('billing')
   async invoiceMap() {
-    const r: any = await this.db.execute(`SELECT record_uuid, status FROM invoice_status` as any);
+    const r: any = await this.db.execute(`SELECT record_uuid, status, invoice_no, keterangan, payment_note, paid_at, paid_by FROM invoice_status` as any);
     const map: Record<string, string> = {};
     for (const x of (r.rows || r || [])) {
       if (x && (x.record_uuid || x.recorduuid) && x.status) map[x.record_uuid || x.recorduuid] = x.status;
@@ -39,7 +39,40 @@ export class BillingController {
     } catch {
       // DB lama sebelum kolom payment_* ada — migrasi di initDb menutupnya.
     }
-    return { ok: true, map, notes };
+    const metas: Record<string, { invoiceNo: string; keterangan: string; note: string; paidAt: string; paidBy: string }> = {};
+    for (const x of (r.rows || r || [])) {
+      const uuid = x && (x.record_uuid || x.recorduuid);
+      if (!uuid) continue;
+      metas[uuid] = {
+        invoiceNo: x.invoice_no || x.invoiceno || '',
+        keterangan: x.keterangan || '',
+        note: x.payment_note || x.paymentnote || '',
+        paidAt: x.paid_at || x.paidat || '',
+        paidBy: x.paid_by || x.paidby || '',
+      };
+    }
+    return { ok: true, map, notes, metas };
+  }
+  // Meta invoice per kasus (no. invoice + keterangan) yang diisi tim finance.
+  // Disimpan server-side agar Analytics/Report bisa menampilkannya.
+  @Patch('billing/invoice-meta/:uuid')
+  @UseGuards(PermGuard)
+  @Perm('finance')
+  async invoiceMeta(@Param('uuid') uuid: string, @Body() body: any, @Req() req: any) {
+    const exists: any = await this.db.pq(`SELECT record_uuid FROM assistance_records WHERE record_uuid=$1 LIMIT 1`, [uuid]);
+    if (!(exists.rows || exists || [])[0]) {
+      throw new HttpException({ code: 'CASE_NOT_FOUND', message: 'Kasus tidak ditemukan.' }, HttpStatus.NOT_FOUND);
+    }
+    const invoiceNo = String(body?.invoiceNo || body?.no || '').trim().slice(0, 100);
+    const keterangan = String(body?.keterangan || body?.note || '').trim().slice(0, 500);
+    const who = await resolveWho(this.db, req);
+    const now = new Date().toISOString();
+    await this.db.pq(
+      `INSERT INTO invoice_status (record_uuid,status,updated_at,invoice_no,keterangan) VALUES ($1,'MENUNGGU INVOICE',$2,$3,$4) ON CONFLICT (record_uuid) DO UPDATE SET updated_at=EXCLUDED.updated_at, invoice_no=EXCLUDED.invoice_no, keterangan=EXCLUDED.keterangan`,
+      [uuid, now, invoiceNo, keterangan],
+    );
+    await logActivity(this.db, { who, action: `mengisi meta invoice ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `${invoiceNo ? `no. invoice ${invoiceNo}` : 'no. invoice kosong'}${keterangan ? ` • keterangan ${keterangan}` : ''}`, recordUuid: uuid });
+    return { ok: true, recordUuid: uuid, invoiceNo, keterangan };
   }
   // Peta status validasi per kasus — dipakai frontend menyinkronkan tampilan lokal
   // dengan kebenaran backend (validasi dari browser lain) saat halaman dimuat.
@@ -55,6 +88,25 @@ export class BillingController {
     }
     return { ok: true, map };
   }
+  // Peta pajak per kasus: dipakai frontend menyinkronkan tampilan lokal
+  // dengan kebenaran backend saat halaman dimuat. Baca terbuka seperti GET lain.
+  @Get('billing/tax-map')
+  @UseGuards(PermGuard)
+  @Perm('finance')
+  async taxMap() {
+    const r: any = await this.db.execute(`SELECT record_uuid, ppn_mode, ppn_percent, ppn_amount, pph FROM case_tax` as any);
+    const map: Record<string, { ppn: { mode: string; percent: number; amount: number } | null; pph: boolean }> = {};
+    for (const x of (r.rows || r || [])) {
+      const uuid = x && (x.record_uuid || x.recorduuid);
+      if (!uuid) continue;
+      const mode = x.ppn_mode || x.ppnmode;
+      map[uuid] = {
+        ppn: mode ? { mode, percent: Number(x.ppn_percent ?? x.ppnpercent ?? 0), amount: Number(x.ppn_amount ?? x.ppnamount ?? 0) } : null,
+        pph: Number(x.pph ?? 0) === 1,
+      };
+    }
+    return { ok: true, map };
+  }
   @Patch('cases/:uuid/audit')
   @UseGuards(PermGuard)
   @Perm('billing')
@@ -64,6 +116,16 @@ export class BillingController {
     await this.db.pq(`INSERT INTO audit_status (record_uuid,action,updated_at) VALUES ($1,$2,$3) ON CONFLICT (record_uuid) DO UPDATE SET action=EXCLUDED.action, updated_at=EXCLUDED.updated_at`, [uuid, action, new Date().toISOString()]);
     await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status validasi ${await caseLabel(this.db, uuid)}`, category: 'Validasi', detail: `menjadi ${action}`, recordUuid: uuid });
     return { ok:true, recordUuid: uuid, action };
+  }
+  private async saveInvoiceMeta(uuid: string, invoiceNo: string, keterangan: string) {
+    if (!invoiceNo && !keterangan) return;
+    await this.db.pq(
+      `INSERT INTO invoice_status (record_uuid,status,updated_at,invoice_no,keterangan) VALUES ($1,'MENUNGGU INVOICE',$2,$3,$4)
+       ON CONFLICT (record_uuid) DO UPDATE SET updated_at=EXCLUDED.updated_at,
+         invoice_no = CASE WHEN $3 <> '' THEN EXCLUDED.invoice_no ELSE invoice_status.invoice_no END,
+         keterangan = CASE WHEN $4 <> '' THEN EXCLUDED.keterangan ELSE invoice_status.keterangan END`,
+      [uuid, new Date().toISOString(), invoiceNo, keterangan],
+    );
   }
   @Patch('cases/:uuid/invoice')
   @UseGuards(PermGuard)
@@ -118,13 +180,63 @@ export class BillingController {
       }
       const now = new Date().toISOString();
       await this.db.pq(`INSERT INTO invoice_status (record_uuid,status,updated_at,payment_note,paid_at,paid_by) VALUES ($1,$2,$3,$4,$3,$5) ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at, payment_note=EXCLUDED.payment_note, paid_at=EXCLUDED.paid_at, paid_by=EXCLUDED.paid_by`, [uuid, status, now, paymentNote, who]);
-      const invNo = String(body.invoiceNo || body.no || '').trim();
-      await logActivity(this.db, { who, action: `menandai SUDAH DIBAYAR ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `${paymentNote}${invNo ? ` • no. invoice ${invNo}` : ''}`, recordUuid: uuid });
+      const invNo = String(body.invoiceNo || body.no || '').trim().slice(0, 100);
+      const keterangan = String(body.keterangan || '').trim().slice(0, 500);
+      await this.saveInvoiceMeta(uuid, invNo, keterangan);
+      await logActivity(this.db, { who, action: `menandai SUDAH DIBAYAR ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `${paymentNote}${invNo ? ` • no. invoice ${invNo}` : ''}${keterangan ? ` • keterangan ${keterangan}` : ''}`, recordUuid: uuid });
       return { ok: true, recordUuid: uuid, status, paymentNote };
     }
     await this.db.pq(`INSERT INTO invoice_status (record_uuid,status,updated_at) VALUES ($1,$2,$3) ON CONFLICT (record_uuid) DO UPDATE SET status=EXCLUDED.status, updated_at=EXCLUDED.updated_at`, [uuid, status, new Date().toISOString()]);
-    const invNo = String(body.invoiceNo || body.no || '').trim();
-    await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status invoice ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `menjadi ${status}${invNo ? ` • no. invoice ${invNo}` : ''}`, recordUuid: uuid });
+    const invNo = String(body.invoiceNo || body.no || '').trim().slice(0, 100);
+    const keterangan = String(body.keterangan || '').trim().slice(0, 500);
+    await this.saveInvoiceMeta(uuid, invNo, keterangan);
+    await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status invoice ${await caseLabel(this.db, uuid)}`, category: 'Invoice', detail: `menjadi ${status}${invNo ? ` • no. invoice ${invNo}` : ''}${keterangan ? ` • keterangan ${keterangan}` : ''}`, recordUuid: uuid });
     return { ok:true, recordUuid: uuid, status };
+  }
+  // Pajak per baris ON-CALL: PPN menambah charges, PPH hanya penanda status.
+  // Urutan guard: bentuk body dulu, lalu keberadaan kasus, batas ON-CALL,
+  // terakhir kunci PAID.
+  @Patch('cases/:uuid/tax')
+  @UseGuards(PermGuard)
+  @Perm('finance')
+  async tax(@Param('uuid') uuid: string, @Body() body: any, @Req() req: any) {
+    const bad = (msg: string) => new HttpException({ code: 'TAX_INVALID', message: msg }, 422);
+    if (!body || typeof body !== 'object') throw bad('Body pajak wajib objek { ppn, pph }.');
+    if (typeof body.pph !== 'boolean') throw bad('Status PPH wajib boolean.');
+    const pph = body.pph === true;
+    const rawPpn = body.ppn ?? null;
+    let ppn: { mode: string; percent: number; amount: number } | null = null;
+    if (rawPpn && rawPpn.enabled !== false) {
+      if (typeof rawPpn !== 'object') throw bad('Entri PPN wajib objek atau null.');
+      if (rawPpn.mode !== 'percent' && rawPpn.mode !== 'rupiah') throw bad('Mode PPN hanya persen atau rupiah.');
+      if (rawPpn.mode === 'percent') {
+        if (typeof rawPpn.percent !== 'number' || !Number.isFinite(rawPpn.percent) || rawPpn.percent <= 0 || rawPpn.percent > 100) {
+          throw bad('Persen PPN wajib angka 0 < p <= 100.');
+        }
+        ppn = { mode: 'percent', percent: rawPpn.percent, amount: Number(rawPpn.amount || 0) };
+      } else {
+        if (typeof rawPpn.amount !== 'number' || !Number.isInteger(rawPpn.amount) || rawPpn.amount < 0) {
+          throw bad('Nilai rupiah PPN wajib bilangan bulat >= 0.');
+        }
+        ppn = { mode: 'rupiah', percent: 0, amount: rawPpn.amount };
+      }
+    }
+    const c: any = await this.db.pq(`SELECT billing_status FROM assistance_records WHERE record_uuid=$1 LIMIT 1`, [uuid]);
+    const caseRow = (c.rows || c)[0];
+    if (!caseRow) throw new HttpException({ code: 'NOT_FOUND', message: 'Kasus tidak ditemukan.' }, HttpStatus.NOT_FOUND);
+    const bs = String(caseRow.billing_status || caseRow.billingstatus || '').replace(/[\s-]/g, '').toUpperCase();
+    if (bs !== 'ONCALL') {
+      throw new HttpException({ code: 'TAX_NOT_ONCALL', message: 'Pajak hanya untuk transaksi ON-CALL.' }, 422);
+    }
+    const inv: any = await this.db.pq(`SELECT status FROM invoice_status WHERE record_uuid=$1 LIMIT 1`, [uuid]);
+    const invStatus = String((inv.rows || inv)[0]?.status || '').trim().toUpperCase();
+    if (invStatus === 'PAID') {
+      throw new HttpException({ code: 'TAX_PAID_LOCKED', message: 'Pajak terkunci karena invoice sudah PAID (lunas).' }, 422);
+    }
+    const now = new Date().toISOString();
+    const who = await resolveWho(this.db, req);
+    await this.db.pq(`INSERT INTO case_tax (record_uuid,ppn_mode,ppn_percent,ppn_amount,pph,updated_by,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (record_uuid) DO UPDATE SET ppn_mode=EXCLUDED.ppn_mode, ppn_percent=EXCLUDED.ppn_percent, ppn_amount=EXCLUDED.ppn_amount, pph=EXCLUDED.pph, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at`, [uuid, ppn?.mode || null, ppn?.percent ?? null, ppn?.amount ?? null, pph ? 1 : 0, who, now]);
+    await logActivity(this.db, { who, action: `mengubah pajak ${await caseLabel(this.db, uuid)}`, category: 'Pajak', detail: ppn ? `PPN ${ppn.mode === 'percent' ? `${ppn.percent}%` : `Rp ${ppn.amount}`}${pph ? ' + PPH' : ''}` : `Non PPN${pph ? ', PPH aktif' : ''}`, recordUuid: uuid });
+    return { ok: true, recordUuid: uuid, tax: { ppn, pph } };
   }
 }

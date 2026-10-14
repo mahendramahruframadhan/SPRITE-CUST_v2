@@ -209,18 +209,19 @@ dari matriks yang sama; hanya method tulis yang butuh `PermGuard`/izin modul.
 ### Sesi, token & cookie (M3)
 
 Login mengeluarkan token sesi 64-hex (TTL 7 hari, tabel `session`) yang
-dikirim frontend sebagai header `x-auth-token` di **setiap** request.
-Cookie `better-auth.session_token` hanya kompatibilitas klien lama dan
-sudah dibekali flags aman: `httpOnly`, `sameSite=lax`, `maxAge=7 hari`,
-`secure` saat `NODE_ENV=production`.
+disimpan di cookie httpOnly `better-auth.session_token` (flags: `httpOnly`,
+`sameSite=lax`, `maxAge=7 hari`, `secure` saat production). Body respons
+TIDAK memuat token mentah; frontend tidak menyimpan token di localStorage
+dan mengandalkan cookie otomatis (`credentials: 'include'`).
 
-**Asesmen migrasi penuh ke httpOnly cookie** (belum dikerjakan, keputusan
-terpisah): backend kini hanya membaca token dari header (`session.ts`) —
-perlu fallback baca cookie + SameSite/proxy yang konsisten; frontend
-(`lib/api.js`, `AuthContext.jsx`) harus berhenti menyimpan/mengirim header
-dan mengandalkan cookie otomatis (vite proxy same-origin sudah mendukung);
-integration test + guard memakai header secara eksplisit. Tanpa perubahan
-lintas tiga lapis itu, localStorage tetap menjadi mekanisme utama.
+Fallback yang masih didukung: header `x-auth-token` (skrip/test/integration).
+Request mutasi yang authed via cookie tanpa header wajib ber-Origin/Referer
+dari origin CORS (`auth/csrf.ts`, 403 `CSRF_MISMATCH` bila
+melanggar). CORS `credentials: true` dengan origin eksplisit.
+
+Catatan deploy cross-origin: cookie `lax` terkirim untuk navigasi top-level
+dan request same-site; bila frontend-backend beda site, pastikan keduanya
+HTTPS dan origin frontend terdaftar di `FRONTEND_URL`/CORS.
 
 ## Kosongkan DB + inject dari Sheet live terbaru
 

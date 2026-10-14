@@ -5,9 +5,18 @@ import { Perm, PermGuard, hasModulePerm } from '../auth/perm.guard';
 import { hashPassword } from '../auth/password';
 import { SessionGuard } from '../auth/session.guard';
 import { resolveSessionUser } from '../auth/session';
+import { esc } from '../db/sql';
 
 const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
-const MODULES = ['dashboard', 'cases', 'form', 'hrreport', 'cfg', 'billing', 'finance', 'mockup', 'roles', 'logs', 'settings'];
+// Union seluruh modul yang ada di matriks: seed init.ts + id halaman
+// frontend (termasuk report + analytics yang dienforce/dikelola UI).
+// Dipakai untuk (a) filter kunci payload dan (b) kunci anti-lockout
+// Super Admin — sebelumnya daftar ini lebih sempit dari seed, jadi ada modul
+// yang tidak pernah dipaksa penuh.
+const MODULES = [
+  'dashboard', 'cases', 'form', 'clients', 'hrreport', 'cfg', 'popinava',
+  'billing', 'finance', 'report', 'analytics', 'mockup', 'roles', 'logs', 'settings',
+];
 
 // CRUD pengguna + matriks izin + log aktivitas untuk halaman /roles — semua di Postgres.
 // Class-level SessionGuard: SEMUA endpoint (termasuk GET) wajib x-auth-token
@@ -41,7 +50,7 @@ export class RolesController {
     // termasuk mengunci total sistem dengan mematikan SEMUA Super Admin.
     const actor = await resolveSessionUser(this.db, req);
     const actorIsSA = actor?.role === 'Super Admin';
-    const curR: any = await this.db.pq(`SELECT role, active FROM "user" WHERE id=$1 LIMIT 1`, [id]);
+    const curR: any = await this.db.pq(`SELECT role, active, email FROM "user" WHERE id=$1 LIMIT 1`, [id]);
     const cur = (curR.rows || curR)[0];
     if (!cur) throw new HttpException({ code: 'NOT_FOUND', message: 'Pengguna tidak ditemukan.' }, HttpStatus.NOT_FOUND);
     const targetIsSA = cur.role === 'Super Admin';
@@ -49,13 +58,23 @@ export class RolesController {
     const grantSA = b.role === 'Super Admin' && cur.role !== 'Super Admin';
     const demoteSA = targetIsSA && b.role && ROLES.includes(b.role) && b.role !== 'Super Admin';
     const deactivate = b.active !== undefined && !b.active;
+    const activate = b.active !== undefined && !!b.active;
+    // F1c: dua lubang yang luput dari guard H3:
+    // - ubah email SA → lockout (login berbasis email; proteksi status/role
+    //   sudah menutup jalan lain, tapi email masih bebas diubah siapa pun
+    //   berizin 'roles');
+    // - aktifkan kembali SA yang dinonaktifkan → membatalkan keputusan sesama
+    //   SA dan mengembalikan akun itu ke kekuasaan penuh.
+    const changeEmail = !!b.email && String(b.email).toLowerCase() !== String(cur.email || '').toLowerCase();
+    const activateSA = targetIsSA && activate;
+    const perturbSA = demoteSA || deactivate || changeEmail || activateSA;
 
     // Memberi status SA, atau mengutak-atik SA yang ada → hanya sesama SA.
     // (Matriks /roles memang mengizinkan SA mencentang modul 'roles' untuk
     // role lain — tanpa ini, role itu langsung bisa self-escalate.)
-    if ((grantSA || (targetIsSA && (demoteSA || deactivate))) && !actorIsSA) {
+    if ((grantSA || (targetIsSA && perturbSA)) && !actorIsSA) {
       throw new HttpException(
-        { code: 'SUPERADMIN_PROTECTED', message: 'Hanya Super Admin yang dapat memberi/mencabut status Super Admin.' },
+        { code: 'SUPERADMIN_PROTECTED', message: 'Hanya Super Admin yang dapat mengubah akun Super Admin (status, role, atau email).' },
         HttpStatus.FORBIDDEN,
       );
     }
@@ -103,7 +122,19 @@ export class RolesController {
   @Post('users/:id/password')
   @UseGuards(PermGuard)
   @Perm('roles')
-  async password(@Param('id') id: string, @Body() b: any) {
+  async password(@Param('id') id: string, @Body() b: any, @Req() req: any) {
+    // F1b: endpoint ini luput dari guard H3 — tanpa cek di sini, pemegang izin
+    // 'roles' NON-Super-Admin bisa mereset password Super Admin lalu login
+    // sebagai SA (takeover seluruh sistem; guard role/aktif jadi tidak berarti).
+    const actor = await resolveSessionUser(this.db, req);
+    const t: any = await this.db.pq(`SELECT role FROM "user" WHERE id=$1`, [id]);
+    const target = (t.rows || t)[0];
+    if (target?.role === 'Super Admin' && actor?.role !== 'Super Admin') {
+      throw new HttpException(
+        { code: 'SUPERADMIN_PROTECTED', message: 'Hanya Super Admin yang dapat mereset password Super Admin.' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
     const p = String(b.password || '');
     if (p.length < 5) return { ok: false, error: 'password min. 5 karakter' };
     const password = await hashPassword(p);
@@ -128,21 +159,72 @@ export class RolesController {
   @Put('roles/permissions')
   @UseGuards(PermGuard)
   @Perm('roles')
-  async putPerms(@Body() b: any) {
+  async putPerms(@Body() b: any, @Req() req: any) {
     const perms = b.perms || b;
-    const now = new Date().toISOString();
-    await this.db.execute(`DELETE FROM role_permissions` as any);
+    const actor = await resolveSessionUser(this.db, req);
+    if (!actor) {
+      throw new HttpException(
+        { code: 'SESSION_EXPIRED', message: 'Sesi berakhir — silakan login lagi.' },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    // F1: pemegang izin 'roles' NON-Super-Admin hanya boleh menulis modul yang
+    // benar-benar dipegang role-nya (baris allowed=1). Tanpa ini non-SA bisa
+    // mencentang modul baru untuk role-nya sendiri → self-escalation penuh
+    // (mis. menambah 'billing' lalu menerbitkan invoice, atau 'cfg' lalu
+    // merewrite master sheet).
+    const actorIsSA = actor.role === 'Super Admin';
+    let held = new Set<string>();
+    if (!actorIsSA) {
+      const h: any = await this.db.pq(`SELECT module FROM role_permissions WHERE role=$1 AND allowed=1`, [actor.role]);
+      held = new Set(((h.rows || h) as any[]).map((r) => String(r.module)));
+    }
+
+    // Matriks sekarang jadi dasar tulis: baris di LUAR payload TIDAK boleh
+    // hilang (no wipe — API menerima payload parsial) dan perubahan di luar
+    // wewenang dipertahankan apa adanya, dilaporkan lewat `skipped`.
+    const curR: any = await this.db.execute(`SELECT role,module,allowed FROM role_permissions` as any);
+    const final: Record<string, Record<string, number>> = {};
+    for (const row of curR.rows || curR) {
+      (final[row.role] = final[row.role] || {})[row.module] = Number(row.allowed) ? 1 : 0;
+    }
+
+    const skipped: { role: string; module: string }[] = [];
     for (const role of Object.keys(perms)) {
       if (!ROLES.includes(role)) continue;
-      for (const mod of Object.keys(perms[role])) {
-        await this.db.pq(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ($1,$2,$3,$4)`, [role, mod, perms[role][mod] ? 1 : 0, now]);
+      final[role] = final[role] || {};
+      for (const mod of Object.keys(perms[role] || {})) {
+        if (!MODULES.includes(mod)) continue;
+        const want = perms[role][mod] ? 1 : 0;
+        if (!actorIsSA && !held.has(mod)) {
+          if (want !== (final[role][mod] ?? 0)) skipped.push({ role, module: mod });
+          continue;
+        }
+        final[role][mod] = want;
       }
     }
-    // Kunci anti-lockout: Super Admin selalu penuh meski request direkayasa
-    for (const mod of MODULES) {
-      await this.db.execute(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('Super Admin','${mod}',1,'${now}') ON CONFLICT (role,module) DO UPDATE SET allowed=1, updated_at='${now}'` as any);
-    }
-    return { ok: true };
+
+    // Kunci anti-lockout: Super Admin selalu penuh meski request direkayasa.
+    final['Super Admin'] = final['Super Admin'] || {};
+    for (const mod of MODULES) final['Super Admin'][mod] = 1;
+
+    // F2: tulis SATU transaksi (pola config.controller) — kegagalan di tengah
+    // rewrite membatalkan seluruh perubahan, bukan meninggalkan matriks
+    // terhapus separuh (jendela lockout izin). Tanpa ON CONFLICT: tabel sudah
+    // kosong oleh DELETE, cukup INSERT biasa.
+    const now = new Date().toISOString();
+    await this.db.transaction(async (tx: any) => {
+      await tx.execute(`DELETE FROM role_permissions` as any);
+      for (const [role, mods] of Object.entries(final)) {
+        for (const [mod, allowed] of Object.entries(mods)) {
+          await tx.execute(
+            `INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${esc(role)}','${esc(mod)}','${allowed}','${now}')` as any,
+          );
+        }
+      }
+    });
+    return { ok: true, skipped };
   }
 
   @Get('roles/logs')

@@ -12,7 +12,7 @@
 // node:test bawaan; jalankan: npm test
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { setupTables, seedUser, db } from './helpers/pgmem.ts';
+import { setupTables, seedUser, db, loginAs } from './helpers/pgmem.ts';
 import { AuthController } from '../src/auth/auth.controller.ts';
 import { PermGuard } from '../src/auth/perm.guard.ts';
 import { RolesController } from '../src/roles/roles.controller.ts';
@@ -97,9 +97,8 @@ describe('M-3 GET /users: daftar lengkap hanya untuk role berizin roles', () => 
 
   const signIn = async (role: string, email: string) => {
     await seedUser(role, email);
-    const ctl = new AuthController();
-    const r: any = await ctl.signIn({ email, password: 'password123' }, {});
-    return r.token;
+    const { token } = await loginAs(email);
+    return token;
   };
   const reqWith = (token: string) => ({ headers: { 'x-auth-token': token } });
 

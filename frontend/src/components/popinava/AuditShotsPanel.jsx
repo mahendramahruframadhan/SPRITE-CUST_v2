@@ -62,11 +62,12 @@ function SlotCard({ slot, shot, outletUuid, onChanged, canWrite }) {
   const [progress, setProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState('');
 
-  // Ambil URL pratinjau (inline) untuk shot yang sudah completed.
+  // Pratinjau hanya untuk shot yang selesai terunggah; status uploading/failed
+  // belum punya objek di storage sehingga pemanggilan URL selalu 400.
   useEffect(() => {
     let alive = true;
     setPreviewUrl('');
-    if (shot && shot.status !== 'failed') {
+    if (shot && shot.status === 'completed') {
       requestShotDownloadUrl(shot.id, { inline: true }).then(
         (r) => { if (alive) setPreviewUrl(r.url || r.data?.url || ''); },
         () => {},
@@ -184,13 +185,17 @@ function SlotCard({ slot, shot, outletUuid, onChanged, canWrite }) {
               <img src={previewUrl} alt={`Screenshot ${slot.label}`} className="w-full max-h-40 object-cover rounded-lg border border-slate-200 dark:border-slate-700" />
             </a>
           ) : (
-            <div className="h-20 rounded-lg bg-slate-200/70 dark:bg-slate-700/50 animate-pulse" aria-hidden="true" />
+            <p className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 px-3 py-6 text-center text-[11px] text-slate-400">
+              {shot.status === 'failed' ? 'Upload sebelumnya gagal — upload ulang' : 'Belum selesai diunggah — upload ulang'}
+            </p>
           )}
           <div className="mt-2 flex items-center justify-between gap-2">
             <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate min-w-0" title={shot.filename}>
               {shot.filename} · {fmtKB(shot.sizeBytes)}
             </p>
             <div className="flex items-center gap-1.5 shrink-0">
+              {previewUrl && (
+              // eslint-disable-next-line react/forbid-elements -- tombol mikro ikon
               <button
                 type="button"
                 onClick={onDownload}
@@ -201,7 +206,9 @@ function SlotCard({ slot, shot, outletUuid, onChanged, canWrite }) {
                 </svg>
                 Unduh
               </button>
+              )}
               {canWrite && (
+                // eslint-disable-next-line react/forbid-elements -- tombol mikro ikon
                 <button
                   type="button"
                   onClick={onDelete}
@@ -240,7 +247,7 @@ export default function AuditShotsPanel({ outletUuid, canWrite = true, onChanged
 
   const bySlot = {};
   for (const s of shots) {
-    if (s.status === 'failed') continue;
+    if (s.status !== 'completed') continue;
     if (!bySlot[s.slot] || (bySlot[s.slot].createdAt || '') < (s.createdAt || '')) bySlot[s.slot] = s;
   }
 

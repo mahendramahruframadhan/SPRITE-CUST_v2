@@ -41,7 +41,7 @@ describe('auth security log (M4)', () => {
     await seedUser('Support', 'sukses.log@revota.id');
     const ctl = new AuthController();
     const r: any = await ctl.signIn({ email: 'sukses.log@revota.id', password: 'password123' }, { ip: '203.0.113.10' } as any);
-    assert.ok(r.token, 'login sukses tetap mengeluarkan token');
+    assert.ok(r.user?.email, 'login sukses tetap mengembalikan user (tanpa token di body)');
     const rows: any = await db().execute(
       `SELECT 1 FROM activity_logs WHERE category='Keamanan' AND detail LIKE '%sukses.log@revota.id%'` as any,
     );

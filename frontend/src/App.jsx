@@ -23,6 +23,8 @@ const SheetConfigPage = lazy(() => import('./pages/SheetConfigPage.jsx'));
 const PopiNavaPage = lazy(() => import('./pages/PopiNavaPage.jsx'));
 const BillingPage = lazy(() => import('./pages/BillingPage.jsx'));
 const FinanceAuditPage = lazy(() => import('./pages/FinanceAuditPage.jsx'));
+const ReportSummaryPage = lazy(() => import('./pages/ReportSummaryPage.jsx'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage.jsx'));
 const RolesPage = lazy(() => import('./pages/RolesPage.jsx'));
 const LogsPage = lazy(() => import('./pages/LogsPage.jsx'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage.jsx'));
@@ -59,6 +61,8 @@ function AnimatedRoutes() {
         <Route path="/popinava" element={<RequirePerm module="popinava"><PopiNavaPage /></RequirePerm>} />
         <Route path="/billing" element={<RequirePerm module="billing"><BillingPage /></RequirePerm>} />
         <Route path="/finance" element={<RequirePerm module="finance"><FinanceAuditPage /></RequirePerm>} />
+        <Route path="/report" element={<RequirePerm module="report"><ReportSummaryPage /></RequirePerm>} />
+        <Route path="/analytics" element={<RequirePerm module="analytics"><AnalyticsPage /></RequirePerm>} />
         <Route path="/roles" element={<RequirePerm module="roles"><RolesPage /></RequirePerm>} />
         <Route path="/logs" element={<RequirePerm module="logs"><LogsPage /></RequirePerm>} />
         <Route path="/settings" element={<RequirePerm module="settings"><SettingsPage /></RequirePerm>} />
