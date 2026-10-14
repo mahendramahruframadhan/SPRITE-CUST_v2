@@ -87,6 +87,8 @@ const mapRow = (r: any) => ({
   recordUuid: r.record_uuid,
   auditStatus: r.audit_action || 'BELUM DIVALIDASI',
   invoiceStatus: r.invoice_status || 'MENUNGGU INVOICE',
+  invoiceNo: r.invoice_no || '',
+  invoiceNote: r.keterangan || r.payment_note || '',
 });
 
 @Injectable()
@@ -97,7 +99,7 @@ export class AnalyticsService {
     const f = String(from || '').replace(/-/g, '');
     const t = String(to || '').replace(/-/g, '');
     const res: any = await this.db.pq(
-      `SELECT r.*, COALESCE(a.action,'') AS audit_action, COALESCE(i.status,'MENUNGGU INVOICE') AS invoice_status, t.ppn_mode, t.ppn_percent, t.ppn_amount, t.pph FROM assistance_records r LEFT JOIN audit_status a ON a.record_uuid = r.record_uuid LEFT JOIN invoice_status i ON i.record_uuid = r.record_uuid LEFT JOIN case_tax t ON t.record_uuid = r.record_uuid WHERE r.date_issue >= $1 AND r.date_issue <= $2`,
+      `SELECT r.*, COALESCE(a.action,'') AS audit_action, COALESCE(i.status,'MENUNGGU INVOICE') AS invoice_status, i.invoice_no, i.keterangan, i.payment_note, t.ppn_mode, t.ppn_percent, t.ppn_amount, t.pph FROM assistance_records r LEFT JOIN audit_status a ON a.record_uuid = r.record_uuid LEFT JOIN invoice_status i ON i.record_uuid = r.record_uuid LEFT JOIN case_tax t ON t.record_uuid = r.record_uuid WHERE r.date_issue >= $1 AND r.date_issue <= $2`,
       [f, t],
     );
     const rows = (res.rows || res || []) as any[];
