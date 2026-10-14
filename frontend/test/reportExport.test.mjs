@@ -13,7 +13,6 @@ const SUMMARY = {
   },
   byBilling: {
     'ON-CALL': { count: 1, charges: 1000000, ppn: 110000, subtotal: 1110000 },
-    MONTHLY: { count: 1, charges: 2000000, ppn: 0, subtotal: 2000000 },
   },
   paid: { count: 1, charges: 1000000, ppn: 110000, subtotal: 1110000 },
   outstanding: { count: 1, charges: 2000000, ppn: 0, subtotal: 2000000 },
@@ -27,10 +26,9 @@ describe('buildReportCsv', () => {
     assert.match(csv, /DIKIRIM/);
   });
 
-  it('memuat seksi billing ON-CALL vs MONTHLY + info PPh', () => {
+  it('memuat seksi billing ON-CALL + info PPh', () => {
     const csv = buildReportCsv(SUMMARY, { periode: 'P' });
     assert.match(csv, /ON-CALL/);
-    assert.match(csv, /MONTHLY/);
     assert.match(csv, /PPh/);
   });
 

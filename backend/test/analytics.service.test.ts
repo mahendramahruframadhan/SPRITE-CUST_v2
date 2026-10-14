@@ -74,10 +74,10 @@ describe('analytics service', () => {
   it('overview: pool VALID saja, PPN percent ON-CALL, MONTHLY PPN 0', async () => {
     const svc = new AnalyticsService();
     const r: any = await svc.getOverview('2026-01-01', '2026-12-31');
-    assert.equal(r.kpis.count, 4);
-    assert.equal(r.kpis.charges, 3800000);
+    assert.equal(r.kpis.count, 3);
+    assert.equal(r.kpis.charges, 1800000);
     assert.equal(r.kpis.ppn, 160000);
-    assert.equal(r.kpis.subtotal, 3960000);
+    assert.equal(r.kpis.subtotal, 1960000);
     assert.equal(r.kpis.pphCount, 1);
   });
 
@@ -90,18 +90,18 @@ describe('analytics service', () => {
     const m1 = (r.byModule || []).find((b: any) => b.module === 'M1');
     assert.equal(m1.count, 3);
     const mar = (r.trend || []).find((t: any) => t.key === '2026-03');
-    assert.equal(mar.count, 2);
-    assert.equal(mar.subtotal, 3110000);
+    assert.equal(mar.count, 1);
+    assert.equal(mar.subtotal, 1110000);
     assert.equal(r.byInvoice['PAID'].count, 1);
     assert.equal(r.kpis.paid.subtotal, 1110000);
-    assert.equal(r.kpis.outstanding.count, 3);
+    assert.equal(r.kpis.outstanding.count, 2);
   });
 
   it('drilldown tanpa dim = semua pool + paginasi', async () => {
     const svc = new AnalyticsService();
     const d: any = await svc.getDrilldown({ dim: '', key: '', from: '2026-01-01', to: '2026-12-31', q: '', page: 1, limit: 10 });
-    assert.equal(d.total, 4);
-    assert.equal(d.subtotal, 3960000);
+    assert.equal(d.total, 3);
+    assert.equal(d.subtotal, 1960000);
   });
 
   it('drilldown brand + search + paginasi', async () => {
@@ -112,6 +112,6 @@ describe('analytics service', () => {
     assert.equal(d.data.length, 2);
     assert.equal(d.subtotal, 1960000);
     const s: any = await svc.getDrilldown({ dim: 'module', key: 'M2', from: '2026-01-01', to: '2026-12-31', q: 'BRAND-B', page: 1, limit: 10 });
-    assert.equal(s.total, 1);
+    assert.equal(s.total, 0);
   });
 });

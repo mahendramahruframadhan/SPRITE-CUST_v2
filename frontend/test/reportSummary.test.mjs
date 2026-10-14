@@ -16,10 +16,10 @@ describe('buildReportSummary (pool tervalidasi)', () => {
       a: { ppn: { enabled: true, mode: 'percent', percent: 11, amount: 0 }, pph: true },
     };
     const s = buildReportSummary(rows, taxMap, {}, 'MENUNGGU INVOICE');
-    assert.equal(s.count, 2);
-    assert.equal(s.charges, 3000000);
+    assert.equal(s.count, 1);
+    assert.equal(s.charges, 1000000);
     assert.equal(s.ppn, 110000);
-    assert.equal(s.subtotal, 3110000);
+    assert.equal(s.subtotal, 1110000);
     assert.equal(s.pphCount, 1);
   });
 
@@ -33,14 +33,16 @@ describe('buildReportSummary (pool tervalidasi)', () => {
     assert.equal(s.subtotal, 1050000);
   });
 
-  it('MONTHLY tidak pernah menyumbang PPN', () => {
+  it('MONTHLY dikecualikan dari pool', () => {
     const rows = [{ recordUuid: 'b', charges: 2000000, billingStatus: 'MONTHLY' }];
     const taxMap = {
       b: { ppn: { enabled: true, mode: 'percent', percent: 11, amount: 0 }, pph: false },
     };
     const s = buildReportSummary(rows, taxMap, {}, 'MENUNGGU INVOICE');
+    assert.equal(s.count, 0);
+    assert.equal(s.charges, 0);
     assert.equal(s.ppn, 0);
-    assert.equal(s.subtotal, 2000000);
+    assert.equal(s.subtotal, 0);
   });
 
   it('FREE dikecualikan walau masuk rows', () => {
@@ -92,7 +94,5 @@ describe('buildReportSummary (pool tervalidasi)', () => {
     const s = buildReportSummary(rows, {}, {}, 'MENUNGGU INVOICE');
     assert.equal(s.byBilling['ON-CALL'].count, 1);
     assert.equal(s.byBilling['ON-CALL'].charges, 1000000);
-    assert.equal(s.byBilling.MONTHLY.count, 1);
-    assert.equal(s.byBilling.MONTHLY.charges, 2000000);
   });
 });

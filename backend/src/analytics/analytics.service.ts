@@ -7,7 +7,7 @@ const ID_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep'
 const norm = (s: any) => String(s || '').replace(/[\s-]/g, '').toUpperCase();
 const isOnCall = (s: any) => norm(s) === 'ONCALL';
 const isMonthly = (s: any) => norm(s) === 'MONTHLY';
-const inPool = (r: any) => (isOnCall(r.billing_status) || isMonthly(r.billing_status)) && r.audit_action === VALID_TAG;
+const inPool = (r: any) => isOnCall(r.billing_status) && r.audit_action === VALID_TAG;
 
 function ppnOf(r: any): number {
   if (!isOnCall(r.billing_status)) return 0;
@@ -170,10 +170,7 @@ export class AnalyticsService {
 
     const paid = summarize(pool.filter((r) => invOf(r) === 'PAID'));
     const outstanding = summarize(pool.filter((r) => invOf(r) !== 'PAID'));
-    const byBilling = {
-      'ON-CALL': summarize(pool.filter((r) => isOnCall(r.billing_status))),
-      MONTHLY: summarize(pool.filter((r) => isMonthly(r.billing_status))),
-    };
+    const byBilling = { 'ON-CALL': summarize(pool) };
 
     const today = String(opts.today || todayWIB());
     const outstandingRows = pool.filter((r) => invOf(r) !== 'PAID');

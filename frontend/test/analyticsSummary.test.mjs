@@ -10,7 +10,7 @@ describe('buildMonthlyTrend', () => {
   it('agregasi per bulan: charges + PPN ON-CALL + subtotal + count', () => {
     const rows = [
       { recordUuid: 'a', charges: 1000000, billingStatus: 'ON-CALL', dateIssue: '20261005' },
-      { recordUuid: 'b', charges: 2000000, billingStatus: 'MONTHLY', dateIssue: '20261018' },
+
       { recordUuid: 'c', charges: 500000, billingStatus: 'ON-CALL', dateIssue: '20260911' },
     ];
     const taxMap = {
@@ -22,10 +22,10 @@ describe('buildMonthlyTrend', () => {
     assert.equal(t[0].key, '2026-09');
     assert.equal(t[0].subtotal, 525000);
     assert.equal(t[1].key, '2026-10');
-    assert.equal(t[1].charges, 3000000);
+    assert.equal(t[1].charges, 1000000);
     assert.equal(t[1].ppn, 100000);
-    assert.equal(t[1].subtotal, 3100000);
-    assert.equal(t[1].count, 2);
+    assert.equal(t[1].subtotal, 1100000);
+    assert.equal(t[1].count, 1);
   });
 
   it('baris tanpa dateIssue valid dilewati', () => {

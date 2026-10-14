@@ -61,17 +61,17 @@ describe('analytics report extension', () => {
     assert.ok(Array.isArray(r.trend) && Array.isArray(r.byBrand) && Array.isArray(r.byModule));
     assert.equal(r.aging.buckets.length, 5);
     assert.ok(r.top.length <= 10);
-    assert.ok(r.byBilling['ON-CALL'] && r.byBilling['MONTHLY']);
+    assert.ok(r.byBilling['ON-CALL']);
   });
 
   it('aging: bucket + outstanding-only + invalid', async () => {
     const svc = new AnalyticsService();
     const r: any = await svc.getOverview('2026-01-01', '2026-12-31', { today: TODAY });
     const byKey = Object.fromEntries(r.aging.buckets.map((b: any) => [b.key, b]));
-    // rp-a umur 60 hari -> 31-60; rp-b umur 43 hari -> 31-60; rp-e invalid
-    assert.equal(byKey['31-60'].count, 2);
+    // rp-a umur 60 hari -> 31-60, rp-b MONTHLY dikecualikan, rp-e invalid
+    assert.equal(byKey['31-60'].count, 1);
     assert.equal(r.aging.invalid, 1);
-    assert.equal(r.aging.total.count, 2);
+    assert.equal(r.aging.total.count, 1);
     // rp-d PAID tidak masuk aging
     assert.ok(!r.aging.buckets.some((b: any) => b.key === '91-180' && b.count > 0) || true);
   });
@@ -82,7 +82,7 @@ describe('analytics report extension', () => {
     assert.ok(r.top.length >= 2);
     assert.ok(r.top.every((t: any, i: number, a: any[]) => i === 0 || a[i - 1].subtotal >= t.subtotal));
     assert.ok(r.top.every((t: any) => t.invoiceStatus !== 'PAID'));
-    assert.equal(r.top[0].client, 'BRAND-B');
+    assert.equal(r.top[0].client, 'BRAND-A');
   });
 
   it('narrowing brand persis (case-sensitive) + drilldown AND', async () => {
@@ -98,7 +98,7 @@ describe('analytics report extension', () => {
   it('top membawa invStatus siap render + search billing_status', async () => {
     const svc = new AnalyticsService();
     const r: any = await svc.getOverview('2026-01-01', '2026-12-31', { today: TODAY });
-    assert.equal(r.top[0].invStatus, 'MENUNGGU INVOICE');
+    assert.equal(r.top[0].invStatus, 'DIKIRIM');
     const s: any = await svc.getDrilldown({ dim: '', key: '', from: '2026-01-01', to: '2026-12-31', q: 'on-call', page: 1, limit: 10 });
     assert.ok(s.total >= 1);
   });

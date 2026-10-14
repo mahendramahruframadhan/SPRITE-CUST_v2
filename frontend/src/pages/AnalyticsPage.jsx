@@ -12,9 +12,10 @@ import { EmptyRow, LoadingRow, Pill } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { invLabel, invoiceTone, moduleTone, billingTone } from '../utils/tones.js';
+import { filterOnCallRows } from '../lib/onCallFilter.js';
 
 // Halaman Analitik: visual tren + distribusi + KPI dari pool tervalidasi
-// (VALID - SIAP INVOICE, ON-CALL + MONTHLY). Agregasi di backend
+// (VALID - SIAP INVOICE, ON-CALL). Agregasi di backend
 // (GET /analytics/overview + /analytics/drilldown); halaman ini read-only.
 const EMPTY_SUMMARY = { count: 0, charges: 0, ppn: 0, subtotal: 0, paid: { count: 0, subtotal: 0 }, outstanding: { count: 0, subtotal: 0 }, byInvoice: {} };
 
@@ -158,7 +159,8 @@ export default function AnalyticsPage() {
   }, [dim, dimKey, from, to, debQ, page, perPage, rangeError]);
 
   const rows = useMemo(
-    () => (drill.data || []).map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
+    () => filterOnCallRows(drill.data || [])
+      .map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
     [drill]
   );
   const paged = rows;

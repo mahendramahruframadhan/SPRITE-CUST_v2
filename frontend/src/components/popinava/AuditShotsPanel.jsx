@@ -195,6 +195,7 @@ function SlotCard({ slot, shot, outletUuid, onChanged, canWrite }) {
             </p>
             <div className="flex items-center gap-1.5 shrink-0">
               {previewUrl && (
+              // eslint-disable-next-line react/forbid-elements -- tombol mikro ikon
               <button
                 type="button"
                 onClick={onDownload}
@@ -207,6 +208,7 @@ function SlotCard({ slot, shot, outletUuid, onChanged, canWrite }) {
               </button>
               )}
               {canWrite && (
+                // eslint-disable-next-line react/forbid-elements -- tombol mikro ikon
                 <button
                   type="button"
                   onClick={onDelete}

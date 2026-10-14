@@ -21,7 +21,7 @@ function monthKeyOf(row) {
 // [{key, label, count, charges, ppn, subtotal}] terurut bulan menaik.
 export function buildMonthlyTrend(rows, taxMap) {
   const groups = {};
-  for (const r of rows || []) {
+  for (const r of (rows || []).filter((r) => isTaxableRow(r?.billingStatus))) {
     const key = monthKeyOf(r);
     if (!key) continue;
     (groups[key] = groups[key] || []).push(r);

@@ -5,6 +5,7 @@ import { useFinanceTax } from '../hooks/useFinanceTax.js';
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fetchAnalyticsOverview, fetchAnalyticsDrilldown } from '../lib/api.js';
+import { filterOnCallRows } from '../lib/onCallFilter.js';
 import { analyticsRangeError } from '../lib/analyticsRange.js';
 import { buildReportCsv, reportCsvFilename } from '../lib/reportExport.js';
 import { printSection } from '../lib/printSection.js';
@@ -15,7 +16,7 @@ import { fmtDate8 } from '../utils/format.js';
 import { invLabel, invoiceTone } from '../utils/tones.js';
 
 // Halaman Report Summary: dokumen rekap read-only kasus tervalidasi
-// (VALID - SIAP INVOICE, ON-CALL + MONTHLY) untuk manajemen.
+// (VALID - SIAP INVOICE, ON-CALL) untuk manajemen.
 // Agregasi di backend (GET /analytics/overview + /analytics/drilldown);
 // halaman ini tidak menulis apa pun.
 const EMPTY_SUMMARY = {
@@ -25,7 +26,6 @@ const EMPTY_SUMMARY = {
   byInvoice: {},
   byBilling: {
     'ON-CALL': { count: 0, charges: 0, ppn: 0, subtotal: 0 },
-    MONTHLY: { count: 0, charges: 0, ppn: 0, subtotal: 0 },
   },
 };
 const EMPTY_AGING = { buckets: [], total: { count: 0, subtotal: 0 }, invalid: 0 };
@@ -58,6 +58,7 @@ const moneySize = (v) => {
 // Tombol cetak satu section (A4). Disembunyikan saat print.
 function PrintBtn({ id, label }) {
   return (
+    // eslint-disable-next-line react/forbid-elements -- tombol cetak ikon
     <button
       type="button"
       onClick={() => printSection(id)}
@@ -239,10 +240,14 @@ export default function ReportSummaryPage() {
   }, [from, to, brand, module, debQ, page, perPage, rangeError]);
 
   const detailItems = useMemo(
-    () => (drill.data || []).map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
+    () => filterOnCallRows(drill.data || [])
+      .map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
     [drill]
   );
-  const paged = detailItems;
+  const detailCount = detailItems.length;
+  const totalPages = Math.max(1, Math.ceil(detailCount / perPage));
+  const safePage = Math.min(page, totalPages);
+  const paged = detailItems.slice((safePage - 1) * perPage, safePage * perPage);
 
   // Tiga KPI uang di kolom kiri (Charges / PPN / Subtotal Akhir).
   const financeKpi = [
@@ -253,7 +258,7 @@ export default function ReportSummaryPage() {
 
   // Kartu info di kolom kanan (selain tiga uang di atas).
   const infoCards = [
-    { t: 'Kasus Tervalidasi', v: summary.count.toLocaleString('id-ID'), sub: 'ON-CALL + MONTHLY', color: 'text-brand-600', darkColor: 'dark:text-brand-300' },
+    { t: 'Kasus Tervalidasi', v: summary.count.toLocaleString('id-ID'), sub: 'ON-CALL', color: 'text-brand-600', darkColor: 'dark:text-brand-300' },
     { t: 'Kasus ber-flag PPh', v: summary.pphCount.toLocaleString('id-ID'), sub: 'info saja, tanpa potongan', color: 'text-violet-600', darkColor: 'dark:text-violet-400' },
     { t: 'Outstanding', v: fmtMoney(summary.outstanding.subtotal), sub: `${summary.outstanding.count} kasus belum dibayar`, color: 'text-rose-600', darkColor: 'dark:text-rose-400', money: true },
   ];
@@ -265,13 +270,9 @@ export default function ReportSummaryPage() {
   ];
   const byBillingRows = [
     ['ON-CALL', summary.byBilling['ON-CALL']],
-    ['MONTHLY', summary.byBilling['MONTHLY']],
   ];
 
   const detailTotal = drill.subtotal || 0;
-  const detailCount = drill.total || 0;
-  const totalPages = drill.totalPages || 1;
-  const safePage = Math.min(page, totalPages);
   const tableLoading = drLoading;
   const tableError = drError;
   const pageNums = (() => {
@@ -334,7 +335,7 @@ export default function ReportSummaryPage() {
               {/* Ringkasan eksekutif satu paragraf */}
               <p className="mt-3 text-sm text-white/90 max-w-2xl leading-relaxed">
                 Pada periode ini, <span className="font-bold">{summary.count} kasus</span> tervalidasi
-                (ON-CALL + MONTHLY) membangun subtotal{' '}
+                (ON-CALL) membangun subtotal{' '}
                 <span className="font-bold tabular-nums">{fmtMoney(summary.subtotal)}</span>, terdiri dari
                 charges <span className="tabular-nums">{fmtMoney(summary.charges)}</span> dan PPN{' '}
                 <span className="tabular-nums">{fmtMoney(summary.ppn)}</span>. Dari jumlah itu,{' '}
