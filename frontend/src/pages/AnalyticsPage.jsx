@@ -515,7 +515,7 @@ export default function AnalyticsPage() {
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">Charges</th>
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">PPN</th>
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">Subtotal</th>
-                <th className="px-4 py-3 font-bold whitespace-nowrap">PPh</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">PPH23</th>
                 <th className="px-6 py-3 font-bold whitespace-nowrap">Status Invoice</th>
               </tr>
             </thead>
@@ -543,9 +543,9 @@ export default function AnalyticsPage() {
                   <td className="px-4 py-3.5 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{fmtMoney(c.subtotal)}</td>
                   <td className="px-4 py-3.5 whitespace-nowrap">
                     {c.pph ? (
-                      <span className="text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-1 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20">Ya</span>
+                      <span className="text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-1 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20">PPH23</span>
                     ) : (
-                      <span className="text-xs text-slate-400 dark:text-slate-500">-</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">Tidak ada PPH23</span>
                     )}
                   </td>
                   <td className="px-6 py-3.5 whitespace-nowrap">
@@ -572,7 +572,7 @@ export default function AnalyticsPage() {
                 <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
               </div>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{c.issue || '-'}</p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {c.picName || '-'} · {c.billingStatus || '-'}{c.pph ? ' · PPh' : ''}</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {c.picName || '-'} · {c.billingStatus || '-'}{c.pph ? ' · PPH23' : ''}</p>
               <div className="mt-2 flex items-baseline justify-between gap-2 text-sm tabular-nums">
                 <span className="text-slate-500 dark:text-slate-400">Charges {fmtMoney(c.charges)} + PPN {fmtMoney(c.ppn)}</span>
                 <span className="font-extrabold text-slate-900 dark:text-white">{fmtMoney(c.subtotal)}</span>
