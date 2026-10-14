@@ -95,6 +95,14 @@ describe('analytics report extension', () => {
     assert.ok(d.total >= 1 && d.data.every((x: any) => x.client === 'BRAND-A' && x.module === 'M1'));
   });
 
+  it('top membawa invStatus siap render + search billing_status', async () => {
+    const svc = new AnalyticsService();
+    const r: any = await svc.getOverview('2026-01-01', '2026-12-31', { today: TODAY });
+    assert.equal(r.top[0].invStatus, 'MENUNGGU INVOICE');
+    const s: any = await svc.getDrilldown({ dim: '', key: '', from: '2026-01-01', to: '2026-12-31', q: 'on-call', page: 1, limit: 10 });
+    assert.ok(s.total >= 1);
+  });
+
   it('controller meneruskan brand/module ke service', async () => {
     let got: any = null;
     const fake = { getOverview: async (f: string, t: string, o: any) => { got = o; return { ok: true }; }, getDrilldown: async () => ({}) };

@@ -200,7 +200,7 @@ export class AnalyticsService {
     const top = [...outstandingRows]
       .sort((a, b) => b.subtotal - a.subtotal)
       .slice(0, 10)
-      .map((r) => ({ ...mapRow(r), ppn: r.ppn, subtotal: r.subtotal, pph: r.pph, ageDays: ageDaysOf(r.date_issue, today) }));
+      .map((r) => ({ ...mapRow(r), ppn: r.ppn, subtotal: r.subtotal, pph: r.pph, ageDays: ageDaysOf(r.date_issue, today), invStatus: r.invoice_status || 'MENUNGGU INVOICE' }));
 
     return {
       kpis: { count: pool.length, charges, ppn, subtotal, pphCount: pool.filter((r) => r.pph).length, paid, outstanding },
@@ -220,7 +220,7 @@ export class AnalyticsService {
     const scoped = dim ? pool.filter((r) => (dim === 'brand' ? r.client || '-' : r.module || '-') === key) : pool;
     const needle = String(opts.q || '').trim().toLowerCase();
     const searched = needle
-      ? scoped.filter((r) => `${r.no || ''} ${r.client || ''} ${r.issue || ''} ${r.pic_name || ''} ${r.module || ''}`.toLowerCase().includes(needle))
+      ? scoped.filter((r) => `${r.no || ''} ${r.client || ''} ${r.issue || ''} ${r.pic_name || ''} ${r.module || ''} ${r.billing_status || ''}`.toLowerCase().includes(needle))
       : scoped;
     searched.sort((a, b) => String(b.date_issue || '').localeCompare(String(a.date_issue || '')));
     const limit = Math.min(100, Math.max(1, Number(opts.limit) || 50));
