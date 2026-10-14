@@ -26,7 +26,10 @@ export class AnalyticsController {
     const from = String(q.from || '');
     const to = String(q.to || '');
     checkRange(from, to);
-    return this.analytics.getOverview(from || '1970-01-01', to || '2999-12-31');
+    return this.analytics.getOverview(from || '1970-01-01', to || '2999-12-31', {
+      brand: String(q.brand || ''),
+      module: String(q.module || ''),
+    });
   }
 
   @Get('drilldown')
@@ -53,6 +56,8 @@ export class AnalyticsController {
       q: String(q.q || ''),
       page: Number(q.page) || 1,
       limit: Number(q.limit) || 50,
+      brand: String(q.brand || ''),
+      module: String(q.module || ''),
     });
   }
 }

@@ -6,6 +6,7 @@ import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { setupTables, db } from './helpers/pgmem.ts';
 import { AnalyticsService } from '../src/analytics/analytics.service.ts';
+import { AnalyticsController } from '../src/analytics/analytics.controller.ts';
 import { esc } from '../src/db/sql.ts';
 
 async function addCols() {
@@ -92,5 +93,13 @@ describe('analytics report extension', () => {
     assert.equal(miss.kpis.count, 0);
     const d: any = await svc.getDrilldown({ dim: '', key: '', from: '2026-01-01', to: '2026-12-31', brand: 'BRAND-A', module: 'M1', page: 1, limit: 10 });
     assert.ok(d.total >= 1 && d.data.every((x: any) => x.client === 'BRAND-A' && x.module === 'M1'));
+  });
+
+  it('controller meneruskan brand/module ke service', async () => {
+    let got: any = null;
+    const fake = { getOverview: async (f: string, t: string, o: any) => { got = o; return { ok: true }; }, getDrilldown: async () => ({}) };
+    const ctl = new AnalyticsController(fake as any);
+    await ctl.overview({ from: '2026-01-01', to: '2026-01-31', brand: 'B', module: '' });
+    assert.deepEqual(got, { brand: 'B', module: '' });
   });
 });
