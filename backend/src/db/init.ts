@@ -8,11 +8,11 @@ import { isDevSeedAllowed } from '../config/env';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
 export const ROLE_PERMS: Record<string, Record<string, number>> = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 1, analytics: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 0, analytics: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
-  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, popinava: 0, billing: 0, finance: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
-  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, popinava: 0, billing: 1, finance: 1, analytics: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 0, finance: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
+  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 0, report: 0, analytics: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
+  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, popinava: 0, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
+  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
 };
 
 export async function initDb() {
@@ -289,6 +289,15 @@ export async function initDb() {
       const analyticsSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 0, Support: 0, Finance: 1, Viewer: 0 };
       for (const [role, allowed] of Object.entries(analyticsSeed)) {
         await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','analytics',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
+      }
+    } catch {}
+    // Backfill izin modul 'report' (halaman Report Summary) untuk DB lama —
+    // cermin DEFAULT_PERMS frontend: Super Admin + Finance boleh buka.
+    try {
+      const now = new Date().toISOString();
+      const reportSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 0, Support: 0, Finance: 1, Viewer: 0 };
+      for (const [role, allowed] of Object.entries(reportSeed)) {
+        await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','report',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
       }
     } catch {}
     // Seed master status Billing/Finance (dikelola dari Pengaturan) —
