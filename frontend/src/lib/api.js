@@ -181,6 +181,21 @@ export const getPopinavaHistory = (uuid) => get(`/popinava/${encodeURIComponent(
 // Log aktivitas POPI NAVA (kategori 'popinava', urut terbaru) — khusus Super Admin.
 export const getPopinavaLogs = (limit) => get(`/popinava/logs${limit ? `?limit=${encodeURIComponent(limit)}` : ''}`);
 
+// Analitik backend (overview agregasi + drilldown paginated server-side).
+export async function fetchAnalyticsOverview({ from = '', to = '' } = {}) {
+  const qs = `${from ? `?from=${encodeURIComponent(from)}` : '?from=1970-01-01'}${to ? `&to=${encodeURIComponent(to)}` : '&to=2999-12-31'}`;
+  return get(`/analytics/overview${qs}`);
+}
+export async function fetchAnalyticsDrilldown({ dim = '', key = '', from = '', to = '', q = '', page = 1, limit = 10 } = {}) {
+  const p = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (dim) p.set('dim', dim);
+  if (key) p.set('key', key);
+  if (from) p.set('from', from);
+  if (to) p.set('to', to);
+  if (q) p.set('q', q);
+  return get(`/analytics/drilldown?${p.toString()}`);
+}
+
 // GET /api/cases dengan filter group KPI server-side.
 export async function fetchCasesByGroupKpi(groupKpi = '') {
   const qs = groupKpi ? `&groupKpi=${encodeURIComponent(groupKpi)}` : '';

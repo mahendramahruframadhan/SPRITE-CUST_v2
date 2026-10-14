@@ -19,6 +19,13 @@ describe('analytics controller guard', () => {
     );
   });
 
+  it('drilldown tanpa dim/key = semua pool (tabel default)', async () => {
+    const fake = { getOverview: async () => ({ ok: true }), getDrilldown: async () => ({ ok: true, total: 0 }) };
+    const ctl = new AnalyticsController(fake as any);
+    const r: any = await ctl.drilldown({ from: '2026-01-01', to: '2026-12-31' });
+    assert.equal(r.ok, true);
+  });
+
   it('overview meneruskan hasil service', async () => {
     const fake = { getOverview: async () => ({ ok: true }), getDrilldown: async () => ({ ok: true }) };
     const ctl = new AnalyticsController(fake as any);

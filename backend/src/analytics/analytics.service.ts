@@ -152,7 +152,7 @@ export class AnalyticsService {
   async getDrilldown(opts: { dim: string; key: string; from: string; to: string; q?: string; page?: number; limit?: number }) {
     const { dim, key } = opts;
     const pool = await this.poolRows(opts.from, opts.to);
-    const scoped = pool.filter((r) => (dim === 'brand' ? r.client || '-' : r.module || '-') === key);
+    const scoped = dim ? pool.filter((r) => (dim === 'brand' ? r.client || '-' : r.module || '-') === key) : pool;
     const needle = String(opts.q || '').trim().toLowerCase();
     const searched = needle
       ? scoped.filter((r) => `${r.no || ''} ${r.client || ''} ${r.issue || ''} ${r.pic_name || ''} ${r.module || ''}`.toLowerCase().includes(needle))

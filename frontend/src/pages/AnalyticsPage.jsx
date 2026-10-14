@@ -1,17 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Line, Doughnut } from 'react-chartjs-2';
-import { useRangedCases } from '../hooks/useCases.js';
-import { useAuditState } from '../hooks/useAuditState.js';
-import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useFinanceTax } from '../hooks/useFinanceTax.js';
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
-import { getAuditMap, getInvoiceMap } from '../lib/api.js';
-import { buildReportSummary } from '../lib/reportSummary.js';
-import { resolveTaxAmount } from '../lib/taxSummary.js';
-import { buildMonthlyTrend } from '../lib/analyticsSummary.js';
+import { fetchAnalyticsOverview, fetchAnalyticsDrilldown } from '../lib/api.js';
 import FilterLabel from '../components/FilterLabel.jsx';
 import { EmptyRow, LoadingRow, Pill } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
@@ -19,8 +13,9 @@ import { fmtDate8 } from '../utils/format.js';
 import { invLabel, invoiceTone, moduleTone, billingTone } from '../utils/tones.js';
 
 // Halaman Analitik: visual tren + distribusi + KPI dari pool tervalidasi
-// (VALID - SIAP INVOICE, ON-CALL + MONTHLY). Read-only, tanpa backend baru.
-const VALID_TAG = 'VALID - SIAP INVOICE';
+// (VALID - SIAP INVOICE, ON-CALL + MONTHLY). Agregasi di backend
+// (GET /analytics/overview + /analytics/drilldown); halaman ini read-only.
+const EMPTY_SUMMARY = { count: 0, charges: 0, ppn: 0, subtotal: 0, paid: { count: 0, subtotal: 0 }, outstanding: { count: 0, subtotal: 0 }, byInvoice: {} };
 
 function fmtMoney(n) {
   return 'Rp ' + (n || 0).toLocaleString('id-ID');
@@ -38,9 +33,8 @@ const sixMonthsAgo = () => {
 
 export default function AnalyticsPage() {
   const { notify } = useToast();
-  const { caseAuditStatus, syncAuditStatus } = useAuditState();
-  const { invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus } = useInvoiceState();
-  const { taxMap, pendingUuids } = useFinanceTax({ notify });
+  // Badge "pajak menunggu sinkron" (outbox lokal) — angka halaman dari server.
+  const { pendingUuids } = useFinanceTax({ notify });
   const { theme } = useTheme();
   const dark = theme === 'dark';
 
@@ -57,87 +51,108 @@ export default function AnalyticsPage() {
     month: '', from: sixMonthsAgo(), to: isoDay(new Date()),
   });
   const { month, from, to } = filters;
-  const { cases: allCases, loading, error } = useRangedCases(from, to);
   const applyMonth = (ym) => {
     const r = rangeOfMonth(ym);
     setManyFilters({ month: ym, from: r.from, to: r.to });
   };
 
-  const syncFromServer = useCallback(() => {
-    getAuditMap()
-      .then((r) => {
-        if (!r || typeof r.map !== 'object') return;
-        Object.entries(r.map).forEach(([uuid, st]) => syncAuditStatus(uuid, st));
-      })
-      .catch(() => {});
-    getInvoiceMap()
-      .then((r) => {
-        if (!r || typeof r.map !== 'object') return;
-        Object.entries(r.map).forEach(([uuid, st]) => syncInvoiceStatus(uuid, st));
-      })
-      .catch(() => {});
-  }, [syncAuditStatus, syncInvoiceStatus]);
-
+  // Overview agregasi dari backend (ganti hitung client-side).
+  const [overview, setOverview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const ovSeq = useRef(0);
   useEffect(() => {
-    syncFromServer();
-    window.addEventListener('focus', syncFromServer);
-    return () => window.removeEventListener('focus', syncFromServer);
-  }, [syncFromServer]);
+    const my = ++ovSeq.current;
+    setLoading(true);
+    setError('');
+    fetchAnalyticsOverview({ from, to }).then(
+      (r) => {
+        if (ovSeq.current !== my) return;
+        setOverview(r);
+        setLoading(false);
+      },
+      (e) => {
+        if (ovSeq.current !== my) return;
+        setOverview(null);
+        setError(e.message || 'Gagal memuat data');
+        setLoading(false);
+      }
+    );
+  }, [from, to]);
 
-  const validatedPool = useMemo(
-    () =>
-      allCases.filter(
-        (c) =>
-          (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY') &&
-          caseAuditStatus[c.recordUuid] === VALID_TAG
-      ),
-    [allCases, caseAuditStatus]
-  );
-
-  const summary = useMemo(
-    () => buildReportSummary(validatedPool, taxMap, invoiceStatus, defaultInvoiceStatus),
-    [validatedPool, taxMap, invoiceStatus, defaultInvoiceStatus]
-  );
-  const trend = useMemo(() => buildMonthlyTrend(validatedPool, taxMap), [validatedPool, taxMap]);
+  const summary = useMemo(() => {
+    if (!overview) return EMPTY_SUMMARY;
+    const k = overview.kpis || {};
+    return {
+      count: k.count || 0,
+      charges: k.charges || 0,
+      ppn: k.ppn || 0,
+      subtotal: k.subtotal || 0,
+      paid: k.paid || { count: 0, subtotal: 0 },
+      outstanding: k.outstanding || { count: 0, subtotal: 0 },
+      byInvoice: overview.byInvoice || {},
+    };
+  }, [overview]);
+  const trend = overview?.trend || [];
+  const byBrand = overview?.byBrand || [];
+  const byModule = overview?.byModule || [];
 
   const invalidRange = from && to && from > to;
   const periodeLabel = from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal';  const todayLabel = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const paidShare = summary.subtotal > 0 ? Math.round((summary.paid.subtotal / summary.subtotal) * 100) : 0;
 
-  // Tabel detail lengkap: cari + paginasi (ikut pola ReportSummaryPage).
+  // Tabel detail dari backend (server-side cari + paginasi + drill-down).
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [dim, setDim] = useState(''); // '' | 'brand' | 'module'
+  const [dimKey, setDimKey] = useState('');
+
+  // Debounce pencarian agar tidak request per ketikan.
+  const [debQ, setDebQ] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebQ(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
 
   useEffect(() => {
     setPage(1);
-  }, [q, from, to, perPage, caseAuditStatus]);
+  }, [debQ, from, to, perPage, dim, dimKey]);
 
-  const detailItems = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return validatedPool
-      .filter((c) =>
-        !needle ||
-        `${c.no} ${c.client} ${c.issue} ${c.picName} ${c.module} ${c.billingCategory}`.toLowerCase().includes(needle)
-      )
-      .map((c) => {
-        const charges = +c.charges || 0;
-        const ppn = resolveTaxAmount(taxMap?.[c.recordUuid]?.ppn, charges);
-        return {
-          ...c,
-          charges,
-          ppn,
-          subtotal: charges + ppn,
-          pph: taxMap?.[c.recordUuid]?.pph === true,
-          invStatus: invoiceStatus[c.recordUuid] || defaultInvoiceStatus,
-        };
-      });
-  }, [validatedPool, taxMap, invoiceStatus, defaultInvoiceStatus, q]);
+  const [drill, setDrill] = useState({ data: [], total: 0, totalPages: 1, subtotal: 0 });
+  const [drLoading, setDrLoading] = useState(true);
+  const [drError, setDrError] = useState('');
+  const drSeq = useRef(0);
+  useEffect(() => {
+    const my = ++drSeq.current;
+    setDrLoading(true);
+    setDrError('');
+    fetchAnalyticsDrilldown({ dim, key: dimKey, from, to, q: debQ, page, limit: perPage }).then(
+      (r) => {
+        if (drSeq.current !== my) return;
+        setDrill({ data: r.data || [], total: r.total || 0, totalPages: r.totalPages || 1, subtotal: r.subtotal || 0 });
+        setDrLoading(false);
+      },
+      (e) => {
+        if (drSeq.current !== my) return;
+        setDrill({ data: [], total: 0, totalPages: 1, subtotal: 0 });
+        setDrError(e.message || 'Gagal memuat data');
+        setDrLoading(false);
+      }
+    );
+  }, [dim, dimKey, from, to, debQ, page, perPage]);
 
-  const detailTotal = detailItems.reduce((a, c) => a + c.subtotal, 0);
-  const totalPages = Math.max(1, Math.ceil(detailItems.length / perPage));
+  const rows = useMemo(
+    () => (drill.data || []).map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
+    [drill]
+  );
+  const paged = rows;
+  const detailTotal = drill.subtotal || 0;
+  const detailCount = drill.total || 0;
+  const totalPages = drill.totalPages || 1;
   const safePage = Math.min(page, totalPages);
-  const paged = detailItems.slice((safePage - 1) * perPage, safePage * perPage);
+  const tableLoading = drLoading;
+  const tableError = drError;
   const pageNums = (() => {
     const start = Math.max(1, Math.min(safePage - 2, totalPages - 4));
     const end = Math.min(totalPages, start + 4);
@@ -291,12 +306,38 @@ export default function AnalyticsPage() {
           >
             Reset
           </Button>
+          <div>
+            <FilterLabel>Drill-down Brand</FilterLabel>
+            <select
+              value={dim === 'brand' ? dimKey : ''}
+              onChange={(e) => { setDim(e.target.value ? 'brand' : ''); setDimKey(e.target.value); }}
+              className={filterCls}
+            >
+              <option value="">Semua brand</option>
+              {byBrand.map((b) => (
+                <option key={b.brand} value={b.brand}>{b.brand} · {b.count}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <FilterLabel>Drill-down Module</FilterLabel>
+            <select
+              value={dim === 'module' ? dimKey : ''}
+              onChange={(e) => { setDim(e.target.value ? 'module' : ''); setDimKey(e.target.value); }}
+              className={filterCls}
+            >
+              <option value="">Semua module</option>
+              {byModule.map((b) => (
+                <option key={b.module} value={b.module}>{b.module} · {b.count}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </Reveal>
 
-      {error && (
+      {(error || tableError) && (
         <div className="no-print bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300" role="alert">
-          Backend tidak terjangkau — {error}
+          Backend tidak terjangkau — {error || tableError}
         </div>
       )}
 
@@ -420,7 +461,7 @@ export default function AnalyticsPage() {
             <div>
               <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Detail Kasus Tervalidasi</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {loading ? 'Memuat dari backend…' : `${detailItems.length} kasus · total subtotal ${fmtMoney(detailTotal)}`}
+                {tableLoading ? 'Memuat dari backend…' : `${detailCount} kasus${dimKey ? ` · ${dim === 'brand' ? 'Brand' : 'Module'} ${dimKey}` : ''} · total subtotal ${fmtMoney(detailTotal)}`}
               </p>
             </div>
             <div className="ml-auto relative no-print">
@@ -490,11 +531,11 @@ export default function AnalyticsPage() {
                   </td>
                 </tr>
               ))}
-              {loading ? (
+              {tableLoading ? (
                 <LoadingRow colSpan={13} />
               ) : invalidRange ? (
                 <EmptyRow colSpan={13}>Rentang tanggal tidak valid (Date From melebihi Date Until)</EmptyRow>
-              ) : detailItems.length === 0 && (
+              ) : detailCount === 0 && (
                 <EmptyRow colSpan={13}>Tidak ada data tervalidasi pada periode ini</EmptyRow>
               )}
             </tbody>
@@ -519,7 +560,7 @@ export default function AnalyticsPage() {
         </div>
         <div className="no-print px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
           <span className="tabular-nums">
-            Menampilkan {detailItems.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, detailItems.length)} dari {detailItems.length} data
+            Menampilkan {detailCount === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, detailCount)} dari {detailCount} data
           </span>
           <div className="flex items-center gap-1 ml-auto overflow-x-auto max-w-full scrollbar-thin">
             <Button

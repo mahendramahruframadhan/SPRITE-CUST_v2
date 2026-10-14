@@ -35,10 +35,11 @@ export class AnalyticsController {
   async drilldown(@Query() q: any) {
     const dim = String(q.dim || '');
     const key = String(q.key || '');
-    if (dim !== 'brand' && dim !== 'module') {
+    // dim/key opsional: tanpa keduanya = semua pool tervalidasi (tabel default).
+    if (dim && dim !== 'brand' && dim !== 'module') {
       throw new HttpException({ code: 'ANALYTICS_INVALID_DIM', message: 'Dimensi drilldown hanya brand|module.' }, HttpStatus.UNPROCESSABLE_ENTITY);
     }
-    if (!key) {
+    if (dim && !key) {
       throw new HttpException({ code: 'ANALYTICS_INVALID_DIM', message: 'Key drilldown wajib diisi.' }, HttpStatus.UNPROCESSABLE_ENTITY);
     }
     const from = String(q.from || '');

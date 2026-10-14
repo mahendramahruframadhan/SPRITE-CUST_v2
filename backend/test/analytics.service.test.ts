@@ -97,6 +97,13 @@ describe('analytics service', () => {
     assert.equal(r.kpis.outstanding.count, 3);
   });
 
+  it('drilldown tanpa dim = semua pool + paginasi', async () => {
+    const svc = new AnalyticsService();
+    const d: any = await svc.getDrilldown({ dim: '', key: '', from: '2026-01-01', to: '2026-12-31', q: '', page: 1, limit: 10 });
+    assert.equal(d.total, 4);
+    assert.equal(d.subtotal, 3960000);
+  });
+
   it('drilldown brand + search + paginasi', async () => {
     const svc = new AnalyticsService();
     const d: any = await svc.getDrilldown({ dim: 'brand', key: 'BRAND-A', from: '2026-01-01', to: '2026-12-31', q: '', page: 1, limit: 2 });
