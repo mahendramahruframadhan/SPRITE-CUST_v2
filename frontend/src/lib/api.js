@@ -123,6 +123,7 @@ export const getHealth = () => get('/health');
 export const createCase = (body) => post('/cases', body);
 export const patchAudit = (uuid, action) => patch(`/cases/${uuid}/audit`, { action });
 export const patchInvoice = (uuid, status, extra = {}) => patch(`/cases/${uuid}/invoice`, { status, ...extra });
+export const patchInvoiceMeta = (uuid, invoiceNo, keterangan) => patch(`/billing/invoice-meta/${uuid}`, { invoiceNo, keterangan });
 export const getBillingStats = () => get('/billing/stats');
 export const getInvoiceMap = () => get('/billing/invoice-map');
 export const getAuditMap = () => get('/billing/audit-map');

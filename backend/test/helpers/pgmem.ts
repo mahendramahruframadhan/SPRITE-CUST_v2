@@ -24,7 +24,7 @@ export function setupTables() {
     `CREATE TABLE IF NOT EXISTS role_permissions (role TEXT, module TEXT, allowed INTEGER, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS assistance_records (record_uuid TEXT PRIMARY KEY, no TEXT, client TEXT)`,
     `CREATE TABLE IF NOT EXISTS audit_status (record_uuid TEXT PRIMARY KEY, action TEXT, updated_at TEXT)`,
-    `CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY, status TEXT, updated_at TEXT, payment_note TEXT, paid_at TEXT, paid_by TEXT)`,
+    `CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY, status TEXT, updated_at TEXT, payment_note TEXT, invoice_no TEXT, keterangan TEXT, paid_at TEXT, paid_by TEXT)`,
     `CREATE TABLE IF NOT EXISTS invoice_pdfs (id TEXT PRIMARY KEY, record_uuid TEXT, filename TEXT, storage_key TEXT, size_bytes INTEGER, status TEXT, uploaded_by TEXT, created_at TEXT, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS activity_logs (id TEXT PRIMARY KEY, who TEXT, action TEXT, category TEXT, detail TEXT, record_uuid TEXT, created_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)`,

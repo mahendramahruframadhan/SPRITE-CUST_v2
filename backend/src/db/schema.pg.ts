@@ -103,6 +103,8 @@ export const invoiceStatus = pgTable('invoice_status', {
   updatedAt: text('updated_at'),
   // Bukti pembayaran saat status menjadi PAID (diisi via PATCH invoice).
   paymentNote: text('payment_note'),
+  invoiceNo: text('invoice_no'),
+  keterangan: text('keterangan'),
   paidAt: text('paid_at'),
   paidBy: text('paid_by'),
 });

@@ -73,6 +73,15 @@ describe('billing flow', () => {
     await assert.rejects(() => ctl.invoice(UUID, { status: 'PAID' }, reqWith(token)), (e: any) => e?.response?.code === 'PAYMENT_NOTE_REQUIRED');
   });
 
+  it('invoice-meta menyimpan no. invoice + keterangan untuk Analytics/Report', async () => {
+    const r: any = await ctl.invoiceMeta(UUID, { invoiceNo: 'INV-001', keterangan: 'transfer lunas' }, reqWith(token));
+    assert.equal(r.ok, true);
+    assert.equal(r.invoiceNo, 'INV-001');
+    const m: any = await ctl.invoiceMap();
+    assert.equal(m.metas[UUID].invoiceNo, 'INV-001');
+    assert.equal(m.metas[UUID].keterangan, 'transfer lunas');
+  });
+
   it('PAID sukses dengan PDF completed + notes; undo satu langkah', async () => {
     await setInvoice(UUID, 'DIKIRIM');
     await db().execute(

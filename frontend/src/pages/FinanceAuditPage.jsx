@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
-import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, getInvoiceMap, getAuditMap } from '../lib/api.js';
+import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, patchInvoiceMeta, getInvoiceMap, getAuditMap } from '../lib/api.js';
 import { useCases } from '../hooks/useCases.js';
 import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useFinanceTax } from '../hooks/useFinanceTax.js';
@@ -447,6 +447,26 @@ export default function FinanceAuditPage() {
   const { caseAuditStatus, syncAuditStatus } = useAuditState();
   const { cases: allCases, loading } = useCases();
   const { invoiceActions, invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus, ensureDefaults, invoiceMeta, updateInvoiceMeta } = useInvoiceState();
+
+  // Simpan no. invoice + keterangan ke backend (debounce) agar Analytics/Report
+  // bisa menampilkannya. Default: lokal dulu, lalu sinkron server.
+  const metaSavedRef = useRef({});
+  useEffect(() => {
+    const timers: Record<string, ReturnType<typeof setTimeout>> = {};
+    for (const [uuid, meta] of Object.entries(invoiceMeta)) {
+      const key = `${meta.no || ''}|${meta.note || ''}`;
+      if (metaSavedRef.current[uuid] === key) continue;
+      timers[uuid] = setTimeout(async () => {
+        try {
+          await patchInvoiceMeta(uuid, meta.no || '', meta.note || '');
+          metaSavedRef.current[uuid] = key;
+        } catch {
+          // gagal simpan — lokal tetap ada, coba lagi saat perubahan berikutnya
+        }
+      }, 800);
+    }
+    return () => Object.values(timers).forEach((t) => clearTimeout(t));
+  }, [invoiceMeta]);
   // Pajak per transaksi: kontrol hanya di baris ON-CALL (via TaxCell),
   // map server adalah kebenaran, localStorage hanya outbox antrean.
   const { taxMap, pendingUuids, setPpn, togglePph } = useFinanceTax({ notify });
@@ -628,7 +648,7 @@ export default function FinanceAuditPage() {
     const invNo = (meta.no || '').trim();
     setPayBusy(true);
     try {
-      const r = await patchInvoice(uuid, 'PAID', { paymentNote: note, ...(invNo ? { invoiceNo: invNo } : {}) });
+      const r = await patchInvoice(uuid, 'PAID', { paymentNote: note, keterangan: meta.note || '', ...(invNo ? { invoiceNo: invNo } : {}) });
       syncInvoiceStatus(uuid, 'PAID');
       setPayNotes((prev) => ({ ...prev, [uuid]: { note, paidAt: new Date().toISOString(), paidBy: user?.name || user?.email || '' } }));
       setPaidTarget(null);

@@ -517,6 +517,8 @@ export default function AnalyticsPage() {
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">Subtotal</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap">PPH23</th>
                 <th className="px-6 py-3 font-bold whitespace-nowrap">Status Invoice</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">No. Invoice</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Keterangan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -551,14 +553,16 @@ export default function AnalyticsPage() {
                   <td className="px-6 py-3.5 whitespace-nowrap">
                     <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
                   </td>
+                  <td className="px-4 py-3.5 whitespace-nowrap font-mono text-xs">{c.invoiceNo || 'Belum diisi'}</td>
+                  <td className="px-4 py-3.5 text-xs max-w-[260px]"><p className="line-clamp-2">{c.invoiceNote || 'Belum diisi'}</p></td>
                 </tr>
               ))}
               {tableLoading ? (
-                <LoadingRow colSpan={13} />
+                <LoadingRow colSpan={15} />
               ) : invalidRange ? (
-                <EmptyRow colSpan={13}>Rentang tanggal tidak valid (Date From melebihi Date Until)</EmptyRow>
+                <EmptyRow colSpan={15}>Rentang tanggal tidak valid (Date From melebihi Date Until)</EmptyRow>
               ) : detailCount === 0 && (
-                <EmptyRow colSpan={13}>Tidak ada data tervalidasi pada periode ini</EmptyRow>
+                <EmptyRow colSpan={15}>Tidak ada data tervalidasi pada periode ini</EmptyRow>
               )}
             </tbody>
           </table>
@@ -573,6 +577,11 @@ export default function AnalyticsPage() {
               </div>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{c.issue || '-'}</p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {c.picName || '-'} · {c.billingStatus || '-'}{c.pph ? ' · PPH23' : ''}</p>
+              {(c.invoiceNo || c.invoiceNote) && (
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  {c.invoiceNo ? `No. Invoice: ${c.invoiceNo}` : 'No. Invoice: Belum diisi'}{c.invoiceNote ? ` · Keterangan: ${c.invoiceNote}` : ' · Keterangan: Belum diisi'}
+                </p>
+              )}
               <div className="mt-2 flex items-baseline justify-between gap-2 text-sm tabular-nums">
                 <span className="text-slate-500 dark:text-slate-400">Charges {fmtMoney(c.charges)} + PPN {fmtMoney(c.ppn)}</span>
                 <span className="font-extrabold text-slate-900 dark:text-white">{fmtMoney(c.subtotal)}</span>

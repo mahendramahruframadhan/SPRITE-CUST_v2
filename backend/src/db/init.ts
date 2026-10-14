@@ -38,7 +38,7 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS account (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, provider_id TEXT NOT NULL, user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE, access_token TEXT, refresh_token TEXT, id_token TEXT, access_token_expires_at TIMESTAMP, refresh_token_expires_at TIMESTAMP, scope TEXT, password TEXT, created_at TIMESTAMP, updated_at TIMESTAMP);
     CREATE TABLE IF NOT EXISTS verification (id TEXT PRIMARY KEY, identifier TEXT NOT NULL, value TEXT NOT NULL, expires_at TIMESTAMP NOT NULL, created_at TIMESTAMP, updated_at TIMESTAMP);
     CREATE TABLE IF NOT EXISTS audit_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, action TEXT NOT NULL DEFAULT 'BELUM DIVALIDASI', updated_by TEXT, updated_at TEXT);
-    CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'MENUNGGU INVOICE', updated_by TEXT, updated_at TEXT, payment_note TEXT, paid_at TEXT, paid_by TEXT);
+    CREATE TABLE IF NOT EXISTS invoice_status (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'MENUNGGU INVOICE', updated_by TEXT, updated_at TEXT, payment_note TEXT, invoice_no TEXT, keterangan TEXT, paid_at TEXT, paid_by TEXT);
     CREATE TABLE IF NOT EXISTS case_tax (record_uuid TEXT PRIMARY KEY REFERENCES assistance_records(record_uuid) ON DELETE CASCADE, ppn_mode TEXT, ppn_percent REAL, ppn_amount INTEGER, pph INTEGER DEFAULT 0, updated_by TEXT, updated_at TEXT);
     CREATE TABLE IF NOT EXISTS sync_logs (id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL, rows_processed INTEGER DEFAULT 0, error_message TEXT, source TEXT DEFAULT 'sheets');
     CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT);
@@ -205,7 +205,7 @@ export async function initDb() {
       } catch {}
     }
     // Kolom bukti pembayaran invoice_status untuk DB lama
-    for (const col of ['payment_note TEXT', 'paid_at TEXT', 'paid_by TEXT']) {
+    for (const col of ['payment_note TEXT', 'invoice_no TEXT', 'keterangan TEXT', 'paid_at TEXT', 'paid_by TEXT']) {
       try {
         await q(`ALTER TABLE invoice_status ADD COLUMN IF NOT EXISTS ${col}`);
       } catch {}
