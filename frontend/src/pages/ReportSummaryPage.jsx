@@ -1,16 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Reveal } from '../components/Reveal.jsx';
-import { useRangedCases } from '../hooks/useCases.js';
-import { useAuditState } from '../hooks/useAuditState.js';
-import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { useFinanceTax } from '../hooks/useFinanceTax.js';
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { getAuditMap, getInvoiceMap } from '../lib/api.js';
-import { buildReportSummary } from '../lib/reportSummary.js';
-import { buildAgingBuckets, getTopOutstanding, buildGroupBreakdown, ageDays } from '../lib/reportAging.js';
-import { resolveTaxAmount } from '../lib/taxSummary.js';
+import { fetchAnalyticsOverview, fetchAnalyticsDrilldown } from '../lib/api.js';
+import { analyticsRangeError } from '../lib/analyticsRange.js';
 import { buildReportCsv, reportCsvFilename } from '../lib/reportExport.js';
 import { printSection } from '../lib/printSection.js';
 import FilterLabel from '../components/FilterLabel.jsx';
@@ -21,8 +16,19 @@ import { invLabel, invoiceTone } from '../utils/tones.js';
 
 // Halaman Report Summary: dokumen rekap read-only kasus tervalidasi
 // (VALID - SIAP INVOICE, ON-CALL + MONTHLY) untuk manajemen.
-// Sumber kebenaran tetap Billing & Finance; halaman ini tidak menulis apa pun.
-const VALID_TAG = 'VALID - SIAP INVOICE';
+// Agregasi di backend (GET /analytics/overview + /analytics/drilldown);
+// halaman ini tidak menulis apa pun.
+const EMPTY_SUMMARY = {
+  count: 0, charges: 0, ppn: 0, subtotal: 0, pphCount: 0,
+  paid: { count: 0, charges: 0, ppn: 0, subtotal: 0 },
+  outstanding: { count: 0, charges: 0, ppn: 0, subtotal: 0 },
+  byInvoice: {},
+  byBilling: {
+    'ON-CALL': { count: 0, charges: 0, ppn: 0, subtotal: 0 },
+    MONTHLY: { count: 0, charges: 0, ppn: 0, subtotal: 0 },
+  },
+};
+const EMPTY_AGING = { buckets: [], total: { count: 0, subtotal: 0 }, invalid: 0 };
 
 function fmtMoney(n) {
   return 'Rp ' + (n || 0).toLocaleString('id-ID');
@@ -87,9 +93,8 @@ function ReportRow({ label, value, cls = 'text-slate-900 dark:text-white' }) {
 
 export default function ReportSummaryPage() {
   const { notify } = useToast();
-  const { caseAuditStatus, syncAuditStatus } = useAuditState();
-  const { invoiceStatus, defaultInvoiceStatus, syncInvoiceStatus } = useInvoiceState();
-  const { taxMap, pendingUuids } = useFinanceTax({ notify });
+  // Badge "pajak menunggu sinkron" (outbox lokal) — angka halaman dari server.
+  const { pendingUuids } = useFinanceTax({ notify });
 
   // Filter periode saja (tanpa brand): month -> from/to -> WHERE date_issue.
   // Default = bulan berjalan. Kosong = semua tanggal.
@@ -106,72 +111,138 @@ export default function ReportSummaryPage() {
     brand: '', module: '',
   });
   const { month, from, to, brand, module } = filters;
-  const { cases: allCases, loading, error } = useRangedCases(from, to);
   const applyMonth = (ym) => {
     const r = rangeOfMonth(ym);
     setManyFilters({ month: ym, from: r.from, to: r.to });
   };
 
-  // Sinkron peta status dari backend (sumber kebenaran): saat mount +
-  // tiap jendela kembali fokus — ikut pola Billing/Finance.
-  const syncFromServer = useCallback(() => {
-    getAuditMap()
-      .then((r) => {
-        if (!r || typeof r.map !== 'object') return;
-        Object.entries(r.map).forEach(([uuid, st]) => syncAuditStatus(uuid, st));
-      })
-      .catch(() => {});
-    getInvoiceMap()
-      .then((r) => {
-        if (!r || typeof r.map !== 'object') return;
-        Object.entries(r.map).forEach(([uuid, st]) => syncInvoiceStatus(uuid, st));
-      })
-      .catch(() => {});
-  }, [syncAuditStatus, syncInvoiceStatus]);
+  // Rentang tak valid tidak menembak request yang pasti 422.
+  const rangeError = analyticsRangeError(from, to);
+  const invalidRange = !!rangeError;
 
+  // Overview agregasi backend: angka (menyempit per brand/module) +
+  // overview periode (opsi dropdown, tak menyempit).
+  const [overview, setOverview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [overviewAll, setOverviewAll] = useState(null);
+  const ovSeq = useRef(0);
+  const ovAllSeq = useRef(0);
   useEffect(() => {
-    syncFromServer();
-    window.addEventListener('focus', syncFromServer);
-    return () => window.removeEventListener('focus', syncFromServer);
-  }, [syncFromServer]);
+    const my = ++ovSeq.current;
+    if (rangeError) {
+      setOverview(null);
+      setLoading(false);
+      setError('');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    fetchAnalyticsOverview({ from, to, brand, module }).then(
+      (r) => {
+        if (ovSeq.current !== my) return;
+        setOverview(r);
+        setLoading(false);
+      },
+      (e) => {
+        if (ovSeq.current !== my) return;
+        setOverview(null);
+        setError(e.message || 'Gagal memuat data');
+        setLoading(false);
+      }
+    );
+  }, [from, to, brand, module, rangeError]);
+  useEffect(() => {
+    const my = ++ovAllSeq.current;
+    if (rangeError) {
+      setOverviewAll(null);
+      return;
+    }
+    fetchAnalyticsOverview({ from, to }).then(
+      (r) => {
+        if (ovAllSeq.current !== my) return;
+        setOverviewAll(r);
+      },
+      () => {}
+    );
+  }, [from, to, rangeError]);
 
-  // Pool tervalidasi dalam periode (FREE selalu dikecualikan).
-  const validatedPool = useMemo(
-    () =>
-      allCases.filter(
-        (c) =>
-          (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY') &&
-          caseAuditStatus[c.recordUuid] === VALID_TAG
-      ),
-    [allCases, caseAuditStatus]
-  );
+  const summary = useMemo(() => {
+    if (!overview) return EMPTY_SUMMARY;
+    const k = overview.kpis || {};
+    return {
+      count: k.count || 0,
+      charges: k.charges || 0,
+      ppn: k.ppn || 0,
+      subtotal: k.subtotal || 0,
+      pphCount: k.pphCount || 0,
+      paid: k.paid || { count: 0, subtotal: 0 },
+      outstanding: k.outstanding || { count: 0, subtotal: 0 },
+      byInvoice: overview.byInvoice || {},
+      byBilling: overview.byBilling || EMPTY_SUMMARY.byBilling,
+    };
+  }, [overview]);
+  const aging = overview?.aging || EMPTY_AGING;
+  const top10 = overview?.top || [];
+  const brandBreak = overview?.byBrand || [];
+  const moduleBreak = overview?.byModule || [];
+  const brandOpts = useMemo(() => (overviewAll?.byBrand || []).map((b) => b.brand), [overviewAll]);
+  const moduleOpts = useMemo(() => (overviewAll?.byModule || []).map((b) => b.module), [overviewAll]);
 
-  // Opsi filter + penyempitan seluruh halaman per brand/module.
-  const brandOpts = useMemo(() => [...new Set(validatedPool.map((c) => c.client).filter(Boolean))].sort(), [validatedPool]);
-  const moduleOpts = useMemo(() => [...new Set(validatedPool.map((c) => c.module).filter(Boolean))].sort(), [validatedPool]);
-  const scopedPool = useMemo(
-    () => validatedPool.filter((c) => (!brand || c.client === brand) && (!module || c.module === module)),
-    [validatedPool, brand, module]
-  );
-
-  const summary = useMemo(
-    () => buildReportSummary(scopedPool, taxMap, invoiceStatus, defaultInvoiceStatus),
-    [scopedPool, taxMap, invoiceStatus, defaultInvoiceStatus]
-  );
-
-  const invalidRange = from && to && from > to;
   const periodeLabel = from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal';
   const todayLabel = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const paidShare = summary.subtotal > 0 ? Math.round((summary.paid.subtotal / summary.subtotal) * 100) : 0;
 
-  // Tabel detail: cari + paginasi (ikut pola BillingPage).
+  // Tabel detail dari backend (server-side cari + paginasi).
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
 
+  // Debounce pencarian agar tidak request per ketikan.
+  const [debQ, setDebQ] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebQ(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
   useEffect(() => {
     setPage(1);
-  }, [q, from, to, perPage, brand, module, caseAuditStatus]);
+  }, [debQ, from, to, perPage, brand, module]);
+
+  const [drill, setDrill] = useState({ data: [], total: 0, totalPages: 1, subtotal: 0 });
+  const [drLoading, setDrLoading] = useState(true);
+  const [drError, setDrError] = useState('');
+  const drSeq = useRef(0);
+  useEffect(() => {
+    const my = ++drSeq.current;
+    if (rangeError) {
+      setDrill({ data: [], total: 0, totalPages: 1, subtotal: 0 });
+      setDrLoading(false);
+      setDrError('');
+      return;
+    }
+    setDrLoading(true);
+    setDrError('');
+    fetchAnalyticsDrilldown({ from, to, brand, module, q: debQ, page, limit: perPage }).then(
+      (r) => {
+        if (drSeq.current !== my) return;
+        setDrill({ data: r.data || [], total: r.total || 0, totalPages: r.totalPages || 1, subtotal: r.subtotal || 0 });
+        setDrLoading(false);
+      },
+      (e) => {
+        if (drSeq.current !== my) return;
+        setDrill({ data: [], total: 0, totalPages: 1, subtotal: 0 });
+        setDrError(e.message || 'Gagal memuat data');
+        setDrLoading(false);
+      }
+    );
+  }, [from, to, brand, module, debQ, page, perPage, rangeError]);
+
+  const detailItems = useMemo(
+    () => (drill.data || []).map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
+    [drill]
+  );
+  const paged = detailItems;
 
   // Tiga KPI uang di kolom kiri (Charges / PPN / Subtotal Akhir).
   const financeKpi = [
@@ -197,46 +268,12 @@ export default function ReportSummaryPage() {
     ['MONTHLY', summary.byBilling['MONTHLY']],
   ];
 
-  // Baris detail per kasus: PPN per baris (0 untuk MONTHLY), subtotal,
-  // flag PPh, status invoice — semua dari sumber yang sama dengan rekap.
-  // scopedRows = tanpa filter cari (dipakai aging/top/breakdown);
-  // detailItems = scopedRows + filter cari (dipakai tabel).
-  const scopedRows = useMemo(
-    () =>
-      scopedPool.map((c) => {
-        const charges = +c.charges || 0;
-        const ppn = resolveTaxAmount(taxMap?.[c.recordUuid]?.ppn, charges);
-        return {
-          ...c,
-          charges,
-          ppn,
-          subtotal: charges + ppn,
-          pph: taxMap?.[c.recordUuid]?.pph === true,
-          invStatus: invoiceStatus[c.recordUuid] || defaultInvoiceStatus,
-        };
-      }),
-    [scopedPool, taxMap, invoiceStatus, defaultInvoiceStatus]
-  );
-  const detailItems = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return scopedRows.filter(
-      (c) =>
-        !needle ||
-        `${c.no} ${c.client} ${c.billingStatus}`.toLowerCase().includes(needle)
-    );
-  }, [scopedRows, q]);
-
-  // Section baru: aging tunggakan + top outstanding + breakdown.
-  const outstandingRows = useMemo(() => scopedRows.filter((c) => c.invStatus !== 'PAID'), [scopedRows]);
-  const aging = useMemo(() => buildAgingBuckets(outstandingRows), [outstandingRows]);
-  const top10 = useMemo(() => getTopOutstanding(outstandingRows, 10), [outstandingRows]);
-  const brandBreak = useMemo(() => buildGroupBreakdown(scopedRows, (c) => c.client), [scopedRows]);
-  const moduleBreak = useMemo(() => buildGroupBreakdown(scopedRows, (c) => c.module), [scopedRows]);
-
-  const detailTotal = detailItems.reduce((a, c) => a + c.subtotal, 0);
-  const totalPages = Math.max(1, Math.ceil(detailItems.length / perPage));
+  const detailTotal = drill.subtotal || 0;
+  const detailCount = drill.total || 0;
+  const totalPages = drill.totalPages || 1;
   const safePage = Math.min(page, totalPages);
-  const paged = detailItems.slice((safePage - 1) * perPage, safePage * perPage);
+  const tableLoading = drLoading;
+  const tableError = drError;
   const pageNums = (() => {
     const start = Math.max(1, Math.min(safePage - 2, totalPages - 4));
     const end = Math.min(totalPages, start + 4);
@@ -391,9 +428,14 @@ export default function ReportSummaryPage() {
         </div>
       </Reveal>
 
-      {error && (
+      {(error || tableError) && (
         <div className="no-print bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300" role="alert">
-          Backend tidak terjangkau — {error}
+          Backend tidak terjangkau — {error || tableError}
+        </div>
+      )}
+      {rangeError && !(error || tableError) && (
+        <div className="no-print bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-amber-700 dark:text-amber-300" role="alert">
+          {rangeError}
         </div>
       )}
 
@@ -525,7 +567,7 @@ export default function ReportSummaryPage() {
                     <td className="py-2 pr-2 text-slate-400 dark:text-slate-500 tabular-nums w-8">{i + 1}</td>
                     <td className="py-2 pr-2">
                       <p className="font-bold text-slate-800 dark:text-slate-100 truncate"><CaseLink c={c} /></p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {ageDays(c.dateIssue) ?? '-'} hari · {invLabel(c.invStatus)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {c.ageDays ?? '-'} hari · {invLabel(c.invStatus)}</p>
                     </td>
                     <td className="py-2 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{fmtMoney(c.subtotal)}</td>
                   </tr>
@@ -570,7 +612,7 @@ export default function ReportSummaryPage() {
             <div>
               <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Detail Kasus Tervalidasi</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {loading ? 'Memuat dari backend…' : `${detailItems.length} kasus · total subtotal ${fmtMoney(detailTotal)}`}
+                {tableLoading ? 'Memuat dari backend…' : `${detailCount} kasus · total subtotal ${fmtMoney(detailTotal)}`}
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
@@ -625,11 +667,11 @@ export default function ReportSummaryPage() {
                   </td>
                 </tr>
               ))}
-              {loading ? (
+              {tableLoading ? (
                 <LoadingRow colSpan={8} />
               ) : invalidRange ? (
                 <EmptyRow colSpan={8}>Rentang tanggal tidak valid (Date From melebihi Date Until)</EmptyRow>
-              ) : detailItems.length === 0 && (
+              ) : detailCount === 0 && (
                 <EmptyRow colSpan={8}>Tidak ada data tervalidasi pada periode ini</EmptyRow>
               )}
             </tbody>
@@ -653,7 +695,7 @@ export default function ReportSummaryPage() {
         </div>
         <div className="no-print px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
           <span className="tabular-nums">
-            Menampilkan {detailItems.length === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, detailItems.length)} dari {detailItems.length} data
+            Menampilkan {detailCount === 0 ? 0 : (safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, detailCount)} dari {detailCount} data
           </span>
           <div className="flex items-center gap-1 ml-auto overflow-x-auto max-w-full scrollbar-thin">
             <Button
