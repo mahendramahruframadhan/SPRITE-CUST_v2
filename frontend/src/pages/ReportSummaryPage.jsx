@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Reveal } from '../components/Reveal.jsx';
 import { useRangedCases } from '../hooks/useCases.js';
 import { useAuditState } from '../hooks/useAuditState.js';
@@ -66,7 +67,15 @@ function PrintBtn({ id, label }) {
   );
 }
 
-// Baris rekap dokumen: label di kiri, nilai di kanan, garis putus-putus.
+// Link "BRAND #no" → deep-link /finance?uuid= (filter + modal terbuka).
+function CaseLink({ c, className = '' }) {
+  if (!c?.recordUuid) return <span className={className}>{c?.client || '-'} <span className="font-medium text-slate-400">#{c?.no || '-'}</span></span>;
+  return (
+    <Link to={`/finance?uuid=${c.recordUuid}`} className={`text-emerald-700 hover:text-emerald-600 hover:underline dark:text-emerald-400 dark:hover:text-emerald-300 ${className}`}>
+      {c.client || '-'} <span className="font-medium opacity-70">#{c.no || '-'}</span>
+    </Link>
+  );
+}
 function ReportRow({ label, value, cls = 'text-slate-900 dark:text-white' }) {
   return (
     <div className="report-row">
@@ -515,7 +524,7 @@ export default function ReportSummaryPage() {
                   <tr key={c.recordUuid} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
                     <td className="py-2 pr-2 text-slate-400 dark:text-slate-500 tabular-nums w-8">{i + 1}</td>
                     <td className="py-2 pr-2">
-                      <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{c.client || '-'} <span className="font-medium text-slate-400">#{c.no || '-'}</span></p>
+                      <p className="font-bold text-slate-800 dark:text-slate-100 truncate"><CaseLink c={c} /></p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {ageDays(c.dateIssue) ?? '-'} hari · {invLabel(c.invStatus)}</p>
                     </td>
                     <td className="py-2 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{fmtMoney(c.subtotal)}</td>
@@ -600,7 +609,7 @@ export default function ReportSummaryPage() {
                 <tr key={c.recordUuid} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition">
                   <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no || '-'}</td>
                   <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
-                  <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{c.client || '-'}</td>
+                  <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap"><CaseLink c={c} /></td>
                   <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtMoney(c.charges)}</td>
                   <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtMoney(c.ppn)}</td>
                   <td className="px-4 py-3.5 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{fmtMoney(c.subtotal)}</td>
@@ -631,7 +640,7 @@ export default function ReportSummaryPage() {
           {paged.map((c) => (
             <div key={c.recordUuid} className="px-5 py-4">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{c.client || '-'} <span className="font-medium text-slate-400">#{c.no || '-'}</span></p>
+                <p className="font-bold text-slate-800 dark:text-slate-100 truncate"><CaseLink c={c} /></p>
                 <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
               </div>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)}{c.pph ? ' · PPh' : ''}</p>

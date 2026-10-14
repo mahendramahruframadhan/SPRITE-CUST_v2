@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Reveal } from '../components/Reveal.jsx';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
 import { requestPdfUploadUrl, confirmPdfUpload, listPdfsByCase, getPdfState, getPdfHistory, requestPdfDownloadUrl, deletePdf, patchInvoice, getInvoiceMap, getAuditMap } from '../lib/api.js';
 import { useCases } from '../hooks/useCases.js';
@@ -454,6 +454,21 @@ export default function FinanceAuditPage() {
   const [filters, setFilter, resetFilterValues] = useFilters({ from: '', to: '', brand: '', invFilter: '' });
   const { from, to, brand, invFilter } = filters;
   const [detailUuid, setDetailUuid] = useState(null);
+  const [searchParams] = useSearchParams();
+  // Deep-link dari /report: ?uuid=<recordUuid> → saring ke brand kasus
+  // itu + bukakan popup detailnya. Jalan sekali setelah data termuat;
+  // uuid tak dikenal diabaikan (halaman normal).
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || !allCases.length) return;
+    const uuid = searchParams.get('uuid');
+    if (!uuid) return;
+    deepLinked.current = true;
+    const c = allCases.find((x) => x.recordUuid === uuid);
+    if (!c) return;
+    if (c.client) setFilter('brand', c.client);
+    setDetailUuid(uuid);
+  }, [allCases, searchParams, setFilter]);
   // Bukti pembayaran per kasus dari backend (invoice-map.notes) — tampil di baris SUDAH DIBAYAR.
   const [payNotes, setPayNotes] = useState({});
   // Target modal Paid: { uuid, label, amount } + isi keterangan + busy.
