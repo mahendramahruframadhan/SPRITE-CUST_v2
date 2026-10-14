@@ -6,6 +6,7 @@ import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { fetchAnalyticsOverview, fetchAnalyticsDrilldown } from '../lib/api.js';
+import { analyticsRangeError } from '../lib/analyticsRange.js';
 import FilterLabel from '../components/FilterLabel.jsx';
 import { EmptyRow, LoadingRow, Pill } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
@@ -57,12 +58,21 @@ export default function AnalyticsPage() {
   };
 
   // Overview agregasi dari backend (ganti hitung client-side).
+  // Rentang tak valid tidak menembak request yang pasti 422.
+  const rangeError = analyticsRangeError(from, to);
+  const invalidRange = !!rangeError;
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const ovSeq = useRef(0);
   useEffect(() => {
     const my = ++ovSeq.current;
+    if (rangeError) {
+      setOverview(null);
+      setLoading(false);
+      setError('');
+      return;
+    }
     setLoading(true);
     setError('');
     fetchAnalyticsOverview({ from, to }).then(
@@ -78,7 +88,7 @@ export default function AnalyticsPage() {
         setLoading(false);
       }
     );
-  }, [from, to]);
+  }, [from, to, rangeError]);
 
   const summary = useMemo(() => {
     if (!overview) return EMPTY_SUMMARY;
@@ -97,7 +107,6 @@ export default function AnalyticsPage() {
   const byBrand = overview?.byBrand || [];
   const byModule = overview?.byModule || [];
 
-  const invalidRange = from && to && from > to;
   const periodeLabel = from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal';  const todayLabel = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const paidShare = summary.subtotal > 0 ? Math.round((summary.paid.subtotal / summary.subtotal) * 100) : 0;
 
@@ -125,6 +134,12 @@ export default function AnalyticsPage() {
   const drSeq = useRef(0);
   useEffect(() => {
     const my = ++drSeq.current;
+    if (rangeError) {
+      setDrill({ data: [], total: 0, totalPages: 1, subtotal: 0 });
+      setDrLoading(false);
+      setDrError('');
+      return;
+    }
     setDrLoading(true);
     setDrError('');
     fetchAnalyticsDrilldown({ dim, key: dimKey, from, to, q: debQ, page, limit: perPage }).then(
@@ -140,7 +155,7 @@ export default function AnalyticsPage() {
         setDrLoading(false);
       }
     );
-  }, [dim, dimKey, from, to, debQ, page, perPage]);
+  }, [dim, dimKey, from, to, debQ, page, perPage, rangeError]);
 
   const rows = useMemo(
     () => (drill.data || []).map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
@@ -338,6 +353,11 @@ export default function AnalyticsPage() {
       {(error || tableError) && (
         <div className="no-print bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300" role="alert">
           Backend tidak terjangkau — {error || tableError}
+        </div>
+      )}
+      {rangeError && !(error || tableError) && (
+        <div className="no-print bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-amber-700 dark:text-amber-300" role="alert">
+          {rangeError}
         </div>
       )}
 
