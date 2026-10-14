@@ -392,7 +392,6 @@ export default function ReportSummaryPage() {
       <Reveal data-section="kpi" className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="lg:col-span-5 flex items-center justify-between">
           <h3 className="report-card-title !mb-0">Ringkasan Keuangan</h3>
-          <PrintBtn id="kpi" label="Ringkasan Keuangan" />
         </div>
         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {financeKpi.map((d) => (
@@ -429,10 +428,7 @@ export default function ReportSummaryPage() {
       {/* ===== Dua kartu rekap kecil: status invoice + billing status ===== */}
       <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="report-card" data-section="rekap-invoice">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="report-card-title !mb-0">Rincian per Status Invoice</h3>
-            <PrintBtn id="rekap-invoice" label="Rincian per Status Invoice" />
-          </div>
+          <h3 className="report-card-title">Rincian per Status Invoice</h3>
           {loading ? (
             <table className="w-full text-sm"><tbody><LoadingRow colSpan={2} /></tbody></table>
           ) : invalidRange ? (
@@ -454,10 +450,7 @@ export default function ReportSummaryPage() {
         </div>
 
         <div className="report-card" data-section="rekap-billing">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="report-card-title !mb-0">Rincian per Billing Status</h3>
-            <PrintBtn id="rekap-billing" label="Rincian per Billing Status" />
-          </div>
+          <h3 className="report-card-title">Rincian per Billing Status</h3>
           {byBillingRows.map(([bs, b]) => (
             <ReportRow
               key={bs}
@@ -481,10 +474,7 @@ export default function ReportSummaryPage() {
       {/* ===== Aging tunggakan (outstanding) + Top 10 ===== */}
       <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="report-card" data-section="aging">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="report-card-title !mb-0">Aging Tunggakan</h3>
-            <PrintBtn id="aging" label="Aging Tunggakan" />
-          </div>
+          <h3 className="report-card-title">Aging Tunggakan</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1 mb-3">
             Umur = hari ini − tanggal issue · {aging.total.count.toLocaleString('id-ID')} kasus belum dibayar
             {aging.invalid > 0 && ` · ${aging.invalid} tanpa tanggal valid dikecualikan`}
@@ -513,10 +503,7 @@ export default function ReportSummaryPage() {
         </div>
 
         <div className="report-card" data-section="top10">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="report-card-title !mb-0">Top 10 Tunggakan Terbesar</h3>
-            <PrintBtn id="top10" label="Top 10 Tunggakan" />
-          </div>
+          <h3 className="report-card-title">Top 10 Tunggakan Terbesar</h3>
           {loading ? (
             <table className="w-full text-sm"><tbody><LoadingRow colSpan={2} /></tbody></table>
           ) : top10.length === 0 ? (
@@ -544,10 +531,7 @@ export default function ReportSummaryPage() {
       <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {[{ sec: 'break-brand', title: 'Nilai per Brand', rows: brandBreak }, { sec: 'break-module', title: 'Nilai per Module', rows: moduleBreak }].map((s) => (
           <div key={s.title} className="report-card" data-section={s.sec}>
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="report-card-title !mb-0">{s.title}</h3>
-              <PrintBtn id={s.sec} label={s.title} />
-            </div>
+            <h3 className="report-card-title">{s.title}</h3>
             {loading ? (
               <table className="w-full text-sm"><tbody><LoadingRow colSpan={2} /></tbody></table>
             ) : s.rows.length === 0 ? (
