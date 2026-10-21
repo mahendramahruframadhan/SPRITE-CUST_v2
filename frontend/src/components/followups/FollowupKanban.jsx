@@ -31,12 +31,12 @@ const PRIO = {
   Rendah: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
 };
 
-const TODAY_CHIP = {
-  late: 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
-  now: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
-  done: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
-  def: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300',
-};
+// Kartu anatomi tetap semua kolom (R-31, seragam): 1) prioritas kiri atas +
+// PIC kanan atas, 2) judul (maks 2 baris) 3) baris follow-up 4) tag modul &
+// client. Teks follow-up & tag SELALU netral satu class, tanpa pewarnaan
+// status/kolom (permintaan owner); info overdue tetap utuh di aria-label.
+const TAG = 'inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
+const TAG_TRUNK = 'truncate max-w-28';
 
 function initials(name) {
   return String(name || '')
@@ -151,7 +151,6 @@ export default function FollowupKanban({ items, today, onOpenDetail, onStatusCha
                 {cards.map((r) => {
                   const ovd = isOverdue(r, today);
                   const dueToday = r.status !== 'Selesai' && r.followupDate === today;
-                  const chip = r.status === 'Selesai' ? 'done' : ovd ? 'late' : dueToday ? 'now' : 'def';
                   return (
                     <button
                       key={r.id}
@@ -165,20 +164,29 @@ export default function FollowupKanban({ items, today, onOpenDetail, onStatusCha
                       onClick={() => onOpenDetail(r.id)}
                       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpenDetail(r.id))}
                       aria-label={`${r.title}, status ${r.status}${ovd ? `, overdue ${overdueDays(r, today)} hari` : ''}`}
-                      className={`cursor-grab active:cursor-grabbing text-left rounded-lg bg-white dark:bg-slate-900 p-2.5 shadow-sm border border-slate-100 dark:border-slate-700/60 transition hover:outline hover:outline-2 hover:outline-brand-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${dragId === r.id ? 'opacity-40 rotate-1' : ''}`}
+                      className={`cursor-grab active:cursor-grabbing text-left rounded-lg bg-white dark:bg-slate-900 p-3 shadow-sm border border-slate-100 dark:border-slate-700/60 flex flex-col gap-2 transition hover:outline hover:outline-2 hover:outline-brand-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${dragId === r.id ? 'opacity-40 rotate-1' : ''}`}
                     >
-                      <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded mb-1.5 ${PRIO[r.priority] || 'bg-slate-200 text-slate-700'}`}>
-                        {r.priority}
-                      </span>
-                      <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1.5 line-clamp-2">{r.title}</span>
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${TODAY_CHIP[chip]}`}>
-                          Follow-up {r.followupDate || '-'}
-                          {ovd ? ` · telat ${overdueDays(r, today)} hari` : dueToday ? ' · hari ini' : ''}
+                      {/* Baris 1: prioritas kiri atas + PIC kanan atas */}
+                      <span className="flex items-center justify-between gap-2">
+                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded ${PRIO[r.priority] || 'bg-slate-200 text-slate-700'}`}>
+                          {r.priority}
                         </span>
-                        {r.module && <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">{r.module}</span>}
-                        {r.client && <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-24">{r.client}</span>}
-                        {r.pic && <span className="ml-auto w-6 h-6 shrink-0 rounded-full bg-brand-500 text-white text-[10px] font-bold flex items-center justify-center" title={r.pic}>{initials(r.pic)}</span>}
+                        {r.pic && <span className="w-6 h-6 shrink-0 rounded-full bg-brand-500 text-white text-[10px] font-bold flex items-center justify-center" title={r.pic}>{initials(r.pic)}</span>}
+                      </span>
+
+                      {/* Baris 2: judul (maks 2 baris, sama semua kolom) */}
+                      <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-2">{r.title}</span>
+
+                      {/* Baris 3: follow-up, chip netral selalu */}
+                      <span className={`${TAG} max-w-full`}>
+                        Follow-up {r.followupDate || '-'}
+                        {ovd ? ` · telat ${overdueDays(r, today)} hari` : dueToday ? ' · hari ini' : ''}
+                      </span>
+
+                      {/* Baris 4: tag modul & client, chip netral selalu */}
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        {r.module && <span className={TAG}>{r.module}</span>}
+                        {r.client && <span className={`${TAG} ${TAG_TRUNK}`}>{r.client}</span>}
                       </span>
                     </button>
                   );
