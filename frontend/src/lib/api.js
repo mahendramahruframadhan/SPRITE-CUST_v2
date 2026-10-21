@@ -164,6 +164,14 @@ export const getBrandStatuses = () => get('/brand-status');
 export const createBrandStatus = (body) => post('/brand-status', body);
 export const patchBrandStatus = (id, body) => patch(`/brand-status/${id}`, body);
 export const deleteBrandStatus = (id) => req(`/brand-status/${id}`, { method: 'DELETE' });
+// Client Follow-Up (PRD): daftar+filter, summary, CRUD, catatan, ekspor CSV.
+export const getFollowups = (qs = '') => get(`/followups${qs}`);
+export const getFollowupsSummary = () => get('/followups/summary');
+export const createFollowup = (body) => post('/followups', body);
+export const patchFollowup = (id, body) => patch(`/followups/${id}`, body);
+export const deleteFollowup = (id) => req(`/followups/${id}`, { method: 'DELETE' });
+export const addFollowupNote = (id, text) => post(`/followups/${id}/notes`, { note: text });
+export const getFollowupsCsvUrl = (qs = '') => `${API_BASE}/followups/export${qs}`;
 // POPI NAVA (master outlet, spec §9) — dipakai hook usePopinava hanya saat
 // probe list sukses (/api/popinava ada); selain itu mode lokal.
 export const getPopinava = (qs = '') => get(`/popinava${qs}`);

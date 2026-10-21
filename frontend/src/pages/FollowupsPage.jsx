@@ -17,7 +17,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import FollowupFormModal from '../components/followups/FollowupFormModal.jsx';
 import FollowupDetailModal from '../components/followups/FollowupDetailModal.jsx';
 import { buildFollowupsCsv, followupsCsvFilename } from '../lib/followupsExport.js';
-import { getUsers } from '../lib/api.js';
+import { getFollowupsCsvUrl, getUsers } from '../lib/api.js';
 
 const LABEL_CLS = 'text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400';
 
@@ -40,7 +40,7 @@ function byFollowup(a, b) {
 
 export default function FollowupsPage() {
   const { notify } = useToast();
-  const { ready, items, summary, createFollowup, updateFollowup, removeFollowup, addNote, seedExamples } = useFollowups();
+  const { ready, serverOk, items, summary, createFollowup, updateFollowup, removeFollowup, addNote, seedExamples, retryConnection } = useFollowups();
   const { statuses: clientStatuses, serverOk: clientsServerOk } = useClientBrands();
 
   const [fClient, setFClient] = useState('');
@@ -115,17 +115,44 @@ export default function FollowupsPage() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  function openCsv() {
+  function buildFiltersQs() {
+    const p = new URLSearchParams();
+    if (fClient) p.set('client', fClient);
+    if (fModule) p.set('module', fModule);
+    if (fStatus === 'Overdue') p.set('overdue', 'true');
+    else if (fStatus) p.set('status', fStatus);
+    const s = p.toString();
+    return s ? `?${s}` : '';
+  }
+
+  function openCsvLocal() {
+    const csv = buildFollowupsCsv(filtered, (r) => isOverdue(r, today));
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = followupsCsvFilename();
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // Ekspor CSV via backend (aturan overdue server, Asia/Jakarta); fallback
+  // galat jaringan → builder lokal agar tombol tidak mati (R-26).
+  async function openCsv() {
     try {
-      const csv = buildFollowupsCsv(filtered, (r) => isOverdue(r, today));
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const res = await fetch(getFollowupsCsvUrl(buildFiltersQs()), { credentials: 'include' });
+      if (res.status === undefined || !res.ok) {
+        openCsvLocal();
+        return;
+      }
+      const text = await res.text();
+      const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = followupsCsvFilename();
       a.click();
       URL.revokeObjectURL(a.href);
     } catch {
-      notify('Ekspor CSV gagal.', 'error');
+      openCsvLocal();
     }
   }
 
@@ -136,7 +163,7 @@ export default function FollowupsPage() {
         notify(`Issue "${form.title}" diperbarui.`, 'success');
       } else {
         await createFollowup(form);
-        notify(`Issue "${form.title}" dicatat (mock, backend menyusul).`, 'success');
+        notify(`Issue "${form.title}" dicatat.`, 'success');
       }
       setFormOpen(null);
     } catch (e) {
@@ -350,9 +377,26 @@ export default function FollowupsPage() {
         )}
       </Reveal>
 
-      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-        Mode mock: data tersimpan di browser ini{clientsServerOk === false ? ', daftar client dari mode offline Client & Brand' : ''}. Backend follow-up disambungkan nanti tanpa mengubah tampilan.
-      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+          {serverOk === false
+            ? 'Mode offline: follow-up tersimpan di browser ini.'
+            : 'Tersambung ke backend /api/followups — data tersimpan di Postgres.'}
+          {clientsServerOk === false ? ' Daftar client dari mode offline Client & Brand.' : ''}
+        </p>
+        {serverOk === false && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              const ok = await retryConnection();
+              notify(ok ? 'Tersambung ke server.' : 'Backend belum terjangkau.', ok ? 'success' : 'error');
+            }}
+          >
+            Coba lagi
+          </Button>
+        )}
+      </div>
 
       {formOpen && (
         <FollowupFormModal
