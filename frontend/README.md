@@ -56,6 +56,7 @@ frontend/
     │   ├── SheetConfigPage.jsx       # /cfg (GET/PUT /api/config, autosave debounce)
     │   ├── BillingPage.jsx           # /billing (PATCH audit)
     │   ├── FinanceAuditPage.jsx      # /finance (PATCH invoice)
+    │   ├── FollowupsPage.jsx         # /followups (modul Client Follow-Up Reminder)
     │   └── RolesPage.jsx             # /roles (endpoint backend: users, permissions, logs)
     └── data/                     # fallback offline (cases, masters, sheetConfig)
 ```
@@ -74,9 +75,28 @@ frontend/
 | `/cfg` | Konfigurasi Sheet | `GET/PUT /api/config` |
 | `/billing` | Billing & Audit | `GET /api/cases` + `PATCH …/audit` |
 | `/finance` | Finance Audit | `GET /api/cases` + `PATCH …/invoice` |
+| `/followups` | Client Follow-Up | `GET/POST/PATCH/DELETE /api/followups*, notes, export CSV` (offline: localStorage) |
 | `/roles` | Hak Akses & Role | `GET/PATCH/DELETE /users`, `POST /users/:id/password`, `GET/PUT /roles/permissions`, `GET/POST /roles/logs` |
 | `/settings` | Pengaturan (tab Akun/Tampilan/Master/Akses/Hak Akses/Logs/Sesi) | `GET/PATCH /users`, `POST /users/:id/password`, `GET/PUT /status-options` |
 | `/logs` | Logs Aktivitas | `GET /api/logs` + aktivitas lokal |
+
+## Client Follow-Up Reminder (2026-10-21)
+
+Halaman `/followups` — modul pengingat follow-up issue client
+(PRD + desain: `feature_client_followup_clientfrindly.html`).
+
+- **Sumber data:** API `/api/followups` via `hooks/useFollowups.js`
+  (server utama; saat offline → cache localStorage + banner "Coba lagi").
+- **Komponen:** `components/followups/FollowupFormModal.jsx` (tambah/ubah,
+  datalist client dari modal, autocomplete modul dari nilai sebelumnya),
+  `FollowupDetailModal.jsx` (detail + ganti status cepat + riwayat catatan).
+- **Aturan tampil:** baris overdue merah "Overdue N hari" (status ≠ Selesai dan
+  tanggal follow-up < hari ini, zona Asia/Jakarta dari server); status
+  Selesai mengisi tanggal penyelesaian otomatis; ganti status selalu tercatat
+  sebagai catatan riwayat.
+- **Ekspor CSV:** via `GET /api/followups/export` (server); gagal jaringan →
+  builder lokal `lib/followupsExport.js`.
+- **Izin:** modul `followups` di matriks `/roles` (default Super Admin & Admin CS).
 
 ## Revamp Frontend (Tahap 1–4, 2026-09)
 

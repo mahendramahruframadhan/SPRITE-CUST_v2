@@ -179,6 +179,19 @@ GET  /api/brand-status → [{id, brand, type, expired_at, ...}] (seed 6 Monthly 
 POST /api/brand-status {brand*, type: MONTHLY|BARU|GRATIS, expiredAt* bila GRATIS}
         → {ok, data} · 400 BRAND_REQUIRED/EXPIRED_REQUIRED · 409 BRAND_EXISTS
 PATCH /api/brand-status/:id {brand?, type?, expiredAt?, ...} · DELETE /api/brand-status/:id
+GET  /api/followups?client=&module=&status=&priority=&from=&to=&overdue=true
+       → [{id, client, issueDate, module, title, description, priority, status,
+          followupDate, pic, resolvedAt, notes[]}] (urut overdue dulu, lalu
+          follow-up terdekat; overdue dihitung server, zona Asia/Jakarta)
+GET  /api/followups/summary → {total, overdue, dueToday, done}
+GET  /api/followups/export → CSV (kolom: CLIENT..PIC, anti formula injection)
+POST /api/followups {client*, issueDate*, module*, title*, priority?, status?,
+       followupDate*, description?, pic?} → {ok, data:{id}}
+       · 400 CLIENT_REQUIRED/TITLE_REQUIRED/DATE_INVALID/FOLLOWUP_BEFORE_ISSUE
+PATCH /api/followups/:id — valid sebagian; perubahan status → catatan riwayat
+       otomatis + resolved_at terisi (Selesai) / dikosongkan (dibuka lagi)
+DELETE /api/followups/:id
+POST /api/followups/:id/notes {note*} → catatan user pada riwayat
 ```
 
 User seed: `admin@revota.id` (`12345`, Super Admin), `rani@revota.id`,
@@ -201,6 +214,7 @@ dikunci penuh di `PUT /roles/permissions`.
 | `PUT /api/config` | `cfg` |
 | `/api/users*`, `/api/roles/*` | `roles` |
 | `/api/clients*`, `/api/brand-status*` | `clients` |
+| `/api/followups*` (POST/PATCH/DELETE/notes) | `followups` |
 
 `GET` (baca) dijaga **SessionGuard** (wajib `x-auth-token` valid; tanpa sesi →
 `401`). Menu + route frontend difilter oleh `usePermissions` + `RequirePerm`

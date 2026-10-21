@@ -266,6 +266,30 @@ Seluruh frontend dirombak bertahap: AppShell (sidebar collapsible + drawer swipe
 jaring fokus). Logic & data tidak diubah. Rincian per tahap + cara cek:
 [`frontend/README.md`](frontend/README.md) (bagian Revamp Frontend).
 
+## ✨ Fitur baru 2026-10-21 — Client Follow-Up Reminder (branch `20261021/dev-add-deadline`)
+
+Modul pengingat follow-up issue client (PRD: `.local/` atau prototipe
+`Client Follow-Up Reminder.html`). Status: ✅ selesai frontend + backend,
+belum di-push ke GitHub (tunggu rotasi token — lihat panduan E di bawah) dan
+belum dibuat PR-nya.
+
+- **Cara pakai:** menu `Client Follow-Up` (ikon 🔔) di sidebar → daftar issue
+  dengan kartu ringkasan (Total / Overdue / Jatuh tempo hari ini / Selesai),
+  filter client–modul–status(+Overdue), tabel merah "Overdue N hari",
+  tambah/ubah via modal, ganti status cepat di modal detail, riwayat catatan
+  (catatan otomatis tiap ganti status), ekspor CSV.
+- **Aturan:** overdue = status bukan Selesai dan tanggal follow-up <
+  hari ini (server hitung Asia/Jakarta); tanggal follow-up tak boleh lebih
+  awal dari tanggal issue; status Selesai mengisi `resolved_at` otomatis.
+- **Backend:** `backend/src/followups/` — 8 endpoint di bawah `GET/POST
+  /api/followups*` (list+filter, summary, CRUD, notes, export CSV), izin
+  modul `followups` baru di matriks `/roles` (default: Super Admin & Admin
+  CS). Tabel baru `followups` + `followup_notes` dibuat otomatis saat boot.
+  **Restart `npm run dev` backend agar endpoint aktif.**
+- **Frontend:** halaman `/followups` + `hooks/useFollowups.js` (panggil API
+  utama; tetap bisa dipakai offline dengan penyimpanan browser + tombol
+  Coba lagi).
+
 ## 🚧 Progres review 2026-09-22 (branch `dev/20260921-pdf-sync`)
 
 Hasil review kerjaan PDF invoice + status invoice otomatis. Status: ✅ selesai dikerjakan.
