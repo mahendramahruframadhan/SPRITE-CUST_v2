@@ -53,9 +53,11 @@ export default function FollowupsPage() {
   const [formPreset, setFormPreset] = useState(''); // status awal "+ Tambah kartu" kanban
   const [detailId, setDetailId] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false); // tombol mati selama reset berjalan (anti dobel-klik)
   const [picOptions, setPicOptions] = useState([]);
   const [view, setView] = useState('daftar'); // 'daftar' | 'kanban' | 'report'
   const kanbanExitRef = useRef(null);
+  const resetConfirmRef = useRef(null);
 
   // PIC diambil dari daftar user backend (opsional: gagal tanggung = kosong).
   useEffect(() => {
@@ -110,17 +112,27 @@ export default function FollowupsPage() {
 
   const detailItem = detailId ? items.find((r) => r.id === detailId) || null : null;
 
-  // Escape menutup modal form/detail (R-32).
+  // Escape menutup modal form/detail + membatalkan konfirmasi reset (R-32).
   useEffect(() => {
     function onKey(e) {
       if (e.key === 'Escape') {
         setFormOpen(null);
         setDetailId(null);
+        setConfirmReset(false);
       }
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+
+  // Konfirmasi reset muncul: fokus ke tombol "Ya, reset" — ref kondisional
+  // baru terisi setelah render, sama pola dengan fokus tombol kembali kanban
+  // (react.dev: forwardRef, ref kondisional tetap null sebelum render).
+  useEffect(() => {
+    if (!confirmReset) return undefined;
+    const t = setTimeout(() => resetConfirmRef.current?.focus?.(), 0);
+    return () => clearTimeout(t);
+  }, [confirmReset]);
 
   // Layar penuh kanban: fokus awal ke tombol kembali; Escape keluar dari
   // layar penuh hanya bila tidak ada modal terbuka (R-32).
@@ -232,6 +244,8 @@ export default function FollowupsPage() {
   // Reset semua issue: konfirmasi dulu (2 langkah), hasilnya permanen
   // untuk semua user (data server terhapus, catatan ikut cascade).
   async function doReset() {
+    if (resetting) return;
+    setResetting(true);
     try {
       const { status } = await resetFollowups();
       notify(
@@ -248,6 +262,7 @@ export default function FollowupsPage() {
       // samakan layar dengan keadaan server (gagal tanggang = kosong).
       await retryConnection().catch(() => {});
     } finally {
+      setResetting(false);
       setConfirmReset(false);
     }
   }
@@ -401,10 +416,17 @@ export default function FollowupsPage() {
                 <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 min-h-[44px] flex items-center">
                   Hapus semua issue permanen?
                 </p>
-                <Button variant="destructive" size="sm" onClick={doReset} className="min-h-[44px]">
-                  Ya, reset
+                <Button
+                  ref={resetConfirmRef}
+                  variant="destructive"
+                  size="sm"
+                  onClick={doReset}
+                  disabled={resetting}
+                  className="min-h-[44px]"
+                >
+                  {resetting ? 'Menghapus…' : 'Ya, reset'}
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => setConfirmReset(false)} className="min-h-[44px]">
+                <Button variant="secondary" size="sm" onClick={() => setConfirmReset(false)} className="min-h-[44px]" disabled={resetting}>
                   Batal
                 </Button>
               </>
