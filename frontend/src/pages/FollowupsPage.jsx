@@ -305,29 +305,30 @@ export default function FollowupsPage() {
       )}
 
       {/* Kanban layar penuh: portal di atas AppLayout (header z-30, sidebar z-40,
-      modal z-50), tanpa header/list lain; Escape & tombol = kembali ke Daftar */}
+      modal z-50); hanya ikon kembali + papan, tanpa judul/filter/tambah (permintaan
+      owner); Escape & ikon = kembali ke Daftar */}
       {view === 'kanban' && createPortal(
         <div className="fixed inset-0 z-[45] overflow-y-auto bg-slate-50 dark:bg-slate-950">
           <div className="mx-auto max-w-[1500px] min-h-full flex flex-col gap-3 p-3 sm:p-4">
-            <div className="flex items-center gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Client Follow-Up</p>
-                <h1 className="text-lg font-bold leading-tight text-slate-800 dark:text-slate-100">Kanban</h1>
-              </div>
+            <div className="flex justify-end">
               <Button
                 ref={kanbanExitRef}
                 variant="secondary"
-                size="sm"
-                className="ml-auto shrink-0"
+                size="icon"
+                aria-label="Kembali ke Daftar"
+                title="Kembali ke Daftar"
                 onClick={() => setView('daftar')}
               >
-                Kembali ke Daftar
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                </svg>
               </Button>
             </div>
             <FollowupKanban
               items={items}
               today={today}
               serverOk={serverOk}
+              bare
               onOpenDetail={setDetailId}
               onStatusChange={(id, status) => {
                 const item = items.find((r) => r.id === id);

@@ -47,7 +47,7 @@ function initials(name) {
     .toUpperCase();
 }
 
-export default function FollowupKanban({ items, today, onOpenDetail, onStatusChange, onAddWithStatus, serverOk }) {
+export default function FollowupKanban({ items, today, onOpenDetail, onStatusChange, onAddWithStatus, serverOk, bare = false }) {
   const [fClient, setFClient] = useState('');
   const [fModule, setFModule] = useState('');
   const [dragId, setDragId] = useState(null);
@@ -93,7 +93,8 @@ export default function FollowupKanban({ items, today, onOpenDetail, onStatusCha
 
   return (
     <div className="grid gap-3 sm:gap-4">
-      {/* Filter + tambah (satu baris kontekstual papan, R-05) */}
+      {/* Filter + tambah: hanya di tampilan dalam tabs; layar penuh tanpa ini */}
+      {!bare && (
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row gap-3 sm:items-end">
         <div className="sm:w-52">
           <label htmlFor="kb-client" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Client</label>
@@ -126,6 +127,7 @@ export default function FollowupKanban({ items, today, onOpenDetail, onStatusCha
           + Tambah Issue
         </button>
       </div>
+      )}
 
       {/* Papan 4 kolom: gradien = hero brand halaman (R-01, identitas) */}
       <div className="overflow-x-auto -mx-1 px-1 pb-1">
