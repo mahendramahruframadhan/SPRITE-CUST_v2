@@ -8,7 +8,8 @@
 // grup (R-19); baris tabel untuk baca — ketuk membuka modal detail, aksi
 // terpusat di modal (satu titik aksi, R-31).
 // TODO(backend): sambungkan useFollowups ke /api/followups saat backend jadi.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Reveal } from '../components/Reveal.jsx';
 import { useFollowups, isOverdue, isDueToday, overdueDays, todayStr } from '../hooks/useFollowups.js';
 import { useClientBrands } from '../hooks/useClientBrands.js';
@@ -16,6 +17,8 @@ import { Button } from '../components/ui/Button.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import FollowupFormModal from '../components/followups/FollowupFormModal.jsx';
 import FollowupDetailModal from '../components/followups/FollowupDetailModal.jsx';
+import FollowupsReport from '../components/followups/FollowupsReport.jsx';
+import FollowupKanban from '../components/followups/FollowupKanban.jsx';
 import { buildFollowupsCsv, followupsCsvFilename } from '../lib/followupsExport.js';
 import { getFollowupsCsvUrl, getUsers } from '../lib/api.js';
 
@@ -47,8 +50,11 @@ export default function FollowupsPage() {
   const [fModule, setFModule] = useState('');
   const [fStatus, setFStatus] = useState('');
   const [formOpen, setFormOpen] = useState(null); // null | 'new' | item
+  const [formPreset, setFormPreset] = useState(''); // status awal "+ Tambah kartu" kanban
   const [detailId, setDetailId] = useState(null);
   const [picOptions, setPicOptions] = useState([]);
+  const [view, setView] = useState('daftar'); // 'daftar' | 'kanban' | 'report'
+  const kanbanExitRef = useRef(null);
 
   // PIC diambil dari daftar user backend (opsional: gagal tanggung = kosong).
   useEffect(() => {
@@ -115,6 +121,26 @@ export default function FollowupsPage() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  // Layar penuh kanban: fokus awal ke tombol kembali; Escape keluar dari
+  // layar penuh hanya bila tidak ada modal terbuka (R-32).
+  useEffect(() => {
+    if (view !== 'kanban') return undefined;
+    const t = setTimeout(() => kanbanExitRef.current?.focus?.(), 0);
+    function onKey(e) {
+      if (
+        e.key === 'Escape' &&
+        !document.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"]')
+      ) {
+        setView('daftar');
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [view]);
+
   function buildFiltersQs() {
     const p = new URLSearchParams();
     if (fClient) p.set('client', fClient);
@@ -123,6 +149,14 @@ export default function FollowupsPage() {
     else if (fStatus) p.set('status', fStatus);
     const s = p.toString();
     return s ? `?${s}` : '';
+  }
+
+  // Drill-down dari tab Report: kartu diklik → filter terpasang → tab Daftar.
+  function openListFromReport(filter = {}) {
+    setFClient(filter.client || '');
+    setFModule(filter.module || '');
+    setFStatus(filter.status || '');
+    setView('daftar');
   }
 
   function openCsvLocal() {
@@ -238,6 +272,79 @@ export default function FollowupsPage() {
         </div>
       </Reveal>
 
+      {/* Tab Daftar / Report (R-32: tombol asli, aria-selected, fokus terlihat) */}
+      <div
+        role="tablist"
+        aria-label="Tampilan follow-up"
+        className="flex gap-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-1.5 shadow-sm"
+      >
+        {/* eslint-disable-next-line react/forbid-elements -- tab dengan state aktif kustom; Button tak punya variant aktif (className hanya layout, Button.jsx) */}
+        <button role="tab" aria-selected={view === 'daftar'} aria-controls="fu-panel-daftar" onClick={() => setView('daftar')} className={`flex-1 sm:flex-none min-h-[44px] px-5 text-sm font-semibold rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${view === 'daftar' ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/25' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+          Daftar
+        </button>
+        {/* eslint-disable-next-line react/forbid-elements -- tab dengan state aktif kustom; Button tak punya variant aktif (className hanya layout, Button.jsx) */}
+        <button role="tab" aria-selected={view === 'kanban'} aria-controls="fu-panel-kanban" onClick={() => setView('kanban')} className={`flex-1 sm:flex-none min-h-[44px] px-5 text-sm font-semibold rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${view === 'kanban' ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/25' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+          Kanban
+        </button>
+        {/* eslint-disable-next-line react/forbid-elements -- tab dengan state aktif kustom; Button tak punya variant aktif (className hanya layout, Button.jsx) */}
+        <button role="tab" aria-selected={view === 'report'} aria-controls="fu-panel-report" onClick={() => setView('report')} className={`flex-1 sm:flex-none min-h-[44px] px-5 text-sm font-semibold rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${view === 'report' ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/25' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+          Report
+        </button>
+      </div>
+
+      {view === 'report' && (
+        <div id="fu-panel-report" role="tabpanel" aria-label="Report follow-up">
+          <FollowupsReport
+            items={items}
+            today={today}
+            ready={ready}
+            serverOk={serverOk}
+            onDrill={openListFromReport}
+          />
+        </div>
+      )}
+
+      {/* Kanban layar penuh: portal di atas AppLayout (header z-30, sidebar z-40,
+      modal z-50), tanpa header/list lain; Escape & tombol = kembali ke Daftar */}
+      {view === 'kanban' && createPortal(
+        <div className="fixed inset-0 z-[45] overflow-y-auto bg-slate-50 dark:bg-slate-950">
+          <div className="mx-auto max-w-[1500px] min-h-full flex flex-col gap-3 p-3 sm:p-4">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Client Follow-Up</p>
+                <h1 className="text-lg font-bold leading-tight text-slate-800 dark:text-slate-100">Kanban</h1>
+              </div>
+              <Button
+                ref={kanbanExitRef}
+                variant="secondary"
+                size="sm"
+                className="ml-auto shrink-0"
+                onClick={() => setView('daftar')}
+              >
+                Kembali ke Daftar
+              </Button>
+            </div>
+            <FollowupKanban
+              items={items}
+              today={today}
+              serverOk={serverOk}
+              onOpenDetail={setDetailId}
+              onStatusChange={(id, status) => {
+                const item = items.find((r) => r.id === id);
+                if (item) doStatusChange(item, status);
+              }}
+              onAddWithStatus={(status) => {
+                setFormPreset(status);
+                setFormOpen('new');
+              }}
+            />
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {view === 'daftar' && (
+      <div id="fu-panel-daftar" role="tabpanel" aria-label="Daftar follow-up" className="grid gap-3 sm:gap-4">
       {/* Filter + aksi */}
       <Reveal className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
         <div className="flex flex-col md:flex-row gap-3 md:items-end">
@@ -397,14 +504,19 @@ export default function FollowupsPage() {
           </Button>
         )}
       </div>
+      </div>
+      )}
 
       {formOpen && (
         <FollowupFormModal
-          item={formOpen === 'new' ? null : formOpen}
+          item={formOpen === 'new' ? (formPreset ? { status: formPreset } : null) : formOpen}
           clients={clientHints}
           picOptions={picOptions}
           moduleHints={moduleHints}
-          onClose={() => setFormOpen(null)}
+          onClose={() => {
+            setFormOpen(null);
+            setFormPreset('');
+          }}
           onSave={saveForm}
         />
       )}

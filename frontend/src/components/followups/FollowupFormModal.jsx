@@ -32,7 +32,7 @@ export default function FollowupFormModal({ item, clients = [], picOptions = [],
     } else {
       const today = new Date();
       const p = (n) => String(n).padStart(2, '0');
-      setForm({ ...EMPTY, issueDate: `${today.getFullYear()}-${p(today.getMonth() + 1)}-${p(today.getDate())}` });
+      setForm({ ...EMPTY, ...item, status: item?.status || EMPTY.status, issueDate: `${today.getFullYear()}-${p(today.getMonth() + 1)}-${p(today.getDate())}` });
     }
   }, [item, editing]);
 
