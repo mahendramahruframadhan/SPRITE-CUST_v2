@@ -154,6 +154,19 @@ export default function FollowupsPage() {
     }
   }
 
+  // Ganti status cepat dari modal detail; riwayat + resolved_at otomatis
+  // di lapisan data (useFollowups.updateFollowup).
+  async function doStatusChange(item, status) {
+    try {
+      await updateFollowup(item.id, { status });
+      notify(status === 'Selesai'
+        ? `Issue "${item.title}" ditandai selesai.`
+        : `Status issue "${item.title}" → ${status}.`, 'success');
+    } catch (e) {
+      notify(e?.message || 'Gagal mengubah status, coba lagi.', 'error');
+    }
+  }
+
   const stats = [
     ['Total issue', summary.total, false],
     ['Overdue', summary.overdue, summary.overdue > 0],
@@ -361,6 +374,7 @@ export default function FollowupsPage() {
         }}
         onDelete={() => doDelete(detailItem)}
         onAddNote={(text) => addNote(detailItem.id, text)}
+        onStatusChange={(status) => doStatusChange(detailItem, status)}
       />
     </div>
   );

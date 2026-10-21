@@ -5,6 +5,7 @@
 // berurutan termasuk catatan otomatis perubahan status.
 import { useState } from 'react';
 import { Button } from '../ui/Button.jsx';
+import { STATUSES } from '../../hooks/useFollowups.js';
 
 const dl = 'flex items-center justify-between gap-3';
 const dt = 'text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0';
@@ -23,7 +24,7 @@ function fmtDateTime(iso) {
   return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-export default function FollowupDetailModal({ item, onClose, onEdit, onDelete, onAddNote }) {
+export default function FollowupDetailModal({ item, onClose, onEdit, onDelete, onAddNote, onStatusChange }) {
   const [noteText, setNoteText] = useState('');
   const [confirmDel, setConfirmDel] = useState(false);
   if (!item) return null;
@@ -70,9 +71,18 @@ export default function FollowupDetailModal({ item, onClose, onEdit, onDelete, o
           <div className={dl}>
             <dt className={dt}>Status</dt>
             <dd>
-              <span className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full border ${statusPillCls[item.status] || ''}`}>
-                {item.status}
-              </span>
+              {/* Ganti status langsung dari modal detail: catatan riwayat
+                  otomatis + resolved_at ditangani lapisan data. */}
+              <select
+                value={item.status}
+                onChange={(e) => onStatusChange(e.target.value)}
+                aria-label="Ganti status issue"
+                className={`text-[11px] font-bold px-2.5 py-1.5 rounded-full border cursor-pointer min-h-[36px] focus:outline-none focus:ring-2 focus:ring-brand-500/40 transition ${statusPillCls[item.status] || ''}`}
+              >
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </dd>
           </div>
           <div className={dl}>
