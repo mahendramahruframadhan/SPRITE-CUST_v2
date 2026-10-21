@@ -97,6 +97,31 @@ Halaman `/followups` — modul pengingat follow-up issue client
 - **Ekspor CSV:** via `GET /api/followups/export` (server); gagal jaringan →
   builder lokal `lib/followupsExport.js`.
 - **Izin:** modul `followups` di matriks `/roles` (default Super Admin & Admin CS).
+- **Tab Kanban** (`components/followups/FollowupKanban.jsx`, adaptasi prototipe
+  Trello dari owner): 4 kolom status, drag kartu antar kolom = ganti status
+  (lewat hook yang sama: riwayat catatan + `resolved_at` otomatis; di layar
+  sentuh, ganti status lewat modal detail), urutan kartu overdue dulu lalu
+  tanggal follow-up, kolom Selesai hanya 30 hari terakhir. Kartu: badge
+  prioritas (Urgent/rose, Tinggi/orange, Sedang/amber, Rendah/emerald, pill
+  pastel+border STATUS_PILL), chip follow-up semantik (telat=merah, hari
+  ini=amber, selesai=emerald, default netral), tag modul/client netral,
+  avatar inisial PIC. **Mode layar penuh** (permintaan owner: tanpa judul/
+  filter/tambah): `createPortal` fixed `z-[45]` di atas AppLayout (header
+  z-30, sidebar z-40, modal z-50), ganti ke gaya kontainer `.page`
+  (max-w-1440, px-4/6/8, py-5), keluar lewat ikon kembali atau Escape
+  (abaikan saat modal terbuka; fokus awal ke ikon kembali). Di tampilan
+  dalam tab, papan memakai baris filter client/modul + tombol "Tambah
+  Issue" (prop `bare=false`); layar penuh menyembunyikan keduanya
+  (`bare=true`, permintaan owner).
+- **Tab Report** (`components/followups/FollowupsReport.jsx`): dihitung
+  murni dari data yang sudah dimuat (tanpa endpoint baru): chip periode
+  7/30/90/Semua (basis = tanggal issue), sebaran status
+  (bar bertumpuk + chip), tren masuk vs selesai (masuk = tanggal issue,
+  selesai = `resolved_at`; bucket harian/mingguan maks 12), rata-rata hari
+  penyelesaian, per client/modul (bar merah = bagian overdue), dan aging
+  keterlambatan (1–7/8–14/15–30/31+ hari). Semua kartu bisa diklik untuk
+  drill-down ke tab Daftar dengan filter terpasang (client/modul/status,
+  termasuk view "Overdue"). Angka hanya dari data nyata (`items`).
 
 ## Revamp Frontend (Tahap 1–4, 2026-09)
 

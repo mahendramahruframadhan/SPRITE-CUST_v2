@@ -270,14 +270,27 @@ jaring fokus). Logic & data tidak diubah. Rincian per tahap + cara cek:
 
 Modul pengingat follow-up issue client (PRD: `.local/` atau prototipe
 `Client Follow-Up Reminder.html`). Status: ✅ selesai frontend + backend,
-belum di-push ke GitHub (tunggu rotasi token — lihat panduan E di bawah) dan
 belum dibuat PR-nya.
 
-- **Cara pakai:** menu `Client Follow-Up` (ikon 🔔) di sidebar → daftar issue
-  dengan kartu ringkasan (Total / Overdue / Jatuh tempo hari ini / Selesai),
-  filter client–modul–status(+Overdue), tabel merah "Overdue N hari",
-  tambah/ubah via modal, ganti status cepat di modal detail, riwayat catatan
-  (catatan otomatis tiap ganti status), ekspor CSV.
+- **Cara pakai:** menu `Client Follow-Up` (ikon 🔔) di sidebar → halaman punya
+  3 tab:
+  - **Daftar** — kartu ringkasan (Total / Overdue / Jatuh tempo hari ini /
+    Selesai), filter client–modul–status(+Overdue), tabel merah "Overdue
+    N hari", tambah/ubah via modal, ganti status cepat di modal detail,
+    riwayat catatan (catatan otomatis tiap ganti status), ekspor CSV.
+  - **Kanban** — papan gaya Trello (prototipe: `Kanban Client Follow-Up
+    (gaya Trello).html`), 4 kolom status, drag kartu antar kolom = ganti
+    status, kolom Selesai hanya 30 hari terakhir, klik kartu membuka modal
+    detail. Mode **layar penuh** (portal di atas header/sidebar): tinggal
+    ikon panah kembali (Escape juga kembali); di layar sentuh ganti status
+    lewat modal detail. Semua gaya mengikuti design system (tanpa gradien/
+    warna hardcode; detail: `frontend/README.md`).
+  - **Report** — analitik dihitung dari data yang sudah dimuat (tanpa
+    endpoint baru): chip periode 7/30/90/Semua (berdasarkan tanggal issue),
+    ringkasan (issue periode, selesai, overdue, rata-rata hari
+    penyelesaian), sebaran status bertumpuk, tren masuk vs selesai, per
+    client/modul, dan aging keterlambatan (1–7/8–14/15–30/31+ hari).
+    Klik elemen = drill-down ke tab Daftar dengan filter terpasang.
 - **Aturan:** overdue = status bukan Selesai dan tanggal follow-up <
   hari ini (server hitung Asia/Jakarta); tanggal follow-up tak boleh lebih
   awal dari tanggal issue; status Selesai mengisi `resolved_at` otomatis.
