@@ -309,7 +309,8 @@ export default function FollowupsPage() {
       owner); Escape & ikon = kembali ke Daftar */}
       {view === 'kanban' && createPortal(
         <div className="fixed inset-0 z-[45] overflow-y-auto bg-slate-100 dark:bg-slate-950">
-          <div className="mx-auto max-w-[1500px] min-h-full flex flex-col gap-3 p-3 sm:p-4">
+          {/* Kontainer = metrik .page halaman lain (max-w-1440, px-4/6/8, py-5) */}
+          <div className="w-full max-w-[1440px] mx-auto min-h-full px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-3 sm:gap-4">
             <div className="flex justify-end">
               <Button
                 ref={kanbanExitRef}
