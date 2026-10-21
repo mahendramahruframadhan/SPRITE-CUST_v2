@@ -308,7 +308,7 @@ export default function FollowupsPage() {
       modal z-50); hanya ikon kembali + papan, tanpa judul/filter/tambah (permintaan
       owner); Escape & ikon = kembali ke Daftar */}
       {view === 'kanban' && createPortal(
-        <div className="fixed inset-0 z-[45] overflow-y-auto bg-slate-50 dark:bg-slate-950">
+        <div className="fixed inset-0 z-[45] overflow-y-auto bg-slate-100 dark:bg-slate-950">
           <div className="mx-auto max-w-[1500px] min-h-full flex flex-col gap-3 p-3 sm:p-4">
             <div className="flex justify-end">
               <Button

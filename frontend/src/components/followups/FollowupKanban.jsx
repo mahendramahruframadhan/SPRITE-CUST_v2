@@ -22,18 +22,19 @@ const STATUS_LABELS = {
   Selesai: 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400',
 };
 
-// Warna label prioritas mengikuti makna urgency (fungsional, bukan dekorasi).
+// Warna label prioritas & tanggal ikut gaya pill pastel+border STATUS_PILL
+// tab Daftar (fungsional utk mencerahkan urgency, sejalan tema app, R-09).
 const PRIO = {
-  Urgent: 'bg-rose-600 text-white',
-  Tinggi: 'bg-orange-500 text-white',
-  Sedang: 'bg-amber-300 text-slate-900',
-  Rendah: 'bg-emerald-500 text-white',
+  Urgent: 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
+  Tinggi: 'bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20',
+  Sedang: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+  Rendah: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
 };
 
 const TODAY_CHIP = {
-  done: 'bg-emerald-600 text-white',
-  late: 'bg-rose-600 text-white',
-  now: 'bg-amber-300 text-slate-900',
+  late: 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
+  now: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+  done: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
   def: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300',
 };
 
