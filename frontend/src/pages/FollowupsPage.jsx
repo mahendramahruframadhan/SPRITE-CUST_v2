@@ -233,10 +233,20 @@ export default function FollowupsPage() {
   // untuk semua user (data server terhapus, catatan ikut cascade).
   async function doReset() {
     try {
-      await resetFollowups();
-      notify('Semua issue follow-up dihapus.', 'success');
+      const { status } = await resetFollowups();
+      notify(
+        status === 'partial'
+          ? 'Koneksi terputus saat reset. Sebagian issue mungkin masih tersimpan di server.'
+          : status === 'local'
+            ? 'Data lokal dibersihkan. Data di server tidak terhapus dan akan muncul lagi saat tersambung.'
+            : 'Semua issue follow-up dihapus.',
+        status === 'done' ? 'success' : 'info'
+      );
     } catch (e) {
       notify(e?.message || 'Gagal menghapus data, coba lagi.', 'error');
+      // Galat di tengah jalan bisa meninggalkan server terhapus sebagian;
+      // samakan layar dengan keadaan server (gagal tanggang = kosong).
+      await retryConnection().catch(() => {});
     } finally {
       setConfirmReset(false);
     }

@@ -298,25 +298,36 @@ export function useFollowups() {
 
   // Reset semua issue: hapus satu per satu via endpoint yang ada (izin
   // 'followups'), lalu kosongkan lokal. 404 = sudah terhapus, lewati; galat
-  // jaringan di tengah jalan = pindah mode offline; galat izin/server = lempar.
+  // jaringan di tengah jalan = pindah mode offline + status 'partial'
+  // (server mungkin masih menyimpan sisanya); galat izin/server = lempar.
+  // Mode offline = hapus lokal saja, status 'local' (data server tak disentuh
+  // dan akan kembali saat tersambung). Async handler menangkap snapshot
+  // `items` sekali (react.dev: state-as-a-snapshot) — daftar hapus deterministik.
   async function resetFollowups() {
-    if (serverOk !== false) {
-      let offline = false;
-      for (const r of items) {
-        try {
-          await deleteFollowup(r.id);
-        } catch (e) {
-          if (e?.status === 404) continue;
-          if (isOfflineErr(e)) {
-            offline = true;
-            break;
-          }
-          throw e;
-        }
-      }
-      setServerOk(!offline);
+    const result = { status: 'done', offline: false };
+    if (serverOk === false) {
+      result.status = 'local';
+      setItems([]);
+      return result;
     }
+    let offline = false;
+    for (const r of items) {
+      try {
+        await deleteFollowup(r.id);
+      } catch (e) {
+        if (e?.status === 404) continue;
+        if (isOfflineErr(e)) {
+          offline = true;
+          break;
+        }
+        throw e;
+      }
+    }
+    result.offline = offline;
+    if (offline) result.status = 'partial';
+    setServerOk(!offline);
     setItems([]);
+    return result;
   }
 
   async function addNoteLocal(id, text) {
