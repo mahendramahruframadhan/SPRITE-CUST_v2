@@ -43,7 +43,7 @@ function byFollowup(a, b) {
 
 export default function FollowupsPage() {
   const { notify } = useToast();
-  const { ready, serverOk, items, summary, createFollowup, updateFollowup, removeFollowup, addNote, seedExamples, retryConnection } = useFollowups();
+  const { ready, serverOk, items, summary, createFollowup, updateFollowup, removeFollowup, addNote, resetFollowups, seedExamples, retryConnection } = useFollowups();
   const { statuses: clientStatuses, serverOk: clientsServerOk } = useClientBrands();
 
   const [fClient, setFClient] = useState('');
@@ -52,6 +52,7 @@ export default function FollowupsPage() {
   const [formOpen, setFormOpen] = useState(null); // null | 'new' | item
   const [formPreset, setFormPreset] = useState(''); // status awal "+ Tambah kartu" kanban
   const [detailId, setDetailId] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [picOptions, setPicOptions] = useState([]);
   const [view, setView] = useState('daftar'); // 'daftar' | 'kanban' | 'report'
   const kanbanExitRef = useRef(null);
@@ -228,6 +229,19 @@ export default function FollowupsPage() {
     }
   }
 
+  // Reset semua issue: konfirmasi dulu (2 langkah), hasilnya permanen
+  // untuk semua user (data server terhapus, catatan ikut cascade).
+  async function doReset() {
+    try {
+      await resetFollowups();
+      notify('Semua issue follow-up dihapus.', 'success');
+    } catch (e) {
+      notify(e?.message || 'Gagal menghapus data, coba lagi.', 'error');
+    } finally {
+      setConfirmReset(false);
+    }
+  }
+
   const stats = [
     ['Total issue', summary.total, false],
     ['Overdue', summary.overdue, summary.overdue > 0],
@@ -371,13 +385,36 @@ export default function FollowupsPage() {
               {STATUS_FILTERS.map((s) => <option key={s}>{s}</option>)}
             </select>
           </div>
-          <div className="flex gap-2 md:ml-auto">
-            <Button variant="secondary" onClick={openCsv}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-              </svg>
-              Ekspor CSV
-            </Button>
+          <div className="flex flex-wrap gap-2 md:ml-auto">
+            {confirmReset ? (
+              <>
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 min-h-[44px] flex items-center">
+                  Hapus semua issue permanen?
+                </p>
+                <Button variant="destructive" size="sm" onClick={doReset} className="min-h-[44px]">
+                  Ya, reset
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setConfirmReset(false)} className="min-h-[44px]">
+                  Batal
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* eslint-disable-next-line react/forbid-elements -- tombol reset bertint rose kustom, pola tombol Hapus modal detail */}
+                <button
+                  onClick={() => setConfirmReset(true)}
+                  className="min-h-[44px] inline-flex items-center justify-center gap-2 text-sm font-bold text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 px-4 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-500/10 active:bg-rose-100 dark:active:bg-rose-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
+                >
+                  Reset Data
+                </button>
+                <Button variant="secondary" onClick={openCsv}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                  Ekspor CSV
+                </Button>
+              </>
+            )}
             <Button variant="primary" onClick={() => setFormOpen('new')} className="active:scale-[.98]">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

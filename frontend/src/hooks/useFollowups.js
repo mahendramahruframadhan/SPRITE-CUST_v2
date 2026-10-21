@@ -296,6 +296,29 @@ export function useFollowups() {
     setItems((prev) => prev.filter((r) => r.id !== id));
   }
 
+  // Reset semua issue: hapus satu per satu via endpoint yang ada (izin
+  // 'followups'), lalu kosongkan lokal. 404 = sudah terhapus, lewati; galat
+  // jaringan di tengah jalan = pindah mode offline; galat izin/server = lempar.
+  async function resetFollowups() {
+    if (serverOk !== false) {
+      let offline = false;
+      for (const r of items) {
+        try {
+          await deleteFollowup(r.id);
+        } catch (e) {
+          if (e?.status === 404) continue;
+          if (isOfflineErr(e)) {
+            offline = true;
+            break;
+          }
+          throw e;
+        }
+      }
+      setServerOk(!offline);
+    }
+    setItems([]);
+  }
+
   async function addNoteLocal(id, text) {
     const noteText = String(text || '').trim();
     if (!noteText) return;
@@ -368,6 +391,7 @@ export function useFollowups() {
     updateFollowup: updateFollowupLocal,
     removeFollowup: removeFollowupLocal,
     addNote: addNoteLocal,
+    resetFollowups,
     seedExamples,
     retryConnection,
   };
