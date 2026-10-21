@@ -14,7 +14,7 @@ const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 // Super Admin — sebelumnya daftar ini lebih sempit dari seed, jadi ada modul
 // yang tidak pernah dipaksa penuh.
 const MODULES = [
-  'dashboard', 'cases', 'form', 'clients', 'hrreport', 'cfg', 'popinava',
+  'dashboard', 'cases', 'form', 'clients', 'followups', 'hrreport', 'cfg', 'popinava',
   'billing', 'finance', 'report', 'analytics', 'mockup', 'roles', 'logs', 'settings',
 ];
 

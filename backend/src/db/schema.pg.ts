@@ -201,3 +201,40 @@ export const brandStatuses = pgTable(
   },
   (t) => [index('idx_brand_statuses_brand').on(t.brand), index('idx_brand_statuses_type').on(t.type)],
 );
+
+// Client Follow-Up Reminder: issue client + tanggal follow-up (deadline),
+// penanda overdue & riwayat catatan. PRD: Client Follow-Up Reminder.
+export const followups = pgTable(
+  'followups',
+  {
+    id: text('id').primaryKey(),
+    clientName: text('client_name').notNull(),
+    issueDate: text('issue_date').notNull(),
+    module: text('module').notNull(),
+    title: text('title').notNull(),
+    description: text('description'),
+    priority: text('priority').notNull().default('Sedang'),
+    status: text('status').notNull().default('Open'),
+    followupDate: text('followup_date').notNull(),
+    pic: text('pic'),
+    resolvedAt: text('resolved_at'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [index('idx_followups_status_followup').on(t.status, t.followupDate), index('idx_followups_client').on(t.clientName)],
+);
+
+export const followupNotes = pgTable(
+  'followup_notes',
+  {
+    id: text('id').primaryKey(),
+    followupId: text('followup_id')
+      .notNull()
+      .references(() => followups.id, { onDelete: 'cascade' }),
+    note: text('note').notNull(),
+    isAuto: integer('is_auto').default(0),
+    who: text('who'),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [index('idx_followup_notes_fid').on(t.followupId)],
+);
