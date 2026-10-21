@@ -18,6 +18,7 @@ const DataKasusPage = lazy(() => import('./pages/DataKasusPage.jsx'));
 const MockupPage = lazy(() => import('./pages/MockupPage.jsx'));
 const FormKasusPage = lazy(() => import('./pages/FormKasusPage.jsx'));
 const ClientBrandPage = lazy(() => import('./pages/ClientBrandPage.jsx'));
+const FollowupsPage = lazy(() => import('./pages/FollowupsPage.jsx'));
 const HrReportPage = lazy(() => import('./pages/HrReportPage.jsx'));
 const SheetConfigPage = lazy(() => import('./pages/SheetConfigPage.jsx'));
 const PopiNavaPage = lazy(() => import('./pages/PopiNavaPage.jsx'));
@@ -55,6 +56,7 @@ function AnimatedRoutes() {
         <Route path="/mockup" element={<RequirePerm module="mockup"><MockupPage /></RequirePerm>} />
         <Route path="/form" element={<RequirePerm module="form"><FormKasusPage /></RequirePerm>} />
         <Route path="/clients" element={<RequirePerm module="clients"><ClientBrandPage /></RequirePerm>} />
+        <Route path="/followups" element={<RequirePerm module="followups"><FollowupsPage /></RequirePerm>} />
         <Route path="/hrreport" element={<RequirePerm module="hrreport"><HrReportPage /></RequirePerm>} />
         {/* /master & /pricelist dialihkan ke /cfg oleh AppLayout */}
         <Route path="/cfg" element={<RequirePerm module="cfg"><SheetConfigPage /></RequirePerm>} />

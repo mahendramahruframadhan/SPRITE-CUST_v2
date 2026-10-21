@@ -8,6 +8,7 @@ export const MODULES = [
   { group: 'Operasional' },
   { path: '/form', id: 'form', title: 'Form Kasus', sub: 'Input data kasus support baru' },
   { path: '/clients', id: 'clients', title: 'Client & Brand', sub: 'Koleksi client baru dan status monthly vs maintenance' },
+  { path: '/followups', id: 'followups', title: 'Client Follow-Up', sub: 'Issue client yang wajib di-follow up, penanda overdue & laporan' },
   { path: '/hrreport', id: 'hrreport', title: 'HR Report', sub: 'Rekap performa tim & detail ticket per periode' },
   { path: '/cfg', id: 'cfg', title: 'Konfigurasi Sheet', sub: 'Master config sheet: master data, pricelist, brand, mapping' },
   { path: '/popinava', id: 'popinava', title: 'POPI NAVA', sub: 'Master data outlet & brand POPI NAVA: impor, ekspor, kelola' },
