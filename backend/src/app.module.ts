@@ -20,6 +20,8 @@ import { PdfController } from './pdf/pdf.controller';
 import { PdfService } from './pdf/pdf.service';
 import { ClientsController } from './clients/clients.controller';
 import { ClientsService } from './clients/clients.service';
+import { FollowupsController } from './followups/followups.controller';
+import { FollowupsService } from './followups/followups.service';
 import { PopinavaController } from './popinava/popinava.controller';
 import { AuditScheduleController } from './popinava/audit-schedule.controller';
 import { ShotsController } from './shots/shots.controller';
@@ -29,7 +31,7 @@ import { AnalyticsService } from './analytics/analytics.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
-  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController, AuditScheduleController, ShotsController, AnalyticsController],
-  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService, ShotsService, AnalyticsService],
+  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController, AuditScheduleController, ShotsController, AnalyticsController, FollowupsController],
+  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService, ShotsService, AnalyticsService, FollowupsService],
 })
 export class AppModule {}
