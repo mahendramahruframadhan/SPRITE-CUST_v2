@@ -2,11 +2,11 @@
 // ke modul izin. Terpisah dari hook usePermissions (yang menarik AuthContext
 // ber-JSX) supaya bisa diuji murni dengan node --test.
 export const DEFAULT_PERMS = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 0, report: 0, analytics: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
-  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
-  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, popinava: 0, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, followups: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
+  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, followups: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 0, report: 0, analytics: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
+  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, followups: 0, hrreport: 1, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, followups: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
+  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, followups: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
 };
 
 // Path route → modul izin (menu /kasus memakai modul 'cases')
@@ -16,6 +16,7 @@ export const ROUTE_PERM = {
   '/mockup': 'mockup',
   '/form': 'form',
   '/clients': 'clients',
+  '/followups': 'followups',
   '/hrreport': 'hrreport',
   '/cfg': 'cfg',
   '/popinava': 'popinava',

@@ -32,6 +32,9 @@ export function setupTables() {
     `CREATE TABLE IF NOT EXISTS popinava_outlets (uuid TEXT PRIMARY KEY, brand_name TEXT NOT NULL, rvt_custcode TEXT NOT NULL, dept_code TEXT NOT NULL, dept_name TEXT NOT NULL, dept_channel_name TEXT NOT NULL DEFAULT '', dept_reference TEXT NOT NULL DEFAULT '', iso_code TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '', city TEXT NOT NULL DEFAULT '', province TEXT NOT NULL DEFAULT '', postcode TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '', area TEXT NOT NULL DEFAULT '', region TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active', updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS audit_schedule (month TEXT PRIMARY KEY, weeks TEXT NOT NULL DEFAULT '{}', updated_by TEXT, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS audit_history (id TEXT PRIMARY KEY, month TEXT NOT NULL, week_key TEXT NOT NULL, item_id TEXT NOT NULL, item_type TEXT, item_label TEXT, action TEXT NOT NULL, who TEXT, created_at TEXT NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, type TEXT NOT NULL, title TEXT NOT NULL, body TEXT, link TEXT, read_at TIMESTAMP, group_id TEXT, created_at TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS followups (id TEXT PRIMARY KEY, client_name TEXT NOT NULL, issue_date TEXT NOT NULL, module TEXT NOT NULL, title TEXT NOT NULL, description TEXT, priority TEXT NOT NULL DEFAULT 'Sedang', status TEXT NOT NULL DEFAULT 'Open', followup_date TEXT NOT NULL, pic TEXT, resolved_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS followup_notes (id TEXT PRIMARY KEY, followup_id TEXT NOT NULL, note TEXT NOT NULL, is_auto INTEGER, who TEXT, created_at TEXT NOT NULL)`,
   ];
   for (const ddl of ddls) mem.public.none(ddl);
 }

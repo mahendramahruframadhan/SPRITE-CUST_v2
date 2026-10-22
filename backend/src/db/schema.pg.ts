@@ -1,4 +1,6 @@
 import { pgTable, text, integer, real, timestamp, index } from 'drizzle-orm/pg-core';
+// Notifikasi antar-user: satu baris = satu notif untuk satu penerima.
+// Dideklarasi setelah tabel `user` (FK-nya) di bawah.
 
 // Real Postgres schema — used when DATABASE_URL is postgres://
 // For local dev we use pg-mem in-memory (same schema) — no Docker needed
@@ -52,6 +54,27 @@ export const user = pgTable('user', {
   createdAt: timestamp('created_at'),
   updatedAt: timestamp('updated_at'),
 });
+
+// Notifikasi antar-user: satu baris = satu notif untuk satu penerima.
+// Spek: docs/superpowers/specs/2026-10-22-notifikasi-antar-user-design.md.
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(),
+    title: text('title').notNull(),
+    body: text('body'),
+    link: text('link'),
+    readAt: timestamp('read_at'),
+    groupId: text('group_id'),
+    createdAt: timestamp('created_at'),
+  },
+  (t) => [
+    index('idx_notif_user_created').on(t.userId, t.createdAt),
+    index('idx_notif_user_read').on(t.userId, t.readAt),
+  ],
+);
 
 export const session = pgTable('session', {
   id: text('id').primaryKey(),
@@ -200,4 +223,41 @@ export const brandStatuses = pgTable(
     updatedAt: text('updated_at'),
   },
   (t) => [index('idx_brand_statuses_brand').on(t.brand), index('idx_brand_statuses_type').on(t.type)],
+);
+
+// Client Follow-Up Reminder: issue client + tanggal follow-up (deadline),
+// penanda overdue & riwayat catatan. PRD: Client Follow-Up Reminder.
+export const followups = pgTable(
+  'followups',
+  {
+    id: text('id').primaryKey(),
+    clientName: text('client_name').notNull(),
+    issueDate: text('issue_date').notNull(),
+    module: text('module').notNull(),
+    title: text('title').notNull(),
+    description: text('description'),
+    priority: text('priority').notNull().default('Sedang'),
+    status: text('status').notNull().default('Open'),
+    followupDate: text('followup_date').notNull(),
+    pic: text('pic'),
+    resolvedAt: text('resolved_at'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [index('idx_followups_status_followup').on(t.status, t.followupDate), index('idx_followups_client').on(t.clientName)],
+);
+
+export const followupNotes = pgTable(
+  'followup_notes',
+  {
+    id: text('id').primaryKey(),
+    followupId: text('followup_id')
+      .notNull()
+      .references(() => followups.id, { onDelete: 'cascade' }),
+    note: text('note').notNull(),
+    isAuto: integer('is_auto').default(0),
+    who: text('who'),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [index('idx_followup_notes_fid').on(t.followupId)],
 );

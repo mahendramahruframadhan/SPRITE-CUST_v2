@@ -8,11 +8,11 @@ import { isDevSeedAllowed } from '../config/env';
 
 // Matriks izin default — cermin frontend RolesPage DEFAULT_PERMS
 export const ROLE_PERMS: Record<string, Record<string, number>> = {
-  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 1, roles: 1, logs: 1, settings: 1 },
-  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 0, report: 0, analytics: 0, mockup: 1, roles: 0, logs: 1, settings: 1 },
-  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, hrreport: 1, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
-  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, hrreport: 0, cfg: 0, popinava: 0, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 0, roles: 0, logs: 1, settings: 1 },
-  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1 },
+  'Super Admin': { dashboard: 1, cases: 1, form: 1, clients: 1, followups: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 1, roles: 1, logs: 1, settings: 1, notifications: 1 },
+  'Admin CS': { dashboard: 1, cases: 1, form: 1, clients: 1, followups: 1, hrreport: 1, cfg: 1, popinava: 1, billing: 1, finance: 0, report: 0, analytics: 0, mockup: 1, roles: 0, logs: 1, settings: 1, notifications: 0 },
+  Support: { dashboard: 1, cases: 1, form: 1, clients: 0, followups: 0, hrreport: 1, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1, notifications: 0 },
+  Finance: { dashboard: 1, cases: 0, form: 0, clients: 1, followups: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 1, finance: 1, report: 1, analytics: 1, mockup: 0, roles: 0, logs: 1, settings: 1, notifications: 0 },
+  Viewer: { dashboard: 1, cases: 1, form: 0, clients: 0, followups: 0, hrreport: 0, cfg: 0, popinava: 0, billing: 0, finance: 0, report: 0, analytics: 0, mockup: 0, roles: 0, logs: 0, settings: 1, notifications: 0 },
 };
 
 export async function initDb() {
@@ -63,6 +63,14 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS audit_shots (id TEXT PRIMARY KEY, dept_uuid TEXT NOT NULL REFERENCES popinava_outlets(uuid) ON DELETE CASCADE, slot TEXT NOT NULL, filename TEXT NOT NULL, storage_key TEXT NOT NULL UNIQUE, size_bytes INTEGER DEFAULT 0, content_type TEXT, status TEXT NOT NULL DEFAULT 'uploading', uploaded_by TEXT, created_at TEXT NOT NULL, updated_at TEXT);
     CREATE INDEX IF NOT EXISTS idx_audit_shots_dept ON audit_shots(dept_uuid);
     CREATE INDEX IF NOT EXISTS idx_audit_history_item ON audit_history(item_id);
+    CREATE TABLE IF NOT EXISTS followups (id TEXT PRIMARY KEY, client_name TEXT NOT NULL, issue_date TEXT NOT NULL, module TEXT NOT NULL, title TEXT NOT NULL, description TEXT, priority TEXT NOT NULL DEFAULT 'Sedang', status TEXT NOT NULL DEFAULT 'Open', followup_date TEXT NOT NULL, pic TEXT, resolved_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE INDEX IF NOT EXISTS idx_followups_status_followup ON followups(status, followup_date);
+    CREATE INDEX IF NOT EXISTS idx_followups_client ON followups(client_name);
+    CREATE TABLE IF NOT EXISTS followup_notes (id TEXT PRIMARY KEY, followup_id TEXT NOT NULL REFERENCES followups(id) ON DELETE CASCADE, note TEXT NOT NULL, is_auto INTEGER DEFAULT 0, who TEXT, created_at TEXT NOT NULL);
+    CREATE INDEX IF NOT EXISTS idx_followup_notes_fid ON followup_notes(followup_id);
+    CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE, type TEXT NOT NULL, title TEXT NOT NULL, body TEXT, link TEXT, read_at TIMESTAMP, group_id TEXT, created_at TIMESTAMP);
+    CREATE INDEX IF NOT EXISTS idx_notif_user_created ON notifications(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notif_user_read ON notifications(user_id, read_at);
   `;
 
   if (!isRealPg && mem) {
@@ -282,6 +290,15 @@ export async function initDb() {
         await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','popinava',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
       }
     } catch {}
+    // Backfill izin modul 'followups' (Client Follow-Up Reminder) untuk DB lama —
+    // cermin DEFAULT_PERMS frontend: Super Admin + Admin CS.
+    try {
+      const now = new Date().toISOString();
+      const followupsSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 1, Support: 0, Finance: 0, Viewer: 0 };
+      for (const [role, allowed] of Object.entries(followupsSeed)) {
+        await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','followups',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
+      }
+    } catch {}
     // Backfill izin modul 'analytics' (halaman Analitik) untuk DB lama —
     // cermin DEFAULT_PERMS frontend: Super Admin + Finance boleh buka.
     try {
@@ -298,6 +315,15 @@ export async function initDb() {
       const reportSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 0, Support: 0, Finance: 1, Viewer: 0 };
       for (const [role, allowed] of Object.entries(reportSeed)) {
         await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','report',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
+      }
+    } catch {}
+    // Backfill izin modul 'notifications' (kirim notif antar-user) untuk DB lama —
+    // default ketat: hanya Super Admin; role lain dilewati matriks halaman /roles.
+    try {
+      const now = new Date().toISOString();
+      const notifSeed: Record<string, number> = { 'Super Admin': 1, 'Admin CS': 0, Support: 0, Finance: 0, Viewer: 0 };
+      for (const [role, allowed] of Object.entries(notifSeed)) {
+        await q(`INSERT INTO role_permissions (role,module,allowed,updated_at) VALUES ('${role}','notifications',${allowed},'${now}') ON CONFLICT (role,module) DO NOTHING`);
       }
     } catch {}
     // Seed master status Billing/Finance (dikelola dari Pengaturan) —

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Client Follow-Up Reminder</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--tx:#1c1c1a;--mu:#6b6b66;--bd:#e2e1dc;--ac:#2f5fd0;--acbg:#e8eefb;--rd:#c0392b;--rdbg:#fbeae8;--am:#a66a00;--ambg:#fff2d9;--gn:#1e7a4d;--gnbg:#e2f4ea;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--card:#212120;--tx:#ececE8;--mu:#a3a29c;--bd:#3a3a37;--ac:#7ea2f5;--acbg:#23304f;--rd:#f08a7e;--rdbg:#3d2420;--am:#f0bd62;--ambg:#3b2f17;--gn:#6fd3a0;--gnbg:#1b3328;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161615;--card:#212120;--tx:#ececE8;--mu:#a3a29c;--bd:#3a3a37;--ac:#7ea2f5;--acbg:#23304f;--rd:#f08a7e;--rdbg:#3d2420;--am:#f0bd62;--ambg:#3b2f17;--gn:#6fd3a0;--gnbg:#1b3328;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:22px 0 8px}h3{font-size:15px;margin:14px 0 4px}
+p,li{color:var(--tx)}.mu{color:var(--mu)}
+.tabs{display:flex;gap:6px;margin:16px 0;border-bottom:1px solid var(--bd);overflow-x:auto}
+.tab{background:none;border:0;padding:10px 14px;font:inherit;color:var(--mu);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:var(--ac);border-color:var(--ac);font-weight:600}
+.pane{display:none}.pane.on{display:block}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin:10px 0}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--bd);vertical-align:top}
+th{color:var(--mu);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+code{background:var(--acbg);color:var(--ac);padding:1px 5px;border-radius:4px;font-size:13px}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:9px 14px;font:inherit;cursor:pointer}
+.btn.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.p-open{background:var(--rdbg);color:var(--rd)}.p-cek{background:var(--ambg);color:var(--am)}.p-wait{background:var(--acbg);color:var(--ac)}.p-done{background:var(--gnbg);color:var(--gn)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0}
+.stat{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px}
+.stat b{display:block;font-size:24px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+select,input,textarea{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;width:100%}
+.bar select,.bar input{width:auto}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 3px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.ov.on{display:flex}
+.modal{background:var(--card);border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow:auto;padding:18px 20px}
+.modal h2{margin:0 0 4px}
+.acts{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.late{color:var(--rd);font-weight:600}
+.empty{padding:24px;text-align:center;color:var(--mu)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Client Follow-Up Reminder</h1>
+<div class="mu">PRD, prototipe modal form, dan contoh laporan untuk fitur pengingat follow-up issue client.</div>
+
+<div class="tabs" role="tablist">
+<button class="tab on" data-t="prd">PRD</button>
+<button class="tab" data-t="form">Modal Form</button>
+<button class="tab" data-t="rep">Contoh Laporan</button>
+<button class="tab" data-t="ai">Prompt untuk AI</button>
+</div>
+
+<section class="pane on" id="prd">
+<h2>1. Latar Belakang</h2>
+<p>Issue client yang butuh follow-up atau pengecekan ulang sering terlewat karena hanya diingat secara manual. Fitur ini menyimpan setiap issue dalam format baku dengan tanggal follow-up, sehingga yang jatuh tempo langsung terlihat.</p>
+<h2>2. Tujuan</h2>
+<ul><li>Tidak ada issue client yang terlupa.</li><li>Issue yang lewat tanggal follow-up ditandai otomatis (overdue).</li><li>Tersedia laporan ringkas per client, modul, dan status.</li></ul>
+<h2>3. Ruang Lingkup</h2>
+<p><b>Termasuk:</b> CRUD issue, modal form, daftar dengan filter, penanda overdue, laporan ringkasan, ekspor CSV, riwayat catatan.<br><b>Tidak termasuk (tahap 1):</b> notifikasi email/WhatsApp, integrasi tiket eksternal, SLA otomatis.</p>
+<h2>4. User Story</h2>
+<ul>
+<li>Sebagai pengguna, saya ingin mencatat issue client (client, tanggal, modul, masalah) agar tidak lupa.</li>
+<li>Sebagai pengguna, saya ingin menentukan tanggal follow-up agar issue muncul sebagai pengingat saat jatuh tempo.</li>
+<li>Sebagai pengguna, saya ingin menambah catatan hasil pengecekan di setiap issue agar riwayat jelas.</li>
+<li>Sebagai pengguna, saya ingin melihat laporan issue yang masih terbuka dan overdue.</li>
+</ul>
+<h2>5. Struktur Data</h2>
+<div class="card scroll"><table>
+<tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Keterangan</th></tr>
+<tr><td><code>client</code></td><td>teks / relasi</td><td>Ya</td><td>Nama client, misal Inspired</td></tr>
+<tr><td><code>issue_date</code></td><td>tanggal</td><td>Ya</td><td>Tanggal issue ditemukan, misal 2026-10-09</td></tr>
+<tr><td><code>module</code></td><td>pilihan</td><td>Ya</td><td>Modul terkait, misal Produksi</td></tr>
+<tr><td><code>title</code></td><td>teks</td><td>Ya</td><td>Ringkasan, misal "Show All Produksi tidak bisa dibuka"</td></tr>
+<tr><td><code>description</code></td><td>teks panjang</td><td>Tidak</td><td>Detail, langkah reproduksi</td></tr>
+<tr><td><code>priority</code></td><td>pilihan</td><td>Ya</td><td>Rendah / Sedang / Tinggi / Urgent</td></tr>
+<tr><td><code>status</code></td><td>pilihan</td><td>Ya</td><td>Open, Perlu Pengecekan, Menunggu Client, Selesai</td></tr>
+<tr><td><code>followup_date</code></td><td>tanggal</td><td>Ya</td><td>Kapan harus di-follow up / deadline</td></tr>
+<tr><td><code>pic</code></td><td>teks / user</td><td>Tidak</td><td>Penanggung jawab</td></tr>
+<tr><td><code>notes</code></td><td>daftar catatan</td><td>Tidak</td><td>Riwayat pengecekan (tanggal + isi)</td></tr>
+<tr><td><code>resolved_at</code></td><td>tanggal</td><td>Otomatis</td><td>Terisi saat status Selesai</td></tr>
+</table></div>
+<h2>6. Aturan Bisnis</h2>
+<ul>
+<li>Overdue = status bukan Selesai dan <code>followup_date</code> lebih kecil dari hari ini.</li>
+<li><code>followup_date</code> tidak boleh lebih awal dari <code>issue_date</code>.</li>
+<li>Status Selesai mengisi <code>resolved_at</code> otomatis dan menghilangkan penanda overdue.</li>
+<li>Perubahan status dan penambahan catatan tercatat di riwayat.</li>
+</ul>
+<h2>7. Alur Status</h2>
+<p>Open → Perlu Pengecekan → Menunggu Client → Selesai (boleh kembali ke status sebelumnya jika issue muncul lagi).</p>
+<h2>8. Laporan</h2>
+<ul><li>Ringkasan: total, overdue, jatuh tempo hari ini, selesai.</li><li>Filter: client, modul, status, prioritas, rentang tanggal.</li><li>Ekspor CSV. Urutan default: overdue dulu, lalu follow-up terdekat.</li></ul>
+<h2>9. Kriteria Penerimaan</h2>
+<ul>
+<li>Form tidak bisa disimpan bila field wajib kosong.</li>
+<li>Issue overdue tampil merah di daftar dan laporan.</li>
+<li>Filter dan ringkasan laporan sesuai data.</li>
+<li>Fitur terpasang sebagai menu/modul baru tanpa mengubah modul existing.</li>
+</ul>
+<h2>10. Catatan Integrasi ke Project Existing</h2>
+<ul>
+<li>Stack: backend Next.js (route handler / API route), frontend React, database PostgreSQL. Nama field di bawah disesuaikan dengan konvensi project.</li><li>Skema PostgreSQL:<pre style="background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:10px;overflow-x:auto;font-size:12.5px">CREATE TABLE client_followups (
+  id BIGSERIAL PRIMARY KEY,
+  client_name VARCHAR(150) NOT NULL,
+  issue_date DATE NOT NULL,
+  module VARCHAR(80) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  priority VARCHAR(10) NOT NULL DEFAULT 'Sedang'
+    CHECK (priority IN ('Rendah','Sedang','Tinggi','Urgent')),
+  status VARCHAR(20) NOT NULL DEFAULT 'Open'
+    CHECK (status IN ('Open','Perlu Pengecekan','Menunggu Client','Selesai')),
+  followup_date DATE NOT NULL,
+  pic VARCHAR(100),
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (followup_date &gt;= issue_date)
+);
+CREATE INDEX idx_cf_status_followup ON client_followups (status, followup_date);
+CREATE INDEX idx_cf_client ON client_followups (client_name);
+
+CREATE TABLE followup_notes (
+  id BIGSERIAL PRIMARY KEY,
+  followup_id BIGINT NOT NULL REFERENCES client_followups(id) ON DELETE CASCADE,
+  note TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);</pre></li><li>Endpoint:<pre style="background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:10px;overflow-x:auto;font-size:12.5px">GET    /api/client-followups?client=&amp;module=&amp;status=&amp;priority=&amp;from=&amp;to=&amp;overdue=true
+POST   /api/client-followups
+GET    /api/client-followups/:id
+PATCH  /api/client-followups/:id
+DELETE /api/client-followups/:id
+POST   /api/client-followups/:id/notes
+GET    /api/client-followups/summary
+GET    /api/client-followups/export  (CSV)</pre></li>
+<li>Modal form dan halaman laporan dibuat sebagai komponen terpisah, mengikuti gaya UI project.</li>
+<li>Daftar modul dan client sebaiknya diambil dari data yang sudah ada di project.</li>
+</ul>
+<h2>11. Pertanyaan Terbuka</h2>
+<ul><li>Apakah perlu notifikasi (email/WhatsApp) di tahap berikutnya?</li><li>Apakah satu issue boleh punya lebih dari satu PIC?</li><li>Apakah perlu lampiran (screenshot)?</li></ul>
+</section>
+
+<section class="pane" id="form">
+<div class="card">
+<p style="margin-top:0">Klik tombol di bawah untuk membuka modal form. Data yang disimpan langsung muncul di tab Contoh Laporan (hanya selama halaman terbuka).</p>
+<button class="btn" id="openForm">+ Tambah Issue</button>
+</div>
+</section>
+
+<section class="pane" id="rep">
+<div class="stats" id="stats"></div>
+<div class="bar">
+<select id="fClient"></select>
+<select id="fMod"></select>
+<select id="fStat"></select>
+<button class="btn sec" id="csv">Ekspor CSV</button>
+<button class="btn" id="add2">+ Tambah Issue</button>
+</div>
+<div class="card scroll" style="padding:0"><table id="tbl"></table></div>
+<div class="mu" style="margin-top:8px;font-size:13px">Acuan tanggal laporan: <span id="today"></span>. Merah = overdue.</div>
+</section>
+
+<section class="pane" id="ai">
+<div class="card"><p style="margin-top:0">Salin prompt ini ke AI coding Anda (Cursor, Claude Code, dan sejenisnya). Lampirkan juga file HTML prototipe ini sebagai acuan tampilan.</p>
+<button class="btn" id="copyAi">Salin prompt</button> <span class="mu" id="copied"></span>
+<pre id="aiPrompt" style="white-space:pre-wrap;font-size:13px;margin:12px 0 0;max-height:520px;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:12px">Kamu adalah senior fullstack engineer. Tambahkan fitur baru "Client Follow-Up Reminder" ke project saya yang sudah ada.
+
+STACK: backend Next.js, frontend React, database PostgreSQL.
+
+LANGKAH 0 (WAJIB, sebelum menulis kode):
+Pelajari struktur project: App Router atau Pages Router, cara akses database (Prisma/Drizzle/pg/lainnya) dan sistem migrasi, library UI/styling, cara autentikasi, konvensi penamaan, dan cara komponen modal serta tabel yang sudah ada dibuat. Ikuti konvensi tersebut. Jangan mengubah modul existing kecuali untuk menambah menu/route baru. Ringkas temuanmu singkat, lalu lanjut.
+
+TUJUAN FITUR:
+Mencatat issue client yang harus di-follow up atau dicek ulang agar tidak terlupa. Contoh data: client "Inspired", tanggal issue 2026-10-09, modul "Produksi", issue "Show All Produksi tidak bisa dibuka dan harus dilakukan pengecekan".
+
+SKEMA DATABASE (PostgreSQL, sesuaikan dengan sistem migrasi project):
+- client_followups: id, client_name (wajib), issue_date (date, wajib), module (wajib), title (wajib), description, priority (Rendah/Sedang/Tinggi/Urgent, default Sedang), status (Open/Perlu Pengecekan/Menunggu Client/Selesai, default Open), followup_date (date, wajib), pic, resolved_at, created_at, updated_at. Constraint: followup_date &gt;= issue_date. Index pada (status, followup_date) dan client_name.
+- followup_notes: id, followup_id (FK ke client_followups, ON DELETE CASCADE), note, created_at.
+Jika project sudah punya tabel client atau modul, gunakan relasi ke tabel tersebut dan jangan membuat duplikat.
+
+API (Next.js):
+GET /api/client-followups (filter: client, module, status, priority, from, to, overdue=true; urutan default: overdue dulu, lalu followup_date terdekat), POST, GET /:id, PATCH /:id, DELETE /:id, POST /:id/notes, GET /summary (total, overdue, jatuh tempo hari ini, selesai), GET /export (CSV). Validasi input di server, kembalikan error yang jelas, dan gunakan query terparameter (tanpa SQL string concatenation).
+
+ATURAN BISNIS:
+- Overdue = status bukan Selesai dan followup_date lebih kecil dari hari ini (hitung di server dengan zona waktu Asia/Jakarta).
+- followup_date tidak boleh lebih awal dari issue_date.
+- Saat status menjadi Selesai, isi resolved_at otomatis; jika dibuka kembali, kosongkan.
+- Setiap perubahan status dicatat sebagai catatan riwayat otomatis.
+
+FRONTEND (React):
+- Halaman/menu baru "Client Follow-Up" berisi: kartu ringkasan, filter (client, modul, status), tabel dengan penanda merah dan jumlah hari untuk yang overdue, tombol Tambah, tombol Ubah, dan tombol Ekspor CSV.
+- Modal form tambah/ubah dengan field: Client*, Tanggal issue*, Modul*, Prioritas*, Issue*, Detail, Status*, Tanggal follow-up*, PIC. Validasi field wajib dan aturan tanggal, tampilkan pesan error di form.
+- Di detail issue, tampilkan riwayat catatan dan form tambah catatan.
+- Gunakan file HTML prototipe terlampir sebagai acuan tata letak dan perilaku; sesuaikan gaya dengan komponen UI yang sudah ada di project.
+
+KRITERIA SELESAI:
+1. Form tidak bisa disimpan bila field wajib kosong atau tanggal tidak valid.
+2. Issue overdue tampil merah di daftar dan laporan.
+3. Filter, ringkasan, dan ekspor CSV sesuai data.
+4. Migrasi database berjalan dan bisa di-rollback.
+5. Fitur terpasang sebagai menu baru tanpa merusak modul existing.
+
+OUTPUT YANG SAYA MINTA: daftar file yang dibuat/diubah, file migrasi, kode API, kode komponen React, dan cara menjalankan serta mengujinya. Kerjakan bertahap: database dulu, lalu API, lalu UI. Jika ada hal yang ambigu terhadap struktur project, tanyakan dulu sebelum menebak.</pre></div>
+</section>
+</div>
+
+<div class="ov" id="ov"><div class="modal" role="dialog" aria-modal="true">
+<h2 id="mt">Tambah Issue Client</h2>
+<div class="mu" style="font-size:13px">Kolom bertanda * wajib diisi.</div>
+<div class="grid2">
+<div><label>Client *</label><input id="c" placeholder="Inspired"></div>
+<div><label>Tanggal issue *</label><input id="d" type="date"></div>
+<div><label>Modul *</label><select id="m"></select></div>
+<div><label>Prioritas *</label><select id="p"><option>Rendah</option><option selected>Sedang</option><option>Tinggi</option><option>Urgent</option></select></div>
+</div>
+<label>Issue *</label><input id="t" placeholder="Show All Produksi tidak bisa dibuka">
+<label>Detail / langkah reproduksi</label><textarea id="x" rows="3"></textarea>
+<div class="grid2">
+<div><label>Status *</label><select id="s"></select></div>
+<div><label>Tanggal follow-up *</label><input id="f" type="date"></div>
+</div>
+<label>PIC</label><input id="pic" placeholder="Nama penanggung jawab">
+<div class="late" id="err" style="margin-top:8px"></div>
+<div class="acts"><button class="btn sec" id="cancel">Batal</button><button class="btn" id="save">Simpan</button></div>
+</div></div>
+
+<script>
+var TODAY="2026-10-21";
+var MODS=["Produksi","Penjualan","Pembelian","Stok","Keuangan","Laporan","Lainnya"];
+var STATS=["Open","Perlu Pengecekan","Menunggu Client","Selesai"];
+var data=[
+{c:"Inspired",d:"2026-10-09",m:"Produksi",t:"Show All Produksi tidak bisa dibuka",p:"Tinggi",s:"Perlu Pengecekan",f:"2026-10-12",pic:"Saya"},
+{c:"Inspired",d:"2026-10-15",m:"Stok",t:"Stok akhir tidak sama dengan kartu stok",p:"Sedang",s:"Menunggu Client",f:"2026-10-21",pic:"Saya"},
+{c:"Client B",d:"2026-10-18",m:"Keuangan",t:"Laporan PPN selisih dengan faktur",p:"Urgent",s:"Open",f:"2026-10-23",pic:"Saya"},
+{c:"Client C",d:"2026-10-02",m:"Penjualan",t:"Cetak invoice terpotong",p:"Rendah",s:"Selesai",f:"2026-10-06",pic:"Saya"}
+];
+var editing=-1;
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function over(r){return r.s!=="Selesai"&&r.f<TODAY}
+function cls(s){return{"Open":"p-open","Perlu Pengecekan":"p-cek","Menunggu Client":"p-wait","Selesai":"p-done"}[s]}
+function fill(id,arr,all){$(id).innerHTML=(all?'<option value="">'+all+'</option>':'')+arr.map(function(a){return"<option>"+esc(a)+"</option>"}).join("")}
+function clients(){var o={};data.forEach(function(r){o[r.c]=1});return Object.keys(o)}
+function opts(){var a=$("fClient").value,b=$("fMod").value,c=$("fStat").value;fill("fClient",clients(),"Semua client");fill("fMod",MODS,"Semua modul");fill("fStat",STATS.concat(["Overdue"]),"Semua status");$("fClient").value=a;$("fMod").value=b;$("fStat").value=c}
+function filtered(){var a=$("fClient").value,b=$("fMod").value,c=$("fStat").value;
+return data.map(function(r,i){return Object.assign({i:i},r)}).filter(function(r){
+return(!a||r.c===a)&&(!b||r.m===b)&&(!c||(c==="Overdue"?over(r):r.s===c))}).sort(function(x,y){
+return(over(y)-over(x))||(x.f<y.f?-1:1)})}
+function render(){
+var tot=data.length,ov=data.filter(over).length,td=data.filter(function(r){return r.s!=="Selesai"&&r.f===TODAY}).length,dn=data.filter(function(r){return r.s==="Selesai"}).length;
+$("stats").innerHTML=[["Total issue",tot],["Overdue",ov],["Jatuh tempo hari ini",td],["Selesai",dn]].map(function(x){return'<div class="stat"><span class="mu">'+x[0]+'</span><b'+(x[0]==="Overdue"&&x[1]?' class="late"':'')+'>'+x[1]+'</b></div>'}).join("");
+var rows=filtered();
+$("tbl").innerHTML='<tr><th>Client</th><th>Tgl issue</th><th>Modul</th><th>Issue</th><th>Prioritas</th><th>Status</th><th>Follow-up</th><th></th></tr>'+
+(rows.length?rows.map(function(r){var o=over(r);return'<tr><td>'+esc(r.c)+'</td><td>'+r.d+'</td><td>'+esc(r.m)+'</td><td>'+esc(r.t)+'</td><td>'+r.p+'</td><td><span class="pill '+cls(r.s)+'">'+r.s+'</span></td><td class="'+(o?'late':'')+'">'+r.f+(o?'<br>Overdue '+Math.round((new Date(TODAY)-new Date(r.f))/864e5)+' hari':'')+'</td><td><button class="btn sec sm" onclick="edit('+r.i+')">Ubah</button></td></tr>'}).join(""):'<tr><td colspan="8" class="empty">Tidak ada data.</td></tr>');
+opts2()}
+function opts2(){}
+function openM(i){editing=i;var r=i>=0?data[i]:{c:"",d:TODAY,m:"Produksi",t:"",p:"Sedang",s:"Open",f:"",pic:"",x:""};
+$("mt").textContent=i>=0?"Ubah Issue":"Tambah Issue Client";
+$("c").value=r.c;$("d").value=r.d;$("m").value=r.m;$("t").value=r.t;$("p").value=r.p;$("s").value=r.s;$("f").value=r.f;$("pic").value=r.pic||"";$("x").value=r.x||"";$("err").textContent="";$("ov").classList.add("on")}
+function edit(i){openM(i)}
+function closeM(){$("ov").classList.remove("on")}
+function save(){var r={c:$("c").value.trim(),d:$("d").value,m:$("m").value,t:$("t").value.trim(),p:$("p").value,s:$("s").value,f:$("f").value,pic:$("pic").value.trim(),x:$("x").value.trim()};
+if(!r.c||!r.d||!r.t||!r.f){$("err").textContent="Client, tanggal issue, issue, dan tanggal follow-up wajib diisi.";return}
+if(r.f<r.d){$("err").textContent="Tanggal follow-up tidak boleh lebih awal dari tanggal issue.";return}
+if(editing>=0)data[editing]=r;else data.push(r);
+closeM();var a=$("fClient").value,b=$("fMod").value,c=$("fStat").value;opts();$("fClient").value=a;$("fMod").value=b;$("fStat").value=c;render()}
+function csv(){var h=["Client","Tgl issue","Modul","Issue","Prioritas","Status","Follow-up","Overdue"];
+var l=[h.join(",")].concat(filtered().map(function(r){return[r.c,r.d,r.m,r.t,r.p,r.s,r.f,over(r)?"Ya":"Tidak"].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"'}).join(",")}));
+var b=new Blob([l.join("\n")],{type:"text/csv"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="laporan-followup.csv";a.click()}
+document.querySelectorAll(".tab").forEach(function(b){b.onclick=function(){document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on")});document.querySelectorAll(".pane").forEach(function(x){x.classList.remove("on")});b.classList.add("on");$(b.dataset.t).classList.add("on")}});
+fill("m",MODS);fill("s",STATS);opts();$("today").textContent=TODAY;
+["fClient","fMod","fStat"].forEach(function(i){$(i).onchange=render});
+$("openForm").onclick=function(){openM(-1)};$("add2").onclick=function(){openM(-1)};
+$("cancel").onclick=closeM;$("save").onclick=save;$("csv").onclick=csv;
+$("ov").onclick=function(e){if(e.target===$("ov"))closeM()};
+$("copyAi").onclick=function(){var t=$("aiPrompt").innerText;var ok=function(){$("copied").textContent="Tersalin"};try{navigator.clipboard.writeText(t).then(ok,function(){var r=document.createRange();r.selectNodeContents($("aiPrompt"));var s=getSelection();s.removeAllRanges();s.addRange(r);$("copied").textContent="Teks terpilih, tekan salin manual"})}catch(e){$("copied").textContent="Pilih teks lalu salin manual"}};
+render();
+</script>
+</body>
+</html>

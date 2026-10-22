@@ -38,14 +38,17 @@ describe('H6 — CORS ketat', () => {
     }
   });
 
-  it('origin eksplisit yang dibutuhkan tetap diizinkan (dev + LAN user)', () => {
+  it('origin eksplisit dev tetap diizinkan, literal LAN dev tidak lagi ter-hardcode', () => {
     const saved = process.env.FRONTEND_URL;
     process.env.FRONTEND_URL = 'http://localhost:5173';
     try {
       const origins = buildCorsOptions().origin as string[];
-      for (const must of ['http://localhost:5173', 'http://localhost:3000', 'http://192.168.1.5:5173']) {
+      for (const must of ['http://localhost:5173', 'http://localhost:3000']) {
         assert.ok(origins.includes(must), `${must} harus tetap diizinkan`);
       }
+      // I1: alamat mesin dev LAN boleh diakses lewat FRONTEND_URL, bukan
+      // literal tertanam — if not, prod menerima origin LAN itu permanen.
+      assert.ok(!origins.includes('http://192.168.1.5:5173'), 'literal LAN dev tidak boleh ter-hardcode');
     } finally {
       if (saved === undefined) delete process.env.FRONTEND_URL;
       else process.env.FRONTEND_URL = saved;

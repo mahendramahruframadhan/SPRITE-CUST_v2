@@ -266,6 +266,43 @@ Seluruh frontend dirombak bertahap: AppShell (sidebar collapsible + drawer swipe
 jaring fokus). Logic & data tidak diubah. Rincian per tahap + cara cek:
 [`frontend/README.md`](frontend/README.md) (bagian Revamp Frontend).
 
+## ✨ Fitur baru 2026-10-21 — Client Follow-Up Reminder (branch `20261021/dev-add-deadline`)
+
+Modul pengingat follow-up issue client (PRD: `.local/` atau prototipe
+`Client Follow-Up Reminder.html`). Status: ✅ selesai frontend + backend,
+belum dibuat PR-nya.
+
+- **Cara pakai:** menu `Client Follow-Up` (ikon 🔔) di sidebar → halaman punya
+  3 tab:
+  - **Daftar** — kartu ringkasan (Total / Overdue / Jatuh tempo hari ini /
+    Selesai), filter client–modul–status(+Overdue), tabel merah "Overdue
+    N hari", tambah/ubah via modal, ganti status cepat di modal detail,
+    riwayat catatan (catatan otomatis tiap ganti status), ekspor CSV.
+  - **Kanban** — papan gaya Trello (prototipe: `Kanban Client Follow-Up
+    (gaya Trello).html`), 4 kolom status, drag kartu antar kolom = ganti
+    status, kolom Selesai hanya 30 hari terakhir, klik kartu membuka modal
+    detail. Mode **layar penuh** (portal di atas header/sidebar): tinggal
+    ikon panah kembali (Escape juga kembali); di layar sentuh ganti status
+    lewat modal detail. Semua gaya mengikuti design system (tanpa gradien/
+    warna hardcode; detail: `frontend/README.md`).
+  - **Report** — analitik dihitung dari data yang sudah dimuat (tanpa
+    endpoint baru): chip periode 7/30/90/Semua (berdasarkan tanggal issue),
+    ringkasan (issue periode, selesai, overdue, rata-rata hari
+    penyelesaian), sebaran status bertumpuk, tren masuk vs selesai, per
+    client/modul, dan aging keterlambatan (1–7/8–14/15–30/31+ hari).
+    Klik elemen = drill-down ke tab Daftar dengan filter terpasang.
+- **Aturan:** overdue = status bukan Selesai dan tanggal follow-up <
+  hari ini (server hitung Asia/Jakarta); tanggal follow-up tak boleh lebih
+  awal dari tanggal issue; status Selesai mengisi `resolved_at` otomatis.
+- **Backend:** `backend/src/followups/` — 8 endpoint di bawah `GET/POST
+  /api/followups*` (list+filter, summary, CRUD, notes, export CSV), izin
+  modul `followups` baru di matriks `/roles` (default: Super Admin & Admin
+  CS). Tabel baru `followups` + `followup_notes` dibuat otomatis saat boot.
+  **Restart `npm run dev` backend agar endpoint aktif.**
+- **Frontend:** halaman `/followups` + `hooks/useFollowups.js` (panggil API
+  utama; tetap bisa dipakai offline dengan penyimpanan browser + tombol
+  Coba lagi).
+
 ## 🚧 Progres review 2026-09-22 (branch `dev/20260921-pdf-sync`)
 
 Hasil review kerjaan PDF invoice + status invoice otomatis. Status: ✅ selesai dikerjakan.

@@ -13,9 +13,15 @@ const ROLES = ['Super Admin', 'Admin CS', 'Support', 'Finance', 'Viewer'];
 // Dipakai untuk (a) filter kunci payload dan (b) kunci anti-lockout
 // Super Admin — sebelumnya daftar ini lebih sempit dari seed, jadi ada modul
 // yang tidak pernah dipaksa penuh.
-const MODULES = [
-  'dashboard', 'cases', 'form', 'clients', 'hrreport', 'cfg', 'popinava',
+// Union seluruh modul yang ada di matriks: seed init.ts + id halaman
+// frontend (termasuk report + analytics yang dienforce/dikelola UI).
+// Dipakai untuk (a) filter kunci payload dan (b) kunci anti-lockout
+// Super Admin — sebelumnya daftar ini lebih sempit dari seed, jadi ada modul
+// yang tidak pernah dipaksa penuh. Di-export untuk test matriks.
+export const MODULES = [
+  'dashboard', 'cases', 'form', 'clients', 'followups', 'hrreport', 'cfg', 'popinava',
   'billing', 'finance', 'report', 'analytics', 'mockup', 'roles', 'logs', 'settings',
+  'notifications',
 ];
 
 // CRUD pengguna + matriks izin + log aktivitas untuk halaman /roles — semua di Postgres.

@@ -7,6 +7,8 @@ import { MODULES } from '../config/modules.js';
 import { getJSON, set as simpan } from '../lib/storage.js';
 import Icon, { iconNav } from '../components/Icon.jsx';
 import AiChat from '../components/AiChat.jsx';
+import NotificationBell from '../components/NotificationBell.jsx';
+import { ActionsProvider } from '../context/ActionsContext.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { ScrollArea } from '../components/ui/ScrollArea.jsx';
 // Catatan migrasi Task 2: tombol logout rose disengaja tetap mentah
@@ -237,7 +239,9 @@ export default function AppLayout() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="min-h-screen">
+      {/* Provider satu-sumber data "yang harus dicek" untuk lonceng & panel dashboard */}
+      <ActionsProvider>
+        <div className="min-h-screen">
         {/* Sidebar desktop: diciutkan sesuai preferensi */}
         <motion.aside
           aria-label="Navigasi utama"
@@ -325,6 +329,7 @@ export default function AppLayout() {
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{saatIni?.sub || '—'}</p>
             </div>
             <div className="ml-auto flex items-center gap-3">
+              <NotificationBell />
               <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -350,7 +355,8 @@ export default function AppLayout() {
           </div>
         </main>
         <AiChat />
-      </div>
+        </div>
+      </ActionsProvider>
     </MotionConfig>
   );
 }

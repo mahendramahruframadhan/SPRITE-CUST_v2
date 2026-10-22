@@ -164,6 +164,15 @@ export const getBrandStatuses = () => get('/brand-status');
 export const createBrandStatus = (body) => post('/brand-status', body);
 export const patchBrandStatus = (id, body) => patch(`/brand-status/${id}`, body);
 export const deleteBrandStatus = (id) => req(`/brand-status/${id}`, { method: 'DELETE' });
+// Client Follow-Up (PRD): daftar+filter, summary, CRUD, catatan, ekspor CSV.
+export const getFollowups = (qs = '') => get(`/followups${qs}`);
+export const getFollowupsSummary = () => get('/followups/summary');
+export const createFollowup = (body) => post('/followups', body);
+export const patchFollowup = (id, body) => patch(`/followups/${id}`, body);
+export const deleteFollowup = (id) => req(`/followups/${id}`, { method: 'DELETE' });
+export const deleteAllFollowups = () => req('/followups/all', { method: 'DELETE' });
+export const addFollowupNote = (id, text) => post(`/followups/${id}/notes`, { note: text });
+export const getFollowupsCsvUrl = (qs = '') => `${API_BASE}/followups/export${qs}`;
 // POPI NAVA (master outlet, spec §9) — dipakai hook usePopinava hanya saat
 // probe list sukses (/api/popinava ada); selain itu mode lokal.
 export const getPopinava = (qs = '') => get(`/popinava${qs}`);
@@ -217,3 +226,10 @@ export const confirmShotUpload = (body) => post('/popinava/audit-shots/confirm',
 export const listShotsByOutlet = (uuid) => get(`/popinava/audit-shots/by-outlet/${uuid}`);
 export const requestShotDownloadUrl = (id, opts = {}) => get(`/popinava/audit-shots/${id}/download-url${opts.inline ? '?inline=1' : ''}`);
 export const deleteShot = (id) => req(`/popinava/audit-shots/${id}`, { method: 'DELETE' });
+
+// Notifikasi antar-user (sumber ke-5 lonceng "Yang Harus Dicek") — GET
+// dibatasi 50 terbaru + unreadCount dari backend; PATCH/DELETE scoped pemilik.
+export const fetchNotifications = () => get('/notifications');
+export const markNotificationRead = (id) => req(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' });
+export const markAllNotificationsRead = () => req('/notifications/read-all', { method: 'PATCH' });
+export const deleteNotification = (id) => req(`/notifications/${encodeURIComponent(id)}`, { method: 'DELETE' });

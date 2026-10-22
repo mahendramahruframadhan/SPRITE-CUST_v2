@@ -20,16 +20,20 @@ import { PdfController } from './pdf/pdf.controller';
 import { PdfService } from './pdf/pdf.service';
 import { ClientsController } from './clients/clients.controller';
 import { ClientsService } from './clients/clients.service';
+import { FollowupsController } from './followups/followups.controller';
+import { FollowupsService } from './followups/followups.service';
 import { PopinavaController } from './popinava/popinava.controller';
 import { AuditScheduleController } from './popinava/audit-schedule.controller';
 import { ShotsController } from './shots/shots.controller';
 import { ShotsService } from './shots/shots.service';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { AnalyticsService } from './analytics/analytics.service';
+import { NotificationsController } from './notifications/notifications.controller';
+import { NotificationsService } from './notifications/notifications.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
-  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController, AuditScheduleController, ShotsController, AnalyticsController],
-  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService, ShotsService, AnalyticsService],
+  controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController, AuditScheduleController, ShotsController, AnalyticsController, FollowupsController, NotificationsController],
+  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService, ShotsService, AnalyticsService, FollowupsService, NotificationsService],
 })
 export class AppModule {}

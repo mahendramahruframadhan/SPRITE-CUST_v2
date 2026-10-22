@@ -14,6 +14,7 @@ import { usePermissions } from '../hooks/usePermissions.js';
 import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
 import { billingTone, invLabel } from '../utils/tones.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
+import ActionsPanel from '../components/ActionsPanel.jsx';
 import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
 import Icon from '../components/Icon.jsx';
 
@@ -467,6 +468,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Agenda Hari Ini: yang perlu dicek dari follow-up/kasus/audit/kontrak */}
+      <ActionsPanel />
 
       {error && (
         <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-5 py-3.5 text-[13px] text-rose-700 dark:text-rose-300 flex items-center justify-between shadow-sm animate-fade-in-fast">
