@@ -3,7 +3,9 @@ import * as crypto from 'crypto';
 import { getDb } from '../db/drizzle.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { SessionGuard } from '../auth/session.guard';
+import { resolveSessionUser } from '../auth/session';
 import { logActivity, resolveWho } from '../logs/activity';
+import { bestEffort, findUserIdByName, insertNotifications } from '../notifications/notifications.service';
 
 // Jadwal audit mingguan POPI NAVA per bulan (tab Jadwal Audit, frontend
 // AuditSchedule.jsx). Satu baris per bulan: weeks disimpan sebagai JSON teks
@@ -174,6 +176,18 @@ export class AuditScheduleController {
       category: 'popinava',
       detail: `${label} · ${month} ${weekKey}`,
     });
+    // Notif utk pemilik item (label == nama user) saat ditandai audit —
+    // best-effort: gagal match/error tidak pernah menggagalkan mark itu.
+    if (audited) {
+      await bestEffort('notif-audit-done', async () => {
+        const uid = await findUserIdByName(this.db, label);
+        const actorId = (await resolveSessionUser(this.db, req))?.id;
+        if (!uid || uid === actorId) return;
+        await insertNotifications(this.db, [
+          { userId: uid, type: 'audit_done', title: `Audit ${label}`, body: `${who} menandai audit untuk item Anda (${month} ${weekKey})`, link: '/popinava' },
+        ]);
+      });
+    }
     return {
       ok: true,
       month,
