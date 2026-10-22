@@ -98,6 +98,11 @@ export class NotificationsService {
     if (!t) fail('VALIDATION_ERROR', 'type wajib diisi.');
     const ttl = String(title || '').trim();
     if (!ttl) fail('VALIDATION_ERROR', 'title wajib diisi.');
+    // Link wajib path internal /… ≤200 — frontend mengrahkan receiver ke sini
+    // (navigate), bukan navigasi eksternal. Nilai luar → null (diam), bukan error.
+    let lk: string | null = typeof link === 'string' && link ? link : null;
+    if (lk && !/^\//.test(lk)) lk = null;
+    if (lk && lk.length > 200) fail('VALIDATION_ERROR', 'Link maksimal 200 karakter.');
     // pg-mem belum mendukung = ANY($1) untuk array — ambil semua user lalu cek
     // di Map (jumlah user kecil; konsisten dengan findUserIdByName).
     const found = await this.db.pq(`SELECT id, COALESCE(active,1) AS active FROM "user"`);
@@ -108,7 +113,7 @@ export class NotificationsService {
         fail('USER_NOT_FOUND', `Penerima tidak dikenal atau tidak aktif: ${id}`);
       }
     }
-    await insertNotifications(this.db, ids.map((userId) => ({ userId, type: t, title: ttl, body, link, groupId })));
+    await insertNotifications(this.db, ids.map((userId) => ({ userId, type: t, title: ttl, body, link: lk, groupId })));
     return { ok: true, delivered: ids.length };
   }
 
