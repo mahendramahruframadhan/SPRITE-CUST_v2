@@ -11,6 +11,10 @@ Jalur: architectural. Keputusan kunci:
 - Izin kirim manual memakai matriks `role_permissions` (modul baru
   `notifications`), Super Admin selalu lolos — pola sama per modul lain.
 - UI kirim manual ditunda; hanya endpoint POST + trigger otomatis.
+- Trigger tambahan alur billing: saat data kasus divalidasi jadi
+  `VALID - SIAP INVOICE` → notif `invoice_ready` ke SEMUA user role
+  Finance (penerima by role, bukan match nama) — alur asli: Super Admin
+  validasi dulu, Finance baru buat invoice & upload PDF.
 - Tanpa websocket/redis/email/WA; frontend polling 60 detik.
 
 ## 1. Tujuan & success criteria
@@ -22,7 +26,9 @@ melihat & memodifikasinya.
 
 - Success: user yang punya nama sama dengan PIC follow-up menerima notif
   saat follow-up dibuat/di-update ke dirinya; mark audit Popi Nava
-  menghasilkan notif bila label item == nama user; dropdown lonceng menampilkan
+  menghasilkan notif bila label item == nama user; validasi kasus ke
+  `VALID - SIAP INVOICE` menghasilkan notif ke semua user role Finance;
+  dropdown lonceng menampilkan
   grup "Notifikasi dari tim" dengan polling 60 detik; klik item → mark read
   → navigasi ke `link`; badge bertambah.
 - Non-goal: UI kirim manual; websocket/redis; email/WhatsApp; retention cron;
@@ -36,7 +42,7 @@ Tabel baru `notifications` (satu baris = satu notif untuk satu penerima):
 |---|---|---|
 | `id` | text | PK uuid |
 | `user_id` | text | NOT NULL, FK → `user(id)` ON DELETE CASCADE — penerima |
-| `type` | text | NOT NULL; `followup_assigned`, `audit_done`, `audit_assigned`, `mention`, `custom` — string terbuka, tanpa enum DB |
+| `type` | text | NOT NULL; `followup_assigned`, `audit_done`, `invoice_ready`, `mention`, `custom` — string terbuka, tanpa enum DB |
 | `title` | text | NOT NULL — baris utama dropdown |
 | `body` | text | NULL — pembatas/penjelas |
 | `link` | text | NULL — route frontend (mis. `/followups`, `/popinava`) |
@@ -83,6 +89,14 @@ yang memicu — tidak lewat HTTP POST, jadi tidak butuh izin.
   cara sama → insert `audit_done` (title `"Audit {label}"`,
   body `"{pelaku} menandai audit untuk item Anda ({month} {weekKey})"`,
   link `/popinava`). Tidak ketemu → diam-diam skip; mark tetap berhasil.
+- **Validasi billing** (alur asli: Super Admin validasi dulu, Finance baru
+  buat invoice & upload PDF satu per satu): di `billing.controller`
+  `PATCH cases/:uuid/audit` — bila `action` baru = `VALID - SIAP INVOICE`
+  dan nilai sebelumnya berbeda — kirim `invoice_ready` ke SEMUA user
+  `active` dgn `role = 'Finance'` (penerima by role, bukan match nama):
+  title `"Kasus {label} sudah valid — siap dibuatkan invoice"`,
+  body `"Data divalidasi oleh {pelaku}. Silakan buat invoice dan upload PDF."`,
+  link `/billing`.
 
 Fail-safe: error trigger/gagal match tidak pernah menggagalkan operasi utama
 (follow-up/mark harus tetap sukses); notif dibuat best-effort.
@@ -119,7 +133,9 @@ Fail-safe: error trigger/gagal match tidak pernah menggagalkan operasi utama
 - Backend (jest, pola suite existing): ownership scope (user lain → 404/403),
   POST validasi (userIds kosong/user tak aktif/type title wajib), PermGuard
   POST, GET limit + unreadCount, match nama trigger (ketemu / tidak ketemu /
-  self-assign), Popi Nava mark audited=true → notif, fail-safe (error trigger
+  self-assign), Popi Nava mark audited=true → notif, billing audit →
+  `VALID - SIAP INVOICE` → notif ke role Finance (sekali per perubahan,
+  bukan dobel), fail-safe (error trigger
   tidak gagalkan operasi pemicu).
 - Frontend: lint + manual flow (badge, polling, mark read, navigate,
   mark-all, hapus).
