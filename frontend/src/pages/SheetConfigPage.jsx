@@ -11,8 +11,16 @@ const LS_KEY = 'sheetConfig';
 
 function loadCfg() {
   const v = getJSON(LS_KEY, null);
-  if (v && Array.isArray(v.brands)) return v;
+  if (v && Array.isArray(v.brands)) return upperBrands(v);
   return structuredClone(DEFAULT_CONFIG);
+}
+
+// Brand selalu CAPS semua: data lama dari sheet bisa huruf campuran, jadi di-
+// rapikan (uppercase + unik + urut) setiap kali config dimuat — tampilan chip
+// di /cfg dan dropdown client di form lain jadi konsisten.
+function upperBrands(cfg) {
+  if (!cfg || !Array.isArray(cfg.brands)) return cfg;
+  return { ...cfg, brands: [...new Set(cfg.brands.map((b) => String(b).toUpperCase()).filter(Boolean))].sort() };
 }
 
 const ST_CHOICES = ['SUPPORT TYPE - A', 'SUPPORT TYPE - B', 'SUPPORT TYPE - C', 'SUPPORT MONTHLY'];
@@ -59,7 +67,7 @@ export default function SheetConfigPage() {
     let ignore = false;
     getConfig()
       .then((r) => {
-        if (!ignore && r && r.config && Object.keys(r.config).length) setCfg(r.config);
+        if (!ignore && r && r.config && Object.keys(r.config).length) setCfg(upperBrands(r.config));
       })
       .catch(() => {})
       .finally(() => {
