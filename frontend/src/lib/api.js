@@ -170,6 +170,7 @@ export const getFollowupsSummary = () => get('/followups/summary');
 export const createFollowup = (body) => post('/followups', body);
 export const patchFollowup = (id, body) => patch(`/followups/${id}`, body);
 export const deleteFollowup = (id) => req(`/followups/${id}`, { method: 'DELETE' });
+export const deleteAllFollowups = () => req('/followups/all', { method: 'DELETE' });
 export const addFollowupNote = (id, text) => post(`/followups/${id}/notes`, { note: text });
 export const getFollowupsCsvUrl = (qs = '') => `${API_BASE}/followups/export${qs}`;
 // POPI NAVA (master outlet, spec §9) — dipakai hook usePopinava hanya saat

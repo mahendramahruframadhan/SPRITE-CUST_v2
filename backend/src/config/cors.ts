@@ -9,8 +9,12 @@
 // origin tetap daftar string eksplisit (tanpa regex subnet); cookie
 // sameSite=lax + pengecekan Origin/Referer untuk request mutasi (lihat
 // auth/csrf.ts) menutup celah CSRF yang dibuka oleh kredensial ini.
+//
+// I1 (audit): literal LAN (http://192.168.1.5:5173) dihapus dari allowlist
+// — kebutuhan akses via jaringan cukup disetel lewat FRONTEND_URL, bukan
+// alamat mesin dev yang tertanam di kode.
 export function buildCorsOptions(): { origin: string[]; credentials: boolean } {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const origins = [frontendUrl, 'http://localhost:5173', 'http://localhost:3000', 'http://192.168.1.5:5173'];
+  const origins = [frontendUrl, 'http://localhost:5173', 'http://localhost:3000'];
   return { origin: [...new Set(origins)], credentials: true };
 }

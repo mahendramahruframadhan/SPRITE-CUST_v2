@@ -43,6 +43,14 @@ export class FollowupsController {
     return { ok: true, data: await this.svc.create(b, await resolveWho(getDb(), req)) };
   }
 
+  // Rute statis 'followups/all' WAJIB sebelum ':id' (param would swallow).
+  @Delete('followups/all')
+  @UseGuards(PermGuard)
+  @Perm('followups')
+  async removeAll(@Req() req: any) {
+    return { ok: true, data: await this.svc.removeAll(await resolveWho(getDb(), req)) };
+  }
+
   @Patch('followups/:id')
   @UseGuards(PermGuard)
   @Perm('followups')

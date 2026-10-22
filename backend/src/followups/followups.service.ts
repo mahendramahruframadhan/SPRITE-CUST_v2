@@ -185,10 +185,26 @@ export class FollowupsService {
   async remove(id: string, who: string): Promise<any> {
     const cur = rowsOf(await this.db.pq(`SELECT * FROM followups WHERE id=$1 LIMIT 1`, [id]))[0];
     if (!cur) fail('NOT_FOUND', 'Issue follow-up tidak ditemukan.', HttpStatus.NOT_FOUND);
-    await this.db.pq(`DELETE FROM followup_notes WHERE followup_id=$1`, [id]);
+    // I2 (audit): satu statement atomik — catatan riwayat dibersihkan
+    // FK followup_notes.followup_id ON DELETE CASCADE (init.ts/schema.pg),
+    // tidak lagi dua DELETE manual yang bisa gagal setengah jalan
+    // (issue tersisa tanpa riwayat catatannya).
     await this.db.pq(`DELETE FROM followups WHERE id=$1`, [id]);
     await logActivity(this.db, { who, action: `menghapus issue follow-up "${cur.title}" (${cur.client_name})`, category: 'Perubahan', recordUuid: id });
     return { id };
+  }
+
+  // I3 (audit): hapus semua issue sekaligus untuk tombol Reset Data — satu
+  // permintaan, atomic, catatan ikut cascade. Nilai balik = jumlah baris.
+  async removeAll(who: string): Promise<any> {
+    const r: any = await this.db.pq(`DELETE FROM followups RETURNING id`);
+    const count = Number(r?.rowCount ?? rowsOf(r).length ?? 0);
+    await logActivity(this.db, {
+      who,
+      action: count > 0 ? `menghapus semua issue follow-up (${count} baris)` : 'melakukan reset tanpa issue (0 baris)',
+      category: 'Perubahan',
+    });
+    return { count };
   }
 
   private async addNoteRow(followupId: string, note: string, isAuto: boolean, who: string): Promise<void> {

@@ -10,6 +10,7 @@ import {
   createFollowup,
   patchFollowup,
   deleteFollowup,
+  deleteAllFollowups,
   addFollowupNote as addFollowupNoteApi,
 } from '../lib/api.js';
 import { getJSON, set as storageSet } from '../lib/storage.js';
@@ -296,13 +297,13 @@ export function useFollowups() {
     setItems((prev) => prev.filter((r) => r.id !== id));
   }
 
-  // Reset semua issue: hapus satu per satu via endpoint yang ada (izin
-  // 'followups'), lalu kosongkan lokal. 404 = sudah terhapus, lewati; galat
-  // jaringan di tengah jalan = pindah mode offline + status 'partial'
-  // (server mungkin masih menyimpan sisanya); galat izin/server = lempar.
-  // Mode offline = hapus lokal saja, status 'local' (data server tak disentuh
-  // dan akan kembali saat tersambung). Async handler menangkap snapshot
-  // `items` sekali (react.dev: state-as-a-snapshot) — daftar hapus deterministik.
+  // Reset semua issue: jalur baru DELETE /api/followups/all — atomic,
+  // catatan ikut cascade, dan menghapus baris server bisa lebih banyak dari
+  // snapshot lokal. Backend lama tanpa rute itu (404) atau PUT terputus
+  // (galat jaringan) jatuh ke loop per-item berparameter. 404 = lewati;
+  // galat izin/server = lempar. Mode offline = hapus lokal saja, status
+  // 'local'. Async handler menangkap snapshot `items` sekali (react.dev:
+  // state-as-a-snapshot) — daftar hapus deterministik.
   async function resetFollowups() {
     const result = { status: 'done', offline: false };
     if (serverOk === false) {
@@ -311,16 +312,31 @@ export function useFollowups() {
       return result;
     }
     let offline = false;
-    for (const r of items) {
-      try {
-        await deleteFollowup(r.id);
-      } catch (e) {
-        if (e?.status === 404) continue;
-        if (isOfflineErr(e)) {
-          offline = true;
-          break;
-        }
+    let bulkDone = false;
+    try {
+      await deleteAllFollowups();
+      bulkDone = true;
+    } catch (e) {
+      if (e?.status === 404) {
+        bulkDone = false; // backend lama: pakai jalur per-item
+      } else if (isOfflineErr(e)) {
+        offline = true; // koneksi putus — apakah server terhapus semua/tidak tak pasti
+      } else {
         throw e;
+      }
+    }
+    if (!bulkDone && !offline) {
+      for (const r of items) {
+        try {
+          await deleteFollowup(r.id);
+        } catch (e) {
+          if (e?.status === 404) continue;
+          if (isOfflineErr(e)) {
+            offline = true;
+            break;
+          }
+          throw e;
+        }
       }
     }
     result.offline = offline;
