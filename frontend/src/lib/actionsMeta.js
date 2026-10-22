@@ -26,9 +26,15 @@ export const GROUP_META = {
     dot: 'bg-sky-400',
     name: 'Client & Brand',
   },
+  notif: {
+    soft: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400',
+    chip: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300',
+    dot: 'bg-indigo-400',
+    name: 'Notifikasi dari tim',
+  },
 };
 
-export const ICON_BY_ID = { kasus: 'billing', followups: 'followups', audit: 'store', kontrak: 'clients' };
+export const ICON_BY_ID = { kasus: 'billing', followups: 'followups', audit: 'store', kontrak: 'clients', notif: 'mail' };
 
 // Fallback bila grup baru muncul tanpa meta (jangan sampai kosong di UI).
 export function groupMeta(id) {

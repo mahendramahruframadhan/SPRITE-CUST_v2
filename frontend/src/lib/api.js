@@ -226,3 +226,10 @@ export const confirmShotUpload = (body) => post('/popinava/audit-shots/confirm',
 export const listShotsByOutlet = (uuid) => get(`/popinava/audit-shots/by-outlet/${uuid}`);
 export const requestShotDownloadUrl = (id, opts = {}) => get(`/popinava/audit-shots/${id}/download-url${opts.inline ? '?inline=1' : ''}`);
 export const deleteShot = (id) => req(`/popinava/audit-shots/${id}`, { method: 'DELETE' });
+
+// Notifikasi antar-user (sumber ke-5 lonceng "Yang Harus Dicek") — GET
+// dibatasi 50 terbaru + unreadCount dari backend; PATCH/DELETE scoped pemilik.
+export const fetchNotifications = () => get('/notifications');
+export const markNotificationRead = (id) => req(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' });
+export const markAllNotificationsRead = () => req('/notifications/read-all', { method: 'PATCH' });
+export const deleteNotification = (id) => req(`/notifications/${encodeURIComponent(id)}`, { method: 'DELETE' });

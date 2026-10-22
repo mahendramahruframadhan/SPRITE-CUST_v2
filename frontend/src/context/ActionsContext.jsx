@@ -3,6 +3,8 @@
 // (item minggu berjalan yang belum ditandai audit), kontrak client GRATIS
 // (hampir/sudah habis), dan kasus berbayar yang belum tervalidasi — untuk
 // lonceng notifikasi di topbar + panel Agenda Hari Ini di dashboard.
+// Source ke-5: notifikasi antar-user dari backend (GET /api/notifications,
+// polling 60s, interval di-hentikan saat logout) → grup "Notifikasi dari tim".
 // Semua fetch di provider agar bell (AppLayout) dan panel (DashboardPage)
 // berbagi satu sumber, tidak dobel request.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -10,13 +12,19 @@ import { useCases } from '../hooks/useCases.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { isDueToday, isOverdue, overdueDays, todayStr, useFollowups } from '../hooks/useFollowups.js';
-import { getBrandStatuses } from '../lib/api.js';
+import { getBrandStatuses, deleteNotification, fetchNotifications, markAllNotificationsRead, markNotificationRead } from '../lib/api.js';
 import { formatWeekRange, getSchedule, monthKeyOf, monthWeeks } from '../lib/auditSchedule.js';
 import { daysLeft, expiryState, fmtDateID } from '../utils/contract.js';
+import { relTimeID } from '../utils/relTime.js';
+import { useAuth } from './AuthContext.jsx';
 
 const ActionsContext = createContext(null);
 
 const MONTH_ITEMS = 4; // maksimal item contoh per grup (detail penuh di halamannya)
+
+const NOTIF_ITEMS = 4; // maksimal item contoh grup notifikasi (sisa "N lainnya")
+
+const NOTIF_POLL_MS = 60_000; // polling antar-user tanpa websocket (sederhana)
 
 const MONTH_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -80,6 +88,8 @@ export function ActionsProvider({ children }) {
   const [schedule, setSchedule] = useState(null);
   const [brands, setBrands] = useState([]);
   const [ready, setReady] = useState(false);
+  const [notifs, setNotifs] = useState([]);
+  const { user } = useAuth(); // polling hanya saat ada sesi (tanpa loop 401)
 
   const fetchExtra = useCallback(
     () =>
@@ -100,10 +110,72 @@ export function ActionsProvider({ children }) {
     };
   }, [fetchExtra]);
 
+  // Polling notifikasi: hanya jalan bila user login; tick pertama langsung,
+  // lalu tiap 60 detik. Gagal (mis. sesi mati) → diam; req() yang mengurus
+  // redirect login sekali — interval berhenti saat user tak ada (depak effect).
+  const refreshNotifs = useCallback(async () => {
+    try {
+      const d = await fetchNotifications();
+      setNotifs(Array.isArray(d?.notifications) ? d.notifications : []);
+    } catch {
+      // sesi/fetch gagal — biarkan data lama, tidur sampai tick berikutnya
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setNotifs([]);
+      return undefined;
+    }
+    let alive = true;
+    refreshNotifs();
+    const t = setInterval(() => {
+      if (alive) refreshNotifs();
+    }, NOTIF_POLL_MS);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [user, refreshNotifs]);
+
+  // Mark read/hapus: optimis di UI, bila API gagal → refetch utk membalik.
+  const markNotifRead = useCallback(
+    async (id) => {
+      setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n)));
+      try {
+        await markNotificationRead(id);
+      } catch {
+        refreshNotifs();
+      }
+    },
+    [refreshNotifs],
+  );
+
+  const markAllNotifsRead = useCallback(async () => {
+    setNotifs((prev) => prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() })));
+    try {
+      await markAllNotificationsRead();
+    } catch {
+      refreshNotifs();
+    }
+  }, [refreshNotifs]);
+
+  const deleteNotif = useCallback(
+    async (id) => {
+      setNotifs((prev) => prev.filter((n) => n.id !== id));
+      try {
+        await deleteNotification(id);
+      } catch {
+        refreshNotifs();
+      }
+    },
+    [refreshNotifs],
+  );
+
   // Muat ulang: sekaligus coba tersambung lagi (ikutan sinkron follow-up offline), lalu segarkan sumber lainnya.
   const refresh = useCallback(
-    () => Promise.all([retryConnection().catch(() => {}), reload(), fetchExtra()]),
-    [retryConnection, reload, fetchExtra]
+    () => Promise.all([retryConnection().catch(() => {}), reload(), fetchExtra(), refreshNotifs()]),
+    [retryConnection, reload, fetchExtra, refreshNotifs]
   );
 
   const groups = useMemo(() => {
@@ -207,15 +279,38 @@ export function ActionsProvider({ children }) {
       }
     }
 
+    // 5) Notifikasi dari tim: unread dulu, lalu terbaru. Grup ini TANPA path —
+    //    navigasi per item ke `link`-nya (dari NotificationBell), bukan jump path.
+    if (notifs.length > 0) {
+      const sorted = notifs.slice().sort((a, b) => (!!a.readAt ? 1 : 0) - (!!b.readAt ? 1 : 0) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      const items = sorted.map((n) => ({
+        id: n.id,
+        label: n.title,
+        sub: [n.body, relTimeID(n.createdAt)].filter(Boolean).join(' · '),
+        link: n.link || '/dashboard',
+        read: !!n.readAt,
+      }));
+      const unread = sorted.filter((n) => !n.readAt).length;
+      out.push({
+        id: 'notif',
+        title: 'Notifikasi dari tim',
+        path: undefined,
+        count: unread,
+        note: unread ? `${unread} belum dibaca` : '',
+        items: items.slice(0, NOTIF_ITEMS),
+        left: items.length - Math.min(items.length, NOTIF_ITEMS),
+      });
+    }
+
     return out;
-  }, [caseAuditStatus, brands, can, cases, followups, schedule]);
+  }, [caseAuditStatus, brands, can, cases, followups, schedule, notifs]);
 
   const total = useMemo(() => groups.reduce((s, g) => s + g.count, 0), [groups]);
 
-  return <ActionsContext.Provider value={{ groups, total, ready, refresh }}>{children}</ActionsContext.Provider>;
+  return <ActionsContext.Provider value={{ groups, total, ready, refresh, notifs, markNotifRead, markAllNotifsRead, deleteNotif }}>{children}</ActionsContext.Provider>;
 }
 
 export function useActions() {
   const ctx = useContext(ActionsContext);
-  return ctx || { groups: [], total: 0, ready: false, refresh: () => {} };
+  return ctx || { groups: [], total: 0, ready: false, refresh: () => {}, notifs: [], markNotifRead: async () => {}, markAllNotifsRead: async () => {}, deleteNotif: async () => {} };
 }
