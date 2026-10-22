@@ -76,11 +76,17 @@ export default function ActionsPanel() {
         <div className="mt-4 grid sm:grid-cols-2 gap-3">
           {groups.map((g) => {
             const meta = groupMeta(g.id);
+            const fwd = g.path ? { to: g.path } : {};
+            // Grup tanpa path (notif) tampil sebagai kartu — detail & aksi per
+            // notifikasi ada di lonceng, bukan di panel ini.
             return (
               <Link
                 key={g.id}
-                to={g.path}
-                className="group relative rounded-xl border border-slate-100 dark:border-slate-800 p-4 overflow-hidden hover:border-brand-300 dark:hover:border-brand-500/40 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                {...fwd}
+                as={g.path ? undefined : 'div'}
+                className={`group relative rounded-xl border border-slate-100 dark:border-slate-800 p-4 overflow-hidden ${
+                  g.path ? 'hover:border-brand-300 dark:hover:border-brand-500/40 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition' : ''
+                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60`}
               >
                 {/* garis aksen kiri kartu (satu aksen titik fokus per kartu) */}
                 <span className={`absolute inset-y-0 left-0 w-1 ${meta.dot}`} aria-hidden="true" />
@@ -114,12 +120,14 @@ export default function ActionsPanel() {
                     )}
                   </ul>
                 )}
-                <span className="mt-3 pl-2 inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">
-                  Buka {meta.name}
-                  <svg className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                  </svg>
-                </span>
+                {g.path && (
+                  <span className="mt-3 pl-2 inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">
+                    Buka {meta.name}
+                    <svg className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </span>
+                )}
               </Link>
             );
           })}
