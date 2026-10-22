@@ -105,6 +105,7 @@ export function ActionsProvider({ children }) {
   const groups = useMemo(() => {
     const out = [];
     const today = todayStr();
+    const nowTs = new Date(); // Date utuh untuk fungsi kalender; today = string untuk perbanding follow-up
 
     // 1) Client follow-up: overdue dulu, lalu jatuh tempo hari ini.
     if (can('followups')) {
@@ -131,8 +132,8 @@ export function ActionsProvider({ children }) {
     //    sebelumnya yang belum tervalidasi diingatkan — dicek & diaudit di
     //    Billing & Audit dulu sebelum invoice-nya dicetak (kasus terlambat
     //    diingat sepanjang bulan biar dashboard tidak menumpuk pengingat).
-    if (can('billing') && inReminderWindow(today)) {
-      const win = prevMonthWindow(today);
+    if (can('billing') && inReminderWindow(nowTs)) {
+      const win = prevMonthWindow(nowTs);
       const pendingAudit = cases.filter((c) => {
         if (c.billingStatus !== 'ON-CALL') return false;
         const dt = parseIssueDate(c.dateIssue);
