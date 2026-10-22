@@ -9,8 +9,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useCases } from '../hooks/useCases.js';
 import { useAuditState } from '../hooks/useAuditState.js';
 import { usePermissions } from '../hooks/usePermissions.js';
-import { isDueToday, isOverdue, overdueDays, todayStr } from '../hooks/useFollowups.js';
-import { getFollowups, getBrandStatuses } from '../lib/api.js';
+import { isDueToday, isOverdue, overdueDays, todayStr, useFollowups } from '../hooks/useFollowups.js';
+import { getBrandStatuses } from '../lib/api.js';
 import { formatWeekRange, getSchedule, monthKeyOf, monthWeeks } from '../lib/auditSchedule.js';
 import { daysLeft, expiryState, fmtDateID } from '../utils/contract.js';
 
@@ -69,24 +69,24 @@ function findActiveWeek(today) {
 }
 
 export function ActionsProvider({ children }) {
+  // Sumber follow-up = hook yang sama dengan halaman /followups (HTML fallback
+  // offline localStorage + seed), agar lonceng/panel tidak kalah data saat
+  // backend belum terjangkau — selaras dengan halaman yang sedang dilihat user.
+  const { items: followups, retryConnection } = useFollowups();
   const { cases, reload } = useCases();
   const { caseAuditStatus } = useAuditState();
   const { can } = usePermissions();
 
-  const [followups, setFollowups] = useState([]);
   const [schedule, setSchedule] = useState(null);
   const [brands, setBrands] = useState([]);
   const [ready, setReady] = useState(false);
 
   const fetchExtra = useCallback(
     () =>
-      Promise.allSettled([getFollowups(), getSchedule(monthKeyOf(new Date())), getBrandStatuses()]).then(
-        ([fu, sch, br]) => {
-          if (Array.isArray(fu.value)) setFollowups(fu.value);
-          if (sch.value && sch.value.weeks) setSchedule(sch.value.weeks);
-          if (Array.isArray(br.value)) setBrands(br.value);
-        }
-      ),
+      Promise.allSettled([getSchedule(monthKeyOf(new Date())), getBrandStatuses()]).then(([sch, br]) => {
+        if (sch.value && sch.value.weeks) setSchedule(sch.value.weeks);
+        if (Array.isArray(br.value)) setBrands(br.value);
+      }),
     []
   );
 
@@ -100,7 +100,11 @@ export function ActionsProvider({ children }) {
     };
   }, [fetchExtra]);
 
-  const refresh = useCallback(() => Promise.all([reload(), fetchExtra()]), [reload, fetchExtra]);
+  // Muat ulang: sekaligus coba tersambung lagi (ikutan sinkron follow-up offline), lalu segarkan sumber lainnya.
+  const refresh = useCallback(
+    () => Promise.all([retryConnection().catch(() => {}), reload(), fetchExtra()]),
+    [retryConnection, reload, fetchExtra]
+  );
 
   const groups = useMemo(() => {
     const out = [];
