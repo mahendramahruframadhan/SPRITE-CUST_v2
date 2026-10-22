@@ -2,6 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/drizzle.service';
 import { logActivity } from '../logs/activity';
+import { bestEffort, findUserIdByName, insertNotifications } from '../notifications/notifications.service';
 import {
   checkFollowupInput,
   checkFollowupPatch,
@@ -28,8 +29,21 @@ const rethrowContract = (e: unknown): never => {
   throw e;
 };
 
-function rowsOf(r: any): any[] {
+ function rowsOf(r: any): any[] {
   return r?.rows ?? (Array.isArray(r) ? r : []);
+}
+
+// Trigger notifikasi PIC follow-up (best-effort — gagal tidak pernah menahan
+// operasi utama). PIC teks bebas di-match ke user.name (trim + case-insensitive),
+// yang menang bila sama = user yang dibuat lebih dulu. Self-assign tidak kirim.
+function notifyPicAssigned(db: any, who: string, p: { client: string; title: string; followupDate: string; pic: string }): Promise<void> {
+  return bestEffort('notif-followup', async () => {
+    const uid = await findUserIdByName(db, p.pic);
+    if (!uid || uid === who) return;
+    await insertNotifications(db, [
+      { userId: uid, type: 'followup_assigned', title: `${p.client} — ${p.title}`, body: `Anda ditunjuk sebagai PIC (follow-up ${p.followupDate})`, link: '/followups' },
+    ]);
+  });
 }
 
 function rowToApi(r: any, notes: any[] = []): any {
@@ -141,6 +155,9 @@ export class FollowupsService {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$12)`,
       [id, p!.client, p!.issueDate, p!.module, p!.title, p!.description, p!.priority, p!.status, p!.followupDate, p!.pic, resolvedAt, now],
     );
+    if (p!.pic) {
+      await notifyPicAssigned(this.db, String(who || ''), p!);
+    }
     await logActivity(this.db, {
       who,
       action: `menambah issue follow-up (${p!.client}: ${p!.title})`,
@@ -162,10 +179,14 @@ export class FollowupsService {
     const now = new Date().toISOString();
     const statusChanged = p!.status !== cur.status;
     const resolvedAt = p!.status === 'Selesai' ? (cur.resolved_at || now) : null;
+    const picChanged = String(p!.pic || '').trim() !== String(cur.pic || '').trim();
     await this.db.pq(
       `UPDATE followups SET client_name=$1,issue_date=$2,module=$3,title=$4,description=$5,priority=$6,status=$7,followup_date=$8,pic=$9,resolved_at=$10,updated_at=$11 WHERE id=$12`,
       [p!.client, p!.issueDate, p!.module, p!.title, p!.description, p!.priority, p!.status, p!.followupDate, p!.pic, resolvedAt, now, id],
     );
+    if (picChanged && p!.pic) {
+      await notifyPicAssigned(this.db, String(who || ''), p!);
+    }
     if (statusChanged) {
       // Riwayat otomatis perubahan status (PRD §6), via pq berparameter agar
       // aman terhadap nilai status dari mana pun.

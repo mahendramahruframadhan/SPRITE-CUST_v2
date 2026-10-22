@@ -33,6 +33,8 @@ export function setupTables() {
     `CREATE TABLE IF NOT EXISTS audit_schedule (month TEXT PRIMARY KEY, weeks TEXT NOT NULL DEFAULT '{}', updated_by TEXT, updated_at TEXT)`,
     `CREATE TABLE IF NOT EXISTS audit_history (id TEXT PRIMARY KEY, month TEXT NOT NULL, week_key TEXT NOT NULL, item_id TEXT NOT NULL, item_type TEXT, item_label TEXT, action TEXT NOT NULL, who TEXT, created_at TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, type TEXT NOT NULL, title TEXT NOT NULL, body TEXT, link TEXT, read_at TIMESTAMP, group_id TEXT, created_at TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS followups (id TEXT PRIMARY KEY, client_name TEXT NOT NULL, issue_date TEXT NOT NULL, module TEXT NOT NULL, title TEXT NOT NULL, description TEXT, priority TEXT NOT NULL DEFAULT 'Sedang', status TEXT NOT NULL DEFAULT 'Open', followup_date TEXT NOT NULL, pic TEXT, resolved_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS followup_notes (id TEXT PRIMARY KEY, followup_id TEXT NOT NULL, note TEXT NOT NULL, is_auto INTEGER, who TEXT, created_at TEXT NOT NULL)`,
   ];
   for (const ddl of ddls) mem.public.none(ddl);
 }
