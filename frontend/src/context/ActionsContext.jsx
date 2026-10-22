@@ -8,7 +8,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useCases } from '../hooks/useCases.js';
 import { useAuditState } from '../hooks/useAuditState.js';
-import { useInvoiceState } from '../hooks/useInvoiceState.js';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { isDueToday, isOverdue, overdueDays, todayStr } from '../hooks/useFollowups.js';
 import { getFollowups, getBrandStatuses } from '../lib/api.js';
@@ -18,6 +17,36 @@ import { daysLeft, expiryState, fmtDateID } from '../utils/contract.js';
 const ActionsContext = createContext(null);
 
 const MONTH_ITEMS = 4; // maksimal item contoh per grup (detail penuh di halamannya)
+
+const MONTH_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+// Pengingat audit bulanan hanya aktif tanggal 1-7 tiap bulan — segera setelah
+// bulan berganti, sebelum daftar menumpuk sepanjang bulan.
+export const REMINDER_WINDOW_DAYS = 7;
+
+// "20261001" (yyyymmdd) → Date tengah hari; null bila bentuknya aneh.
+export function parseIssueDate(ds) {
+  const s = String(ds || '').replace(/\D/g, '').padStart(8, '0');
+  if (s.length !== 8 || s === '00000000') return null;
+  const y = +s.slice(0, 4);
+  const m = +s.slice(4, 6);
+  const d = +s.slice(6, 8);
+  if (!y || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  return new Date(y, m - 1, d);
+}
+
+// Jendela bulan sebelumnya ( inclusif awal, eksklusif akhir ) + labelnya:
+// dipakai filter kasus ON-CALL yang issue-nya jatuh di bulan lalu.
+export function prevMonthWindow(now = new Date()) {
+  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const end = new Date(now.getFullYear(), now.getMonth(), 1);
+  const label = `${MONTH_ID[start.getMonth()]} ${start.getFullYear()}`;
+  return { start, end, label };
+}
+
+export function inReminderWindow(now = new Date()) {
+  return now.getDate() <= REMINDER_WINDOW_DAYS;
+}
 
 // Minggu jadwal audit yang memuat hari ini: minggu Senin-penentu-bulan bisa
 // lintas bulan (Senin akhir bulan lalu), jadi cek bulan tetangga; kalau
@@ -42,7 +71,6 @@ function findActiveWeek(today) {
 export function ActionsProvider({ children }) {
   const { cases, reload } = useCases();
   const { caseAuditStatus } = useAuditState();
-  const { invoiceStatus } = useInvoiceState();
   const { can } = usePermissions();
 
   const [followups, setFollowups] = useState([]);
@@ -99,35 +127,37 @@ export function ActionsProvider({ children }) {
       }
     }
 
-    // 2) Kasus & tagihan: kasus berbayar yang belum tervalidasi audit
-    //    (pekerjaan di Billing & Audit); outstanding belum PAID sebagai catatan.
-    if (can('billing')) {
-      const pendingAudit = cases.filter(
-        (c) =>
-          (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY') &&
-          (caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI') !== 'VALID - SIAP INVOICE'
-      );
+    // 2) Pengingat audit bulanan: setiap tanggal 1-7, kasus ON-CALL dari bulan
+    //    sebelumnya yang belum tervalidasi diingatkan — dicek & diaudit di
+    //    Billing & Audit dulu sebelum invoice-nya dicetak (kasus terlambat
+    //    diingat sepanjang bulan biar dashboard tidak menumpuk pengingat).
+    if (can('billing') && inReminderWindow(today)) {
+      const win = prevMonthWindow(today);
+      const pendingAudit = cases.filter((c) => {
+        if (c.billingStatus !== 'ON-CALL') return false;
+        const dt = parseIssueDate(c.dateIssue);
+        if (!dt || dt < win.start || dt >= win.end) return false;
+        return (caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI') !== 'VALID - SIAP INVOICE';
+      });
       if (pendingAudit.length) {
         const items = pendingAudit
           .slice()
           .sort((a, b) => String(b.dateIssue || '').localeCompare(String(a.dateIssue || '')))
           .slice(0, MONTH_ITEMS)
-          .map((c) => ({
-            label: `${(c.client || '-').trim()} — ${c.issue || c.module || 'kasus'}`,
-            sub: `${c.billingStatus} · masuk ${c.dateIssue || '-'} · ${caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI'}`,
-          }));
-        const outstanding = cases.filter(
-          (c) =>
-            (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY') &&
-            caseAuditStatus[c.recordUuid] === 'VALID - SIAP INVOICE' &&
-            (invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE') !== 'PAID'
-        ).length;
+          .map((c) => {
+            const dt = parseIssueDate(c.dateIssue);
+            const when = dt ? `${dt.getDate()} ${MONTH_ID[dt.getMonth()]} ${dt.getFullYear()}` : '-';
+            return {
+              label: `${(c.client || '-').trim()} — ${c.issue || c.module || 'kasus'}`,
+              sub: `Masuk ${when} · ${caseAuditStatus[c.recordUuid] || 'BELUM DIVALIDASI'}`,
+            };
+          });
         out.push({
           id: 'kasus',
-          title: 'Kasus & Tagihan',
+          title: 'Pengingat Audit ON-CALL',
           path: '/billing',
           count: pendingAudit.length,
-          note: outstanding ? `${outstanding} kasus tervalidasi menunggu pembayaran` : '',
+          note: `Kasus ON-CALL ${win.label} — audit dulu sebelum invoice dicetak`,
           items,
           left: pendingAudit.length - items.length,
         });
@@ -173,7 +203,7 @@ export function ActionsProvider({ children }) {
     }
 
     return out;
-  }, [caseAuditStatus, brands, can, cases, followups, invoiceStatus, schedule]);
+  }, [caseAuditStatus, brands, can, cases, followups, schedule]);
 
   const total = useMemo(() => groups.reduce((s, g) => s + g.count, 0), [groups]);
 
