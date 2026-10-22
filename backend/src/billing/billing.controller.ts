@@ -3,6 +3,7 @@ import { getDb } from '../db/drizzle.service';
 import { logActivity, resolveWho, caseLabel } from '../logs/activity';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { SessionGuard } from '../auth/session.guard';
+import { bestEffort, insertNotifications } from '../notifications/notifications.service';
 
 @UseGuards(SessionGuard)
 @Controller()
@@ -113,8 +114,30 @@ export class BillingController {
   async audit(@Param('uuid') uuid: string, @Body() body: any, @Req() req: any) {
     const action = body.action || body.status;
     if (!action) return { ok:false, error:'action required' };
+    // Prev action dibaca dulu agar notif "siap invoice" hanya saat transisi
+    // baru (re-validasi tanpa perubahan tidak duplikat notif).
+    const prevR = await this.db.pq(`SELECT action FROM audit_status WHERE record_uuid=$1 LIMIT 1`, [uuid]);
+    const prevAction = (prevR.rows || prevR)[0]?.action || null;
     await this.db.pq(`INSERT INTO audit_status (record_uuid,action,updated_at) VALUES ($1,$2,$3) ON CONFLICT (record_uuid) DO UPDATE SET action=EXCLUDED.action, updated_at=EXCLUDED.updated_at`, [uuid, action, new Date().toISOString()]);
-    await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status validasi ${await caseLabel(this.db, uuid)}`, category: 'Validasi', detail: `menjadi ${action}`, recordUuid: uuid });
+    const label = await caseLabel(this.db, uuid);
+    await logActivity(this.db, { who: await resolveWho(this.db, req), action: `mengubah status validasi ${label}`, category: 'Validasi', detail: `menjadi ${action}`, recordUuid: uuid });
+    if (action === 'VALID - SIAP INVOICE' && prevAction !== 'VALID - SIAP INVOICE') {
+      // Data sudah divalidasi → ping tim Finance untuk buat invoice + upload
+      // PDF. Penerima by role (semua Finance aktif), di luar izin; best-effort.
+      await bestEffort('notif-invoice-ready', async () => {
+        const targets = await this.db.pq(`SELECT id FROM "user" WHERE role='Finance' AND COALESCE(active,1)=1`);
+        const rows = targets.rows || targets;
+        if (!rows.length) return;
+        const who = await resolveWho(this.db, req);
+        await insertNotifications(this.db, rows.map((u: any) => ({
+          userId: u.id,
+          type: 'invoice_ready',
+          title: `${label} sudah valid — siap dibuatkan invoice`,
+          body: `Data divalidasi oleh ${who}. Silakan buat invoice dan upload PDF.`,
+          link: '/billing',
+        })));
+      });
+    }
     return { ok:true, recordUuid: uuid, action };
   }
   private async saveInvoiceMeta(uuid: string, invoiceNo: string, keterangan: string) {
