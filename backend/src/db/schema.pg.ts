@@ -1,4 +1,6 @@
 import { pgTable, text, integer, real, timestamp, index } from 'drizzle-orm/pg-core';
+// Notifikasi antar-user: satu baris = satu notif untuk satu penerima.
+// Dideklarasi setelah tabel `user` (FK-nya) di bawah.
 
 // Real Postgres schema — used when DATABASE_URL is postgres://
 // For local dev we use pg-mem in-memory (same schema) — no Docker needed
@@ -52,6 +54,27 @@ export const user = pgTable('user', {
   createdAt: timestamp('created_at'),
   updatedAt: timestamp('updated_at'),
 });
+
+// Notifikasi antar-user: satu baris = satu notif untuk satu penerima.
+// Spek: docs/superpowers/specs/2026-10-22-notifikasi-antar-user-design.md.
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(),
+    title: text('title').notNull(),
+    body: text('body'),
+    link: text('link'),
+    readAt: timestamp('read_at'),
+    groupId: text('group_id'),
+    createdAt: timestamp('created_at'),
+  },
+  (t) => [
+    index('idx_notif_user_created').on(t.userId, t.createdAt),
+    index('idx_notif_user_read').on(t.userId, t.readAt),
+  ],
+);
 
 export const session = pgTable('session', {
   id: text('id').primaryKey(),
