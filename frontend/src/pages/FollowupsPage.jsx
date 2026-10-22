@@ -20,7 +20,8 @@ import FollowupDetailModal from '../components/followups/FollowupDetailModal.jsx
 import FollowupsReport from '../components/followups/FollowupsReport.jsx';
 import FollowupKanban from '../components/followups/FollowupKanban.jsx';
 import { buildFollowupsCsv, followupsCsvFilename } from '../lib/followupsExport.js';
-import { getFollowupsCsvUrl, getUsers } from '../lib/api.js';
+import { getConfig, getFollowupsCsvUrl, getUsers } from '../lib/api.js';
+import { DEFAULT_CONFIG } from '../data/sheetConfig.js';
 
 const LABEL_CLS = 'text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400';
 
@@ -55,6 +56,12 @@ export default function FollowupsPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false); // tombol mati selama reset berjalan (anti dobel-klik)
   const [picOptions, setPicOptions] = useState([]);
+  // Opsi client/modul dari konfigurasi /cfg (cfg.brands & cfg.modules);
+  // fallback daftar bawaan agar dropdown tetap terisi saat backend belum siap.
+  const [cfgOptions, setCfgOptions] = useState(() => ({
+    brands: [...(DEFAULT_CONFIG.brands || [])],
+    modules: [...(DEFAULT_CONFIG.modules || [])],
+  }));
   const [view, setView] = useState('daftar'); // 'daftar' | 'kanban' | 'report'
   const kanbanExitRef = useRef(null);
   const resetConfirmRef = useRef(null);
@@ -78,6 +85,25 @@ export default function FollowupsPage() {
     };
   }, []);
 
+  // Opsi client/modul dari konfigurasi sheet (/cfg) — satu fetch saat mount;
+  // gagal jaringan tanggung = tetap pakai daftar bawaan.
+  useEffect(() => {
+    let ignore = false;
+    getConfig()
+      .then((r) => {
+        if (!ignore && r?.config) {
+          setCfgOptions({
+            brands: (Array.isArray(r.config.brands) ? r.config.brands : DEFAULT_CONFIG.brands || []).filter(Boolean),
+            modules: (Array.isArray(r.config.modules) ? r.config.modules : DEFAULT_CONFIG.modules || []).filter(Boolean),
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   const clients = useMemo(
     // Daftar client terdaftar = brand dari halaman Client & Brand (data existing).
     () => [...new Set(clientStatuses.map((s) => s.brand).filter(Boolean))],
@@ -86,13 +112,16 @@ export default function FollowupsPage() {
 
   const today = todayStr();
   const moduleHints = useMemo(
-    () => [...new Set(items.map((r) => r.module).filter(Boolean))],
-    [items]
+    // Modul dari /cfg + nilai yang pernah dipakai di issue (data lama tetap
+    // terpilih saat Ubah).
+    () => [...new Set([...cfgOptions.modules, ...items.map((r) => r.module).filter(Boolean)])],
+    [cfgOptions.modules, items]
   );
   const clientHints = useMemo(
-    // Gabungan brand terdaftar + client yang pernah dipakai di issue.
-    () => [...new Set([...clients, ...items.map((r) => r.client).filter(Boolean)])],
-    [clients, items]
+    // Client dari /cfg + brand terdaftar Client & Brand + nilai yang pernah
+    // dipakai di issue (data lama tetap terpilih saat Ubah).
+    () => [...new Set([...cfgOptions.brands, ...clients, ...items.map((r) => r.client).filter(Boolean)])],
+    [cfgOptions.brands, clients, items]
   );
 
   const filtered = useMemo(

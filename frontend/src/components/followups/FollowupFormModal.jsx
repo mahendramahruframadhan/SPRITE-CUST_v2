@@ -1,8 +1,7 @@
 // Modal tambah/ubah issue Client Follow-Up (PRD §5/§9).
 // Alasan (R-31): satu modal untuk dua mode agar aturan wajib + urutan
-// tanggal divalidasi satu tempat (validateFollowup di hook); client pakai
-// datalist daftar brand terdaftar (relasi data existing), modul bebas
-// dengan saran nilai yang pernah dipakai (keputusan Q1 opsi A).
+// tanggal divalidasi satu tempat (validateFollowup di hook). Client & modul
+// pakai <select> dari konfigurasi /cfg agar tanpa ketik manual (anti typo).
 // Escape menutup (R-32); semua input min-h 44px (R-03 mobilen nanti).
 import { useEffect, useState } from 'react';
 import { Button } from '../ui/Button.jsx';
@@ -86,13 +85,10 @@ export default function FollowupFormModal({ item, clients = [], picOptions = [],
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="fu-client" className={LABEL_CLS}>Client <span className="text-rose-500">*</span></label>
-              <input
-                id="fu-client" list="fu-client-list" value={f.client} onChange={set('client')}
-                placeholder="cth. Inspired" className={`${INPUT_CLS} mt-1.5`}
-              />
-              <datalist id="fu-client-list">
-                {clients.map((c) => <option key={c} value={c} />)}
-              </datalist>
+              <select id="fu-client" value={f.client} onChange={set('client')} className={`${INPUT_CLS} mt-1.5`}>
+                <option value="" disabled>Pilih client</option>
+                {clients.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div>
               <label htmlFor="fu-issue" className={LABEL_CLS}>Tanggal issue <span className="text-rose-500">*</span></label>
@@ -100,11 +96,10 @@ export default function FollowupFormModal({ item, clients = [], picOptions = [],
             </div>
             <div>
               <label htmlFor="fu-module" className={LABEL_CLS}>Modul <span className="text-rose-500">*</span></label>
-              <input id="fu-module" list="fu-module-list" value={f.module} onChange={set('module')}
-                placeholder="cth. Produksi" className={`${INPUT_CLS} mt-1.5`} />
-              <datalist id="fu-module-list">
-                {moduleHints.map((m) => <option key={m} value={m} />)}
-              </datalist>
+              <select id="fu-module" value={f.module} onChange={set('module')} className={`${INPUT_CLS} mt-1.5`}>
+                <option value="" disabled>Pilih modul</option>
+                {moduleHints.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
             </div>
             <div>
               <label htmlFor="fu-prio" className={LABEL_CLS}>Prioritas <span className="text-rose-500">*</span></label>
