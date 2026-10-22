@@ -48,19 +48,15 @@ export async function findUserIdByName(db: any, name: string): Promise<string | 
 }
 
 // Batch insert — rows final dari caller (user sudah divalidasi & aktif).
+// Satu statement per baris: pg-mem salah menggeser parameter pada
+// VALUES multi-tupel; jumlah baris dibatasi caller (≤50) sehingga loop murah.
 export async function insertNotifications(db: any, rows: NotifRow[]): Promise<void> {
-  if (!rows || rows.length === 0) return;
-  const values: string[] = [];
-  const params: any[] = [];
-  rows.forEach((r, i) => {
-    const base = i * 7;
-    values.push(`($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6},$${base + 7},$${base + 8})`);
-    params.push(randomUUID(), r.userId, r.type, r.title, r.body || null, r.link || null, r.groupId || null, new Date().toISOString());
-  });
-  await db.pq(
-    `INSERT INTO notifications (id, user_id, type, title, body, link, group_id, created_at) VALUES ${values.join(',')}`,
-    params,
-  );
+  for (const r of rows || []) {
+    await db.pq(
+      `INSERT INTO notifications (id, user_id, type, title, body, link, group_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [randomUUID(), r.userId, r.type, r.title, r.body || null, r.link || null, r.groupId || null, new Date().toISOString()],
+    );
+  }
 }
 
 // Trigger/notification call-site: error dijelaskan di log, tidak pernah ditolak
@@ -118,7 +114,9 @@ export class NotificationsService {
 
   async markRead(userId: string, id: string): Promise<void> {
     const r = await this.db.pq(
-      `UPDATE notifications SET read_at=$1 WHERE id=$2 AND user_id=$3 AND read_at IS NULL RETURNING id`,
+      // Tanpa read_at IS NULL: baca-ulang idempoten (sudah terbaca → tetap ok),
+      // scope milik sendiri tetap dijaga user_id (milik lain → tetap 404).
+      `UPDATE notifications SET read_at=$1 WHERE id=$2 AND user_id=$3 RETURNING id`,
       [new Date().toISOString(), id, userId],
     );
     if (!(r.rows || r).length) fail('NOT_FOUND', 'Notifikasi tidak ditemukan.', HttpStatus.NOT_FOUND);

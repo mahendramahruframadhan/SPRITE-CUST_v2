@@ -39,7 +39,11 @@ const rethrowContract = (e: unknown): never => {
 function notifyPicAssigned(db: any, who: string, p: { client: string; title: string; followupDate: string; pic: string }): Promise<void> {
   return bestEffort('notif-followup', async () => {
     const uid = await findUserIdByName(db, p.pic);
-    if (!uid || uid === who) return;
+    if (!uid) return;
+    // who dari resolveWho = NAMA/EMAIL pelaku (bukan id) — cek self-assign
+    // lewat match nama yang sama, bukan perbandingan string id.
+    const actorId = await findUserIdByName(db, who);
+    if (uid === actorId) return;
     await insertNotifications(db, [
       { userId: uid, type: 'followup_assigned', title: `${p.client} — ${p.title}`, body: `Anda ditunjuk sebagai PIC (follow-up ${p.followupDate})`, link: '/followups' },
     ]);

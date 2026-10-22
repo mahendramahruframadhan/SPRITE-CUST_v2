@@ -65,10 +65,11 @@ describe('trigger followup_assigned', () => {
     // pic berubah ke user berbeda; Sari tak menerima lagi (baris tetap 1 di sini).
   });
 
-  it('self-assign → tidak ada notif', async () => {
+  it('self-assign → tidak ada notif (pelaku dicocokkan via nama, bukan id)', async () => {
     const dirga = await seedUser('Admin CS', `dirga-notify-${Date.now()}@revota.id`);
     await db().pq(`UPDATE "user" SET name='Dirga' WHERE id=$1`, [dirga.id]);
-    await svc.create(createInput('Dirga'), dirga.id);
+    // Jalur produksi resolveWho: pelaku = NAMA, bukan id. pic = namanya sendiri.
+    await svc.create(createInput('Dirga'), 'Dirga');
     const rows = await getNotifs(dirga.id);
     assert.equal(rows.length, 0);
   });

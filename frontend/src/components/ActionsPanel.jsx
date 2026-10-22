@@ -76,14 +76,14 @@ export default function ActionsPanel() {
         <div className="mt-4 grid sm:grid-cols-2 gap-3">
           {groups.map((g) => {
             const meta = groupMeta(g.id);
+            // Grup tanpa path (notif) tampil sebagai kartu statis — detail & aksi
+            // per notifikasi ada di lonceng, bukan di panel ini.
+            const Card = g.path ? Link : 'div';
             const fwd = g.path ? { to: g.path } : {};
-            // Grup tanpa path (notif) tampil sebagai kartu — detail & aksi per
-            // notifikasi ada di lonceng, bukan di panel ini.
             return (
-              <Link
+              <Card
                 key={g.id}
                 {...fwd}
-                as={g.path ? undefined : 'div'}
                 className={`group relative rounded-xl border border-slate-100 dark:border-slate-800 p-4 overflow-hidden ${
                   g.path ? 'hover:border-brand-300 dark:hover:border-brand-500/40 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition' : ''
                 } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60`}
@@ -128,7 +128,7 @@ export default function ActionsPanel() {
                     </svg>
                   </span>
                 )}
-              </Link>
+              </Card>
             );
           })}
         </div>

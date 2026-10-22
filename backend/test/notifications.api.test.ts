@@ -96,9 +96,15 @@ describe('notifications API', () => {
     );
   });
 
-  it('PATCH read milik lain → 404', async () => {
+  it('PATCH read milik lain → 404; baca ulang idempoten → tetap ok', async () => {
     const idB = await seedNotif(userB.id, { title: 'milik B' });
     await assert.rejects(() => ctl.markRead(reqWith(tokenA), idB), (e: any) => e?.status === 404);
+    const idA = await seedNotif(userA.id, { title: 'idempoten' });
+    await ctl.markAll(reqWith(tokenA)); // bersihkan sisa unread dari test sebelumnya
+    await ctl.markRead(reqWith(tokenA), idA);
+    await ctl.markRead(reqWith(tokenA), idA); // baca ulang → idempoten
+    const res = await ctl.list(reqWith(tokenA));
+    assert.equal(res.unreadCount, 0);
   });
 
   it('read-all hanya menyentuh read_at NULL milik sendiri', async () => {
@@ -121,11 +127,14 @@ describe('notifications API', () => {
     assert.ok(!res.notifications.some((n: any) => n.id === aId));
   });
 
-  it('findUserIdByName: trim/kapital tolerant, duplikat → tertua, inactive → null', async () => {
+  it('findUserIdByName: trim/kapital tolerant, duplikat aktif → tertua, inactive → null', async () => {
     const old = await seedUser('Viewer', `budi-old-${Date.now()}@revota.id`);
-    await db().pq(`UPDATE "user" SET name='Budi' WHERE id=$1`, [old.id]);
+    await db().pq(`UPDATE "user" SET name='Budi', created_at='2026-10-01T00:00:00Z' WHERE id=$1`, [old.id]);
     const dup = await seedUser('Viewer', `budi-dup-${Date.now()}@revota.id`);
-    await db().pq(`UPDATE "user" SET name='  budi  ' WHERE id=$1`, [dup.id]);
+    await db().pq(`UPDATE "user" SET name='  budi  ', created_at='2026-10-02T00:00:00Z' WHERE id=$1`, [dup.id]);
+    // Dua user aktif bernama sama → kandidat tertua (ORDER BY created_at) menang.
+    const winner = await findUserIdByName(db(), 'BUDI');
+    assert.equal(winner, old.id);
     // Dup matikan & ganti nama agar satu-satunya kandidat tapi inactive → null.
     await db().pq(`UPDATE "user" SET active=0, name='Budi Satu' WHERE id=$1`, [dup.id]);
     const none = await findUserIdByName(db(), 'budi satu');
