@@ -5,36 +5,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useActions } from '../context/ActionsContext.jsx';
+import { groupMeta, ICON_BY_ID } from '../lib/actionsMeta.js';
 import Icon from './Icon.jsx';
-
-const GROUP_META = {
-  kasus: {
-    soft: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
-    chip: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
-    dot: 'bg-amber-400',
-    name: 'Billing & Audit',
-  },
-  followups: {
-    soft: 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400',
-    chip: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
-    dot: 'bg-rose-400',
-    name: 'Follow-Up',
-  },
-  audit: {
-    soft: 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
-    chip: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
-    dot: 'bg-violet-400',
-    name: 'Popi Nava',
-  },
-  kontrak: {
-    soft: 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400',
-    chip: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
-    dot: 'bg-sky-400',
-    name: 'Client & Brand',
-  },
-};
-
-const ICON_BY_ID = { kasus: 'billing', followups: 'followups', audit: 'store', kontrak: 'clients' };
 
 const TODAY_LONG = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -103,7 +75,7 @@ export default function ActionsPanel() {
       ) : groups.length === 0 ? null : (
         <div className="mt-4 grid sm:grid-cols-2 gap-3">
           {groups.map((g) => {
-            const meta = GROUP_META[g.id] || GROUP_META.kasus;
+            const meta = groupMeta(g.id);
             return (
               <Link
                 key={g.id}
