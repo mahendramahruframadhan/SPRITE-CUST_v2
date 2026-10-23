@@ -13,7 +13,7 @@ export type NotifRow = {
   type: string;
   title: string;
   body?: string;
-  link?: string;
+  link?: string | null;
   groupId?: string;
 };
 
