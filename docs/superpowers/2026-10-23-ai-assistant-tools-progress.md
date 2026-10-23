@@ -5,13 +5,13 @@
 > `docs/superpowers/plans/2026-10-23-ai-assistant-tools.md`.
 > Tiap task selesai: ubah status + isi kolom catatan + komit.
 
-**Terakhir diperbarui:** 2026-10-23 (plan dibuat, belum eksekusi)
+**Terakhir diperbarui:** 2026-10-23 (Task 1 gate spike: diblokir — koneksi AI aktif tidak tersedia, lihat bagian Spike)
 
 ## Status Task
 
 | # | Task | Status | Komit | Catatan |
 |---|------|--------|-------|---------|
-| 1 | Spike: verifikasi function calling proxy aktif (GATE) | ⬜ belum mulai | — | Jika proxy tak mendukung `tools` → STOP, desain direvisi jalur hibrida |
+| 1 | Spike: verifikasi function calling proxy aktif (GATE) | ⛔ diblokir | (komit ini) | Diblokir: TIDAK ADA koneksi AI aktif di DB — spike belum bisa menguji provider; bukan keputusan jalur hibrida. Jalankan ulang setelah koneksi didaftarkan |
 | 2 | Instruksi runtime `ai-instructions.md` + `ai.instructions.ts` | ⬜ belum mulai | — | FR-10 |
 | 3 | `ai.queries.ts` — 6 query agregat read-only | ⬜ belum mulai | — | Tanpa AI, murni query + test pg-mem |
 | 4 | `ai.tools.ts` — registry tool + validasi argumen | ⬜ belum mulai | — | FR-03/05/06 |
@@ -23,10 +23,21 @@ Legenda: ⬜ belum mulai · 🔄 jalan · ✅ selesai · ⛔ diblokir
 
 ## Spike function calling (hasil Task 1)
 
-- Tanggal:
-- Base URL / model yang diuji:
-- `tool_calls` didukung? (ya/tidak):
-- Catatan:
+- Tanggal: 2026-10-23
+- Base URL / model yang diuji: **— (tidak teruji)** — koneksi aktif tidak ditemukan, 0 request dikirim ke provider
+- `tool_calls` didukung? (ya/tidak): **tidak terverifikasi**
+- Catatan: Spike throwaway `backend/spike-fc.ts` dibuat & dijalankan sesuai pola
+  `loadActive()` (ai.controller.ts:151, termasuk fallback legacy `aiConfig`) lalu
+  DIHAPUS. Hasil: **BLOCKED — bukan karena proxy/provider**, tetapi karena tidak ada
+  koneksi AI yang bisa diuji: `app_secrets` berisi **0 baris** dan legacy
+  `aiConfig` **tidak ada** di DB aplikasi (DATABASE_URL backend/.env →
+  127.0.0.1:5433/sprite_cust). Gate `tool_calls` belum terputuskan → Task 2 belum
+  boleh mulai. **Tindak lanjut:** pemilik data perlu mendaftarkan & mengaktifkan
+  koneksi AI (mis. via /roles → AI & API Key), lalu jalankan ulang Task 1 spike
+  (satu request kecil) sebelum lanjut. Catatan lingkungan: container Docker
+  `sprite-pg` (map 5432→5433) tak ter-reach dari host karena port 5433 ditempati
+  native PostgreSQL — DB di dalamnya kosong; DB aplikasi yang benar (native, ada
+  tabelnya) pun tidak menyimpan koneksi AI. Tidak dijalankan paksa pada koneksi lain.
 
 ## Keputusan desain yang di-finalisasi di chat 2026-10-23
 
