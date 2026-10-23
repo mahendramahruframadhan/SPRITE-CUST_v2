@@ -30,10 +30,15 @@ const ROLE_DESC = {
   Finance: 'Billing, price list & audit keuangan',
   Viewer: 'Hanya melihat dashboard & data kasus',
 };
+// Cermin backend MODULES (roles.controller.ts) — 17 modul. Urut & id harus
+// same dengan seed ROLE_PERMS init.ts; kolom yang hilang berarti izinnya
+// tidak bisa dikelola dari UI Padahal di-enforce PermGuard.
 const MODULES = [
   { id: 'dashboard', name: 'Dashboard', desc: 'Ringkasan & grafik bantuan' },
   { id: 'cases', name: 'Data Kasus', desc: 'Lihat semua data kasus support' },
   { id: 'form', name: 'Form Kasus', desc: 'Input kasus support baru' },
+  { id: 'clients', name: 'Client & Brand', desc: 'Kelola client & status monthly vs maintenance' },
+  { id: 'followups', name: 'Client Follow-Up', desc: 'Issue client wajib follow-up & overdue' },
   { id: 'hrreport', name: 'HR Report', desc: 'Rekap performa tim & detail ticket' },
   { id: 'cfg', name: 'Konfigurasi Sheet', desc: 'Master config dari Google Sheets' },
   { id: 'popinava', name: 'POPI NAVA', desc: 'Master data outlet & brand POPI NAVA' },
@@ -43,6 +48,8 @@ const MODULES = [
   { id: 'analytics', name: 'Analitik', desc: 'Tren, distribusi & KPI kasus tervalidasi' },
   { id: 'mockup', name: 'Dashboard Mockup', desc: 'Mockup data Google Sheets' },
   { id: 'roles', name: 'Hak Akses', desc: 'Kelola pengguna & izin' },
+  { id: 'logs', name: 'Logs Aktivitas', desc: 'Riwayat perubahan & penambahan data' },
+  { id: 'notifications', name: 'Kirim Notifikasi', desc: 'Kirim notifikasi antar-user' },
   { id: 'settings', name: 'Pengaturan', desc: 'Pengaturan akun & preferensi saya' },
 ];
 const SEED_USERS = [
