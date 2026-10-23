@@ -42,17 +42,17 @@ async function seedToolDb() {
     );
   }
   const audits = [
-    { record_uuid: 'ar-oncall-1', action: 'AUDITEE' },
-    { record_uuid: 'ar-oncall-2', action: 'AUDITEE' },
-    { record_uuid: 'ar-monthly', action: 'AUDITEE' },
-    { record_uuid: 'ar-free', action: 'APPROVALS' },
+    { record_uuid: 'ar-oncall-1', action: 'VALID - SIAP INVOICE' },
+    { record_uuid: 'ar-oncall-2', action: 'VALID - SIAP INVOICE' },
+    { record_uuid: 'ar-monthly', action: 'BELUM DIVALIDASI' },
+    { record_uuid: 'ar-free', action: 'PERLU DICEK ULANG' },
   ];
   for (const a of audits) {
     await db.pq(`INSERT INTO audit_status (record_uuid, action, updated_at) VALUES ($1,$2,$3)`, [a.record_uuid, a.action, '2026-07-01']);
   }
   const invoices = [
-    { record_uuid: 'ar-oncall-1', status: 'BILLED' },
-    { record_uuid: 'ar-oncall-2', status: 'BILLED' },
+    { record_uuid: 'ar-oncall-1', status: 'INVOICE TERBIT' },
+    { record_uuid: 'ar-oncall-2', status: 'INVOICE TERBIT' },
     { record_uuid: 'ar-free', status: 'PAID' },
   ];
   for (const i of invoices) {
@@ -76,6 +76,25 @@ describe('ai.tools — registry tool & validasi runTool', () => {
       assert.equal(s.function.parameters?.type, 'object');
     }
     assert.deepEqual([...TOOL_NAMES].sort(), [ ...TOOL_SPECS.map((s) => s.function.name) ].sort());
+  });
+
+  it('TOOL_SPECS: count_audit description memuat nilai action audit nyata + fallback tanpa filter status', () => {
+    const spec: any = TOOL_SPECS.find((s) => s.function.name === 'count_audit');
+    const desc = String(spec?.function?.description || '');
+    assert.ok(desc.includes('BELUM DIVALIDASI'), `desc harus sebut BELUM DIVALIDASI: ${desc}`);
+    assert.ok(desc.includes('VALID - SIAP INVOICE'), `desc harus sebut VALID - SIAP INVOICE: ${desc}`);
+    assert.ok(desc.includes('PERLU DICEK ULANG'), `desc harus sebut PERLU DICEK ULANG: ${desc}`);
+    assert.ok(/TANPA filter status/.test(desc), `desc harus fallback ke tanpa filter status: ${desc}`);
+  });
+
+  it('TOOL_SPECS: count_invoice description memuat nilai status invoice nyata + fallback tanpa filter status', () => {
+    const spec: any = TOOL_SPECS.find((s) => s.function.name === 'count_invoice');
+    const desc = String(spec?.function?.description || '');
+    assert.ok(desc.includes('MENUNGGU INVOICE'), `desc harus sebut MENUNGGU INVOICE: ${desc}`);
+    assert.ok(desc.includes('INVOICE TERBIT'), `desc harus sebut INVOICE TERBIT: ${desc}`);
+    assert.ok(desc.includes('DIKIRIM'), `desc harus sebut DIKIRIM: ${desc}`);
+    assert.ok(desc.includes('PAID'), `desc harus sebut PAID: ${desc}`);
+    assert.ok(/TANPA filter status/.test(desc), `desc harus fallback ke tanpa filter status: ${desc}`);
   });
 
   it('runTool: tool tidak dikenal → error eksplisit', async () => {
@@ -139,9 +158,9 @@ describe('ai.tools — registry tool & validasi runTool', () => {
   it('runTool: happy path case_totals per status', async () => {
     const r: any = await runTool(db, 'case_totals', { group_by: 'status' });
     assert.equal(r.period, 'seluruh periode');
-    assert.equal(r.items.length, 2);
-    assert.ok(r.items.some((i: any) => i.label === 'DONE' && i.count === 3));
-    assert.ok(r.items.some((i: any) => i.label === 'OPEN' && i.count === 1));
+    assert.equal(r.groups.length, 2);
+    assert.ok(r.groups.some((g: any) => g.label === 'DONE' && g.count === 3));
+    assert.ok(r.groups.some((g: any) => g.label === 'OPEN' && g.count === 1));
   });
 
   it('runTool: happy path get_module_breakdown', async () => {
@@ -151,10 +170,13 @@ describe('ai.tools — registry tool & validasi runTool', () => {
   });
 
   it('runTool: happy path count_audit dengan status', async () => {
-    assert.deepEqual(await runTool(db, 'count_audit', { status: 'AUDITEE' }), { total: 3 });
+    assert.deepEqual(await runTool(db, 'count_audit', { status: 'BELUM DIVALIDASI' }), { total: 1 });
+    assert.deepEqual(await runTool(db, 'count_audit', { status: 'VALID - SIAP INVOICE' }), { total: 2 });
+    assert.deepEqual(await runTool(db, 'count_audit', { status: 'PERLU DICEK ULANG' }), { total: 1 });
   });
 
   it('runTool: happy path count_invoice sum_amount', async () => {
     assert.deepEqual(await runTool(db, 'count_invoice', { sum_amount: true }), { total: 3, amount: 200000 });
+    assert.deepEqual(await runTool(db, 'count_invoice', { status: 'INVOICE TERBIT', sum_amount: true }), { total: 2, amount: 200000 });
   });
 });

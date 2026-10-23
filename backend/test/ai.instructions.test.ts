@@ -35,4 +35,16 @@ describe('readInstructions — file runtime', () => {
   it('file tidak ada → string kosong, tidak lempar', () => {
     assert.equal(readInstructions('/absolut/tidak/ada/instruksi.md'), '');
   });
+
+  it('instruksi memuat nilai tool audit/invoice + tanpa kata "snapshot"', () => {
+    const s = readInstructions();
+    assert.doesNotMatch(s, /snapshot/i, 'instruksi tidak boleh memakai kata "snapshot"');
+    assert.match(s, /BELUM DIVALIDASI/, 'instruksi harus sebut nilai audit BELUM DIVALIDASI');
+    assert.match(s, /VALID - SIAP INVOICE/, 'instruksi harus sebut nilai audit VALID - SIAP INVOICE');
+    assert.match(s, /PERLU DICEK ULANG/, 'instruksi harus sebut nilai audit PERLU DICEK ULANG');
+    assert.match(s, /MENUNGGU INVOICE/, 'instruksi harus sebut nilai invoice MENUNGGU INVOICE');
+    assert.match(s, /INVOICE TERBIT/, 'instruksi harus sebut nilai invoice INVOICE TERBIT');
+    assert.match(s, /DIKIRIM/, 'instruksi harus sebut nilai invoice DIKIRIM');
+    assert.match(s, /PAID/, 'instruksi harus sebut nilai invoice PAID');
+  });
 });

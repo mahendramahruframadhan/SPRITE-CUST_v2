@@ -68,7 +68,7 @@ describe('POST /ai/chat — log ai_chat + alur baru', () => {
     assert.ok(!detail.includes('berapa kasus'), 'detail TIDAK boleh memuat isi pesan user');
   });
 
-  it('provider gagal (HTTP 500) → log status=error, response {ok:false} tanpa lempar', async () => {
+  it('provider gagal (HTTP 500) → log status=provider_error, response {ok:false} tanpa lempar', async () => {
     await db().pq(`DELETE FROM activity_logs`, []);
     (globalThis as any).fetch = async () => ({ ok: false, status: 500, json: async () => ({}) });
     const ctl = new AiController();
@@ -79,7 +79,31 @@ describe('POST /ai/chat — log ai_chat + alur baru', () => {
     assert.equal(r?.ok, false, 'response {ok:false}');
     const logs = await lastAiChatLogs();
     assert.ok(logs.length >= 1, 'harus ada baris log ai_chat');
-    assert.ok(String(logs[0].detail).includes('status=error'), 'detail memuat status=error');
+    assert.ok(String(logs[0].detail).includes('status=provider_error'), `detail memuat status=provider_error: ${logs[0].detail}`);
+  });
+
+  it('rate limit tercapai → log status=rate_limited sebelum melempar 429', async () => {
+    await db().pq(`DELETE FROM activity_logs`, []);
+    const ctl = new AiController();
+    let lastErr: any;
+    let lastRes: any;
+    let saw429 = false;
+    for (let i = 0; i < 15; i++) {
+      try {
+        lastRes = await ctl.chat(
+          { messages: [{ role: 'user', content: 'ping' }] },
+          reqs('ctl-rl', 'cs.rl@revota.id'),
+        );
+      } catch (e: any) {
+        lastErr = e;
+        saw429 = e?.status === 429;
+        break;
+      }
+    }
+    assert.ok(saw429, 'harus melempar HttpException 429 saat kuota AI habis');
+    const logs = await lastAiChatLogs();
+    assert.ok(logs.length >= 1, 'harus ada baris log ai_chat');
+    assert.ok(String(logs[0].detail).includes('status=rate_limited'), `detail memuat status=rate_limited: ${logs[0].detail}`);
   });
 
   it('kill-switch aktif → log status=disabled, fetch & log kuota tidak jalan', async () => {

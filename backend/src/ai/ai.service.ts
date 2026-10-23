@@ -20,12 +20,14 @@ export interface ChatResult {
   error?: string;
   rounds: number;
   toolsCalled: string[];
+  provider?: boolean;
 }
 
 const MAX_ROUNDS = 4;
 const MAX_TOKENS = 500;
 const MESSAGE_MAX_CHARS = 2000;
 const DEFAULT_MODEL = 'gpt-4o-mini';
+export const AI_FETCH_TIMEOUT_MS = 60000;
 
 interface ToolCallMsg {
   id?: any;
@@ -101,22 +103,22 @@ export async function aiChat(
     try {
       response = await fetch(`${conn.baseURL}/chat/completions`, {
         method: 'POST',
+        signal: AbortSignal.timeout(AI_FETCH_TIMEOUT_MS),
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${conn.apiKey}` },
         body: JSON.stringify(buildBody(conn.model, conversation)),
       });
     } catch {
-      return { ok: false, error: 'gagal hubungi AI', rounds, toolsCalled };
+      return { ok: false, error: 'gagal hubungi AI', rounds, toolsCalled, provider: true };
     }
-
     if (!response.ok) {
-      return { ok: false, error: fmtProviderError(response.status), rounds, toolsCalled };
+      return { ok: false, error: fmtProviderError(response.status), rounds, toolsCalled, provider: true };
     }
 
     let data: any;
     try {
       data = await response.json();
     } catch {
-      return { ok: false, error: 'gagal hubungi AI', rounds, toolsCalled };
+      return { ok: false, error: 'gagal hubungi AI', rounds, toolsCalled, provider: true };
     }
 
     const message = data?.choices?.[0]?.message;
@@ -151,5 +153,5 @@ export async function aiChat(
     // Respons kosong/tak bisa dipakai: putaran dipakai, lanjut ke berikutnya.
   }
 
-  return { ok: false, error: 'Asisten belum bisa memproses pertanyaan ini.', rounds: MAX_ROUNDS, toolsCalled };
+  return { ok: false, error: 'Maaf, saya belum bisa menjawab pertanyaan itu dari data yang tersedia.', rounds: MAX_ROUNDS, toolsCalled };
 }

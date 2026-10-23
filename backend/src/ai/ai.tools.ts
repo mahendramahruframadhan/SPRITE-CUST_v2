@@ -86,9 +86,12 @@ export const TOOL_SPECS: Array<{
     type: 'function',
     function: {
       name: 'count_audit',
-      description: 'Hitung entri status audit; bisa filter per action tertentu.',
+      description:
+        'Hitung jumlah entri audit dari tabel audit_status; bisa filter action audit, mis. ' +
+        'BELUM DIVALIDASI, VALID - SIAP INVOICE, atau PERLU DICEK ULANG. ' +
+        'Bila tak yakin nilai status, panggil TANPA filter status dan laporkan total.',
       parameters: objectSchema({
-        status: { type: 'string', description: 'Filter action audit, mis. AUDITEE' },
+        status: { type: 'string', description: 'Filter action audit, salah satu: BELUM DIVALIDASI, VALID - SIAP INVOICE, PERLU DICEK ULANG' },
       }),
     },
   },
@@ -96,9 +99,12 @@ export const TOOL_SPECS: Array<{
     type: 'function',
     function: {
       name: 'count_invoice',
-      description: 'Hitung entri status invoice; opsional kembalikan juga total nilai tagihan.',
+      description:
+        'Hitung entri invoice dari tabel invoice_status; opsional kembalikan juga total nilai tagihan. ' +
+        'Status invoice: MENUNGGU INVOICE, INVOICE TERBIT, DIKIRIM, PAID. ' +
+        'Bila tak yakin nilai status, panggil TANPA filter status dan laporkan total.',
       parameters: objectSchema({
-        status: { type: 'string', description: 'Filter status invoice, mis. BILLED' },
+        status: { type: 'string', description: 'Filter status invoice, salah satu: MENUNGGU INVOICE, INVOICE TERBIT, DIKIRIM, PAID' },
         sum_amount: { type: 'boolean', description: 'true = sertakan total nilai tagihan (Rp)' },
       }),
     },
@@ -141,7 +147,7 @@ function parsePeriod(args: Record<string, unknown>): { period?: Period; err?: st
 }
 
 // Limit disensor inilah satu-satunya argumen yang dibetulkan diam-diam
-// (1-20); non-angka (termasuk NaN/float desimal? float di-floor) → default.
+// (1-20); non-angka (termasuk NaN) → default; angka float di-floor lalu clamp.
 function parseLimit(value: unknown): number {
   let limit: number = LIMIT_DEFAULT;
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -200,8 +206,8 @@ export async function runTool(
         if (g !== 'billing_status' && g !== 'status') return error('group_by harus billing_status atau status');
         const p = parsePeriod(a);
         if (p.err) return error(p.err);
-        const items = await caseTotals(db, { groupBy: g, period: p.period });
-        return { items, period: periodLabel(p.period ?? {}) };
+        const groups = await caseTotals(db, { groupBy: g, period: p.period });
+        return { groups, period: periodLabel(p.period ?? {}) };
       }
       case 'get_top_clients': {
         const metric = a['metric'] === 'charges' ? 'charges' : a['metric'] === 'cases' ? 'cases' : null;

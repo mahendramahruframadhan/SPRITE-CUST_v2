@@ -179,6 +179,9 @@ export class AiController {
 
     const quotaKey = String(req?.user?.id || req?.ip || req?.socket?.remoteAddress || 'unknown');
     if (!consumeAiQuota(quotaKey)) {
+      // Sebelum melempar 429: catat status=rate_limited (log memakai detail
+      // status yang sama dengan alur error AI — tanpa isi pesan user).
+      await logActivity(this.db, { who, action: 'ai_chat', category: 'ai', detail: 'status=rate_limited' });
       throw new HttpException({ code: 'AI_RATE_LIMITED', message: 'Terlalu banyak permintaan AI. Coba lagi sebentar.' }, HttpStatus.TOO_MANY_REQUESTS);
     }
 
@@ -201,7 +204,7 @@ export class AiController {
       who,
       action: 'ai_chat',
       category: 'ai',
-      detail: `status=${res.ok ? 'ok' : 'error'}; rounds=${res.rounds}; tools=${(res.toolsCalled || []).slice(0, 10).join(',')}`,
+      detail: `status=${res.ok ? 'ok' : res.provider ? 'provider_error' : 'error'}; rounds=${res.rounds}; tools=${(res.toolsCalled || []).slice(0, 10).join(',')}`,
     });
 
     return res.ok ? { ok: true, reply: res.reply } : { ok: false, error: res.error };

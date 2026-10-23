@@ -8,9 +8,9 @@
 > ⚠️ **GATE spike: menunggu koneksi AI di DB lokal (owner) — ulangi Task 1
 > setelah koneksi terdaftar; wajib sebelum fitur live.**
 
-**Terakhir diperbarui:** 2026-10-23 (Task 2-6 selesai — komit 7a7f40b, d4b2342,
-a8be134, 1347e4e, 4fafc90; Task 7 suite hijau 261 pass / 0 fail; set uji manual
-staging disiapkan & kandidat tool berikutnya dicatat)
+**Terakhir diperbarui:** 2026-10-23 (refinement: status audit/invoice diselaraskan dengan
+nilai DB nyata; provider flag + AbortSignal timeout 60s + log rate_limited; build
+copy ai-instructions.md; suite 266 pass / 0 fail. Task 1 spike masih diblokir)
 
 ## Status Task
 

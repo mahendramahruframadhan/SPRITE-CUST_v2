@@ -32,10 +32,10 @@ const respHttp = (status: number) => ({ ok: false, status, json: async () => ({}
 // Mock fetch pencatat: tiap pemanggilan dicatat {url, headers, body(parsed)}
 // dan balasan diambil berurutan dari daftar (yang terakhir dipakai ulang).
 function makeFetch(responses: Array<any>) {
-  const calls: Array<{ url: string; headers: any; body: any }> = [];
+  const calls: Array<{ url: string; headers: any; body: any; signal?: any }> = [];
   const f = async (url: any, init: any) => {
     const idx = calls.length;
-    calls.push({ url: String(url), headers: init.headers, body: JSON.parse(init.body) });
+    calls.push({ url: String(url), headers: init.headers, body: JSON.parse(init.body), signal: init?.signal });
     return responses[Math.min(idx, responses.length - 1)];
   };
   return { f, calls };
@@ -155,24 +155,25 @@ describe('AI chat loop tool calling (Task 5)', () => {
     globalThis.fetch = f as any;
     const res = await aiChat(fakeDb(), CONN, [{ role: 'user', content: 'berapa?' }]);
     assert.equal(calls.length, 4, 'tepat 4 putaran fetch');
-    assert.equal(res.ok, false, JSON.stringify(res));
-    assert.equal(res.error, 'Asisten belum bisa memproses pertanyaan ini.');
+    assert.equal(res.ok, false);
+    assert.equal(res.error, 'Maaf, saya belum bisa menjawab pertanyaan itu dari data yang tersedia.');
     assert.equal(res.rounds, 4);
     assert.equal(res.toolsCalled.length, 4);
   });
 
-  it('provider HTTP 500 → ok:false, tanpa throw', async () => {
+  it('provider HTTP 500 → ok:false, tanpa throw, provider:true', async () => {
     const { f, calls } = makeFetch([respHttp(500)]);
     globalThis.fetch = f as any;
     const res = await aiChat(fakeDb(), CONN, [{ role: 'user', content: 'apa?' }]);
     assert.equal(res.ok, false);
     assert.ok(String(res.error || '').includes('provider HTTP 500'));
     assert.equal(res.rounds, 1);
+    assert.equal(res.provider, true, 'error provider ditandai ChatResult.provider=true');
     assert.ok(!JSON.stringify(res).includes(KEY), 'key tidak bocor ke hasil');
     assert.equal(calls.length, 1);
   });
 
-  it('fetch throw → ok:false, tanpa throw keluar', async () => {
+  it('fetch throw → ok:false, tanpa throw keluar, provider:true', async () => {
     globalThis.fetch = (async () => {
       throw new Error('ECONNREFUSED 127.0.0.1:9999 simpanan detail teknis');
     }) as any;
@@ -181,5 +182,15 @@ describe('AI chat loop tool calling (Task 5)', () => {
     assert.ok(!JSON.stringify(res).includes('ECONNREFUSED'), 'detail teknis kegagalan jaringan tidak diumumkan');
     assert.equal(res.rounds, 1);
     assert.deepEqual(res.toolsCalled, []);
+    assert.equal(res.provider, true, 'error jaringan ke provider ditandai ChatResult.provider=true');
+  });
+
+  it('fetch menerima AbortSignal timeout AI_FETCH_TIMEOUT_MS', async () => {
+    const { f, calls } = makeFetch([respText('jawaban')]);
+    globalThis.fetch = f as any;
+    const res = await aiChat(fakeDb(), CONN, [{ role: 'user', content: 'apa?' }]);
+    assert.equal(res.ok, true, JSON.stringify(res));
+    assert.equal(calls.length, 1);
+    assert.ok(calls[0].signal, 'fetch init harus memuat signal AbortSignal.timeout');
   });
 });
