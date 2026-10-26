@@ -303,6 +303,36 @@ belum dibuat PR-nya.
   utama; tetap bisa dipakai offline dengan penyimpanan browser + tombol
   Coba lagi).
 
+## 🤖 SPRITE AI — Asisten Data AI (branch `20261023/dev-ai-tool-calling`) — ✅ LIVE
+
+Asisten chat AI yang menjawab pertanyaan data project — angka selalu dari
+database via tool calling read-only, bukan tebakan model.
+
+**Status:** ✅ selesai & live — gate `tool_calls` lolos (Groq, `openai/gpt-oss-120b`),
+uji manual 13 skenario 13/13 lulus, suite test 284 pass / 0 fail.
+
+- **15 tool read-only** di `backend/src/ai/ai.tools.ts`: kasus, billing, top client,
+  modul, audit, invoice, client (kasus/kontrak), kontrak (MONTHLY/GRATIS),
+  outlet PoPi Nava, follow-up, breakdown support/channel, sinkron Sheets,
+  master konfigurasi, user (angka saja), jadwal audit.
+- **Keamanan:** tanpa login tidak bisa; kuota per menit; host AI dibatasi
+  `AI_ALLOWED_HOSTS`; API key hanya di header & tersimpan di DB (`app_secrets`);
+  log `ai_chat` tanpa isi pesan; anti-injection (sistem prompt tunggal dari
+  `ai-instructions.md`); angka selalu dari tool (termasuk `total_di_bulan`
+  untuk mencegah halusinasi dari contoh instruksi).
+- **Cara aktifkan:** daftar koneksi di `/roles` → tab AI & API Key (pilih
+  provider, model yang mendukung tool calling, isi API key, toggle DIPAKAI)
+  → pastikan saklar **Chatbot CS** AKTIF di `/cfg` → tab AI Assistant → chat.
+  Matikan saklarnya sebelum kirim data ke penyedia AI (kill-switch).
+- **Cara pakai:** tanya di chat, contoh: "berapa kasus ON-CALL bulan Oktober?",
+  "berapa client saya?", "invoice PAID total nilainya?", "kapan terakhir
+  sinkron?" — pertanyaan di luar data project ditolak sopan, pertanyaan tanpa
+  data dijawab jujur "belum bisa dijawab".
+- **Catatan hosting:** free tier Groq dibatasi jumlah request per menit (HTTP 429
+  kalau diteruskan terus-terusan) — beri jeda atau naik paket bila sering dipakai.
+- Rincian progres per task + 36 skenario uji manual:
+  [`docs/superpowers/2026-10-23-ai-assistant-tools-progress.md`](docs/superpowers/2026-10-23-ai-assistant-tools-progress.md)
+
 ## 🚧 Progres review 2026-09-22 (branch `dev/20260921-pdf-sync`)
 
 Hasil review kerjaan PDF invoice + status invoice otomatis. Status: ✅ selesai dikerjakan.

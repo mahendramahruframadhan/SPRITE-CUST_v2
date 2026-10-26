@@ -5,18 +5,26 @@
 > `docs/superpowers/plans/2026-10-23-ai-assistant-tools.md`.
 > Tiap task selesai: ubah status + isi kolom catatan + komit.
 
-> ⚠️ **GATE spike: menunggu koneksi AI di DB lokal (owner) — ulangi Task 1
-> setelah koneksi terdaftar; wajib sebelum fitur live.**
+> ✅ **GATE spike LOLOS (2026-10-26): koneksi Groq (`openai/gpt-oss-120b`) didaftarkan
+> & aktifkan owner; `tool_calls` terverifikasi (HTTP 200) + loop penuh: jawaban
+> 2301 = query langsung `assistance_records` 2301.** Catatan: schema tool kini
+> nullable properti opsional (Groq menolak `null` non-nullable) + runner
+> memperlakukan null = tidak ada.
 
-**Terakhir diperbarui:** 2026-10-23 (refinement: status audit/invoice diselaraskan dengan
-nilai DB nyata; provider flag + AbortSignal timeout 60s + log rate_limited; build
-copy ai-instructions.md; suite 266 pass / 0 fail. Task 1 spike masih diblokir)
+**Terakhir diperbarui:** 2026-10-26 (GATE Task 1 lolos — Groq `openai/gpt-oss-120b`
+aktif, `tool_calls` terverifikasi, loop penuh cocok query langsung; schema tool
+nullable + null=absent di runner; suite 266 pass / 0 fail; tsc hijau;
+`AI_ALLOWED_HOSTS` + `api.groq.com`). Rerun pada 2026-10-26: GATE Task 1 lolos —
+lingkungan tool diperluas 6 → 15 (client/kontrak, outlet PoPi Nava, follow-up,
+support/channel breakdown, sinkron Sheets, master konfigurasi, pengguna, jadwal
+audit); lintasan spot-check live: 82 client, 88 outlet, SERVICE kategori terbanyak
+(2235), 4 user aktif — semua cocok query langsung; suite 284 pass / 0 fail, tsc hijau)
 
 ## Status Task
 
 | # | Task | Status | Komit | Catatan |
 |---|------|--------|-------|---------|
-| 1 | Spike: verifikasi function calling proxy aktif (GATE) | ⛔ diblokir | b5bbfb7 (docs spike blocked) | Diblokir: TIDAK ADA koneksi AI aktif di DB — spike belum bisa menguji provider; bukan keputusan jalur hibrida. Jalankan ulang setelah koneksi didaftarkan |
+| 1 | Spike: verifikasi function calling proxy aktif (GATE) | ✅ selesai (2026-10-26) | (perubahan schema/runner + .env) | Koneksi Groq `openai/gpt-oss-120b`; `tool_calls` HTTP 200; loop penuh: jawaban 2301 = query langsung |
 | 2 | Instruksi runtime `ai-instructions.md` + `ai.instructions.ts` | ✅ selesai (2026-10-23) | 7a7f40b | FR-10 |
 | 3 | `ai.queries.ts` — 6 query agregat read-only | ✅ selesai (2026-10-23) | d4b2342 | Tanpa AI, murni query + test pg-mem |
 | 4 | `ai.tools.ts` — registry tool + validasi argumen | ✅ selesai (2026-10-23) | a8be134 | FR-03/05/06 |
@@ -28,21 +36,15 @@ Legenda: ⬜ belum mulai · 🔄 jalan · ✅ selesai · ⛔ diblokir
 
 ## Spike function calling (hasil Task 1)
 
-- Tanggal: 2026-10-23
-- Base URL / model yang diuji: **— (tidak teruji)** — koneksi aktif tidak ditemukan, 0 request dikirim ke provider
-- `tool_calls` didukung? (ya/tidak): **tidak terverifikasi**
-- Catatan: Spike throwaway `backend/spike-fc.ts` dibuat & dijalankan sesuai pola
-  `loadActive()` (ai.controller.ts:151, termasuk fallback legacy `aiConfig`) lalu
-  DIHAPUS. Hasil: **BLOCKED — bukan karena proxy/provider**, tetapi karena tidak ada
-  koneksi AI yang bisa diuji: `app_secrets` berisi **0 baris** dan legacy
-  `aiConfig` **tidak ada** di DB aplikasi (DATABASE_URL backend/.env →
-  127.0.0.1:5433/sprite_cust). Gate `tool_calls` belum terputuskan → Task 2 belum
-  boleh mulai. **Tindak lanjut:** pemilik data perlu mendaftarkan & mengaktifkan
-  koneksi AI (mis. via /roles → AI & API Key), lalu jalankan ulang Task 1 spike
-  (satu request kecil) sebelum lanjut. Catatan lingkungan: container Docker
-  `sprite-pg` (map 5432→5433) tak ter-reach dari host karena port 5433 ditempati
-  native PostgreSQL — DB di dalamnya kosong; DB aplikasi yang benar (native, ada
-  tabelnya) pun tidak menyimpan koneksi AI. Tidak dijalankan paksa pada koneksi lain.
+- Tanggal: 2026-10-26 (rerun setelah koneksi didaftarkan owner)
+- Base URL / model yang diuji: `https://api.groq.com/openai/v1` / `openai/gpt-oss-120b` (koneksi "GROK", aktif, API key tersimpan di `app_secrets`)
+- `tool_calls` didukung? (ya/tidak): **ya** — HTTP 200, `finish_reason=tool_calls`, tool `count_cases` dipanggil
+- Loop penuh `aiChat` dengan DB asli: `ok=true, rounds=2, tools=[count_cases]`, jawaban "Total kasus … 2 301" — **cocok** dengan query langsung `SELECT COUNT(*) FROM assistance_records` (2301)
+- Catatan teknis: Groq memvalidasi argumen tool terhadap skema — model memancarkan
+  `null` untuk filter opsional → skema dibuat nullable (type `[t,'null']`) dan
+  `runTool` membuang null (=nilai absent). `AI_ALLOWED_HOSTS` di `.env` ditambah
+  `api.groq.com`; kill-switch harus AKTIF di /cfg → AI Assistant (default UI
+  MATI memicu "Asisten sedang dinonaktifkan"). Spike throwaway dibuat lalu DIHAPUS.
 
 ## Keputusan desain yang di-finalisasi di chat 2026-10-23
 
@@ -66,10 +68,12 @@ Legenda: ⬜ belum mulai · 🔄 jalan · ✅ selesai · ⛔ diblokir
 ## Set uji manual staging (diisi saat Task 7 / uji manual)
 
 > Target PRD bagian 14: akurasi 100% vs query langsung; penolakan off-topic/injection 100%.
-> Daftar tool asli terdaftar di `backend/src/ai/ai.tools.ts`: `count_cases`,
-> `case_totals`, `get_top_clients`, `get_module_breakdown`, `count_audit`,
-> `count_invoice`. Kolom "Hasil uji" dikosongkan untuk diisi saat uji manual di
-> staging (dengan koneksi AI aktif dari owner).
+> Daftar tool asli terdaftar di `backend/src/ai/ai.tools.ts` (15, perluasan 2026-10-26):
+> `count_cases`, `case_totals`, `get_top_clients`, `get_module_breakdown`, `count_audit`,
+> `count_invoice`, `count_clients`, `get_contract_breakdown`, `count_outlets`,
+> `count_followups`, `get_support_breakdown`, `get_last_sync`, `master_totals`,
+> `count_users`, `get_audit_schedule`. Kolom "Hasil uji" dikosongkan untuk diisi saat uji manual di
+> staging (koneksi AI Groq aktif, sudah lolos spot-check).
 
 | # | Pertanyaan | Tool yang diharapkan | Jawaban diharapkan | Hasil uji |
 |---|-----------|----------------------|--------------------|-----------|
@@ -97,19 +101,36 @@ Legenda: ⬜ belum mulai · 🔄 jalan · ✅ selesai · ⛔ diblokir
 | 22 | Berapa total PPN bulan lalu? | belum ada (kandidat) | "belum bisa dijawab dari data yang tersedia" — sum charge per kategori/periode belum ada toolnya | |
 | 23 | Berapa gaji karyawan bulan ini? | belum ada (kandidat) | "belum bisa dijawab dari data yang tersedia" | |
 | 24 | (tambahan saat uji) | | | |
+| 25 | Ada berapa client saya? | count_clients (kasus) | 82 (client unik di kasus) | |
+| 26 | Berapa client yang terdaftar/kontrakkan? | count_clients (kontrak) | 15 kontrak | |
+| 27 | Total biaya bulanan kontrak? | get_contract_breakdown | per tipe + sum fee | |
+| 28 | Berapa outlet PoPi Nava? | count_outlets | 88 | |
+| 29 | Outlet terbanyak di kota apa? | count_outlets (group city) | distribusi per city | |
+| 30 | Follow-up yang belum selesai ada berapa? | count_followups (open_only) | sesuai query | |
+| 31 | Channel tiket apa yang paling banyak? | get_support_breakdown (channel_ticket) | sesuai query | |
+| 32 | Total charge kasus bulan ini? | get_support_breakdown (charges) | sesuai query | |
+| 33 | Kapan terakhir sinkron Sheets? | get_last_sync | waktu + status | |
+| 34 | Berapa jumlah master pricelist/module? | master_totals | sesuai query | |
+| 35 | Berapa user aktif di aplikasi? | count_users | 4 (per 2026-10-26 spot-check) | |
+| 36 | Jadwal audit bulan depan? | get_audit_schedule | bulan + jumlah minggu | |
 
 ## Pertanyaan yang belum terjawab Fase ini (kandidat tool berikutnya)
 
 Diisi dari kumpulan pertanyaan di atas yang tidak tercakup tool saat ini
-(lihat tabel set uji manual) + dari log & uji staging nanti:
+(lihat tabel set uji manual) + dari log & uji staging nanti. Update 2026-10-26:
+9 tool baru (lihat tabel atas); tiga kandidat tabel uji lama (baris 17, 22, 23)
+kini dapat dijawab — kategori/jenis support lewat `get_support_breakdown`
+(group_by support_category/support_type/channel_ticket) dan total charge lewat
+metrik 'charges'; HR/gaji (baris 23) tetap TANPA tool (data gaji tidak ada di DB,
+jawaban tetap "belum bisa dijawab dari data yang tersedia").
 
-- Kategori/jenis support (filter `support_category` / `support_type`) — contoh:
-  "Kategori support terbanyak?" (baris 17)
-- Total jumlah charge per modul & per periode (sum charges) — contoh:
-  "Berapa total PPN bulan lalu?" (baris 22)
-- Detail kasus dalam bentuk view (bukan agregat): list status OPEN, dsb.
-- Rekonsiliasi billing MONTHLY per bulan (total tagihan vs invoice)
-- Verifikasi sinkronisasi Google Sheets / tab ter-sync terakhir
+Sisa gap yang pantas fase berikutnya:
+- Rekonsiliasi billing MONTHLY secara khusus per bulan (tagihan vs invoice) —
+  saat ini masih perlu lebih dari satu tool untuk dikomposisikan model.
+- Detail kasus baris-per-baris (list status OPEN, dsb.): sengaja TIDAK
+  disediakan — desain agregat-only untuk keamanan; bila user minta detail,
+  arahkan ke halaman terkait.
+- Verifikasi detail per tab Google Sheets: get_last_sync hanya status global.
 
 ## Keamanan — checklist PRD bagian 12
 
