@@ -10,6 +10,7 @@ import { TOOL_SPECS, TOOL_NAMES, runTool } from '../src/ai/ai.tools.ts';
 
 // DDL idempoten: jika test file lain di proses yang sama sudah membuat tabel
 // ini dengan skema lebih lebar, IF NOT EXISTS membuatnya tidak menimpa.
+// pg-mem melempar saat CREATE kembali untuk tabel yang sudah ada → ditolong.
 const ddls = [
   `CREATE TABLE IF NOT EXISTS assistance_records (record_uuid TEXT PRIMARY KEY, no TEXT, client TEXT, status TEXT, billing_status TEXT, charges NUMERIC, date_issue TEXT, module TEXT, support_category TEXT, support_type TEXT)`,
   `CREATE TABLE IF NOT EXISTS audit_status (record_uuid TEXT PRIMARY KEY, action TEXT, updated_at TEXT)`,
@@ -28,7 +29,13 @@ const seedCases = [
 
 async function seedToolDb() {
   const mem = getMemDb();
-  for (const ddl of ddls) mem.public.none(ddl);
+  for (const ddl of ddls) {
+    try {
+      mem.public.none(ddl);
+    } catch {
+      // pg-mem: CREATE ulang tabel yang sudah ada tidak didukung — abaikan.
+    }
+  }
   const db = getDb();
   // seed idempoten: hapus dulu baris uji milik file ini agar insert kembali
   const ids = seedCases.map((c) => c.record_uuid);
@@ -67,9 +74,9 @@ describe('ai.tools — registry tool & validasi runTool', () => {
     db = await seedToolDb();
   });
 
-  it('TOOL_SPECS: 6 tool, function.name unik, sinkron TOOL_NAMES', () => {
-    assert.equal(TOOL_SPECS.length, 6);
-    assert.equal(new Set(TOOL_SPECS.map((s) => s.function.name)).size, 6);
+  it('TOOL_SPECS: 15 tool, function.name unik, sinkron TOOL_NAMES', () => {
+    assert.equal(TOOL_SPECS.length, 15);
+    assert.equal(new Set(TOOL_SPECS.map((s) => s.function.name)).size, 15);
     for (const s of TOOL_SPECS) {
       assert.equal(s.type, 'function');
       assert.ok(typeof s.function.description === 'string' && s.function.description.length > 0);
@@ -123,7 +130,7 @@ describe('ai.tools — registry tool & validasi runTool', () => {
 
   it('runTool: month tanpa year → pakai tahun berjalan', async () => {
     const r: any = await runTool(db, 'count_cases', { month: 7 });
-    assert.deepEqual(r, { total: 2, period: `Juli ${new Date().getFullYear()}` });
+    assert.deepEqual(r, { total: 2, period: `Juli ${new Date().getFullYear()}`, total_di_bulan: 2 });
   });
 
   it('runTool: billing_status case-insensitive, di luar daftar → error', async () => {
@@ -178,5 +185,179 @@ describe('ai.tools — registry tool & validasi runTool', () => {
   it('runTool: happy path count_invoice sum_amount', async () => {
     assert.deepEqual(await runTool(db, 'count_invoice', { sum_amount: true }), { total: 3, amount: 200000 });
     assert.deepEqual(await runTool(db, 'count_invoice', { status: 'INVOICE TERBIT', sum_amount: true }), { total: 2, amount: 200000 });
+  });
+});
+
+// Perluasan lingkup 2026-10-26: validasi + happy path 9 tool baru.
+describe('ai.tools — perluasan lingkup (9 tool baru)', () => {
+  const extraDdls = [
+    `CREATE TABLE IF NOT EXISTS brand_statuses (id TEXT PRIMARY KEY, brand TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'MONTHLY', start_at TEXT, expired_at TEXT, monthly_fee INTEGER DEFAULT 0, pic TEXT, note TEXT, created_at TEXT NOT NULL, updated_at TEXT)`,
+    `CREATE TABLE IF NOT EXISTS popinava_outlets (uuid TEXT PRIMARY KEY, brand_name TEXT NOT NULL, rvt_custcode TEXT NOT NULL, dept_code TEXT NOT NULL, city TEXT NOT NULL DEFAULT '', province TEXT NOT NULL DEFAULT '', region TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active', updated_at TEXT)`,
+    `CREATE TABLE IF NOT EXISTS followups (id TEXT PRIMARY KEY, client_name TEXT NOT NULL, issue_date TEXT NOT NULL, module TEXT NOT NULL, title TEXT NOT NULL, description TEXT, priority TEXT NOT NULL DEFAULT 'Sedang', status TEXT NOT NULL DEFAULT 'Open', followup_date TEXT NOT NULL, pic TEXT, resolved_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS sync_logs (id TEXT PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL, rows_processed INTEGER DEFAULT 0, error_message TEXT, source TEXT DEFAULT 'sheets')`,
+    `CREATE TABLE IF NOT EXISTS audit_schedule (month TEXT PRIMARY KEY, weeks TEXT NOT NULL DEFAULT '{}', updated_by TEXT, updated_at TEXT)`,
+    `CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)`,
+    `CREATE TABLE IF NOT EXISTS "user" (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, email_verified INTEGER DEFAULT 0, image TEXT, created_at TIMESTAMP, updated_at TIMESTAMP)`,
+    `ALTER TABLE "user" ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'Viewer'`,
+    `ALTER TABLE "user" ADD COLUMN IF NOT EXISTS active INTEGER DEFAULT 1`,
+  ];
+
+  before(async () => {
+    // Kasus pembanding dari describe pertama: seed ulang hanya bila memang belum ada
+    const d0 = getDb();
+    let known = false;
+    try {
+      const probe = await d0.pq(`SELECT 1 FROM assistance_records WHERE record_uuid = $1`, ['ar-oncall-1']);
+      known = probe.rows.length > 0;
+    } catch {
+      known = false;
+    }
+    if (!known) await seedToolDb();
+    const mem = getMemDb();
+    for (const ddl of extraDdls) mem.public.none(ddl);
+    const d = getDb();
+    await d.pq(`DELETE FROM brand_statuses WHERE id LIKE 'bs-t-%'`, []);
+    await d.pq(`DELETE FROM popinava_outlets WHERE uuid LIKE 'po-t-%'`, []);
+    await d.pq(`DELETE FROM followups WHERE id LIKE 'fu-t-%'`, []);
+    await d.pq(`DELETE FROM sync_logs WHERE id LIKE 'sl-t-%'`, []);
+    await d.pq(
+      `INSERT INTO brand_statuses (id, brand, type, monthly_fee, created_at) VALUES
+       ('bs-t-1','Client T1','MONTHLY',50000,'2026-01-01'),
+       ('bs-t-2','Client T2','GRATIS',0,'2026-01-01')`,
+      [],
+    );
+    await d.pq(
+      `INSERT INTO popinava_outlets (uuid, brand_name, rvt_custcode, dept_code, city) VALUES
+       ('po-t-1','PoPi Nava','RVT-T1','D1','Bandung'),
+       ('po-t-2','PoPi Nava','RVT-T2','D2','Jakarta')`,
+      [],
+    );
+    await d.pq(
+      `INSERT INTO followups (id, client_name, issue_date, module, title, followup_date, created_at, updated_at) VALUES
+       ('fu-t-1','CLIENT-A','2026-10-01','TRAVICS!','TL','2026-10-05','2026-10-01','2026-10-01')`,
+      [],
+    );
+    await d.pq(
+      `INSERT INTO sync_logs (id, started_at, finished_at, status, rows_processed) VALUES ('sl-t-1','2026-10-26T02:00:00Z','2026-10-26T02:01:00Z','success',3)`,
+      [],
+    );
+    await d.pq(
+      `INSERT INTO audit_schedule (month, weeks, updated_by, updated_at) VALUES ('2026-12','["a","b"]','admin@revota.id','2026-10-26')
+       ON CONFLICT (month) DO UPDATE SET weeks = EXCLUDED.weeks, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at`,
+      [],
+    );
+    await d.pq(
+      `INSERT INTO app_config (key, value, updated_at) VALUES ('sheetConfig', $1, '2026-10-01')
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+      [JSON.stringify({ brands: ['X'], modules: ['X', 'Y'] })],
+    );
+    await d.pq(`DELETE FROM "user" WHERE id LIKE 'u-t-%'`, []);
+    await d.pq(
+      `INSERT INTO "user" (id, name, email, email_verified, role, active, created_at, updated_at) VALUES
+       ('u-t-1','T Admin','t-admin@test.local',1,'Admin',1,'2026-10-01','2026-10-01'),
+       ('u-t-2','T Viewer','t-viewer@test.local',1,'Viewer',0,'2026-10-01','2026-10-01')`,
+      [],
+    );
+  });
+
+  it('runTool: count_clients basis kasus/kontrak + validasi source', async () => {
+    const d = getDb();
+    assert.deepEqual(await runTool(d, 'count_clients', {}), { total: 2, basis: 'kasus' });
+    assert.deepEqual(await runTool(d, 'count_clients', { source: 'kontrak' }), { total: 2, basis: 'kontrak' });
+    const bad: any = await runTool(d, 'count_clients', { source: 'aneh' });
+    assert.ok(String(bad.error).includes('source'));
+  });
+
+  it('runTool: happy path get_contract_breakdown', async () => {
+    const d = getDb();
+    const r: any = await runTool(d, 'get_contract_breakdown', {});
+    assert.equal(r.total, 2);
+    assert.equal(r.expiring, 0);
+    assert.equal(r.nearestExpiry, null);
+    assert.deepEqual(r.groups, [
+      { label: 'GRATIS', count: 1, monthly_fee: 0 },
+      { label: 'MONTHLY', count: 1, monthly_fee: 50000 },
+    ]);
+  });
+
+  it('runTool: count_outlets total/per group + validasi group_by', async () => {
+    const d = getDb();
+    assert.deepEqual(await runTool(d, 'count_outlets', {}), { total: 2 });
+    const r: any = await runTool(d, 'count_outlets', { group_by: 'city' });
+    assert.equal(r.total, 2);
+    assert.ok(Array.isArray(r.groups));
+    const bad: any = await runTool(d, 'count_outlets', { group_by: ' Universe' });
+    assert.ok(String(bad.error).includes('group_by'));
+  });
+
+  it('runTool: count_followups default status, open_only, validasi', async () => {
+    const d = getDb();
+    const r: any = await runTool(d, 'count_followups', {});
+    assert.equal(r.total, 1);
+    assert.equal(r.open, 1);
+    assert.deepEqual(r.groups, [{ label: 'Open', count: 1 }]);
+    const open: any = await runTool(d, 'count_followups', { open_only: true });
+    assert.equal(open.total, 1);
+    const prio: any = await runTool(d, 'count_followups', { group_by: 'priority' });
+    assert.deepEqual(prio.groups, [{ label: 'Sedang', count: 1 }]);
+    const bad: any = await runTool(d, 'count_followups', { group_by: 'brand' });
+    assert.ok(String(bad.error).includes('group_by'));
+  });
+
+  it('runTool: get_support_breakdown per kategori (default), metrik charges, validasi', async () => {
+    const d = getDb();
+    const r: any = await runTool(d, 'get_support_breakdown', {});
+    assert.equal(r.period, 'seluruh periode');
+    assert.deepEqual(r.items, [
+      { label: 'A', count: 3 },
+      { label: 'B', count: 1 },
+    ]);
+    const ch: any = await runTool(d, 'get_support_breakdown', { metric: 'charges' });
+    assert.deepEqual(ch.items, [
+      { label: 'A', count: 3, charges: 200000 },
+      { label: 'B', count: 1, charges: 50000 },
+    ]);
+    const badG: any = await runTool(d, 'get_support_breakdown', { group_by: 'client' });
+    assert.ok(String(badG.error).includes('group_by'));
+    const badM: any = await runTool(d, 'get_support_breakdown', { metric: 'Temperatur' });
+    assert.ok(String(badM.error).includes('metric'));
+    const badPeriod: any = await runTool(d, 'get_support_breakdown', { month: 13 });
+    assert.ok(badPeriod.error);
+  });
+
+  it('runTool: happy path get_last_sync', async () => {
+    const d = getDb();
+    const r: any = await runTool(d, 'get_last_sync', {});
+    assert.equal(r.sync.status, 'success');
+    assert.equal(r.sync.rows, 3);
+  });
+
+  it('runTool: happy path master_totals (key array saja, urut abjad)', async () => {
+    const d = getDb();
+    const r: any = await runTool(d, 'master_totals', {});
+    assert.deepEqual(r.groups, [
+      { label: 'brands', count: 1 },
+      { label: 'modules', count: 2 },
+    ]);
+  });
+
+  it('runTool: count_users hanya angka + role (data pribadi tidak dilibatkan)', async () => {
+    const d = getDb();
+    const r: any = await runTool(d, 'count_users', {});
+    assert.deepEqual(r, {
+      total: 2,
+      aktif: 1,
+      roles: [
+        { label: 'Admin', count: 1 },
+        { label: 'Viewer', count: 1 },
+      ],
+    });
+  });
+
+  it('runTool: happy path get_audit_schedule (jumlah minggu dihitung)', async () => {
+    const d = getDb();
+    const r: any = await runTool(d, 'get_audit_schedule', {});
+    assert.equal(r.schedule.month, '2026-12');
+    assert.equal(r.schedule.weeks, 2);
   });
 });
