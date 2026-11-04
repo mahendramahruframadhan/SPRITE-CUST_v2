@@ -9,7 +9,7 @@ import {
   buildPivotClientSupport,
   buildPivotCategory,
 } from '../lib/billingReportData.js';
-import { REPORT_COMPANY, reportDocNumber } from '../config/billingReport.js';
+import { reportDocNumber } from '../config/billingReport.js';
 import { fmtMoney } from '../utils/format.js';
 
 const ID_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -112,12 +112,9 @@ export default function BillingReportPage() {
       <style>{`
         .bjr-sheet { width: 210mm; min-height: 297mm; margin: 0 auto 20px; background: #fff; padding: 2mm 0 6mm; box-shadow: 0 2px 12px rgba(0,0,0,.25); position: relative; }
         .bjr-inner { padding: 0 0mm; }
-        .bjr-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px double #111; padding-bottom: 8px; }
-        .bjr-co b { font-size: 14pt; letter-spacing: .5px; }
-        .bjr-co div { font-size: 8.5pt; color: #444; }
-        .bjr-ttl { text-align: right; }
-        .bjr-ttl h1 { margin: 0; font-size: 15pt; letter-spacing: 1px; }
-        .bjr-ttl div { font-size: 8.5pt; color: #444; }
+        .bjr-head { text-align: center; border-bottom: 3px double #111; padding-bottom: 8px; }
+        .bjr-head h1 { margin: 0; font-size: 16pt; letter-spacing: 1.5px; }
+        .bjr-head div { font-size: 8.5pt; color: #444; margin-top: 2px; }
         .bjr-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin: 10px 0 12px; font-size: 9pt; }
         .bjr-meta > div { display: flex; }
         .bjr-meta span:first-child { width: 34mm; color: #444; }
@@ -152,14 +149,8 @@ export default function BillingReportPage() {
       <div className="bjr-sheet">
         <div className="bjr-inner">
           <div className="bjr-head">
-            <div className="bjr-co">
-              <b>{REPORT_COMPANY.name}</b>
-              <div>{REPORT_COMPANY.contact}</div>
-            </div>
-            <div className="bjr-ttl">
-              <h1>SURAT JALAN LAYANAN</h1>
-              <div>Laporan Billing Audit – On-Call</div>
-            </div>
+            <h1>LAPORAN BILLING – ON-CALL</h1>
+            <div>Billing Audit · Periode {periode}</div>
           </div>
 
           <div className="bjr-meta">
