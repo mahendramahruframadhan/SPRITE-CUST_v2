@@ -29,6 +29,8 @@ const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage.jsx'));
 const RolesPage = lazy(() => import('./pages/RolesPage.jsx'));
 const LogsPage = lazy(() => import('./pages/LogsPage.jsx'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage.jsx'));
+// Laporan A4 dicetak mandiri (tanpa AppLayout) agar bersih saat print.
+const BillingReportPage = lazy(() => import('./pages/BillingReportPage.jsx'));
 
 // Fallback transisi antar-halaman (satu gaya, tanpa spinner dekoratif).
 function PageFallback() {
@@ -48,6 +50,7 @@ function AnimatedRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/register" element={<SignUpPage />} />
+      <Route path="/billing/report" element={<RequirePerm module="billing"><BillingReportPage /></RequirePerm>} />
 
       <Route element={<AppLayout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
