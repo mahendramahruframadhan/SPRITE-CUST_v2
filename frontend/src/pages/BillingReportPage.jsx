@@ -85,7 +85,11 @@ export default function BillingReportPage() {
 
   const footerText = `Laporan Billing Audit On-Call · ${periode}`;
   const printDate = fmtDateID(today8());
-  const docNumber = reportDocNumber(new Date());
+  // No. dokumen mengikuti periode: tanggal terawal data (fallback: filter from, lalu hari ini).
+  const docSource = rows.length
+    ? rows.map((r) => r.dateIssue).sort()[0]
+    : (from || to || today8()).replace(/-/g, '');
+  const docNumber = reportDocNumber(docSource);
 
   // Aturan cetak: footer kiri (nama laporan + periode) & nomor halaman X / Y
   // diletakkan di margin @page (Chrome mendukung counter(page)/counter(pages)).
