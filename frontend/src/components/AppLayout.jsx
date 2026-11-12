@@ -8,6 +8,8 @@ import { getJSON, set as simpan } from '../lib/storage.js';
 import Icon, { iconNav } from '../components/Icon.jsx';
 import AiChat from '../components/AiChat.jsx';
 import NotificationBell from '../components/NotificationBell.jsx';
+import GlobalSyncButton from '../components/GlobalSyncButton.jsx';
+import { reloadAllCases } from '../lib/api.js';
 import { ActionsProvider } from '../context/ActionsContext.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { ScrollArea } from '../components/ui/ScrollArea.jsx';
@@ -196,6 +198,9 @@ export default function AppLayout() {
   const [navBuka, setNavBuka] = useState(false);
   // Sidebar desktop bisa diciutkan; preferensi tersimpan (lib/storage.js).
   const [ciut, setCiut] = useState(() => getJSON(KUNCI_CiUT, false) === true);
+  // Nonce memaksa halaman aktif mount ulang setelah sync agar semua fetch
+  // data ikut segar, tanpa reload browser penuh.
+  const [syncNonce, setSyncNonce] = useState(0);
   const refTutup = useRef(null);
 
   const saklarCiut = () => {
@@ -329,6 +334,14 @@ export default function AppLayout() {
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{saatIni?.sub || '—'}</p>
             </div>
             <div className="ml-auto flex items-center gap-3">
+              {location.pathname !== '/dashboard' && (
+                <GlobalSyncButton
+                  onSynced={() => {
+                    reloadAllCases().catch(() => {});
+                    setSyncNonce((n) => n + 1);
+                  }}
+                />
+              )}
               <NotificationBell />
               <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2">
                 <span className="relative flex h-2 w-2">
@@ -350,7 +363,7 @@ export default function AppLayout() {
             </div>
           </header>
 
-          <div className="flex-1 min-w-0">
+          <div key={syncNonce} className="flex-1 min-w-0">
             <Outlet />
           </div>
         </main>
