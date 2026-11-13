@@ -23,6 +23,8 @@ import {
   addItem,
   removeItem,
   moveItem,
+  isOutletScheduled,
+  summarizeScheduleCoverage,
 } from '../src/lib/auditSchedule.js';
 
 // Stub localStorage sederhana untuk mode node (storage.js membaca global ini).
@@ -387,5 +389,47 @@ describe('tandai audit → backend /api/audit-schedule/mark', () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].action, 'mark');
     assert.equal(rows[0].who, 'Super Admin');
+  });
+});
+
+describe('filter sisa jadwal — outlet/brand yang sudah terjadwal disembunyikan', () => {
+  const outlet = (uuid, brandName) => ({ uuid, brandName, deptChannelName: `Outlet ${uuid}` });
+  const rows = [
+    outlet('a1', 'ALFA'),
+    outlet('a2', 'ALFA'),
+    outlet('b1', 'BETA'),
+    outlet('c1', 'CHARLIE'),
+  ];
+
+  it('isOutletScheduled: outlet terjadwal langsung → true', () => {
+    assert.equal(isOutletScheduled(rows[0], new Map([['a1', 'W1']])), true);
+    assert.equal(isOutletScheduled(rows[2], new Map([['a1', 'W1']])), false);
+  });
+
+  it('isOutletScheduled: brand terjadwal → semua outlet brand itu dianggap selesai', () => {
+    const scheduled = new Map([['brand:ALFA', 'W2']]);
+    assert.equal(isOutletScheduled(rows[0], scheduled), true);
+    assert.equal(isOutletScheduled(rows[1], scheduled), true);
+    assert.equal(isOutletScheduled(rows[2], scheduled), false);
+  });
+
+  it('summarizeScheduleCoverage: hitung sisa dari total outlet', () => {
+    const scheduled = new Map([
+      ['a1', 'W1'],
+      ['brand:BETA', 'W2'],
+    ]);
+    assert.deepEqual(summarizeScheduleCoverage(rows, scheduled), {
+      total: 4,
+      done: 2,
+      remaining: 2,
+    });
+  });
+
+  it('summarizeScheduleCoverage: tanpa jadwal → semua sisa', () => {
+    assert.deepEqual(summarizeScheduleCoverage(rows, new Map()), {
+      total: 4,
+      done: 0,
+      remaining: 4,
+    });
   });
 });

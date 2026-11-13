@@ -11,7 +11,9 @@ import { Button } from '../ui/Button.jsx';
 import { ScrollArea } from '../ui/ScrollArea.jsx';
 import {
   formatWeekRange,
+  isOutletScheduled,
   monthWeeks,
+  summarizeScheduleCoverage,
 } from '../../lib/auditSchedule.js';
 
 const INPUT_CLS =
@@ -68,9 +70,12 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
   // q = kata kunci pencarian (lowercase, tanpa spasi tepi).
   const q = search.trim().toLowerCase();
 
-  // Grup per brand A→Z (pola Kategori PopiNava). Pencarian menyaring lintas
-  // grup: nama brand cocok -> seluruh outletnya tampil; nama outlet cocok ->
-  // hanya outlet itu di dalam grupnya.
+  // Grup per brand A→Z (pola Kategori PopiNava). Unit yang sudah dijadwalkan
+  // di bulan ini disembunyikan supaya tidak dobel audit: brand terjadwal
+  // menutup seluruh grupnya, outlet terjadwal hilang dari daftar. Pencarian
+  // menyaring lintas grup pada sisa outlet yang belum terjadwal.
+  const coverage = useMemo(() => summarizeScheduleCoverage(outlets, scheduled), [outlets, scheduled]);
+
   const groups = useMemo(() => {
     const map = new Map();
     for (const o of outlets) {
@@ -81,18 +86,20 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
     return [...map.entries()]
       .sort((a, b) => a[0].localeCompare(b[0], 'id'))
       .map(([brand, all]) => {
+        if (scheduled.has(`brand:${brand}`)) return null;
+        const remaining = all.filter((o) => !isOutletScheduled(o, scheduled));
         const brandHit = !q || brand.toLowerCase().includes(q);
         const items = brandHit
-          ? all
-          : all.filter((o) =>
+          ? remaining
+          : remaining.filter((o) =>
               `${o.brandName} ${o.deptChannelName} ${o.rvtCustcode} ${o.deptCode} ${o.deptName} ${o.city}`
                 .toLowerCase()
                 .includes(q)
             );
-        return { brand, all, items };
+        return { brand, all, remaining, items };
       })
-      .filter((g) => g.items.length > 0);
-  }, [outlets, q]);
+      .filter((g) => g && g.items.length > 0);
+  }, [outlets, q, scheduled]);
 
   function toggleBrand(brand) {
     setBrands((prev) => {
@@ -225,13 +232,19 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Brand (kategori) & lokasi outlet
                 </p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  Sisa {coverage.remaining} dari {coverage.total} outlet · {coverage.done} sudah dijadwalkan bulan ini.
+                </p>
                 <div className="mt-1.5 space-y-2">
                   {groups.length === 0 && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Tidak ada brand atau outlet yang cocok.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {coverage.remaining === 0
+                        ? 'Semua outlet bulan ini sudah dijadwalkan.'
+                        : 'Tidak ada brand atau outlet yang cocok.'}
+                    </p>
                   )}
                   {groups.map((g) => {
                     const isOpen = !collapsed.has(g.brand);
-                    const done = scheduled.get(`brand:${g.brand}`);
                     const on = brands.has(g.brand);
                     const panelId = `as-grp-${g.brand.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}`;
                     return (
@@ -266,7 +279,7 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
                             <span className="font-bold text-slate-800 dark:text-slate-100">{g.brand}</span>
                           </Button>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/30">
-                            {g.all.length} outlet
+                            {g.remaining} sisa
                           </span>
                           <Button
                             type="button"
@@ -274,25 +287,22 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
                             size="sm"
                             aria-label={`Pilih brand ${g.brand}`}
                             aria-pressed={on}
-                            aria-disabled={done ? 'true' : undefined}
-                            onClick={() => !done && toggleBrand(g.brand)}
+                            onClick={() => toggleBrand(g.brand)}
                             className="ml-auto"
                           >
-                            {done ? `Sudah ${done}` : 'Pilih'}
+                            Pilih
                           </Button>
                         </div>
                         <ul id={panelId} className="p-2 space-y-1.5 border-t border-slate-100 dark:border-slate-800">
                           {isOpen &&
                             g.items.map((o) => {
-                              const oDone = scheduled.get(o.uuid);
                               const viaBrand = brands.has(o.brandName);
                               const onOut = units.has(o.uuid);
-                              const disabled = !!oDone;
                               return (
                                 <li key={o.uuid}>
                                   <label
                                     className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 min-h-[44px] transition ${
-                                      disabled
+                                      viaBrand
                                         ? 'border-slate-100 dark:border-slate-800 opacity-60'
                                         : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer'
                                     }`}
@@ -301,7 +311,7 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
                                       type="checkbox"
                                       className={CHECK_CLS}
                                       checked={onOut || viaBrand}
-                                      disabled={disabled || viaBrand}
+                                      disabled={viaBrand}
                                       onChange={() => toggleUnit(o.uuid)}
                                       aria-label={`${o.deptChannelName} (${o.brandName})`}
                                     />
@@ -320,9 +330,9 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
                                         </span>
                                       )}
                                     </span>
-                                    {(oDone || viaBrand) && (
+                                    {viaBrand && (
                                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
-                                        {oDone ? `Sudah ${oDone}` : 'Ikut brand'}
+                                        Ikut brand
                                       </span>
                                     )}
                                   </label>

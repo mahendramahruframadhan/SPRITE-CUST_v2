@@ -222,3 +222,20 @@ export function moveItem(weeks, fromKey, toKey, id) {
   next = addItem(next, toKey, item);
   return next;
 }
+
+// --- Cakupan jadwal: unit yang sudah masuk minggu mana pun di bulan ini ---
+// Outlet dianggap selesai bila dipilih langsung ATAU brand-nya dijadwalkan
+// (satu brand mencakup seluruh outletnya). Dipakai drawer Tambah untuk
+// menyembunyikan unit yang berisiko dobel audit dalam satu bulan.
+
+export function isOutletScheduled(outlet, scheduled) {
+  if (!outlet || !scheduled) return false;
+  return scheduled.has(`brand:${outlet.brandName || '-'}`) || scheduled.has(outlet.uuid);
+}
+
+export function summarizeScheduleCoverage(outlets, scheduled) {
+  const rows = Array.isArray(outlets) ? outlets : [];
+  let done = 0;
+  for (const o of rows) if (isOutletScheduled(o, scheduled)) done += 1;
+  return { total: rows.length, done, remaining: rows.length - done };
+}
