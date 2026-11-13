@@ -25,6 +25,7 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal.jsx';
 import InvoiceHistoryModal from '../components/InvoiceHistoryModal.jsx';
 import TaxCell from '../components/TaxCell.jsx';
 import TaxModal from '../components/TaxModal.jsx';
+import { isTaxableRow } from '../lib/taxSummary.js';
 
 /* eslint-disable react/forbid-elements --
    Halaman ini penuh kontrol mikro kustom per baris tabel: tombol ikon PDF
@@ -535,12 +536,13 @@ export default function FinanceAuditPage() {
     [allCases]
   );
 
-  // Pool kasus yang boleh diproses finance
+  // Pool kasus yang boleh diproses finance — hanya ON-CALL.
+  // Monthly beda jalur dan tidak masuk pool invoice finance.
   const validatedPool = useMemo(
     () =>
       allCases.filter(
         (c) =>
-          (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY') &&
+          isTaxableRow(c.billingStatus) &&
           caseAuditStatus[c.recordUuid] === VALID_TAG
       ),
     [allCases, caseAuditStatus]
