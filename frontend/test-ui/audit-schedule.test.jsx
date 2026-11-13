@@ -209,9 +209,9 @@ describe('AuditScheduleDrawer — daftar brand sebagai kategori', () => {
     expect(within(regions[0]).getByText('Chambers Bekasi')).toBeInTheDocument();
     expect(within(regions[0]).queryByText('SCH Puri')).not.toBeInTheDocument();
     expect(within(regions[1]).getByText('SCH Puri')).toBeInTheDocument();
-    // Tiap kategori punya tombol pilih brand + jumlah outlet.
+    // Tiap kategori punya tombol pilih brand + jumlah sisa outlet.
     expect(within(regions[0]).getByRole('button', { name: 'Pilih brand Chambers' })).toBeInTheDocument();
-    expect(within(regions[0]).getByText(/2 outlet/)).toBeInTheDocument();
+    expect(within(regions[0]).getByText(/2 sisa/)).toBeInTheDocument();
   });
 
   it('chevron melipat/membuka grup outlet (aria-expanded)', async () => {

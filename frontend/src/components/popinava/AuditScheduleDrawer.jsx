@@ -96,7 +96,7 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
                 .toLowerCase()
                 .includes(q)
             );
-        return { brand, all, remaining, items };
+        return { brand, remainingCount: remaining.length, items };
       })
       .filter((g) => g && g.items.length > 0);
   }, [outlets, q, scheduled]);
@@ -279,7 +279,7 @@ export default function AuditScheduleDrawer({ open, monthKey, weekKey, outlets, 
                             <span className="font-bold text-slate-800 dark:text-slate-100">{g.brand}</span>
                           </Button>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/30">
-                            {g.remaining} sisa
+                            {g.remainingCount} sisa
                           </span>
                           <Button
                             type="button"
