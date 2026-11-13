@@ -62,10 +62,21 @@ function syncBadgeText(sync) {
   return parts.join(' · ');
 }
 
-export default function AuditSchedule({ outlets, canWrite }) {
+export default function AuditSchedule({ outlets, canWrite, monthKey: sharedMonthKey, onMonthChange }) {
   const { notify } = useToast();
   const confirm = useConfirm();
-  const [monthKey, setMonthKey] = useState(() => monthKeyOf(new Date()));
+  // Bulan aktif bisa dibagi dengan tab Laporan Audit lewat props; tanpa props
+  // komponen tetap mandiri (dipakai test / halaman lain).
+  const [localMonthKey, setLocalMonthKey] = useState(() => monthKeyOf(new Date()));
+  const monthKey = sharedMonthKey || localMonthKey;
+  const setMonthKey = useCallback(
+    (updater) => {
+      const next = typeof updater === 'function' ? updater(monthKey) : updater;
+      if (onMonthChange) onMonthChange(next);
+      else setLocalMonthKey(next);
+    },
+    [monthKey, onMonthChange],
+  );
   const [weeks, setWeeks] = useState(null); // null = masih memuat
   const [loadErr, setLoadErr] = useState(false);
   const [picker, setPicker] = useState(null); // minggu tujuan drawer, null = tertutup
