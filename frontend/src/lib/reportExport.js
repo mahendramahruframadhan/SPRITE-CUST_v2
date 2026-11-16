@@ -1,7 +1,8 @@
 // Builder CSV Report Summary — satu jalur untuk tombol Export di
-// halaman /report. Urutan seksi: kop periode, per status invoice,
-// per billing status, ringkas akhir. Tanpa BOM (keterbatasan Excel
-// non-ASCII yang sama seperti billingExport.js).
+// halaman /report. Saat workload ada: kop operasional & finansial +
+// seksi operasional (ringkasan, billing, user, brand/module) lalu
+// rincian finansial tervalidasi. Tanpa workload: output finansial
+// tervalidasi legacy (backward compatible). Tanpa BOM.
 const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
 const BILLING_ORDER = ['ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA'];
@@ -79,8 +80,9 @@ export function buildReportCsv(summary, { periode = '', aging = null, top = [], 
   const byInvoice = s.byInvoice && typeof s.byInvoice === 'object' ? s.byInvoice : {};
   const byBilling = s.byBilling && typeof s.byBilling === 'object' ? s.byBilling : {};
   const cols = ['KATEGORI', 'JUMLAH KASUS', 'CHARGES', 'PPN', 'SUBTOTAL'].join(',');
+  const title = workload ? 'REPORT SUMMARY — REKAP OPERASIONAL & FINANSIAL' : 'REPORT SUMMARY — KASUS TERVALIDASI';
   const lines = [
-    ['REPORT SUMMARY — KASUS TERVALIDASI'].map(esc).join(','),
+    [title].map(esc).join(','),
     ['PERIODE', periode].map(esc).join(','),
     ...(workload ? operationalSections(workload) : []),
     '',

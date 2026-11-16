@@ -19,8 +19,9 @@ const SUMMARY = {
 };
 
 describe('buildReportCsv', () => {
-  it('memuat kop periode + baris status invoice', () => {
+  it('memuat kop periode + baris status invoice (legacy tervalidasi)', () => {
     const csv = buildReportCsv(SUMMARY, { periode: '2026-10-01 s.d. 2026-10-31' });
+    assert.match(csv, /^"REPORT SUMMARY — KASUS TERVALIDASI"/);
     assert.match(csv, /2026-10-01 s\.d\. 2026-10-31/);
     assert.match(csv, /PAID/);
     assert.match(csv, /DIKIRIM/);
@@ -48,14 +49,17 @@ describe('buildReportCsv', () => {
       byAssignee: [{ assignTo: 'RAMA', count: 5, done: 4, open: 1, validated: 1, byBilling: { 'ON-CALL': 2, MONTHLY: 1, FREE: 2, LAINNYA: 0 }, onCallSubtotal: 1110 }],
     };
     const csv = buildReportCsv({ count: 1, subtotal: 1110 }, { periode: 'P', workload });
+    assert.match(csv, /^"REPORT SUMMARY — REKAP OPERASIONAL & FINANSIAL"/);
     assert.match(csv, /RINGKASAN OPERASIONAL/);
     assert.match(csv, /RINCIAN PER USER/);
     assert.match(csv, /RAMA/);
-    assert.match(csv, /RINCIAN PER BILLING STATUS/);
+    assert.match(csv, /RINCIAN PER BILLING STATUS \(OPERASIONAL\)/);
+    assert.match(csv, /"ON-CALL","2","20","2","0","1","1000","110","1110"/);
   });
 
   it('tanpa workload tidak memuat seksi operasional (kompatibel output lama)', () => {
     const csv = buildReportCsv({ count: 1, subtotal: 0 }, { periode: 'P' });
+    assert.match(csv, /^"REPORT SUMMARY — KASUS TERVALIDASI"/);
     assert.doesNotMatch(csv, /RINGKASAN OPERASIONAL/);
     assert.match(csv, /RINCIAN PER STATUS INVOICE/);
   });

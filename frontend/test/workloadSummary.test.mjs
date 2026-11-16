@@ -2,7 +2,7 @@
 // Jalankan: npm test
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { billingRows, userRows, fmtMonthLabel, financialHint, detailFilterLabel } from '../src/lib/workloadSummary.js';
+import { billingRows, userRows, countActiveUsers, fmtMonthLabel, financialHint, detailFilterLabel } from '../src/lib/workloadSummary.js';
 
 const totals = { count: 10, byBilling: {
   'ON-CALL': { count: 3, done: 2, open: 1, validated: 1, charges: 1000, ppn: 110, subtotal: 1110 },
@@ -53,5 +53,13 @@ describe('userRows', () => {
     assert.equal(out[0].onCallSubtotal, 1110);
     assert.equal(out[1].onCallSubtotal, 0);
     assert.equal(input[0].onCallSubtotal, '1110');
+  });
+});
+
+describe('countActiveUsers', () => {
+  it('mengecualikan label sintetik TANPA USER dari hitung user aktif', () => {
+    assert.equal(countActiveUsers([{ assignTo: 'RAMA' }, { assignTo: 'TANPA USER' }, { assignTo: 'EDU' }]), 2);
+    assert.equal(countActiveUsers([{ assignTo: 'TANPA USER' }]), 0);
+    assert.equal(countActiveUsers([]), 0);
   });
 });

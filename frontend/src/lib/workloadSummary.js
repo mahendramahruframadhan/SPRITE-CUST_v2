@@ -37,6 +37,11 @@ export function userRows(byAssignee) {
   }));
 }
 
+// Jumlah user aktif; label sintetik TANPA USER tidak dihitung sebagai user.
+export function countActiveUsers(byAssignee) {
+  return (byAssignee || []).filter((u) => String(u?.assignTo || '').trim().toUpperCase() !== 'TANPA USER').length;
+}
+
 // 'YYYY-MM' -> 'Okt 2026'; format lain -> ''.
 export function fmtMonthLabel(ym) {
   const m = /^(\d{4})-(\d{2})$/.exec(String(ym || '').trim());

@@ -6,7 +6,7 @@ import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fetchAnalyticsOverview, fetchAnalyticsDrilldown, fetchAnalyticsWorkload } from '../lib/api.js';
 import { analyticsRangeError } from '../lib/analyticsRange.js';
-import { billingRows, userRows, financialHint, detailFilterLabel } from '../lib/workloadSummary.js';
+import { billingRows, userRows, countActiveUsers, financialHint, detailFilterLabel } from '../lib/workloadSummary.js';
 import { isTaxableRow } from '../lib/taxSummary.js';
 import { buildReportCsv, reportCsvFilename } from '../lib/reportExport.js';
 import { printSection } from '../lib/printSection.js';
@@ -16,10 +16,9 @@ import { Button } from '../components/ui/Button.jsx';
 import { fmtDate8 } from '../utils/format.js';
 import { invLabel, invoiceTone, billingTone, moduleTone } from '../utils/tones.js';
 
-// Halaman Report Summary: dokumen rekap read-only kasus tervalidasi
-// (VALID - SIAP INVOICE, ON-CALL) untuk manajemen.
-// Agregasi di backend (GET /analytics/overview + /analytics/drilldown);
-// halaman ini tidak menulis apa pun.
+// Halaman Report Summary: dokumen rekap read-only operasional & finansial.
+// Agregasi di backend (GET /analytics/overview + /analytics/workload +
+// /analytics/drilldown scope=all); halaman ini tidak menulis apa pun.
 const EMPTY_SUMMARY = {
   count: 0, charges: 0, ppn: 0, subtotal: 0, pphCount: 0,
   paid: { count: 0, charges: 0, ppn: 0, subtotal: 0 },
@@ -176,8 +175,8 @@ export default function ReportSummaryPage() {
   const wlSeq = useRef(0);
   useEffect(() => {
     const my = ++wlSeq.current;
+    setWorkload(null);
     if (rangeError) {
-      setWorkload(null);
       setWorkloadLoading(false);
       setWorkloadError('');
       return;
@@ -218,8 +217,16 @@ export default function ReportSummaryPage() {
   const top10 = overview?.top || [];
   const brandBreak = overview?.byBrand || [];
   const moduleBreak = overview?.byModule || [];
-  const brandOpts = useMemo(() => (overviewAll?.byBrand || []).map((b) => b.brand), [overviewAll]);
-  const moduleOpts = useMemo(() => (overviewAll?.byModule || []).map((b) => b.module), [overviewAll]);
+  const brandOpts = useMemo(() => {
+    const opts = [...(workload?.options?.brands || [])];
+    if (brand && !opts.includes(brand)) opts.unshift(brand);
+    return opts;
+  }, [workload, brand]);
+  const moduleOpts = useMemo(() => {
+    const opts = [...(workload?.options?.modules || [])];
+    if (module && !opts.includes(module)) opts.unshift(module);
+    return opts;
+  }, [workload, module]);
 
   const periodeLabel = from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal';
   const todayLabel = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -232,8 +239,8 @@ export default function ReportSummaryPage() {
   const wlBilling = billingRows(wlTotals);
   const wlUsers = userRows(workload?.byAssignee);
   const wlOnCall = wlByBilling['ON-CALL'] || {};
-  const activeUsers = wlUsers.length;
-  const financeHint = financialHint(workload, summary.count);
+  const activeUsers = countActiveUsers(workload?.byAssignee);
+  const financeHint = !loading && !error && overview ? financialHint(workload, summary.count) : '';
 
   // Tabel detail dari backend (server-side cari + paginasi).
   const [q, setQ] = useState('');
@@ -327,8 +334,10 @@ export default function ReportSummaryPage() {
     return arr;
   })();
 
+  const exportBusy = workloadLoading || loading;
   function exportData() {
-    const csv = buildReportCsv(summary, { periode: periodeLabel, aging, top: top10, brandBreak, moduleBreak, workload });
+    const workloadForExport = workload;
+    const csv = buildReportCsv(summary, { periode: periodeLabel, aging, top: top10, brandBreak, moduleBreak, workload: workloadForExport });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -336,7 +345,7 @@ export default function ReportSummaryPage() {
     a.download = reportCsvFilename(periodeLabel);
     a.click();
     URL.revokeObjectURL(url);
-    notify(`Export ${workload?.totals?.count ?? summary.count} kasus berhasil diunduh.`, 'success');
+    notify(`Export ${workloadForExport?.totals?.count ?? summary.count} kasus berhasil diunduh.`, 'success');
   }
 
   const filterCls =
@@ -410,13 +419,15 @@ export default function ReportSummaryPage() {
               </button>
               {/* eslint-disable-next-line react/forbid-elements -- tombol hero bertema (pengecualian tercatat Task 2) */}
               <button
+                type="button"
                 onClick={exportData}
-                className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98]"
+                disabled={exportBusy}
+                className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/10"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
-                Export CSV
+                {exportBusy ? 'Menyiapkan…' : 'Export CSV'}
               </button>
             </div>
           </div>
@@ -676,7 +687,7 @@ export default function ReportSummaryPage() {
             ) : s.rows.length === 0 ? (
               <table className="w-full text-sm"><tbody><EmptyRow colSpan={7}>Tidak ada kasus pada periode ini</EmptyRow></tbody></table>
             ) : (
-              <div className="max-h-80 overflow-y-auto scrollbar-thin">
+              <div className="max-h-80 overflow-y-auto scrollbar-thin print:max-h-none print:overflow-visible">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-white dark:bg-slate-900">
                     <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
@@ -710,18 +721,22 @@ export default function ReportSummaryPage() {
       </Reveal>
 
       {/* ===== Finansial ON-CALL (Tervalidasi) ===== */}
-      <Reveal className="flex items-center gap-3">
-        <h2 className="text-sm font-extrabold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300 whitespace-nowrap">
-          Finansial ON-CALL (Tervalidasi)
-        </h2>
-        <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" aria-hidden="true" />
-      </Reveal>
+      <div data-section="financial-hint">
+        <Reveal className="flex items-center gap-3">
+          <h2 className="text-sm font-extrabold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300 whitespace-nowrap">
+            Finansial ON-CALL (Tervalidasi)
+          </h2>
+          <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" aria-hidden="true" />
+        </Reveal>
 
-      {financeHint && (
-        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-amber-700 dark:text-amber-300" role="status">
-          {financeHint}
-        </div>
-      )}
+        {financeHint && (
+          <Reveal className="mt-4">
+            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-amber-700 dark:text-amber-300" role="status">
+              {financeHint}
+            </div>
+          </Reveal>
+        )}
+      </div>
 
       {/* ===== Ringkasan Keuangan: 3 kartu uang + kartu info ===== */}
       <Reveal data-section="kpi" className="grid grid-cols-1 lg:grid-cols-5 gap-4">
