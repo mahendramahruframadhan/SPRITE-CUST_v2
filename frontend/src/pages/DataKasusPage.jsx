@@ -23,6 +23,11 @@ const FILTER_DEFS = [
   { id: 'fDateTo', type: 'date' },
 ];
 
+// Ambang “issue panjang”: di bawah ini isi issue tetap tampil utuh tanpa toggle.
+// Referensi: sel issue tabel dibatasi max-w-xs (~2 baris) dan kartu mobile
+// line-clamp-2; 120 karakter dijamin terpotong di keduanya.
+const ISSUE_LONG_CUTOFF = 120;
+
 const emptyFilters = () => ({
   fKeyword: '',
   fModule: '',
@@ -43,6 +48,16 @@ export default function DataKasusPage() {
   const [pageSize, setPageSize] = useState(50);
   const [detail, setDetail] = useState(null); // kasus yang sedang dibuka
   const [spinning, setSpinning] = useState(false);
+  // recordUuid kasus yang issue-nya sedang dibuka penuh (expand toggle).
+  const [issueOpen, setIssueOpen] = useState(() => new Set());
+
+  const toggleIssue = (recordUuid) =>
+    setIssueOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(recordUuid)) next.delete(recordUuid);
+      else next.add(recordUuid);
+      return next;
+    });
 
   const options = useMemo(() => {
     const o = {};
@@ -226,6 +241,8 @@ export default function DataKasusPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {pageItems.map((c) => {
                 const s = statusMeta(c.status);
+                const issuePanjang = (c.issue || '').length > ISSUE_LONG_CUTOFF;
+                const issueBuka = issueOpen.has(c.recordUuid);
                 return (
                   <tr key={c.recordUuid} className="even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-brand-50/50 dark:hover:bg-slate-800 transition">
                     <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no}</td>
@@ -237,7 +254,31 @@ export default function DataKasusPage() {
                     </td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.subModule || '-'}</td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.location || '-'}</td>
-                    <td className="px-4 py-3.5 font-medium text-slate-800 dark:text-slate-100 max-w-xs truncate" title={c.issue}>{c.issue}</td>
+                    <td className="px-4 py-3.5 font-medium text-slate-800 dark:text-slate-100 max-w-xs">
+                      <p className={issueBuka || !issuePanjang ? 'whitespace-pre-wrap break-words' : 'line-clamp-2'}>{c.issue}</p>
+                      {issuePanjang && (
+                        /* eslint-disable-next-line react/forbid-elements -- kontrol mikro per baris tabel */
+                        <button
+                          type="button"
+                          onClick={() => toggleIssue(c.recordUuid)}
+                          aria-expanded={issueBuka}
+                          aria-label={issueBuka ? 'Sembunyikan isi issue lengkap' : 'Tampilkan isi issue lengkap'}
+                          className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-brand-600 dark:text-brand-300 px-1 py-0.5 -ml-1 mt-0.5 rounded-md hover:bg-brand-50 dark:hover:bg-brand-500/10 transition"
+                        >
+                          {issueBuka ? 'Ringkas' : 'Selengkapnya'}
+                          <svg
+                            className={`w-3 h-3 transition ${issueBuka ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.4"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 8.25l7.5 7.5 7.5-7.5" />
+                          </svg>
+                        </button>
+                      )}
+                    </td>
                     <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400">{c.assignTo || '-'}</td>
                     <td className="px-4 py-3.5">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${s.cls}`}>{s.label}</span>
@@ -270,6 +311,8 @@ export default function DataKasusPage() {
         <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
           {pageItems.map((c) => {
             const s = statusMeta(c.status);
+            const issuePanjang = (c.issue || '').length > ISSUE_LONG_CUTOFF;
+            const issueBuka = issueOpen.has(c.recordUuid);
             return (
               /* eslint-disable-next-line react/forbid-elements -- kartu drill-in utuh (bukan tombol aksi) */
               <button
@@ -284,7 +327,22 @@ export default function DataKasusPage() {
                     <span className="shrink-0 text-xs font-bold tabular-nums text-slate-700 dark:text-slate-200">{fmtMoney(c.charges)}</span>
                   </span>
                   <span className="block text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {c.module || '-'}</span>
-                  <span className="mt-1 block text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">{c.issue || '-'}</span>
+                  {issuePanjang ? (
+                    /* Tap teks issue = toggle issue penuh (stopPropagation, bukan
+                       buka detail). Toggle pointer-saja: alur keyboard mendapatkan
+                       isi issue penuh lewat modal Detail pada kartu yang sama. */
+                    <span
+                      className={`mt-1 block text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap break-words ${issueBuka ? '' : 'line-clamp-2'}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleIssue(c.recordUuid);
+                      }}
+                    >
+                      {c.issue}
+                    </span>
+                  ) : (
+                    <span className="mt-1 block text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{c.issue || '-'}</span>
+                  )}
                   <span className="mt-2 flex flex-wrap items-center gap-1.5">
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.cls}`}>{s.label}</span>
                     <Pill size="sm" dot tone={billingTone(c.billingStatus)}>{c.billingStatus || '-'}</Pill>

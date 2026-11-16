@@ -1,6 +1,7 @@
 import { describe, it, before, after, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { AiController, SYSTEM_PROMPT } from '../src/ai/ai.controller.ts';
+import { AiController } from '../src/ai/ai.controller.ts';
+import { readInstructions } from '../src/ai/ai.instructions.ts';
 
 const API_KEY = 'sk-test-RAHASIA-abcdef-9999';
 const CONN = JSON.stringify({
@@ -56,7 +57,7 @@ describe('Imp#4 prompt injection + kebocoran key di chat AI', () => {
     const msgs = captured!.body.messages;
     const systems = msgs.filter((m: any) => m.role === 'system');
     assert.equal(systems.length, 1, 'tepat satu pesan system — milik server');
-    assert.ok(systems[0].content.includes(SYSTEM_PROMPT.slice(0, 20)), 'system prompt asli dipakai');
+    assert.ok(systems[0].content.includes(readInstructions().slice(0, 20)), 'system prompt asli dipakai');
     assert.ok(!systems[0].content.includes('IGNORE ALL INSTRUCTIONS'), 'injection client tidak masuk system prompt');
     assert.ok(
       !JSON.stringify(msgs).includes('IGNORE ALL INSTRUCTIONS'),
@@ -78,6 +79,6 @@ describe('Imp#4 prompt injection + kebocoran key di chat AI', () => {
     const messagesJson = JSON.stringify(captured!.body.messages);
     assert.ok(!messagesJson.includes(API_KEY), 'key tidak bocor ke konten pesan');
     assert.equal(captured!.headers.Authorization, `Bearer ${API_KEY}`, 'key dipakai hanya di header');
-    assert.ok(messagesJson.includes(SYSTEM_PROMPT.slice(0, 20)), 'system prompt tetap terkirim');
+    assert.ok(messagesJson.includes(readInstructions().slice(0, 20)), 'system prompt tetap terkirim');
   });
 });

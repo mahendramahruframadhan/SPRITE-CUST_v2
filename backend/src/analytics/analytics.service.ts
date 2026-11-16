@@ -9,6 +9,25 @@ const isOnCall = (s: any) => norm(s) === 'ONCALL';
 const isMonthly = (s: any) => norm(s) === 'MONTHLY';
 const inPool = (r: any) => isOnCall(r.billing_status) && r.audit_action === VALID_TAG;
 
+const BILLING_KEYS = ['ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA'] as const;
+type BillingKey = (typeof BILLING_KEYS)[number];
+
+export const billingKeyOf = (v: any): BillingKey | null => {
+  const k = norm(v);
+  if (k === 'ONCALL') return 'ON-CALL';
+  if (k === 'MONTHLY') return 'MONTHLY';
+  if (k === 'FREE') return 'FREE';
+  if (k === 'LAINNYA') return 'LAINNYA';
+  return null;
+};
+const billingOf = (v: any): BillingKey => billingKeyOf(v) || 'LAINNYA';
+const isDone = (s: any) => String(s || '').trim().toUpperCase() === 'DONE';
+const userOf = (v: any) => String(v || '').trim().toUpperCase() || 'TANPA USER';
+const monthOfDate8 = (v: any) => (/^\d{8}$/.test(String(v || '')) ? `${String(v).slice(0, 4)}-${String(v).slice(4, 6)}` : null);
+
+const zeroBilling = () => ({ count: 0, done: 0, open: 0, validated: 0, charges: 0, ppn: 0, subtotal: 0 });
+const zeroBillingCount = () => ({ 'ON-CALL': 0, MONTHLY: 0, FREE: 0, LAINNYA: 0 });
+
 function ppnOf(r: any): number {
   if (!isOnCall(r.billing_status)) return 0;
   const charges = Number(r.charges) || 0;
@@ -95,14 +114,18 @@ const mapRow = (r: any) => ({
 export class AnalyticsService {
   private db: any = getDb();
 
-  private async poolRows(from: string, to: string, opts: { brand?: string; module?: string } = {}) {
+  private async fetchRows(from: string, to: string): Promise<any[]> {
     const f = String(from || '').replace(/-/g, '');
     const t = String(to || '').replace(/-/g, '');
     const res: any = await this.db.pq(
       `SELECT r.*, COALESCE(a.action,'') AS audit_action, COALESCE(i.status,'MENUNGGU INVOICE') AS invoice_status, i.invoice_no, i.keterangan, i.payment_note, t.ppn_mode, t.ppn_percent, t.ppn_amount, t.pph FROM assistance_records r LEFT JOIN audit_status a ON a.record_uuid = r.record_uuid LEFT JOIN invoice_status i ON i.record_uuid = r.record_uuid LEFT JOIN case_tax t ON t.record_uuid = r.record_uuid WHERE r.date_issue >= $1 AND r.date_issue <= $2`,
       [f, t],
     );
-    const rows = (res.rows || res || []) as any[];
+    return (res.rows || res || []) as any[];
+  }
+
+  private async poolRows(from: string, to: string, opts: { brand?: string; module?: string } = {}) {
+    const rows = await this.fetchRows(from, to);
     const brand = String(opts.brand || '');
     const module = String(opts.module || '');
     return rows
@@ -213,13 +236,160 @@ export class AnalyticsService {
     };
   }
 
-  async getDrilldown(opts: { dim: string; key: string; from: string; to: string; q?: string; page?: number; limit?: number; brand?: string; module?: string }) {
+  async getWorkload(from: string, to: string, opts: { brand?: string; module?: string } = {}) {
+    const rangeRows = await this.fetchRows(from, to);
+    const brand = String(opts.brand || '');
+    const module = String(opts.module || '');
+    const rows = rangeRows.filter((r) => (!brand || r.client === brand) && (!module || r.module === module));
+
+    const byBilling: Record<string, any> = {};
+    for (const key of BILLING_KEYS) byBilling[key] = zeroBilling();
+    const totals = { count: 0, done: 0, open: 0, validated: 0, unvalidated: 0, byBilling };
+
+    const users = new Map<string, any>();
+    const brands = new Map<string, any>();
+    const modules = new Map<string, any>();
+
+    for (const r of rows) {
+      const billing = billingOf(r.billing_status);
+      const done = isDone(r.status);
+      const validated = r.audit_action === VALID_TAG;
+      const charges = Number(r.charges) || 0;
+      const ppn = isOnCall(r.billing_status) ? ppnOf(r) : 0;
+      const subtotal = charges + ppn;
+
+      totals.count += 1;
+      if (done) totals.done += 1;
+      if (validated) totals.validated += 1;
+
+      const b = byBilling[billing];
+      b.count += 1;
+      if (done) b.done += 1;
+      if (validated) b.validated += 1;
+      if (billing === 'ON-CALL') {
+        b.charges += charges;
+        b.ppn += ppn;
+        b.subtotal += subtotal;
+      }
+
+      const assignTo = userOf(r.assign_to);
+      let u = users.get(assignTo);
+      if (!u) {
+        u = { assignTo, count: 0, done: 0, open: 0, validated: 0, byBilling: zeroBillingCount(), onCallCharges: 0, onCallPpn: 0, onCallSubtotal: 0 };
+        users.set(assignTo, u);
+      }
+      u.count += 1;
+      if (done) u.done += 1;
+      if (validated) u.validated += 1;
+      u.byBilling[billing] += 1;
+      if (billing === 'ON-CALL') {
+        u.onCallCharges += charges;
+        u.onCallPpn += ppn;
+        u.onCallSubtotal += subtotal;
+      }
+
+      const brandKey = r.client || '-';
+      let br = brands.get(brandKey);
+      if (!br) {
+        br = { brand: brandKey, count: 0, byBilling: zeroBillingCount(), onCallSubtotal: 0 };
+        brands.set(brandKey, br);
+      }
+      br.count += 1;
+      br.byBilling[billing] += 1;
+      if (billing === 'ON-CALL') br.onCallSubtotal += subtotal;
+
+      const moduleKey = r.module || '-';
+      let mo = modules.get(moduleKey);
+      if (!mo) {
+        mo = { module: moduleKey, count: 0, byBilling: zeroBillingCount(), onCallSubtotal: 0 };
+        modules.set(moduleKey, mo);
+      }
+      mo.count += 1;
+      mo.byBilling[billing] += 1;
+      if (billing === 'ON-CALL') mo.onCallSubtotal += subtotal;
+    }
+
+    totals.open = totals.count - totals.done;
+    totals.unvalidated = totals.count - totals.validated;
+    for (const key of BILLING_KEYS) byBilling[key].open = byBilling[key].count - byBilling[key].done;
+    for (const u of users.values()) u.open = u.count - u.done;
+
+    const byAssignee = [...users.values()].sort((a, b) => b.count - a.count || a.assignTo.localeCompare(b.assignTo));
+    const byBrand = [...brands.values()].sort((a, b) => b.count - a.count || a.brand.localeCompare(b.brand));
+    const byModule = [...modules.values()].sort((a, b) => b.count - a.count || a.module.localeCompare(b.module));
+
+    const res: any = await this.db.pq(
+      `SELECT r.date_issue, r.billing_status FROM assistance_records r JOIN audit_status a ON a.record_uuid = r.record_uuid WHERE a.action = $1`,
+      [VALID_TAG],
+    );
+    const validatedRows = (res.rows || res || []) as any[];
+    const validatedDates = validatedRows
+      .filter((r) => isOnCall(r.billing_status) && /^\d{8}$/.test(String(r.date_issue || '')))
+      .map((r) => String(r.date_issue))
+      .sort();
+    const lastValidatedMonth = validatedDates.length ? monthOfDate8(validatedDates[validatedDates.length - 1]) : null;
+
+    return {
+      period: { from, to },
+      totals,
+      byAssignee,
+      byBrand,
+      byModule,
+      options: {
+        brands: [...new Set(rangeRows.map((r) => r.client).filter(Boolean))].sort((a: any, b: any) => String(a).localeCompare(String(b))),
+        modules: [...new Set(rangeRows.map((r) => r.module).filter(Boolean))].sort((a: any, b: any) => String(a).localeCompare(String(b))),
+        assignees: [...new Set(rangeRows.map((r) => userOf(r.assign_to)))].sort((a: any, b: any) => String(a).localeCompare(String(b))),
+        lastValidatedMonth,
+      },
+    };
+  }
+
+  async getDrilldown(opts: {
+    dim: string;
+    key: string;
+    from: string;
+    to: string;
+    q?: string;
+    page?: number;
+    limit?: number;
+    brand?: string;
+    module?: string;
+    scope?: 'validated' | 'all';
+    billing?: string;
+    assignee?: string;
+    validation?: 'all' | 'validated' | 'unvalidated';
+  }) {
     const { dim, key } = opts;
-    const pool = await this.poolRows(opts.from, opts.to, { brand: opts.brand, module: opts.module });
-    const scoped = dim ? pool.filter((r) => (dim === 'brand' ? r.client || '-' : r.module || '-') === key) : pool;
+    const scope = opts.scope === 'all' ? 'all' : 'validated';
+    let pool: any[];
+    if (scope === 'all') {
+      const brand = String(opts.brand || '');
+      const module = String(opts.module || '');
+      pool = (await this.fetchRows(opts.from, opts.to))
+        .filter((r) => (!brand || r.client === brand) && (!module || r.module === module))
+        .map((r) => {
+          const charges = Number(r.charges) || 0;
+          const oncall = isOnCall(r.billing_status);
+          const ppn = oncall ? ppnOf(r) : 0;
+          return { ...r, charges, ppn, subtotal: oncall ? charges + ppn : 0, pph: Number(r.pph ?? 0) === 1 };
+        });
+    } else {
+      pool = await this.poolRows(opts.from, opts.to, { brand: opts.brand, module: opts.module });
+    }
+
+    const billing = opts.billing ? billingKeyOf(opts.billing) : null;
+    const assignee = String(opts.assignee || '').trim() ? userOf(opts.assignee) : null;
+    const validation = scope === 'all' ? opts.validation || 'all' : 'all';
+    let filtered = pool;
+    if (billing) filtered = filtered.filter((r) => billingOf(r.billing_status) === billing);
+    if (assignee) filtered = filtered.filter((r) => userOf(r.assign_to) === assignee);
+    if (validation === 'validated') filtered = filtered.filter((r) => r.audit_action === VALID_TAG);
+    else if (validation === 'unvalidated') filtered = filtered.filter((r) => r.audit_action !== VALID_TAG);
+
+    const scoped = dim ? filtered.filter((r) => (dim === 'brand' ? r.client || '-' : r.module || '-') === key) : filtered;
     const needle = String(opts.q || '').trim().toLowerCase();
     const searched = needle
-      ? scoped.filter((r) => `${r.no || ''} ${r.client || ''} ${r.issue || ''} ${r.pic_name || ''} ${r.module || ''} ${r.billing_status || ''}`.toLowerCase().includes(needle))
+      ? scoped.filter((r) => `${r.no || ''} ${r.client || ''} ${r.issue || ''} ${r.pic_name || ''} ${r.module || ''} ${r.billing_status || ''} ${r.assign_to || ''}`.toLowerCase().includes(needle))
       : scoped;
     searched.sort((a, b) => String(b.date_issue || '').localeCompare(String(a.date_issue || '')));
     const limit = Math.min(100, Math.max(1, Number(opts.limit) || 50));

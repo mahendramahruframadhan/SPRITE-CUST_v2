@@ -13,6 +13,7 @@ import { useTheme } from '../context/ThemeContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { CHART, chartTheme, areaFade, barGradient } from '../lib/chartPalette.js';
 import { billingTone, invLabel } from '../utils/tones.js';
+import { isTaxableRow } from '../lib/taxSummary.js';
 import CaseDetailModal from '../components/CaseDetailModal.jsx';
 import ActionsPanel from '../components/ActionsPanel.jsx';
 import { Pill, EmptyRow, LoadingRow } from '../components/DataTable.jsx';
@@ -310,11 +311,11 @@ export default function DashboardPage() {
     }],
   };
 
-  // Outstanding: kasus tervalidasi (ON-CALL/MONTHLY) yang invoicenya belum PAID — sama seperti halaman Finance
+  // Outstanding: kasus tervalidasi ON-CALL yang invoicenya belum PAID — sama seperti halaman Finance
   const outstanding = useMemo(() => {
     const pool = allCases.filter(
       (c) =>
-        (c.billingStatus === 'ON-CALL' || c.billingStatus === 'MONTHLY') &&
+        isTaxableRow(c.billingStatus) &&
         caseAuditStatus[c.recordUuid] === 'VALID - SIAP INVOICE' &&
         (invoiceStatus[c.recordUuid] || 'MENUNGGU INVOICE') !== 'PAID'
     );

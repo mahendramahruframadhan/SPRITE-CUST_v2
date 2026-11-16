@@ -4,21 +4,21 @@ import { Reveal } from '../components/Reveal.jsx';
 import { useFinanceTax } from '../hooks/useFinanceTax.js';
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { fetchAnalyticsOverview, fetchAnalyticsDrilldown } from '../lib/api.js';
-import { filterOnCallRows } from '../lib/onCallFilter.js';
+import { fetchAnalyticsOverview, fetchAnalyticsDrilldown, fetchAnalyticsWorkload } from '../lib/api.js';
 import { analyticsRangeError } from '../lib/analyticsRange.js';
+import { billingRows, userRows, countActiveUsers, financialHint, detailFilterLabel } from '../lib/workloadSummary.js';
+import { isTaxableRow } from '../lib/taxSummary.js';
 import { buildReportCsv, reportCsvFilename } from '../lib/reportExport.js';
 import { printSection } from '../lib/printSection.js';
 import FilterLabel from '../components/FilterLabel.jsx';
 import { EmptyRow, LoadingRow, Pill } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { fmtDate8 } from '../utils/format.js';
-import { invLabel, invoiceTone } from '../utils/tones.js';
+import { invLabel, invoiceTone, billingTone, moduleTone } from '../utils/tones.js';
 
-// Halaman Report Summary: dokumen rekap read-only kasus tervalidasi
-// (VALID - SIAP INVOICE, ON-CALL) untuk manajemen.
-// Agregasi di backend (GET /analytics/overview + /analytics/drilldown);
-// halaman ini tidak menulis apa pun.
+// Halaman Report Summary: dokumen rekap read-only operasional & finansial.
+// Agregasi di backend (GET /analytics/overview + /analytics/workload +
+// /analytics/drilldown scope=all); halaman ini tidak menulis apa pun.
 const EMPTY_SUMMARY = {
   count: 0, charges: 0, ppn: 0, subtotal: 0, pphCount: 0,
   paid: { count: 0, charges: 0, ppn: 0, subtotal: 0 },
@@ -109,9 +109,9 @@ export default function ReportSummaryPage() {
   };
   const [filters, , resetFilterValues, setManyFilters] = useFilters({
     month: monthKey(), from: rangeOfMonth(monthKey()).from, to: rangeOfMonth(monthKey()).to,
-    brand: '', module: '',
+    brand: '', module: '', dBill: '', dUser: '', dValidation: 'all',
   });
-  const { month, from, to, brand, module } = filters;
+  const { month, from, to, brand, module, dBill, dUser, dValidation } = filters;
   const applyMonth = (ym) => {
     const r = rangeOfMonth(ym);
     setManyFilters({ month: ym, from: r.from, to: r.to });
@@ -168,6 +168,36 @@ export default function ReportSummaryPage() {
     );
   }, [from, to, rangeError]);
 
+  // Rekap operasional semua billing status (ON-CALL/MONTHLY/FREE/LAINNYA).
+  const [workload, setWorkload] = useState(null);
+  const [workloadLoading, setWorkloadLoading] = useState(true);
+  const [workloadError, setWorkloadError] = useState('');
+  const wlSeq = useRef(0);
+  useEffect(() => {
+    const my = ++wlSeq.current;
+    setWorkload(null);
+    if (rangeError) {
+      setWorkloadLoading(false);
+      setWorkloadError('');
+      return;
+    }
+    setWorkloadLoading(true);
+    setWorkloadError('');
+    fetchAnalyticsWorkload({ from, to, brand, module }).then(
+      (r) => {
+        if (wlSeq.current !== my) return;
+        setWorkload(r);
+        setWorkloadLoading(false);
+      },
+      (e) => {
+        if (wlSeq.current !== my) return;
+        setWorkload(null);
+        setWorkloadError(e.message || 'Gagal memuat data');
+        setWorkloadLoading(false);
+      }
+    );
+  }, [from, to, brand, module, rangeError]);
+
   const summary = useMemo(() => {
     if (!overview) return EMPTY_SUMMARY;
     const k = overview.kpis || {};
@@ -187,12 +217,30 @@ export default function ReportSummaryPage() {
   const top10 = overview?.top || [];
   const brandBreak = overview?.byBrand || [];
   const moduleBreak = overview?.byModule || [];
-  const brandOpts = useMemo(() => (overviewAll?.byBrand || []).map((b) => b.brand), [overviewAll]);
-  const moduleOpts = useMemo(() => (overviewAll?.byModule || []).map((b) => b.module), [overviewAll]);
+  const brandOpts = useMemo(() => {
+    const opts = [...(workload?.options?.brands || [])];
+    if (brand && !opts.includes(brand)) opts.unshift(brand);
+    return opts;
+  }, [workload, brand]);
+  const moduleOpts = useMemo(() => {
+    const opts = [...(workload?.options?.modules || [])];
+    if (module && !opts.includes(module)) opts.unshift(module);
+    return opts;
+  }, [workload, module]);
 
   const periodeLabel = from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal';
   const todayLabel = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const paidShare = summary.subtotal > 0 ? Math.round((summary.paid.subtotal / summary.subtotal) * 100) : 0;
+
+  // Angka rekap operasional (pool semua status) — terpisah dari pool finansial.
+  const wlTotals = workload?.totals || {};
+  const wlByBilling = wlTotals.byBilling || {};
+  const wlCount = (key) => Number(wlByBilling[key]?.count) || 0;
+  const wlBilling = billingRows(wlTotals);
+  const wlUsers = userRows(workload?.byAssignee);
+  const wlOnCall = wlByBilling['ON-CALL'] || {};
+  const activeUsers = countActiveUsers(workload?.byAssignee);
+  const financeHint = !loading && !error && overview ? financialHint(workload, summary.count) : '';
 
   // Tabel detail dari backend (server-side cari + paginasi).
   const [q, setQ] = useState('');
@@ -208,7 +256,7 @@ export default function ReportSummaryPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debQ, from, to, perPage, brand, module]);
+  }, [debQ, from, to, perPage, brand, module, dBill, dUser, dValidation]);
 
   const [drill, setDrill] = useState({ data: [], total: 0, totalPages: 1, subtotal: 0 });
   const [drLoading, setDrLoading] = useState(true);
@@ -224,7 +272,10 @@ export default function ReportSummaryPage() {
     }
     setDrLoading(true);
     setDrError('');
-    fetchAnalyticsDrilldown({ from, to, brand, module, q: debQ, page, limit: perPage }).then(
+    fetchAnalyticsDrilldown({
+      scope: 'all', from, to, brand, module, q: debQ, page, limit: perPage,
+      billing: dBill, assignee: dUser, validation: dValidation,
+    }).then(
       (r) => {
         if (drSeq.current !== my) return;
         setDrill({ data: r.data || [], total: r.total || 0, totalPages: r.totalPages || 1, subtotal: r.subtotal || 0 });
@@ -237,17 +288,17 @@ export default function ReportSummaryPage() {
         setDrLoading(false);
       }
     );
-  }, [from, to, brand, module, debQ, page, perPage, rangeError]);
+  }, [from, to, brand, module, debQ, page, perPage, dBill, dUser, dValidation, rangeError]);
 
   const detailItems = useMemo(
-    () => filterOnCallRows(drill.data || [])
-      .map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
+    () => (drill.data || []).map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
     [drill]
   );
-  const detailCount = detailItems.length;
-  const totalPages = Math.max(1, Math.ceil(detailCount / perPage));
+  const detailCount = drill.total || 0;
+  const totalPages = drill.totalPages || 1;
   const safePage = Math.min(page, totalPages);
-  const paged = detailItems.slice((safePage - 1) * perPage, safePage * perPage);
+  const paged = detailItems;
+  const detailLabel = detailFilterLabel(dBill, dUser, dValidation);
 
   // Tiga KPI uang di kolom kiri (Charges / PPN / Subtotal Akhir).
   const financeKpi = [
@@ -283,8 +334,10 @@ export default function ReportSummaryPage() {
     return arr;
   })();
 
+  const exportBusy = workloadLoading || loading;
   function exportData() {
-    const csv = buildReportCsv(summary, { periode: periodeLabel, aging, top: top10, brandBreak, moduleBreak });
+    const workloadForExport = workload;
+    const csv = buildReportCsv(summary, { periode: periodeLabel, aging, top: top10, brandBreak, moduleBreak, workload: workloadForExport });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -292,17 +345,19 @@ export default function ReportSummaryPage() {
     a.download = reportCsvFilename(periodeLabel);
     a.click();
     URL.revokeObjectURL(url);
-    notify(`Export ${summary.count} kasus tervalidasi berhasil diunduh.`, 'success');
+    notify(`Export ${workloadForExport?.totals?.count ?? summary.count} kasus berhasil diunduh.`, 'success');
   }
 
   const filterCls =
     'mt-1 block min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
+  const miniSelectCls =
+    'text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-200';
 
   return (
     <div className="page">
       {/* Kop cetak: hanya tampil saat print */}
       <div className="print-kop" aria-hidden="true">
-        <h1>Report Summary — Kasus Tervalidasi</h1>
+        <h1>Report Summary — Rekap Operasional &amp; Finansial</h1>
         <p>Periode: {periodeLabel} · Dicetak: {todayLabel}</p>
       </div>
 
@@ -330,11 +385,17 @@ export default function ReportSummaryPage() {
                 Report Summary
               </h1>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-white/80">
-                Laporan Rekapitulasi Kasus Tervalidasi · {periodeLabel}
+                Laporan Rekapitulasi Operasional &amp; Finansial · {periodeLabel}
               </p>
               {/* Ringkasan eksekutif satu paragraf */}
               <p className="mt-3 text-sm text-white/90 max-w-2xl leading-relaxed">
-                Pada periode ini, <span className="font-bold">{summary.count} kasus</span> tervalidasi
+                Rekap operasional mencakup{' '}
+                <span className="font-bold tabular-nums">{(wlTotals.count || 0).toLocaleString('id-ID')} kasus</span>:{' '}
+                <span className="tabular-nums">{wlCount('ON-CALL')} ON-CALL</span>,{' '}
+                <span className="tabular-nums">{wlCount('MONTHLY')} MONTHLY</span>, dan{' '}
+                <span className="tabular-nums">{wlCount('FREE')} FREE</span>
+                {wlCount('LAINNYA') > 0 && <>, serta <span className="tabular-nums">{wlCount('LAINNYA')} LAINNYA</span></>}.
+                {' '}Pada periode ini, <span className="font-bold">{summary.count} kasus</span> tervalidasi
                 (ON-CALL) membangun subtotal{' '}
                 <span className="font-bold tabular-nums">{fmtMoney(summary.subtotal)}</span>, terdiri dari
                 charges <span className="tabular-nums">{fmtMoney(summary.charges)}</span> dan PPN{' '}
@@ -358,13 +419,15 @@ export default function ReportSummaryPage() {
               </button>
               {/* eslint-disable-next-line react/forbid-elements -- tombol hero bertema (pengecualian tercatat Task 2) */}
               <button
+                type="button"
                 onClick={exportData}
-                className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98]"
+                disabled={exportBusy}
+                className="inline-flex items-center justify-center gap-2 text-[13px] font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 min-h-[44px] rounded-2xl transition active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/10"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
-                Export CSV
+                {exportBusy ? 'Menyiapkan…' : 'Export CSV'}
               </button>
             </div>
           </div>
@@ -439,6 +502,241 @@ export default function ReportSummaryPage() {
           {rangeError}
         </div>
       )}
+      {workloadError && !rangeError && (
+        <div className="no-print bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300" role="alert">
+          Backend tidak terjangkau — rekap operasional gagal dimuat ({workloadError})
+        </div>
+      )}
+
+      {/* ===== Rekap Operasional: KPI + per billing + per user + brand/module ===== */}
+      <Reveal data-section="kpi-operasional" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="sm:col-span-2 lg:col-span-5 flex items-center justify-between gap-2">
+          <div>
+            <h3 className="report-card-title !mb-0">Rekap Operasional</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Semua status billing pada periode ini, tanpa filter validasi.
+            </p>
+          </div>
+          <PrintBtn id="kpi-operasional" label="Rekap Operasional" />
+        </div>
+        {[
+          { t: 'Total Kasus', v: wlTotals.count || 0, color: 'text-slate-900 dark:text-white' },
+          { t: 'ON-CALL', v: wlCount('ON-CALL'), color: 'text-emerald-600 dark:text-emerald-400' },
+          { t: 'MONTHLY', v: wlCount('MONTHLY'), color: 'text-sky-600 dark:text-sky-400' },
+          { t: 'FREE', v: wlCount('FREE'), color: 'text-slate-600 dark:text-slate-300' },
+          { t: 'User Aktif', v: activeUsers, color: 'text-brand-600 dark:text-brand-300' },
+        ].map((d) => (
+          <div key={d.t} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)]">
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] truncate">{d.t}</p>
+            <p className={`mt-2 text-[28px] leading-tight font-extrabold tracking-tight tabular-nums ${d.color}`}>
+              {workloadLoading ? '…' : Number(d.v || 0).toLocaleString('id-ID')}
+            </p>
+          </div>
+        ))}
+      </Reveal>
+
+      <Reveal className="report-card" data-section="rekap-billing-operasional">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div>
+            <h3 className="report-card-title !mb-0">Rekap per Billing Status</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Jumlah kasus, DONE/open, dan tervalidasi per status. Nilai uang hanya dihitung untuk ON-CALL.
+            </p>
+          </div>
+        </div>
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm min-w-[820px]">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <th className="py-2.5 pr-3 font-bold">Status</th>
+                <th className="py-2.5 px-3 font-bold text-right">Jumlah</th>
+                <th className="py-2.5 px-3 font-bold text-right">%</th>
+                <th className="py-2.5 px-3 font-bold text-right">DONE</th>
+                <th className="py-2.5 px-3 font-bold text-right">Open</th>
+                <th className="py-2.5 px-3 font-bold text-right">Tervalidasi</th>
+                <th className="py-2.5 px-3 font-bold text-right">Charges</th>
+                <th className="py-2.5 px-3 font-bold text-right">PPN</th>
+                <th className="py-2.5 pl-3 font-bold text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {workloadLoading ? (
+                <LoadingRow colSpan={9} />
+              ) : workloadError || !workload ? (
+                <EmptyRow colSpan={9}>Tidak ada kasus pada periode ini</EmptyRow>
+              ) : wlBilling.length === 0 || wlTotals.count === 0 ? (
+                <EmptyRow colSpan={9}>Tidak ada kasus pada periode ini</EmptyRow>
+              ) : (
+                wlBilling.map((r) => (
+                  <tr key={r.key} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40">
+                    <td className="py-2.5 pr-3 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{r.key}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{r.count.toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums text-slate-500 dark:text-slate-400">{r.percentage}%</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{r.done.toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{r.open.toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{r.validated.toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{r.key === 'ON-CALL' ? fmtMoney(r.charges) : '—'}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{r.key === 'ON-CALL' ? fmtMoney(r.ppn) : '—'}</td>
+                    <td className="py-2.5 pl-3 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{r.key === 'ON-CALL' ? fmtMoney(r.subtotal) : '—'}</td>
+                  </tr>
+                ))
+              )}
+              {!workloadLoading && !workloadError && workload && wlTotals.count > 0 && (
+                <tr className="border-t-2 border-slate-200 dark:border-slate-700 font-extrabold text-slate-900 dark:text-white">
+                  <td className="py-2.5 pr-3">TOTAL</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.count || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">100%</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.done || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.open || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.validated || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{fmtMoney(wlOnCall.charges)}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{fmtMoney(wlOnCall.ppn)}</td>
+                  <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap text-emerald-700 dark:text-emerald-400">{fmtMoney(wlOnCall.subtotal)}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Reveal>
+
+      <Reveal className="report-card" data-section="rekap-user">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div>
+            <h3 className="report-card-title !mb-0">Rekap per User</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Jumlah kasus per status, DONE/open, tervalidasi, dan nilai ON-CALL per user.
+            </p>
+          </div>
+          <PrintBtn id="rekap-user" label="Rekap per User" />
+        </div>
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm min-w-[980px]">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <th className="py-2.5 pr-3 font-bold">User</th>
+                <th className="py-2.5 px-3 font-bold text-right">ON-CALL</th>
+                <th className="py-2.5 px-3 font-bold text-right">MONTHLY</th>
+                <th className="py-2.5 px-3 font-bold text-right">FREE</th>
+                <th className="py-2.5 px-3 font-bold text-right">LAINNYA</th>
+                <th className="py-2.5 px-3 font-bold text-right">Total</th>
+                <th className="py-2.5 px-3 font-bold text-right">DONE</th>
+                <th className="py-2.5 px-3 font-bold text-right">Open</th>
+                <th className="py-2.5 px-3 font-bold text-right">Nilai ON-CALL</th>
+                <th className="py-2.5 pl-3 font-bold text-right">Tervalidasi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {workloadLoading ? (
+                <LoadingRow colSpan={10} />
+              ) : workloadError || !workload ? (
+                <EmptyRow colSpan={10}>Tidak ada kasus pada periode ini</EmptyRow>
+              ) : wlUsers.length === 0 ? (
+                <EmptyRow colSpan={10}>Tidak ada kasus pada periode ini</EmptyRow>
+              ) : (
+                wlUsers.map((u) => (
+                  <tr key={u.assignTo || '-'} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40">
+                    <td className="py-2.5 pr-3 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{u.assignTo || 'TANPA USER'}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.byBilling?.['ON-CALL'] || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.byBilling?.MONTHLY || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.byBilling?.FREE || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.byBilling?.LAINNYA || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums font-bold">{Number(u.count || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.done || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.open || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap" title={`Charges ${fmtMoney(u.onCallCharges)} · PPN ${fmtMoney(u.onCallPpn)}`}>
+                      <span className="font-extrabold text-slate-900 dark:text-white">{fmtMoney(u.onCallSubtotal)}</span>
+                      <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Charges {fmtMoney(u.onCallCharges)} · PPN {fmtMoney(u.onCallPpn)}</span>
+                    </td>
+                    <td className="py-2.5 pl-3 text-right tabular-nums">{Number(u.validated || 0).toLocaleString('id-ID')}</td>
+                  </tr>
+                ))
+              )}
+              {!workloadLoading && !workloadError && workload && wlUsers.length > 0 && (
+                <tr className="border-t-2 border-slate-200 dark:border-slate-700 font-extrabold text-slate-900 dark:text-white">
+                  <td className="py-2.5 pr-3">TOTAL</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{wlCount('ON-CALL').toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{wlCount('MONTHLY').toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{wlCount('FREE').toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{wlCount('LAINNYA').toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.count || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.done || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.open || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap text-emerald-700 dark:text-emerald-400">{fmtMoney(wlOnCall.subtotal)}</td>
+                  <td className="py-2.5 pl-3 text-right tabular-nums">{Number(wlTotals.validated || 0).toLocaleString('id-ID')}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Reveal>
+
+      <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {[
+          { sec: 'rekap-brand-operasional', title: 'Rekap per Brand', nameKey: 'brand', rows: workload?.byBrand || [] },
+          { sec: 'rekap-module-operasional', title: 'Rekap per Module', nameKey: 'module', rows: workload?.byModule || [] },
+        ].map((s) => (
+          <div key={s.sec} className="report-card" data-section={s.sec}>
+            <h3 className="report-card-title">{s.title}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1 mb-3">
+              Jumlah kasus per billing status dan nilai ON-CALL.
+            </p>
+            {workloadLoading ? (
+              <table className="w-full text-sm"><tbody><LoadingRow colSpan={7} /></tbody></table>
+            ) : workloadError || !workload ? (
+              <table className="w-full text-sm"><tbody><EmptyRow colSpan={7}>Tidak ada kasus pada periode ini</EmptyRow></tbody></table>
+            ) : s.rows.length === 0 ? (
+              <table className="w-full text-sm"><tbody><EmptyRow colSpan={7}>Tidak ada kasus pada periode ini</EmptyRow></tbody></table>
+            ) : (
+              <div className="max-h-80 overflow-y-auto scrollbar-thin print:max-h-none print:overflow-visible">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white dark:bg-slate-900">
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      <th className="py-2 pr-2 font-bold">Nama</th>
+                      <th className="py-2 px-2 font-bold text-right">ON-CALL</th>
+                      <th className="py-2 px-2 font-bold text-right">MONTHLY</th>
+                      <th className="py-2 px-2 font-bold text-right">FREE</th>
+                      <th className="py-2 px-2 font-bold text-right">LAINNYA</th>
+                      <th className="py-2 px-2 font-bold text-right">Total</th>
+                      <th className="py-2 pl-2 font-bold text-right">Nilai ON-CALL</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {s.rows.map((g) => (
+                      <tr key={g[s.nameKey] || '-'}>
+                        <td className="py-2 pr-2 font-bold text-slate-800 dark:text-slate-100 max-w-[180px] truncate">{g[s.nameKey] || '-'}</td>
+                        <td className="py-2 px-2 text-right tabular-nums">{Number(g.byBilling?.['ON-CALL'] || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 text-right tabular-nums">{Number(g.byBilling?.MONTHLY || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 text-right tabular-nums">{Number(g.byBilling?.FREE || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 text-right tabular-nums">{Number(g.byBilling?.LAINNYA || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 text-right tabular-nums font-bold">{Number(g.count || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 pl-2 text-right tabular-nums whitespace-nowrap">{fmtMoney(g.onCallSubtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ))}
+      </Reveal>
+
+      {/* ===== Finansial ON-CALL (Tervalidasi) ===== */}
+      <div data-section="financial-hint">
+        <Reveal className="flex items-center gap-3">
+          <h2 className="text-sm font-extrabold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300 whitespace-nowrap">
+            Finansial ON-CALL (Tervalidasi)
+          </h2>
+          <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" aria-hidden="true" />
+        </Reveal>
+
+        {financeHint && (
+          <Reveal className="mt-4">
+            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-amber-700 dark:text-amber-300" role="status">
+              {financeHint}
+            </div>
+          </Reveal>
+        )}
+      </div>
 
       {/* ===== Ringkasan Keuangan: 3 kartu uang + kartu info ===== */}
       <Reveal data-section="kpi" className="grid grid-cols-1 lg:grid-cols-5 gap-4">
@@ -606,102 +904,154 @@ export default function ReportSummaryPage() {
         ))}
       </Reveal>
 
-      {/* ===== Detail kasus tervalidasi (per baris) ===== */}
+      {/* ===== Detail kasus semua status (per baris) ===== */}
       <Reveal data-section="detail" className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex flex-wrap items-center gap-3">
             <div>
-              <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Detail Kasus Tervalidasi</h3>
+              <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Detail Kasus</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {tableLoading ? 'Memuat dari backend…' : `${detailCount} kasus · total subtotal ${fmtMoney(detailTotal)}`}
+                {tableLoading ? 'Memuat dari backend…' : `${detailCount} kasus${detailLabel ? ` · ${detailLabel}` : ''} · total subtotal ${fmtMoney(detailTotal)}`}
               </p>
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              <PrintBtn id="detail" label="Detail Kasus" />
+            <div className="ml-auto flex flex-wrap items-center gap-2">
               <div className="relative no-print">
               <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
               <input
                 type="text"
-                placeholder="Cari no / brand…"
+                placeholder="Cari no / brand / user…"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 className="pl-9 pr-3 py-2.5 min-h-[44px] w-full sm:w-auto text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition"
               />
               </div>
+              <select
+                aria-label="Filter billing status"
+                value={dBill}
+                onChange={(e) => setManyFilters({ dBill: e.target.value })}
+                className={`${miniSelectCls} no-print`}
+              >
+                <option value="">Semua billing</option>
+                <option value="ON-CALL">ON-CALL</option>
+                <option value="MONTHLY">MONTHLY</option>
+                <option value="FREE">FREE</option>
+                <option value="LAINNYA">LAINNYA</option>
+              </select>
+              <select
+                aria-label="Filter user"
+                value={dUser}
+                onChange={(e) => setManyFilters({ dUser: e.target.value })}
+                className={`${miniSelectCls} no-print`}
+              >
+                <option value="">Semua user</option>
+                {(workload?.options?.assignees || []).map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+              <select
+                aria-label="Filter validasi"
+                value={dValidation}
+                onChange={(e) => setManyFilters({ dValidation: e.target.value })}
+                className={`${miniSelectCls} no-print`}
+              >
+                <option value="all">Semua validasi</option>
+                <option value="validated">Tervalidasi</option>
+                <option value="unvalidated">Belum</option>
+              </select>
+              <PrintBtn id="detail" label="Detail Kasus" />
             </div>
           </div>
         </div>
         <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-sm min-w-[880px]">
+          <table className="w-full text-sm min-w-[1180px]">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
                 <th className="px-6 py-3 font-bold">No</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap">Tanggal</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap">Brand</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">User</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Module</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Billing</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Validasi</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Status</th>
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">Charges</th>
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">PPN</th>
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">Subtotal</th>
-                <th className="px-4 py-3 font-bold whitespace-nowrap">PPH23</th>
-                <th className="px-6 py-3 font-bold whitespace-nowrap">Status Invoice</th>
+                <th className="px-6 py-3 font-bold whitespace-nowrap">Invoice</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap">No. Invoice</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap">Keterangan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {paged.map((c) => (
-                <tr key={c.recordUuid} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition">
-                  <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no || '-'}</td>
-                  <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
-                  <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap"><CaseLink c={c} /></td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtMoney(c.charges)}</td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtMoney(c.ppn)}</td>
-                  <td className="px-4 py-3.5 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{fmtMoney(c.subtotal)}</td>
-                  <td className="px-4 py-3.5 whitespace-nowrap">
-                    {c.pph ? (
-                      <span className="text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-1 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20">PPH23</span>
-                    ) : (
-                      <span className="text-xs text-slate-400 dark:text-slate-500">Tidak ada PPH23</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-3.5 whitespace-nowrap">
-                    <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
-                  </td>
-                  <td className="px-4 py-3.5 whitespace-nowrap font-mono text-xs">{c.invoiceNo || 'Belum diisi'}</td>
-                  <td className="px-4 py-3.5 text-xs max-w-[260px]"><p className="line-clamp-2">{c.invoiceNote || 'Belum diisi'}</p></td>
-                </tr>
-              ))}
+              {paged.map((c) => {
+                const onCall = isTaxableRow(c.billingStatus);
+                return (
+                  <tr key={c.recordUuid} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition">
+                    <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no || '-'}</td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                    <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap"><CaseLink c={c} /></td>
+                    <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{c.assignTo || '-'}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <Pill tone={moduleTone(c.module)}>{c.module || '-'}</Pill>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <Pill dot tone={billingTone(c.billingStatus)}>{c.billingStatus || '-'}</Pill>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      {c.auditStatus === 'VALID - SIAP INVOICE' ? (
+                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Tervalidasi</span>
+                      ) : (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Belum</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap text-xs font-semibold text-slate-600 dark:text-slate-300">{c.status || '-'}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{onCall ? fmtMoney(c.charges) : '—'}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{onCall ? fmtMoney(c.ppn) : '—'}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{onCall ? fmtMoney(c.subtotal) : '—'}</td>
+                    <td className="px-6 py-3.5 whitespace-nowrap">
+                      <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap font-mono text-xs">{c.invoiceNo || 'Belum diisi'}</td>
+                    <td className="px-4 py-3.5 text-xs max-w-[260px]"><p className="line-clamp-2">{c.invoiceNote || 'Belum diisi'}</p></td>
+                  </tr>
+                );
+              })}
               {tableLoading ? (
-                <LoadingRow colSpan={10} />
+                <LoadingRow colSpan={14} />
               ) : invalidRange ? (
-                <EmptyRow colSpan={10}>Rentang tanggal tidak valid (Date From melebihi Date Until)</EmptyRow>
+                <EmptyRow colSpan={14}>Rentang tanggal tidak valid (Date From melebihi Date Until)</EmptyRow>
               ) : detailCount === 0 && (
-                <EmptyRow colSpan={10}>Tidak ada data tervalidasi pada periode ini</EmptyRow>
+                <EmptyRow colSpan={14}>Tidak ada kasus pada periode ini</EmptyRow>
               )}
             </tbody>
           </table>
         </div>
         {/* Varian kartu untuk HP */}
         <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-          {paged.map((c) => (
-            <div key={c.recordUuid} className="px-5 py-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-bold text-slate-800 dark:text-slate-100 truncate"><CaseLink c={c} /></p>
-                <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
+          {paged.map((c) => {
+            const onCall = isTaxableRow(c.billingStatus);
+            return (
+              <div key={c.recordUuid} className="px-5 py-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-bold text-slate-800 dark:text-slate-100 truncate"><CaseLink c={c} /></p>
+                  <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {c.assignTo || '-'} · {c.module || '-'}{c.pph ? ' · PPH23' : ''}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{c.billingStatus || '-'} · {c.auditStatus === 'VALID - SIAP INVOICE' ? 'Tervalidasi' : 'Belum'} · {c.status || '-'}</p>
+                {(c.invoiceNo || c.invoiceNote) && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {c.invoiceNo ? `No. Invoice: ${c.invoiceNo}` : 'No. Invoice: Belum diisi'}{c.invoiceNote ? ` · Keterangan: ${c.invoiceNote}` : ' · Keterangan: Belum diisi'}
+                  </p>
+                )}
+                <div className="mt-2 flex items-baseline justify-between gap-2 text-sm tabular-nums">
+                  <span className="text-slate-500 dark:text-slate-400">{onCall ? `Charges ${fmtMoney(c.charges)} + PPN ${fmtMoney(c.ppn)}` : 'Charges — + PPN —'}</span>
+                  <span className="font-extrabold text-slate-900 dark:text-white">{onCall ? fmtMoney(c.subtotal) : '—'}</span>
+                </div>
               </div>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)}{c.pph ? ' · PPH23' : ''}</p>
-              {(c.invoiceNo || c.invoiceNote) && (
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {c.invoiceNo ? `No. Invoice: ${c.invoiceNo}` : 'No. Invoice: Belum diisi'}{c.invoiceNote ? ` · Keterangan: ${c.invoiceNote}` : ' · Keterangan: Belum diisi'}
-                </p>
-              )}
-              <div className="mt-2 flex items-baseline justify-between gap-2 text-sm tabular-nums">
-                <span className="text-slate-500 dark:text-slate-400">Charges {fmtMoney(c.charges)} + PPN {fmtMoney(c.ppn)}</span>
-                <span className="font-extrabold text-slate-900 dark:text-white">{fmtMoney(c.subtotal)}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="no-print px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
           <span className="tabular-nums">

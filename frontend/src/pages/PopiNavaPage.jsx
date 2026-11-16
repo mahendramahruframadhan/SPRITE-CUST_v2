@@ -27,7 +27,9 @@ import { fmtDateID } from '../utils/contract.js';
 import ImportWizard from '../components/popinava/ImportWizard.jsx';
 import OutletDrawer from '../components/popinava/OutletDrawer.jsx';
 import AuditSchedule from '../components/popinava/AuditSchedule.jsx';
+import AuditReport from '../components/popinava/AuditReport.jsx';
 import InvoiceHistoryModal from '../components/InvoiceHistoryModal.jsx';
+import { monthKeyOf } from '../lib/auditSchedule.js';
 
 const INPUT_CLS =
   'w-full min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/40 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition';
@@ -124,8 +126,10 @@ export default function PopiNavaPage() {
   // outlet muncul di bawahnya. 'table' = tabel datar lama (per halaman).
   const [view, setView] = useState('group');
   // Mode halaman: 'outlets' = master data seperti biasa; 'audit' = tab
-  // Jadwal Audit (W1-W4) yang memakai data outlet dari hook yang sama.
+  // Jadwal Audit (W1-W4), 'report' = Laporan Audit. Bulan aktif dibagi
+  // antara Jadwal Audit dan Laporan agar tidak perlu pilih ulang.
   const [pageMode, setPageMode] = useState('outlets');
+  const [auditMonth, setAuditMonth] = useState(() => monthKeyOf(new Date()));
   const [openBrands, setOpenBrands] = useState(() => new Set());
   // Status busy per outlet: switch dinonaktifkan selama PUT status berjalan.
   const [statusBusy, setStatusBusy] = useState({});
@@ -490,6 +494,15 @@ export default function PopiNavaPage() {
           >
             Jadwal Audit
           </Button>
+          <Button
+            variant={pageMode === 'report' ? 'primary' : 'ghost'}
+            size="sm"
+            aria-pressed={pageMode === 'report'}
+            onClick={() => setPageMode('report')}
+            className="rounded-none"
+          >
+            Laporan Audit
+          </Button>
         </div>
         {/* Aksi (bukan mode): log aktivitas POPI NAVA — hanya Super Admin */}
         {canSeeHistory && (
@@ -791,7 +804,17 @@ export default function PopiNavaPage() {
       )}
 
       {/* Mode jadwal audit: kartu W1-W4 + drawer penetapan brand/outlet */}
-      {pageMode === 'audit' && <AuditSchedule outlets={rows} canWrite={canWrite} />}
+      {pageMode === 'audit' && (
+        <AuditSchedule
+          outlets={rows}
+          canWrite={canWrite}
+          monthKey={auditMonth}
+          onMonthChange={setAuditMonth}
+        />
+      )}
+      {pageMode === 'report' && (
+        <AuditReport outlets={rows} monthKey={auditMonth} onMonthChange={setAuditMonth} />
+      )}
 
       {pageMode === 'outlets' && (
         <p className="text-[11px] text-slate-500 dark:text-slate-400">

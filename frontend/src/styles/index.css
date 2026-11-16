@@ -185,6 +185,20 @@
   body.printing-section .page [data-section]:not(.print-keep) {
     display: none !important;
   }
+  /* Detail: tabel lebar dicetak tanpa scroll horizontal (print) */
+  [data-section='detail'] .overflow-x-auto {
+    overflow: visible !important;
+  }
+  [data-section='detail'] table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 9px;
+  }
+  [data-section='detail'] th,
+  [data-section='detail'] td {
+    white-space: normal !important;
+    padding: 4px 6px !important;
+  }
   /* Hero gradien: matikan bg + paksa teks hitam (bg browser tak tercetak) */
   [data-section='hero'] {
     background: none !important;

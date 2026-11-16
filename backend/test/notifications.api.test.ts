@@ -80,6 +80,23 @@ describe('notifications API', () => {
     assert.equal(res.delivered, 1);
   });
 
+  it('send: link wajib path internal /… (≤200); sembarangan → null, bukan error', async () => {
+    const bad = await ctl.send({ userIds: [userA.id], type: 'custom', title: 'L1', link: 'javascript:alert(1)' }, reqWith(tokenF));
+    assert.equal(bad.ok, true);
+    const res1 = await ctl.list(reqWith(tokenA));
+    assert.equal(res1.notifications[0].link, '');
+    await ctl.send({ userIds: [userA.id], type: 'custom', title: 'L2', link: 'https://evil.com/x' }, reqWith(tokenF));
+    const res2 = await ctl.list(reqWith(tokenA));
+    assert.equal(res2.notifications[0].link, '');
+    await ctl.send({ userIds: [userA.id], type: 'custom', title: 'L3', link: '/billing?tab=harian' }, reqWith(tokenF));
+    const res3 = await ctl.list(reqWith(tokenA));
+    assert.equal(res3.notifications[0].link, '/billing?tab=harian');
+    await assert.rejects(
+      () => ctl.send({ userIds: [userA.id], type: 'custom', title: 'L4', link: `/${'x'.repeat(201)}` }, reqWith(tokenF)),
+      (e: any) => e?.status === 400,
+    );
+  });
+
   it('POST validasi: userIds & title wajib, user harus ada & aktif', async () => {
     const bad0 = async () => ctl.send({ userIds: [], type: 'custom', title: 'x' }, reqWith(tokenB));
     await assert.rejects(bad0, (e: any) => e?.status === 400 && e?.response?.code === 'VALIDATION_ERROR');
