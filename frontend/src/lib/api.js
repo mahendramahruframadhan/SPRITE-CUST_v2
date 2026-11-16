@@ -193,7 +193,11 @@ export async function fetchAnalyticsOverview({ from = '', to = '', brand = '', m
   const qs = `${from ? `?from=${encodeURIComponent(from)}` : '?from=1970-01-01'}${to ? `&to=${encodeURIComponent(to)}` : '&to=2999-12-31'}${brand ? `&brand=${encodeURIComponent(brand)}` : ''}${module ? `&module=${encodeURIComponent(module)}` : ''}`;
   return get(`/analytics/overview${qs}`);
 }
-export async function fetchAnalyticsDrilldown({ dim = '', key = '', from = '', to = '', q = '', page = 1, limit = 10, brand = '', module = '' } = {}) {
+export async function fetchAnalyticsWorkload({ from = '', to = '', brand = '', module = '' } = {}) {
+  const qs = `${from ? `?from=${encodeURIComponent(from)}` : '?from=1970-01-01'}${to ? `&to=${encodeURIComponent(to)}` : '&to=2999-12-31'}${brand ? `&brand=${encodeURIComponent(brand)}` : ''}${module ? `&module=${encodeURIComponent(module)}` : ''}`;
+  return get(`/analytics/workload${qs}`);
+}
+export async function fetchAnalyticsDrilldown({ dim = '', key = '', from = '', to = '', q = '', page = 1, limit = 10, brand = '', module = '', scope = '', billing = '', assignee = '', validation = '' } = {}) {
   const p = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (dim) p.set('dim', dim);
   if (key) p.set('key', key);
@@ -202,6 +206,10 @@ export async function fetchAnalyticsDrilldown({ dim = '', key = '', from = '', t
   if (q) p.set('q', q);
   if (brand) p.set('brand', brand);
   if (module) p.set('module', module);
+  if (scope) p.set('scope', scope);
+  if (billing) p.set('billing', billing);
+  if (assignee) p.set('assignee', assignee);
+  if (validation) p.set('validation', validation);
   return get(`/analytics/drilldown?${p.toString()}`);
 }
 
