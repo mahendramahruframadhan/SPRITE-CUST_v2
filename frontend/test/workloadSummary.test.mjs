@@ -2,7 +2,7 @@
 // Jalankan: npm test
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { billingRows, userRows, fmtMonthLabel, financialHint } from '../src/lib/workloadSummary.js';
+import { billingRows, userRows, fmtMonthLabel, financialHint, detailFilterLabel } from '../src/lib/workloadSummary.js';
 
 const totals = { count: 10, byBilling: {
   'ON-CALL': { count: 3, done: 2, open: 1, validated: 1, charges: 1000, ppn: 110, subtotal: 1110 },
@@ -29,6 +29,15 @@ describe('financialHint', () => {
     assert.equal(financialHint({ totals, options: { lastValidatedMonth: '2026-10' } }, 0), 'Belum ada kasus ON-CALL tervalidasi pada periode ini. Terakhir tervalidasi: Okt 2026.');
     assert.equal(financialHint({ totals, options: { lastValidatedMonth: '2026-10' } }, 1), '');
     assert.equal(financialHint({ totals, options: { lastValidatedMonth: null } }, 0), 'Belum ada kasus ON-CALL tervalidasi pada periode ini.');
+  });
+});
+
+describe('detailFilterLabel', () => {
+  it('ringkas filter detail; kosong bila semua default', () => {
+    assert.equal(detailFilterLabel('ON-CALL', 'RAMA', 'validated'), 'ON-CALL · RAMA · Tervalidasi');
+    assert.equal(detailFilterLabel('', '', 'all'), '');
+    assert.equal(detailFilterLabel('', '', 'unvalidated'), 'Belum');
+    assert.equal(detailFilterLabel('FREE', '', 'all'), 'FREE');
   });
 });
 

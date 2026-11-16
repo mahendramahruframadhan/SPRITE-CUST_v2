@@ -46,6 +46,13 @@ export function fmtMonthLabel(ym) {
   return `${MONTHS[month - 1]} ${m[1]}`;
 }
 
+// Ringkasan filter tabel detail: 'ON-CALL · RAMA · Tervalidasi'.
+// Semua default -> ''.
+export function detailFilterLabel(billing, assignee, validation) {
+  const validationLabel = validation === 'validated' ? 'Tervalidasi' : validation === 'unvalidated' ? 'Belum' : '';
+  return [billing, assignee, validationLabel].map((v) => String(v || '').trim()).filter(Boolean).join(' · ');
+}
+
 // Hint di section finansial saat periode ini tidak punya ON-CALL tervalidasi
 // tetapi masih ada kasus operasional.
 export function financialHint(workload, financialCount) {

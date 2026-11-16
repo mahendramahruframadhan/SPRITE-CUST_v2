@@ -5,16 +5,16 @@ import { useFinanceTax } from '../hooks/useFinanceTax.js';
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { fetchAnalyticsOverview, fetchAnalyticsDrilldown, fetchAnalyticsWorkload } from '../lib/api.js';
-import { filterOnCallRows } from '../lib/onCallFilter.js';
 import { analyticsRangeError } from '../lib/analyticsRange.js';
-import { billingRows, userRows, financialHint } from '../lib/workloadSummary.js';
+import { billingRows, userRows, financialHint, detailFilterLabel } from '../lib/workloadSummary.js';
+import { isTaxableRow } from '../lib/taxSummary.js';
 import { buildReportCsv, reportCsvFilename } from '../lib/reportExport.js';
 import { printSection } from '../lib/printSection.js';
 import FilterLabel from '../components/FilterLabel.jsx';
 import { EmptyRow, LoadingRow, Pill } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { fmtDate8 } from '../utils/format.js';
-import { invLabel, invoiceTone } from '../utils/tones.js';
+import { invLabel, invoiceTone, billingTone, moduleTone } from '../utils/tones.js';
 
 // Halaman Report Summary: dokumen rekap read-only kasus tervalidasi
 // (VALID - SIAP INVOICE, ON-CALL) untuk manajemen.
@@ -110,9 +110,9 @@ export default function ReportSummaryPage() {
   };
   const [filters, , resetFilterValues, setManyFilters] = useFilters({
     month: monthKey(), from: rangeOfMonth(monthKey()).from, to: rangeOfMonth(monthKey()).to,
-    brand: '', module: '',
+    brand: '', module: '', dBill: '', dUser: '', dValidation: 'all',
   });
-  const { month, from, to, brand, module } = filters;
+  const { month, from, to, brand, module, dBill, dUser, dValidation } = filters;
   const applyMonth = (ym) => {
     const r = rangeOfMonth(ym);
     setManyFilters({ month: ym, from: r.from, to: r.to });
@@ -249,7 +249,7 @@ export default function ReportSummaryPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debQ, from, to, perPage, brand, module]);
+  }, [debQ, from, to, perPage, brand, module, dBill, dUser, dValidation]);
 
   const [drill, setDrill] = useState({ data: [], total: 0, totalPages: 1, subtotal: 0 });
   const [drLoading, setDrLoading] = useState(true);
@@ -265,7 +265,10 @@ export default function ReportSummaryPage() {
     }
     setDrLoading(true);
     setDrError('');
-    fetchAnalyticsDrilldown({ from, to, brand, module, q: debQ, page, limit: perPage }).then(
+    fetchAnalyticsDrilldown({
+      scope: 'all', from, to, brand, module, q: debQ, page, limit: perPage,
+      billing: dBill, assignee: dUser, validation: dValidation,
+    }).then(
       (r) => {
         if (drSeq.current !== my) return;
         setDrill({ data: r.data || [], total: r.total || 0, totalPages: r.totalPages || 1, subtotal: r.subtotal || 0 });
@@ -278,17 +281,17 @@ export default function ReportSummaryPage() {
         setDrLoading(false);
       }
     );
-  }, [from, to, brand, module, debQ, page, perPage, rangeError]);
+  }, [from, to, brand, module, debQ, page, perPage, dBill, dUser, dValidation, rangeError]);
 
   const detailItems = useMemo(
-    () => filterOnCallRows(drill.data || [])
-      .map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
+    () => (drill.data || []).map((c) => ({ ...c, invStatus: c.invoiceStatus || 'MENUNGGU INVOICE' })),
     [drill]
   );
-  const detailCount = detailItems.length;
-  const totalPages = Math.max(1, Math.ceil(detailCount / perPage));
+  const detailCount = drill.total || 0;
+  const totalPages = drill.totalPages || 1;
   const safePage = Math.min(page, totalPages);
-  const paged = detailItems.slice((safePage - 1) * perPage, safePage * perPage);
+  const paged = detailItems;
+  const detailLabel = detailFilterLabel(dBill, dUser, dValidation);
 
   // Tiga KPI uang di kolom kiri (Charges / PPN / Subtotal Akhir).
   const financeKpi = [
@@ -338,6 +341,8 @@ export default function ReportSummaryPage() {
 
   const filterCls =
     'mt-1 block min-h-[44px] text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 transition';
+  const miniSelectCls =
+    'text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-emerald-500/40 bg-white dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-200';
 
   return (
     <div className="page">
@@ -884,102 +889,154 @@ export default function ReportSummaryPage() {
         ))}
       </Reveal>
 
-      {/* ===== Detail kasus tervalidasi (per baris) ===== */}
+      {/* ===== Detail kasus semua status (per baris) ===== */}
       <Reveal data-section="detail" className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900">
           <div className="flex flex-wrap items-center gap-3">
             <div>
-              <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Detail Kasus Tervalidasi</h3>
+              <h3 className="font-extrabold text-slate-900 dark:text-white tracking-tight">Detail Kasus</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {tableLoading ? 'Memuat dari backend…' : `${detailCount} kasus · total subtotal ${fmtMoney(detailTotal)}`}
+                {tableLoading ? 'Memuat dari backend…' : `${detailCount} kasus${detailLabel ? ` · ${detailLabel}` : ''} · total subtotal ${fmtMoney(detailTotal)}`}
               </p>
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              <PrintBtn id="detail" label="Detail Kasus" />
+            <div className="ml-auto flex flex-wrap items-center gap-2">
               <div className="relative no-print">
               <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
               <input
                 type="text"
-                placeholder="Cari no / brand…"
+                placeholder="Cari no / brand / user…"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 className="pl-9 pr-3 py-2.5 min-h-[44px] w-full sm:w-auto text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-300 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 transition"
               />
               </div>
+              <select
+                aria-label="Filter billing status"
+                value={dBill}
+                onChange={(e) => setManyFilters({ dBill: e.target.value })}
+                className={`${miniSelectCls} no-print`}
+              >
+                <option value="">Semua billing</option>
+                <option value="ON-CALL">ON-CALL</option>
+                <option value="MONTHLY">MONTHLY</option>
+                <option value="FREE">FREE</option>
+                <option value="LAINNYA">LAINNYA</option>
+              </select>
+              <select
+                aria-label="Filter user"
+                value={dUser}
+                onChange={(e) => setManyFilters({ dUser: e.target.value })}
+                className={`${miniSelectCls} no-print`}
+              >
+                <option value="">Semua user</option>
+                {(workload?.options?.assignees || []).map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+              <select
+                aria-label="Filter validasi"
+                value={dValidation}
+                onChange={(e) => setManyFilters({ dValidation: e.target.value })}
+                className={`${miniSelectCls} no-print`}
+              >
+                <option value="all">Semua validasi</option>
+                <option value="validated">Tervalidasi</option>
+                <option value="unvalidated">Belum</option>
+              </select>
+              <PrintBtn id="detail" label="Detail Kasus" />
             </div>
           </div>
         </div>
         <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-sm min-w-[880px]">
+          <table className="w-full text-sm min-w-[1180px]">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/70">
                 <th className="px-6 py-3 font-bold">No</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap">Tanggal</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap">Brand</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">User</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Module</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Billing</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Validasi</th>
+                <th className="px-4 py-3 font-bold whitespace-nowrap">Status</th>
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">Charges</th>
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">PPN</th>
                 <th className="px-4 py-3 font-bold text-right whitespace-nowrap">Subtotal</th>
-                <th className="px-4 py-3 font-bold whitespace-nowrap">PPH23</th>
-                <th className="px-6 py-3 font-bold whitespace-nowrap">Status Invoice</th>
+                <th className="px-6 py-3 font-bold whitespace-nowrap">Invoice</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap">No. Invoice</th>
                 <th className="px-4 py-3 font-bold whitespace-nowrap">Keterangan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {paged.map((c) => (
-                <tr key={c.recordUuid} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition">
-                  <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no || '-'}</td>
-                  <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
-                  <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap"><CaseLink c={c} /></td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtMoney(c.charges)}</td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtMoney(c.ppn)}</td>
-                  <td className="px-4 py-3.5 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{fmtMoney(c.subtotal)}</td>
-                  <td className="px-4 py-3.5 whitespace-nowrap">
-                    {c.pph ? (
-                      <span className="text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-1 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20">PPH23</span>
-                    ) : (
-                      <span className="text-xs text-slate-400 dark:text-slate-500">Tidak ada PPH23</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-3.5 whitespace-nowrap">
-                    <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
-                  </td>
-                  <td className="px-4 py-3.5 whitespace-nowrap font-mono text-xs">{c.invoiceNo || 'Belum diisi'}</td>
-                  <td className="px-4 py-3.5 text-xs max-w-[260px]"><p className="line-clamp-2">{c.invoiceNote || 'Belum diisi'}</p></td>
-                </tr>
-              ))}
+              {paged.map((c) => {
+                const onCall = isTaxableRow(c.billingStatus);
+                return (
+                  <tr key={c.recordUuid} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition">
+                    <td className="px-6 py-3.5 text-slate-500 dark:text-slate-400 tabular-nums">{c.no || '-'}</td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap tabular-nums">{fmtDate8(c.dateIssue)}</td>
+                    <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap"><CaseLink c={c} /></td>
+                    <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{c.assignTo || '-'}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <Pill tone={moduleTone(c.module)}>{c.module || '-'}</Pill>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <Pill dot tone={billingTone(c.billingStatus)}>{c.billingStatus || '-'}</Pill>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      {c.auditStatus === 'VALID - SIAP INVOICE' ? (
+                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Tervalidasi</span>
+                      ) : (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Belum</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap text-xs font-semibold text-slate-600 dark:text-slate-300">{c.status || '-'}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{onCall ? fmtMoney(c.charges) : '—'}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">{onCall ? fmtMoney(c.ppn) : '—'}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{onCall ? fmtMoney(c.subtotal) : '—'}</td>
+                    <td className="px-6 py-3.5 whitespace-nowrap">
+                      <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap font-mono text-xs">{c.invoiceNo || 'Belum diisi'}</td>
+                    <td className="px-4 py-3.5 text-xs max-w-[260px]"><p className="line-clamp-2">{c.invoiceNote || 'Belum diisi'}</p></td>
+                  </tr>
+                );
+              })}
               {tableLoading ? (
-                <LoadingRow colSpan={10} />
+                <LoadingRow colSpan={14} />
               ) : invalidRange ? (
-                <EmptyRow colSpan={10}>Rentang tanggal tidak valid (Date From melebihi Date Until)</EmptyRow>
+                <EmptyRow colSpan={14}>Rentang tanggal tidak valid (Date From melebihi Date Until)</EmptyRow>
               ) : detailCount === 0 && (
-                <EmptyRow colSpan={10}>Tidak ada data tervalidasi pada periode ini</EmptyRow>
+                <EmptyRow colSpan={14}>Tidak ada kasus pada periode ini</EmptyRow>
               )}
             </tbody>
           </table>
         </div>
         {/* Varian kartu untuk HP */}
         <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-          {paged.map((c) => (
-            <div key={c.recordUuid} className="px-5 py-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-bold text-slate-800 dark:text-slate-100 truncate"><CaseLink c={c} /></p>
-                <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
+          {paged.map((c) => {
+            const onCall = isTaxableRow(c.billingStatus);
+            return (
+              <div key={c.recordUuid} className="px-5 py-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-bold text-slate-800 dark:text-slate-100 truncate"><CaseLink c={c} /></p>
+                  <Pill dot tone={invoiceTone(c.invStatus)}>{invLabel(c.invStatus)}</Pill>
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)} · {c.assignTo || '-'} · {c.module || '-'}{c.pph ? ' · PPH23' : ''}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{c.billingStatus || '-'} · {c.auditStatus === 'VALID - SIAP INVOICE' ? 'Tervalidasi' : 'Belum'} · {c.status || '-'}</p>
+                {(c.invoiceNo || c.invoiceNote) && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {c.invoiceNo ? `No. Invoice: ${c.invoiceNo}` : 'No. Invoice: Belum diisi'}{c.invoiceNote ? ` · Keterangan: ${c.invoiceNote}` : ' · Keterangan: Belum diisi'}
+                  </p>
+                )}
+                <div className="mt-2 flex items-baseline justify-between gap-2 text-sm tabular-nums">
+                  <span className="text-slate-500 dark:text-slate-400">{onCall ? `Charges ${fmtMoney(c.charges)} + PPN ${fmtMoney(c.ppn)}` : 'Charges — + PPN —'}</span>
+                  <span className="font-extrabold text-slate-900 dark:text-white">{onCall ? fmtMoney(c.subtotal) : '—'}</span>
+                </div>
               </div>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{fmtDate8(c.dateIssue)}{c.pph ? ' · PPH23' : ''}</p>
-              {(c.invoiceNo || c.invoiceNote) && (
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {c.invoiceNo ? `No. Invoice: ${c.invoiceNo}` : 'No. Invoice: Belum diisi'}{c.invoiceNote ? ` · Keterangan: ${c.invoiceNote}` : ' · Keterangan: Belum diisi'}
-                </p>
-              )}
-              <div className="mt-2 flex items-baseline justify-between gap-2 text-sm tabular-nums">
-                <span className="text-slate-500 dark:text-slate-400">Charges {fmtMoney(c.charges)} + PPN {fmtMoney(c.ppn)}</span>
-                <span className="font-extrabold text-slate-900 dark:text-white">{fmtMoney(c.subtotal)}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="no-print px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
           <span className="tabular-nums">
