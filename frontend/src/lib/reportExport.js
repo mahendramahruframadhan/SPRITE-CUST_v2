@@ -4,11 +4,77 @@
 // non-ASCII yang sama seperti billingExport.js).
 const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
+const BILLING_ORDER = ['ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA'];
+const num = (v) => Number(v) || 0;
+
 function sectionRow(label, b) {
   return [label, b.count, b.charges, b.ppn, b.subtotal].map(esc).join(',');
 }
 
-export function buildReportCsv(summary, { periode = '', aging = null, top = [], brandBreak = [], moduleBreak = [] } = {}) {
+function billingCounts(row) {
+  const b = row?.byBilling || {};
+  return BILLING_ORDER.map((key) => num(typeof b[key] === 'object' ? b[key]?.count : b[key]));
+}
+
+function operationalSections(workload) {
+  const totals = workload?.totals || {};
+  const byBilling = totals.byBilling || {};
+  const total = num(totals.count);
+  const lines = [
+    '',
+    ['RINGKASAN OPERASIONAL'].map(esc).join(','),
+    ['METRIK', 'JUMLAH'].map(esc).join(','),
+    ['TOTAL', total].map(esc).join(','),
+    ['DONE', num(totals.done)].map(esc).join(','),
+    ['OPEN', num(totals.open)].map(esc).join(','),
+    ['TERVALIDASI', num(totals.validated)].map(esc).join(','),
+  ];
+
+  const known = BILLING_ORDER.filter((k) => k !== 'LAINNYA' || num(byBilling.LAINNYA?.count) > 0);
+  const extras = Object.keys(byBilling).filter((k) => !BILLING_ORDER.includes(k));
+  const rows = [...known, ...extras].filter((k) => num(byBilling[k]?.count) > 0);
+  if (rows.length) {
+    lines.push(
+      '',
+      ['RINCIAN PER BILLING STATUS (OPERASIONAL)'].map(esc).join(','),
+      ['BILLING STATUS', 'JUMLAH KASUS', '%', 'DONE', 'OPEN', 'TERVALIDASI', 'CHARGES', 'PPN', 'SUBTOTAL'].map(esc).join(','),
+      ...rows.map((key) => {
+        const b = byBilling[key] || {};
+        const count = num(b.count);
+        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+        return [key, count, pct, num(b.done), num(b.open), num(b.validated), num(b.charges), num(b.ppn), num(b.subtotal)].map(esc).join(',');
+      }),
+    );
+  }
+
+  const users = Array.isArray(workload?.byAssignee) ? workload.byAssignee : [];
+  if (users.length) {
+    lines.push(
+      '',
+      ['RINCIAN PER USER'].map(esc).join(','),
+      ['USER', 'ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA', 'TOTAL', 'DONE', 'OPEN', 'NILAI ON-CALL', 'TERVALIDASI'].map(esc).join(','),
+      ...users.map((u) => [u.assignTo, ...billingCounts(u), num(u.count), num(u.done), num(u.open), num(u.onCallSubtotal), num(u.validated)].map(esc).join(',')),
+    );
+  }
+
+  for (const [title, key, nameKey] of [
+    ['RINCIAN PER BRAND', 'byBrand', 'brand'],
+    ['RINCIAN PER MODULE', 'byModule', 'module'],
+  ]) {
+    const list = Array.isArray(workload?.[key]) ? workload[key] : [];
+    if (!list.length) continue;
+    lines.push(
+      '',
+      [title].map(esc).join(','),
+      [nameKey.toUpperCase(), 'ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA', 'TOTAL', 'NILAI ON-CALL'].map(esc).join(','),
+      ...list.map((g) => [g[nameKey], ...billingCounts(g), num(g.count), num(g.onCallSubtotal)].map(esc).join(',')),
+    );
+  }
+
+  return lines;
+}
+
+export function buildReportCsv(summary, { periode = '', aging = null, top = [], brandBreak = [], moduleBreak = [], workload = null } = {}) {
   const s = summary || {};
   const byInvoice = s.byInvoice && typeof s.byInvoice === 'object' ? s.byInvoice : {};
   const byBilling = s.byBilling && typeof s.byBilling === 'object' ? s.byBilling : {};
@@ -16,6 +82,7 @@ export function buildReportCsv(summary, { periode = '', aging = null, top = [], 
   const lines = [
     ['REPORT SUMMARY — KASUS TERVALIDASI'].map(esc).join(','),
     ['PERIODE', periode].map(esc).join(','),
+    ...(workload ? operationalSections(workload) : []),
     '',
     ['RINCIAN PER STATUS INVOICE'].map(esc).join(','),
     cols,

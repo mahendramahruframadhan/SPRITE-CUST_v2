@@ -328,7 +328,7 @@ export default function ReportSummaryPage() {
   })();
 
   function exportData() {
-    const csv = buildReportCsv(summary, { periode: periodeLabel, aging, top: top10, brandBreak, moduleBreak });
+    const csv = buildReportCsv(summary, { periode: periodeLabel, aging, top: top10, brandBreak, moduleBreak, workload });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -336,7 +336,7 @@ export default function ReportSummaryPage() {
     a.download = reportCsvFilename(periodeLabel);
     a.click();
     URL.revokeObjectURL(url);
-    notify(`Export ${summary.count} kasus tervalidasi berhasil diunduh.`, 'success');
+    notify(`Export ${workload?.totals?.count ?? summary.count} kasus berhasil diunduh.`, 'success');
   }
 
   const filterCls =
