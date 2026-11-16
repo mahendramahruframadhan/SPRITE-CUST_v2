@@ -1,5 +1,5 @@
 import { Controller, Get, Query, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
-import { AnalyticsService } from './analytics.service';
+import { AnalyticsService, billingKeyOf } from './analytics.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { SessionGuard } from '../auth/session.guard';
 
@@ -32,6 +32,19 @@ export class AnalyticsController {
     });
   }
 
+  @Get('workload')
+  @UseGuards(PermGuard)
+  @Perm('analytics')
+  async workload(@Query() q: any) {
+    const from = String(q.from || '');
+    const to = String(q.to || '');
+    checkRange(from, to);
+    return this.analytics.getWorkload(from || '1970-01-01', to || '2999-12-31', {
+      brand: String(q.brand || ''),
+      module: String(q.module || ''),
+    });
+  }
+
   @Get('drilldown')
   @UseGuards(PermGuard)
   @Perm('analytics')
@@ -44,6 +57,23 @@ export class AnalyticsController {
     }
     if (dim && !key) {
       throw new HttpException({ code: 'ANALYTICS_INVALID_DIM', message: 'Key drilldown wajib diisi.' }, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+    const scope = String(q.scope || 'validated');
+    if (scope !== 'validated' && scope !== 'all') {
+      throw new HttpException({ code: 'ANALYTICS_INVALID_SCOPE', message: 'Scope drilldown hanya validated|all.' }, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+    const billingRaw = String(q.billing || '');
+    let billing = '';
+    if (billingRaw) {
+      const normalized = billingKeyOf(billingRaw);
+      if (!normalized) {
+        throw new HttpException({ code: 'ANALYTICS_INVALID_BILLING', message: 'Billing drilldown hanya ON-CALL|MONTHLY|FREE|LAINNYA.' }, HttpStatus.UNPROCESSABLE_ENTITY);
+      }
+      billing = normalized;
+    }
+    const validation = String(q.validation || 'all');
+    if (validation !== 'all' && validation !== 'validated' && validation !== 'unvalidated') {
+      throw new HttpException({ code: 'ANALYTICS_INVALID_VALIDATION', message: 'Validasi drilldown hanya all|validated|unvalidated.' }, HttpStatus.UNPROCESSABLE_ENTITY);
     }
     const from = String(q.from || '');
     const to = String(q.to || '');
@@ -58,6 +88,10 @@ export class AnalyticsController {
       limit: Number(q.limit) || 50,
       brand: String(q.brand || ''),
       module: String(q.module || ''),
+      scope,
+      billing,
+      assignee: String(q.assignee || ''),
+      validation,
     });
   }
 }

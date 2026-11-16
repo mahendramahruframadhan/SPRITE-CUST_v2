@@ -12,13 +12,15 @@ const inPool = (r: any) => isOnCall(r.billing_status) && r.audit_action === VALI
 const BILLING_KEYS = ['ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA'] as const;
 type BillingKey = (typeof BILLING_KEYS)[number];
 
-const billingOf = (v: any): BillingKey => {
+export const billingKeyOf = (v: any): BillingKey | null => {
   const k = norm(v);
   if (k === 'ONCALL') return 'ON-CALL';
   if (k === 'MONTHLY') return 'MONTHLY';
   if (k === 'FREE') return 'FREE';
-  return 'LAINNYA';
+  if (k === 'LAINNYA') return 'LAINNYA';
+  return null;
 };
+const billingOf = (v: any): BillingKey => billingKeyOf(v) || 'LAINNYA';
 const isDone = (s: any) => String(s || '').trim().toUpperCase() === 'DONE';
 const userOf = (v: any) => String(v || '').trim().toUpperCase() || 'TANPA USER';
 const monthOfDate8 = (v: any) => (/^\d{8}$/.test(String(v || '')) ? `${String(v).slice(0, 4)}-${String(v).slice(4, 6)}` : null);
@@ -342,13 +344,52 @@ export class AnalyticsService {
     };
   }
 
-  async getDrilldown(opts: { dim: string; key: string; from: string; to: string; q?: string; page?: number; limit?: number; brand?: string; module?: string }) {
+  async getDrilldown(opts: {
+    dim: string;
+    key: string;
+    from: string;
+    to: string;
+    q?: string;
+    page?: number;
+    limit?: number;
+    brand?: string;
+    module?: string;
+    scope?: 'validated' | 'all';
+    billing?: string;
+    assignee?: string;
+    validation?: 'all' | 'validated' | 'unvalidated';
+  }) {
     const { dim, key } = opts;
-    const pool = await this.poolRows(opts.from, opts.to, { brand: opts.brand, module: opts.module });
-    const scoped = dim ? pool.filter((r) => (dim === 'brand' ? r.client || '-' : r.module || '-') === key) : pool;
+    const scope = opts.scope === 'all' ? 'all' : 'validated';
+    let pool: any[];
+    if (scope === 'all') {
+      const brand = String(opts.brand || '');
+      const module = String(opts.module || '');
+      pool = (await this.fetchRows(opts.from, opts.to))
+        .filter((r) => (!brand || r.client === brand) && (!module || r.module === module))
+        .map((r) => {
+          const charges = Number(r.charges) || 0;
+          const oncall = isOnCall(r.billing_status);
+          const ppn = oncall ? ppnOf(r) : 0;
+          return { ...r, charges, ppn, subtotal: oncall ? charges + ppn : 0, pph: Number(r.pph ?? 0) === 1 };
+        });
+    } else {
+      pool = await this.poolRows(opts.from, opts.to, { brand: opts.brand, module: opts.module });
+    }
+
+    const billing = opts.billing ? billingKeyOf(opts.billing) : null;
+    const assignee = String(opts.assignee || '').trim() ? userOf(opts.assignee) : null;
+    const validation = scope === 'all' ? opts.validation || 'all' : 'all';
+    let filtered = pool;
+    if (billing) filtered = filtered.filter((r) => billingOf(r.billing_status) === billing);
+    if (assignee) filtered = filtered.filter((r) => userOf(r.assign_to) === assignee);
+    if (validation === 'validated') filtered = filtered.filter((r) => r.audit_action === VALID_TAG);
+    else if (validation === 'unvalidated') filtered = filtered.filter((r) => r.audit_action !== VALID_TAG);
+
+    const scoped = dim ? filtered.filter((r) => (dim === 'brand' ? r.client || '-' : r.module || '-') === key) : filtered;
     const needle = String(opts.q || '').trim().toLowerCase();
     const searched = needle
-      ? scoped.filter((r) => `${r.no || ''} ${r.client || ''} ${r.issue || ''} ${r.pic_name || ''} ${r.module || ''} ${r.billing_status || ''}`.toLowerCase().includes(needle))
+      ? scoped.filter((r) => `${r.no || ''} ${r.client || ''} ${r.issue || ''} ${r.pic_name || ''} ${r.module || ''} ${r.billing_status || ''} ${r.assign_to || ''}`.toLowerCase().includes(needle))
       : scoped;
     searched.sort((a, b) => String(b.date_issue || '').localeCompare(String(a.date_issue || '')));
     const limit = Math.min(100, Math.max(1, Number(opts.limit) || 50));

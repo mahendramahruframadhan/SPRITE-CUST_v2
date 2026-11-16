@@ -100,4 +100,25 @@ describe('analytics workload service', () => {
     assert.equal(scoped.totals.count, 2);
     assert.equal(scoped.options.brands.length, 3, 'options tidak ikut menyempit');
   });
+
+  it('drilldown default tetap validated ON-CALL; scope=all memuat semua status', async () => {
+    const svc = new AnalyticsService();
+    const d1: any = await svc.getDrilldown({ dim: '', key: '', from: '2026-11-01', to: '2026-11-30' });
+    assert.equal(d1.total, 0);
+    const d2: any = await svc.getDrilldown({ dim: '', key: '', scope: 'all', from: '2026-11-01', to: '2026-11-30', limit: 100 });
+    assert.equal(d2.total, 5);
+    assert.equal(d2.subtotal, 1660000);
+  });
+
+  it('scope=all filter billing, assignee, validation', async () => {
+    const svc = new AnalyticsService();
+    const oncall: any = await svc.getDrilldown({ dim: '', key: '', scope: 'all', billing: 'ON-CALL', from: '2026-11-01', to: '2026-11-30' });
+    assert.equal(oncall.total, 2);
+    const rama: any = await svc.getDrilldown({ dim: '', key: '', scope: 'all', assignee: 'rama', from: '2026-11-01', to: '2026-11-30' });
+    assert.equal(rama.total, 3);
+    const unvalidated: any = await svc.getDrilldown({ dim: '', key: '', scope: 'all', validation: 'unvalidated', from: '2026-11-01', to: '2026-11-30' });
+    assert.equal(unvalidated.total, 4);
+    const searchUser: any = await svc.getDrilldown({ dim: '', key: '', scope: 'all', q: 'rama', from: '2026-11-01', to: '2026-11-30' });
+    assert.equal(searchUser.total, 3);
+  });
 });
