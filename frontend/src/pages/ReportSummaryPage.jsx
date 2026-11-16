@@ -4,9 +4,10 @@ import { Reveal } from '../components/Reveal.jsx';
 import { useFinanceTax } from '../hooks/useFinanceTax.js';
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { fetchAnalyticsOverview, fetchAnalyticsDrilldown } from '../lib/api.js';
+import { fetchAnalyticsOverview, fetchAnalyticsDrilldown, fetchAnalyticsWorkload } from '../lib/api.js';
 import { filterOnCallRows } from '../lib/onCallFilter.js';
 import { analyticsRangeError } from '../lib/analyticsRange.js';
+import { billingRows, userRows, financialHint } from '../lib/workloadSummary.js';
 import { buildReportCsv, reportCsvFilename } from '../lib/reportExport.js';
 import { printSection } from '../lib/printSection.js';
 import FilterLabel from '../components/FilterLabel.jsx';
@@ -168,6 +169,36 @@ export default function ReportSummaryPage() {
     );
   }, [from, to, rangeError]);
 
+  // Rekap operasional semua billing status (ON-CALL/MONTHLY/FREE/LAINNYA).
+  const [workload, setWorkload] = useState(null);
+  const [workloadLoading, setWorkloadLoading] = useState(true);
+  const [workloadError, setWorkloadError] = useState('');
+  const wlSeq = useRef(0);
+  useEffect(() => {
+    const my = ++wlSeq.current;
+    if (rangeError) {
+      setWorkload(null);
+      setWorkloadLoading(false);
+      setWorkloadError('');
+      return;
+    }
+    setWorkloadLoading(true);
+    setWorkloadError('');
+    fetchAnalyticsWorkload({ from, to, brand, module }).then(
+      (r) => {
+        if (wlSeq.current !== my) return;
+        setWorkload(r);
+        setWorkloadLoading(false);
+      },
+      (e) => {
+        if (wlSeq.current !== my) return;
+        setWorkload(null);
+        setWorkloadError(e.message || 'Gagal memuat data');
+        setWorkloadLoading(false);
+      }
+    );
+  }, [from, to, brand, module, rangeError]);
+
   const summary = useMemo(() => {
     if (!overview) return EMPTY_SUMMARY;
     const k = overview.kpis || {};
@@ -193,6 +224,16 @@ export default function ReportSummaryPage() {
   const periodeLabel = from || to ? `${from || 'Awal'} s.d. ${to || 'Akhir'}` : 'Semua tanggal';
   const todayLabel = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const paidShare = summary.subtotal > 0 ? Math.round((summary.paid.subtotal / summary.subtotal) * 100) : 0;
+
+  // Angka rekap operasional (pool semua status) — terpisah dari pool finansial.
+  const wlTotals = workload?.totals || {};
+  const wlByBilling = wlTotals.byBilling || {};
+  const wlCount = (key) => Number(wlByBilling[key]?.count) || 0;
+  const wlBilling = billingRows(wlTotals);
+  const wlUsers = userRows(workload?.byAssignee);
+  const wlOnCall = wlByBilling['ON-CALL'] || {};
+  const activeUsers = wlUsers.length;
+  const financeHint = financialHint(workload, summary.count);
 
   // Tabel detail dari backend (server-side cari + paginasi).
   const [q, setQ] = useState('');
@@ -302,7 +343,7 @@ export default function ReportSummaryPage() {
     <div className="page">
       {/* Kop cetak: hanya tampil saat print */}
       <div className="print-kop" aria-hidden="true">
-        <h1>Report Summary — Kasus Tervalidasi</h1>
+        <h1>Report Summary — Rekap Operasional &amp; Finansial</h1>
         <p>Periode: {periodeLabel} · Dicetak: {todayLabel}</p>
       </div>
 
@@ -330,11 +371,17 @@ export default function ReportSummaryPage() {
                 Report Summary
               </h1>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-white/80">
-                Laporan Rekapitulasi Kasus Tervalidasi · {periodeLabel}
+                Laporan Rekapitulasi Operasional &amp; Finansial · {periodeLabel}
               </p>
               {/* Ringkasan eksekutif satu paragraf */}
               <p className="mt-3 text-sm text-white/90 max-w-2xl leading-relaxed">
-                Pada periode ini, <span className="font-bold">{summary.count} kasus</span> tervalidasi
+                Rekap operasional mencakup{' '}
+                <span className="font-bold tabular-nums">{(wlTotals.count || 0).toLocaleString('id-ID')} kasus</span>:{' '}
+                <span className="tabular-nums">{wlCount('ON-CALL')} ON-CALL</span>,{' '}
+                <span className="tabular-nums">{wlCount('MONTHLY')} MONTHLY</span>, dan{' '}
+                <span className="tabular-nums">{wlCount('FREE')} FREE</span>
+                {wlCount('LAINNYA') > 0 && <>, serta <span className="tabular-nums">{wlCount('LAINNYA')} LAINNYA</span></>}.
+                {' '}Pada periode ini, <span className="font-bold">{summary.count} kasus</span> tervalidasi
                 (ON-CALL) membangun subtotal{' '}
                 <span className="font-bold tabular-nums">{fmtMoney(summary.subtotal)}</span>, terdiri dari
                 charges <span className="tabular-nums">{fmtMoney(summary.charges)}</span> dan PPN{' '}
@@ -437,6 +484,237 @@ export default function ReportSummaryPage() {
       {rangeError && !(error || tableError) && (
         <div className="no-print bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-amber-700 dark:text-amber-300" role="alert">
           {rangeError}
+        </div>
+      )}
+      {workloadError && !rangeError && (
+        <div className="no-print bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300" role="alert">
+          Backend tidak terjangkau — rekap operasional gagal dimuat ({workloadError})
+        </div>
+      )}
+
+      {/* ===== Rekap Operasional: KPI + per billing + per user + brand/module ===== */}
+      <Reveal data-section="kpi-operasional" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="sm:col-span-2 lg:col-span-5 flex items-center justify-between gap-2">
+          <div>
+            <h3 className="report-card-title !mb-0">Rekap Operasional</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Semua status billing pada periode ini, tanpa filter validasi.
+            </p>
+          </div>
+          <PrintBtn id="kpi-operasional" label="Rekap Operasional" />
+        </div>
+        {[
+          { t: 'Total Kasus', v: wlTotals.count || 0, color: 'text-slate-900 dark:text-white' },
+          { t: 'ON-CALL', v: wlCount('ON-CALL'), color: 'text-emerald-600 dark:text-emerald-400' },
+          { t: 'MONTHLY', v: wlCount('MONTHLY'), color: 'text-sky-600 dark:text-sky-400' },
+          { t: 'FREE', v: wlCount('FREE'), color: 'text-slate-600 dark:text-slate-300' },
+          { t: 'User Aktif', v: activeUsers, color: 'text-brand-600 dark:text-brand-300' },
+        ].map((d) => (
+          <div key={d.t} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-5 shadow-[0_1px_2px_rgba(16,24,40,.05)]">
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.12em] truncate">{d.t}</p>
+            <p className={`mt-2 text-[28px] leading-tight font-extrabold tracking-tight tabular-nums ${d.color}`}>
+              {workloadLoading ? '…' : Number(d.v || 0).toLocaleString('id-ID')}
+            </p>
+          </div>
+        ))}
+      </Reveal>
+
+      <Reveal className="report-card" data-section="rekap-billing-operasional">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div>
+            <h3 className="report-card-title !mb-0">Rekap per Billing Status</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Jumlah kasus, DONE/open, dan tervalidasi per status. Nilai uang hanya dihitung untuk ON-CALL.
+            </p>
+          </div>
+        </div>
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm min-w-[820px]">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <th className="py-2.5 pr-3 font-bold">Status</th>
+                <th className="py-2.5 px-3 font-bold text-right">Jumlah</th>
+                <th className="py-2.5 px-3 font-bold text-right">%</th>
+                <th className="py-2.5 px-3 font-bold text-right">DONE</th>
+                <th className="py-2.5 px-3 font-bold text-right">Open</th>
+                <th className="py-2.5 px-3 font-bold text-right">Tervalidasi</th>
+                <th className="py-2.5 px-3 font-bold text-right">Charges</th>
+                <th className="py-2.5 px-3 font-bold text-right">PPN</th>
+                <th className="py-2.5 pl-3 font-bold text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {workloadLoading ? (
+                <LoadingRow colSpan={9} />
+              ) : workloadError || !workload ? (
+                <EmptyRow colSpan={9}>Tidak ada kasus pada periode ini</EmptyRow>
+              ) : wlBilling.length === 0 || wlTotals.count === 0 ? (
+                <EmptyRow colSpan={9}>Tidak ada kasus pada periode ini</EmptyRow>
+              ) : (
+                wlBilling.map((r) => (
+                  <tr key={r.key} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40">
+                    <td className="py-2.5 pr-3 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{r.key}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{r.count.toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums text-slate-500 dark:text-slate-400">{r.percentage}%</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{r.done.toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{r.open.toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{r.validated.toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{r.key === 'ON-CALL' ? fmtMoney(r.charges) : '—'}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{r.key === 'ON-CALL' ? fmtMoney(r.ppn) : '—'}</td>
+                    <td className="py-2.5 pl-3 text-right tabular-nums font-extrabold text-slate-900 dark:text-white whitespace-nowrap">{r.key === 'ON-CALL' ? fmtMoney(r.subtotal) : '—'}</td>
+                  </tr>
+                ))
+              )}
+              {!workloadLoading && !workloadError && workload && wlTotals.count > 0 && (
+                <tr className="border-t-2 border-slate-200 dark:border-slate-700 font-extrabold text-slate-900 dark:text-white">
+                  <td className="py-2.5 pr-3">TOTAL</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.count || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">100%</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.done || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.open || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.validated || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{fmtMoney(wlOnCall.charges)}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">{fmtMoney(wlOnCall.ppn)}</td>
+                  <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap text-emerald-700 dark:text-emerald-400">{fmtMoney(wlOnCall.subtotal)}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Reveal>
+
+      <Reveal className="report-card" data-section="rekap-user">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div>
+            <h3 className="report-card-title !mb-0">Rekap per User</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Jumlah kasus per status, DONE/open, tervalidasi, dan nilai ON-CALL per user.
+            </p>
+          </div>
+          <PrintBtn id="rekap-user" label="Rekap per User" />
+        </div>
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-sm min-w-[980px]">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <th className="py-2.5 pr-3 font-bold">User</th>
+                <th className="py-2.5 px-3 font-bold text-right">ON-CALL</th>
+                <th className="py-2.5 px-3 font-bold text-right">MONTHLY</th>
+                <th className="py-2.5 px-3 font-bold text-right">FREE</th>
+                <th className="py-2.5 px-3 font-bold text-right">LAINNYA</th>
+                <th className="py-2.5 px-3 font-bold text-right">Total</th>
+                <th className="py-2.5 px-3 font-bold text-right">DONE</th>
+                <th className="py-2.5 px-3 font-bold text-right">Open</th>
+                <th className="py-2.5 px-3 font-bold text-right">Nilai ON-CALL</th>
+                <th className="py-2.5 pl-3 font-bold text-right">Tervalidasi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {workloadLoading ? (
+                <LoadingRow colSpan={10} />
+              ) : workloadError || !workload ? (
+                <EmptyRow colSpan={10}>Tidak ada kasus pada periode ini</EmptyRow>
+              ) : wlUsers.length === 0 ? (
+                <EmptyRow colSpan={10}>Tidak ada kasus pada periode ini</EmptyRow>
+              ) : (
+                wlUsers.map((u) => (
+                  <tr key={u.assignTo || '-'} className="odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/60 dark:even:bg-slate-800/40">
+                    <td className="py-2.5 pr-3 font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{u.assignTo || 'TANPA USER'}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.byBilling?.['ON-CALL'] || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.byBilling?.MONTHLY || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.byBilling?.FREE || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.byBilling?.LAINNYA || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums font-bold">{Number(u.count || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.done || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums">{Number(u.open || 0).toLocaleString('id-ID')}</td>
+                    <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap" title={`Charges ${fmtMoney(u.onCallCharges)} · PPN ${fmtMoney(u.onCallPpn)}`}>
+                      <span className="font-extrabold text-slate-900 dark:text-white">{fmtMoney(u.onCallSubtotal)}</span>
+                      <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400">Charges {fmtMoney(u.onCallCharges)} · PPN {fmtMoney(u.onCallPpn)}</span>
+                    </td>
+                    <td className="py-2.5 pl-3 text-right tabular-nums">{Number(u.validated || 0).toLocaleString('id-ID')}</td>
+                  </tr>
+                ))
+              )}
+              {!workloadLoading && !workloadError && workload && wlUsers.length > 0 && (
+                <tr className="border-t-2 border-slate-200 dark:border-slate-700 font-extrabold text-slate-900 dark:text-white">
+                  <td className="py-2.5 pr-3">TOTAL</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{wlCount('ON-CALL').toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{wlCount('MONTHLY').toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{wlCount('FREE').toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{wlCount('LAINNYA').toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.count || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.done || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums">{Number(wlTotals.open || 0).toLocaleString('id-ID')}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap text-emerald-700 dark:text-emerald-400">{fmtMoney(wlOnCall.subtotal)}</td>
+                  <td className="py-2.5 pl-3 text-right tabular-nums">{Number(wlTotals.validated || 0).toLocaleString('id-ID')}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Reveal>
+
+      <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {[
+          { sec: 'rekap-brand-operasional', title: 'Rekap per Brand', nameKey: 'brand', rows: workload?.byBrand || [] },
+          { sec: 'rekap-module-operasional', title: 'Rekap per Module', nameKey: 'module', rows: workload?.byModule || [] },
+        ].map((s) => (
+          <div key={s.sec} className="report-card" data-section={s.sec}>
+            <h3 className="report-card-title">{s.title}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1 mb-3">
+              Jumlah kasus per billing status dan nilai ON-CALL.
+            </p>
+            {workloadLoading ? (
+              <table className="w-full text-sm"><tbody><LoadingRow colSpan={7} /></tbody></table>
+            ) : workloadError || !workload ? (
+              <table className="w-full text-sm"><tbody><EmptyRow colSpan={7}>Tidak ada kasus pada periode ini</EmptyRow></tbody></table>
+            ) : s.rows.length === 0 ? (
+              <table className="w-full text-sm"><tbody><EmptyRow colSpan={7}>Tidak ada kasus pada periode ini</EmptyRow></tbody></table>
+            ) : (
+              <div className="max-h-80 overflow-y-auto scrollbar-thin">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white dark:bg-slate-900">
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                      <th className="py-2 pr-2 font-bold">Nama</th>
+                      <th className="py-2 px-2 font-bold text-right">ON-CALL</th>
+                      <th className="py-2 px-2 font-bold text-right">MONTHLY</th>
+                      <th className="py-2 px-2 font-bold text-right">FREE</th>
+                      <th className="py-2 px-2 font-bold text-right">LAINNYA</th>
+                      <th className="py-2 px-2 font-bold text-right">Total</th>
+                      <th className="py-2 pl-2 font-bold text-right">Nilai ON-CALL</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {s.rows.map((g) => (
+                      <tr key={g[s.nameKey] || '-'}>
+                        <td className="py-2 pr-2 font-bold text-slate-800 dark:text-slate-100 max-w-[180px] truncate">{g[s.nameKey] || '-'}</td>
+                        <td className="py-2 px-2 text-right tabular-nums">{Number(g.byBilling?.['ON-CALL'] || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 text-right tabular-nums">{Number(g.byBilling?.MONTHLY || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 text-right tabular-nums">{Number(g.byBilling?.FREE || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 text-right tabular-nums">{Number(g.byBilling?.LAINNYA || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 px-2 text-right tabular-nums font-bold">{Number(g.count || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-2 pl-2 text-right tabular-nums whitespace-nowrap">{fmtMoney(g.onCallSubtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ))}
+      </Reveal>
+
+      {/* ===== Finansial ON-CALL (Tervalidasi) ===== */}
+      <Reveal className="flex items-center gap-3">
+        <h2 className="text-sm font-extrabold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300 whitespace-nowrap">
+          Finansial ON-CALL (Tervalidasi)
+        </h2>
+        <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" aria-hidden="true" />
+      </Reveal>
+
+      {financeHint && (
+        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-amber-700 dark:text-amber-300" role="status">
+          {financeHint}
         </div>
       )}
 
