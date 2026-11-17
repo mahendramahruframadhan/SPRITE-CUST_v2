@@ -46,7 +46,9 @@ describe('buildReportCsv', () => {
         FREE: { count: 5, done: 3, open: 2, validated: 1, charges: 0, ppn: 0, subtotal: 0 },
         LAINNYA: { count: 0, done: 0, open: 0, validated: 0, charges: 0, ppn: 0, subtotal: 0 },
       } },
-      byAssignee: [{ assignTo: 'RAMA', count: 5, done: 4, open: 1, validated: 1, byBilling: { 'ON-CALL': 2, MONTHLY: 1, FREE: 2, LAINNYA: 0 }, onCallSubtotal: 1110 }],
+      byAssignee: [{ assignTo: 'RAMA', count: 5, done: 4, open: 1, validated: 1, byBilling: { 'ON-CALL': 2, MONTHLY: 1, FREE: 2, LAINNYA: 0 }, brandCount: 2, moduleCount: 3, onCallSubtotal: 1110 }],
+      byBrand: [{ brand: 'ERIGO', count: 5, byBilling: { 'ON-CALL': 2, MONTHLY: 1, FREE: 2, LAINNYA: 0 }, onCallSubtotal: 1110 }],
+      byModule: [{ module: 'POS', count: 4, byBilling: { 'ON-CALL': 1, MONTHLY: 1, FREE: 2, LAINNYA: 0 }, onCallSubtotal: 500 }],
     };
     const csv = buildReportCsv({ count: 1, subtotal: 1110 }, { periode: 'P', workload });
     assert.match(csv, /^"REPORT SUMMARY — REKAP OPERASIONAL & FINANSIAL"/);
@@ -55,11 +57,14 @@ describe('buildReportCsv', () => {
     assert.match(csv, /RAMA/);
     assert.match(csv, /RINCIAN PER BILLING STATUS \(OPERASIONAL\)/);
     assert.match(csv, /"ON-CALL","2","20","2","0","1","1000","110","1110"/);
-    assert.match(csv, /"USER","ON-CALL","TOTAL","DONE","OPEN","NILAI ON-CALL","TERVALIDASI"/);
-    assert.match(csv, /"RAMA","2","5","4","1","1110","1"/);
-    assert.doesNotMatch(csv, /"MONTHLY"/);
-    assert.doesNotMatch(csv, /"FREE"/);
-    assert.doesNotMatch(csv, /"LAINNYA"/);
+    assert.match(csv, /"MONTHLY","3","30","3","0","1","0","0","0"/);
+    assert.match(csv, /"FREE","5","50","3","2","1","0","0","0"/);
+    assert.match(csv, /"USER","ON-CALL","MONTHLY","FREE","LAINNYA","TOTAL","DONE","OPEN","PORSI","BRAND","MODUL","NILAI ON-CALL","TERVALIDASI"/);
+    assert.match(csv, /"RAMA","2","1","2","0","5","4","1","50","2","3","1110","1"/);
+    assert.match(csv, /"BRAND","ON-CALL","MONTHLY","FREE","LAINNYA","TOTAL","NILAI ON-CALL"/);
+    assert.match(csv, /"ERIGO","2","1","2","0","5","1110"/);
+    assert.match(csv, /"MODULE","ON-CALL","MONTHLY","FREE","LAINNYA","TOTAL","NILAI ON-CALL"/);
+    assert.match(csv, /"POS","1","1","2","0","4","500"/);
   });
 
   it('tanpa workload tidak memuat seksi operasional (kompatibel output lama)', () => {
