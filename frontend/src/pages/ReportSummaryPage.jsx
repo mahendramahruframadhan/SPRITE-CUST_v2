@@ -29,6 +29,7 @@ const EMPTY_SUMMARY = {
   },
 };
 const EMPTY_AGING = { buckets: [], total: { count: 0, subtotal: 0 }, invalid: 0 };
+const SHOW_FINANCIAL_SECTION = false;
 
 function fmtMoney(n) {
   return 'Rp ' + (n || 0).toLocaleString('id-ID');
@@ -699,6 +700,8 @@ export default function ReportSummaryPage() {
         ))}
       </Reveal>
 
+      {SHOW_FINANCIAL_SECTION && (
+        <>
       {/* ===== Finansial ON-CALL (Tervalidasi) ===== */}
       <div data-section="financial-hint">
         <Reveal className="flex items-center gap-3">
@@ -882,6 +885,8 @@ export default function ReportSummaryPage() {
           </div>
         ))}
       </Reveal>
+        </>
+      )}
 
       {/* ===== Detail kasus ON-CALL (per baris) ===== */}
       <Reveal data-section="detail" className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_32px_-16px_rgba(16,24,40,.15)]">
