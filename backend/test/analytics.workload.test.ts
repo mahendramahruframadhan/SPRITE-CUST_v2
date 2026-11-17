@@ -87,6 +87,11 @@ describe('analytics workload service', () => {
     assert.equal(rama.count, 3);
     assert.equal(rama.onCallSubtotal, 1660000);
     assert.equal(rama.validated, 1);
+    assert.equal(rama.brandCount, 2, 'RAMA menyentuh BRAND-A dan BRAND-B');
+    assert.equal(rama.moduleCount, 2, 'RAMA menyentuh M1 dan M2');
+    const tanpa = r.byAssignee.find((u: any) => u.assignTo === 'TANPA USER');
+    assert.equal(tanpa.brandCount, 1);
+    assert.equal(tanpa.moduleCount, 1);
     assert.ok(r.byAssignee.some((u: any) => u.assignTo === 'TANPA USER'));
     assert.ok(r.byAssignee.some((u: any) => u.assignTo === 'ANDRI'));
 
