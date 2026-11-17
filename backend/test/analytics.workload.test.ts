@@ -99,6 +99,15 @@ describe('analytics workload service', () => {
     const scoped = await svc.getWorkload('2026-11-01', '2026-11-30', { brand: 'BRAND-A' });
     assert.equal(scoped.totals.count, 2);
     assert.equal(scoped.options.brands.length, 3, 'options tidak ikut menyempit');
+
+    const oncall = await svc.getWorkload('2026-11-01', '2026-11-30', { billing: 'ON-CALL' });
+    assert.equal(oncall.totals.count, 2);
+    assert.equal(oncall.totals.byBilling['ON-CALL'].count, 2);
+    assert.equal(oncall.totals.byBilling.MONTHLY.count, 0);
+    assert.equal(oncall.totals.byBilling.FREE.count, 0);
+    assert.equal(oncall.totals.byBilling.LAINNYA.count, 0);
+    assert.ok(oncall.byAssignee.every((u: any) => u.assignTo === 'RAMA'));
+    assert.ok(!oncall.options.assignees.includes('ANDRI'), 'options mengikuti filter billing');
   });
 
   it('drilldown default tetap validated ON-CALL; scope=all memuat semua status', async () => {

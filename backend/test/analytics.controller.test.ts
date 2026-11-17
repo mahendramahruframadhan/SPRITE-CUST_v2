@@ -33,13 +33,21 @@ describe('analytics controller guard', () => {
     assert.equal(r.ok, true);
   });
 
-  it('workload meneruskan brand/module ke service', async () => {
+  it('workload meneruskan brand/module/billing ke service', async () => {
     let got: any = null;
     const fake = { getWorkload: async (f: string, t: string, o: any) => { got = o; return { ok: true }; } };
     const ctl = new AnalyticsController(fake as any);
-    const r: any = await ctl.workload({ from: '2026-11-01', to: '2026-11-30', brand: 'B', module: 'M' });
+    const r: any = await ctl.workload({ from: '2026-11-01', to: '2026-11-30', brand: 'B', module: 'M', billing: 'ON-CALL' });
     assert.equal(r.ok, true);
-    assert.deepEqual(got, { brand: 'B', module: 'M' });
+    assert.deepEqual(got, { brand: 'B', module: 'M', billing: 'ON-CALL' });
+  });
+
+  it('billing workload tidak dikenal ditolak 422', async () => {
+    const ctl = new AnalyticsController({ getWorkload: async () => ({}) } as any);
+    await assert.rejects(
+      () => ctl.workload({ billing: 'X', from: '2026-01-01', to: '2026-12-31' }),
+      (e: any) => e?.response?.code === 'ANALYTICS_INVALID_BILLING',
+    );
   });
 
   it('scope selain validated|all ditolak 422', async () => {

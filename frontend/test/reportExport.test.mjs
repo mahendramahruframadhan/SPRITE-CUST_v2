@@ -55,6 +55,11 @@ describe('buildReportCsv', () => {
     assert.match(csv, /RAMA/);
     assert.match(csv, /RINCIAN PER BILLING STATUS \(OPERASIONAL\)/);
     assert.match(csv, /"ON-CALL","2","20","2","0","1","1000","110","1110"/);
+    assert.match(csv, /"USER","ON-CALL","TOTAL","DONE","OPEN","NILAI ON-CALL","TERVALIDASI"/);
+    assert.match(csv, /"RAMA","2","5","4","1","1110","1"/);
+    assert.doesNotMatch(csv, /"MONTHLY"/);
+    assert.doesNotMatch(csv, /"FREE"/);
+    assert.doesNotMatch(csv, /"LAINNYA"/);
   });
 
   it('tanpa workload tidak memuat seksi operasional (kompatibel output lama)', () => {
