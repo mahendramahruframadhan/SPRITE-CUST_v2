@@ -5,16 +5,10 @@
 // tervalidasi legacy (backward compatible). Tanpa BOM.
 const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
-const BILLING_ORDER = ['ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA'];
 const num = (v) => Number(v) || 0;
 
 function sectionRow(label, b) {
   return [label, b.count, b.charges, b.ppn, b.subtotal].map(esc).join(',');
-}
-
-function billingCounts(row) {
-  const b = row?.byBilling || {};
-  return BILLING_ORDER.map((key) => num(typeof b[key] === 'object' ? b[key]?.count : b[key]));
 }
 
 function operationalSections(workload) {
@@ -31,9 +25,7 @@ function operationalSections(workload) {
     ['TERVALIDASI', num(totals.validated)].map(esc).join(','),
   ];
 
-  const known = BILLING_ORDER.filter((k) => k !== 'LAINNYA' || num(byBilling.LAINNYA?.count) > 0);
-  const extras = Object.keys(byBilling).filter((k) => !BILLING_ORDER.includes(k));
-  const rows = [...known, ...extras].filter((k) => num(byBilling[k]?.count) > 0);
+  const rows = ['ON-CALL'].filter((k) => num(byBilling[k]?.count) > 0);
   if (rows.length) {
     lines.push(
       '',
@@ -53,8 +45,8 @@ function operationalSections(workload) {
     lines.push(
       '',
       ['RINCIAN PER USER'].map(esc).join(','),
-      ['USER', 'ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA', 'TOTAL', 'DONE', 'OPEN', 'NILAI ON-CALL', 'TERVALIDASI'].map(esc).join(','),
-      ...users.map((u) => [u.assignTo, ...billingCounts(u), num(u.count), num(u.done), num(u.open), num(u.onCallSubtotal), num(u.validated)].map(esc).join(',')),
+      ['USER', 'ON-CALL', 'TOTAL', 'DONE', 'OPEN', 'NILAI ON-CALL', 'TERVALIDASI'].map(esc).join(','),
+      ...users.map((u) => [u.assignTo, num(u.byBilling?.['ON-CALL']), num(u.count), num(u.done), num(u.open), num(u.onCallSubtotal), num(u.validated)].map(esc).join(',')),
     );
   }
 
@@ -67,8 +59,8 @@ function operationalSections(workload) {
     lines.push(
       '',
       [title].map(esc).join(','),
-      [nameKey.toUpperCase(), 'ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA', 'TOTAL', 'NILAI ON-CALL'].map(esc).join(','),
-      ...list.map((g) => [g[nameKey], ...billingCounts(g), num(g.count), num(g.onCallSubtotal)].map(esc).join(',')),
+      [nameKey.toUpperCase(), 'ON-CALL', 'TOTAL', 'NILAI ON-CALL'].map(esc).join(','),
+      ...list.map((g) => [g[nameKey], num(g.byBilling?.['ON-CALL']), num(g.count), num(g.onCallSubtotal)].map(esc).join(',')),
     );
   }
 

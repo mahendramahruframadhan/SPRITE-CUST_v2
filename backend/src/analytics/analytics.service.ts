@@ -236,11 +236,13 @@ export class AnalyticsService {
     };
   }
 
-  async getWorkload(from: string, to: string, opts: { brand?: string; module?: string } = {}) {
+  async getWorkload(from: string, to: string, opts: { brand?: string; module?: string; billing?: string } = {}) {
     const rangeRows = await this.fetchRows(from, to);
     const brand = String(opts.brand || '');
     const module = String(opts.module || '');
-    const rows = rangeRows.filter((r) => (!brand || r.client === brand) && (!module || r.module === module));
+    const billing = opts.billing ? billingKeyOf(opts.billing) : null;
+    const billingRows = billing ? rangeRows.filter((r) => billingOf(r.billing_status) === billing) : rangeRows;
+    const rows = billingRows.filter((r) => (!brand || r.client === brand) && (!module || r.module === module));
 
     const byBilling: Record<string, any> = {};
     for (const key of BILLING_KEYS) byBilling[key] = zeroBilling();
@@ -336,9 +338,9 @@ export class AnalyticsService {
       byBrand,
       byModule,
       options: {
-        brands: [...new Set(rangeRows.map((r) => r.client).filter(Boolean))].sort((a: any, b: any) => String(a).localeCompare(String(b))),
-        modules: [...new Set(rangeRows.map((r) => r.module).filter(Boolean))].sort((a: any, b: any) => String(a).localeCompare(String(b))),
-        assignees: [...new Set(rangeRows.map((r) => userOf(r.assign_to)))].sort((a: any, b: any) => String(a).localeCompare(String(b))),
+        brands: [...new Set(billingRows.map((r) => r.client).filter(Boolean))].sort((a: any, b: any) => String(a).localeCompare(String(b))),
+        modules: [...new Set(billingRows.map((r) => r.module).filter(Boolean))].sort((a: any, b: any) => String(a).localeCompare(String(b))),
+        assignees: [...new Set(billingRows.map((r) => userOf(r.assign_to)))].sort((a: any, b: any) => String(a).localeCompare(String(b))),
         lastValidatedMonth,
       },
     };

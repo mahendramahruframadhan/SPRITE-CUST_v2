@@ -1,8 +1,8 @@
 // Uji client API report summary — node:test bawaan, tanpa deps.
 // Jalankan: npm test
 // Kontrak: fetchAnalyticsWorkload selalu mengirim from/to (fallback rentang
-// penuh) + brand/module bila ada; fetchAnalyticsDrilldown menambahkan filter
-// scope/billing/assignee/validation hanya bila non-empty tanpa mengubah
+// penuh) + brand/module/billing bila ada; fetchAnalyticsDrilldown menambahkan
+// filter scope/billing/assignee/validation hanya bila non-empty tanpa mengubah
 // urutan/param existing (Analitik tetap memakai perilaku lama).
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -58,6 +58,14 @@ describe('fetchAnalyticsWorkload', () => {
 
     assert.ok(!fetchCalls[0].url.includes('brand='), 'tanpa brand saat kosong');
     assert.ok(!fetchCalls[0].url.includes('module='), 'tanpa module saat kosong');
+    assert.ok(!fetchCalls[0].url.includes('billing='), 'tanpa billing saat kosong');
+  });
+
+  it('mengirim billing saat diisi', async () => {
+    await fetchAnalyticsWorkload({ from: '2026-11-01', to: '2026-11-30', billing: 'ON-CALL' });
+
+    assert.equal(fetchCalls.length, 1);
+    assert.match(fetchCalls[0].url, /billing=ON-CALL/);
   });
 });
 

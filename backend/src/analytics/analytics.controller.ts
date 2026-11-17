@@ -39,9 +39,19 @@ export class AnalyticsController {
     const from = String(q.from || '');
     const to = String(q.to || '');
     checkRange(from, to);
+    const billingRaw = String(q.billing || '');
+    let billing = '';
+    if (billingRaw) {
+      const normalized = billingKeyOf(billingRaw);
+      if (!normalized) {
+        throw new HttpException({ code: 'ANALYTICS_INVALID_BILLING', message: 'Billing workload hanya ON-CALL|MONTHLY|FREE|LAINNYA.' }, HttpStatus.UNPROCESSABLE_ENTITY);
+      }
+      billing = normalized;
+    }
     return this.analytics.getWorkload(from || '1970-01-01', to || '2999-12-31', {
       brand: String(q.brand || ''),
       module: String(q.module || ''),
+      billing,
     });
   }
 

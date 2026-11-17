@@ -193,8 +193,8 @@ export async function fetchAnalyticsOverview({ from = '', to = '', brand = '', m
   const qs = `${from ? `?from=${encodeURIComponent(from)}` : '?from=1970-01-01'}${to ? `&to=${encodeURIComponent(to)}` : '&to=2999-12-31'}${brand ? `&brand=${encodeURIComponent(brand)}` : ''}${module ? `&module=${encodeURIComponent(module)}` : ''}`;
   return get(`/analytics/overview${qs}`);
 }
-export async function fetchAnalyticsWorkload({ from = '', to = '', brand = '', module = '' } = {}) {
-  const qs = `${from ? `?from=${encodeURIComponent(from)}` : '?from=1970-01-01'}${to ? `&to=${encodeURIComponent(to)}` : '&to=2999-12-31'}${brand ? `&brand=${encodeURIComponent(brand)}` : ''}${module ? `&module=${encodeURIComponent(module)}` : ''}`;
+export async function fetchAnalyticsWorkload({ from = '', to = '', brand = '', module = '', billing = '' } = {}) {
+  const qs = `${from ? `?from=${encodeURIComponent(from)}` : '?from=1970-01-01'}${to ? `&to=${encodeURIComponent(to)}` : '&to=2999-12-31'}${brand ? `&brand=${encodeURIComponent(brand)}` : ''}${module ? `&module=${encodeURIComponent(module)}` : ''}${billing ? `&billing=${encodeURIComponent(billing)}` : ''}`;
   return get(`/analytics/workload${qs}`);
 }
 export async function fetchAnalyticsDrilldown({ dim = '', key = '', from = '', to = '', q = '', page = 1, limit = 10, brand = '', module = '', scope = '', billing = '', assignee = '', validation = '' } = {}) {
