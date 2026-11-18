@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { getDb } from '../db/drizzle.service';
 
-const VALID_TAG = 'VALID - SIAP INVOICE';
+export const VALID_TAG = 'VALID - SIAP INVOICE';
 const ID_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
-const norm = (s: any) => String(s || '').replace(/[\s-]/g, '').toUpperCase();
-const isOnCall = (s: any) => norm(s) === 'ONCALL';
+export const norm = (s: any) => String(s || '').replace(/[\s-]/g, '').toUpperCase();
+export const isOnCall = (s: any) => norm(s) === 'ONCALL';
 const isMonthly = (s: any) => norm(s) === 'MONTHLY';
 const inPool = (r: any) => isOnCall(r.billing_status) && r.audit_action === VALID_TAG;
 
@@ -20,15 +20,15 @@ export const billingKeyOf = (v: any): BillingKey | null => {
   if (k === 'LAINNYA') return 'LAINNYA';
   return null;
 };
-const billingOf = (v: any): BillingKey => billingKeyOf(v) || 'LAINNYA';
-const isDone = (s: any) => String(s || '').trim().toUpperCase() === 'DONE';
-const userOf = (v: any) => String(v || '').trim().toUpperCase() || 'TANPA USER';
+export const billingOf = (v: any): BillingKey => billingKeyOf(v) || 'LAINNYA';
+export const isDone = (s: any) => String(s || '').trim().toUpperCase() === 'DONE';
+export const userOf = (v: any) => String(v || '').trim().toUpperCase() || 'TANPA USER';
 const monthOfDate8 = (v: any) => (/^\d{8}$/.test(String(v || '')) ? `${String(v).slice(0, 4)}-${String(v).slice(4, 6)}` : null);
 
 const zeroBilling = () => ({ count: 0, done: 0, open: 0, validated: 0, charges: 0, ppn: 0, subtotal: 0 });
 const zeroBillingCount = () => ({ 'ON-CALL': 0, MONTHLY: 0, FREE: 0, LAINNYA: 0 });
 
-function ppnOf(r: any): number {
+export function ppnOf(r: any): number {
   if (!isOnCall(r.billing_status)) return 0;
   const charges = Number(r.charges) || 0;
   if (r.ppn_mode === 'percent') {
@@ -122,6 +122,12 @@ export class AnalyticsService {
       [f, t],
     );
     return (res.rows || res || []) as any[];
+  }
+
+  // Baris mentah satu rentang tanggal untuk rekap turunan (RecapService).
+  // Join & filter sama dengan fetchRows agar angka tidak drift antar halaman.
+  async getRangeRows(from: string, to: string): Promise<any[]> {
+    return this.fetchRows(from, to);
   }
 
   private async poolRows(from: string, to: string, opts: { brand?: string; module?: string } = {}) {
