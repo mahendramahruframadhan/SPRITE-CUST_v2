@@ -9,6 +9,10 @@ export function buildRecapCsv(tab, data, { periode = '', basis = '' } = {}) {
   const cols = tab?.columns || [];
   const kpiValues = data?.kpis || {};
   const rows = Array.isArray(data?.rows) ? data.rows : [];
+  const totals = data?.totals;
+  const totalLine = totals
+    ? cols.map((c, i) => (i === 0 ? 'Total' : totals[c.key] ?? '')).map(cell).join(',')
+    : '';
   const lines = [
     [tab?.label || 'Rekap'].map(cell).join(','),
     ['PERIODE', periode].map(cell).join(','),
@@ -19,6 +23,7 @@ export function buildRecapCsv(tab, data, { periode = '', basis = '' } = {}) {
     '',
     cols.map((c) => c.label).map(cell).join(','),
     ...rows.map((r) => cols.map((c) => r[c.key] ?? '').map(cell).join(',')),
+    ...(totalLine ? [totalLine] : []),
   ];
   return lines.join('\n');
 }

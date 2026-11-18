@@ -214,7 +214,7 @@ export default function ReportSummaryPage() {
     );
   }, [from, to, brand, module, rangeError]);
 
-  // Rekap 10 tab: sekali per perubahan periode/brand/module, dipakai ulang
+  // Rekap 11 tab: sekali per perubahan periode/brand/module, dipakai ulang
   // saat berpindah tab tanpa fetch tambahan.
   const [recap, setRecap] = useState(null);
   const [recapLoading, setRecapLoading] = useState(true);
@@ -564,7 +564,7 @@ export default function ReportSummaryPage() {
       )}
 
       {activeTab === 'ringkasan' ? (
-      <div id="report-panel-ringkasan" role="tabpanel" aria-labelledby="recap-tab-ringkasan" className="space-y-5">
+      <div id="report-panel-ringkasan" role="region" aria-label="Panel rekap Ringkasan" className="space-y-5">
       {/* ===== Rekap Operasional: KPI + per billing + per user + brand/module ===== */}
       <Reveal data-section="kpi-operasional" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-between gap-2">

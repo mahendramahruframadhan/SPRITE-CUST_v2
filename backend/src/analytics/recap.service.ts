@@ -10,7 +10,7 @@ import {
   userOf,
 } from './analytics.service';
 
-// Rekap ringkas 10 tab /report. Read-only: satu query rentang kasus + query
+// Rekap ringkas 11 tab /report. Read-only: satu query rentang kasus + query
 // tabel pendukung, lalu agregasi di memori. Tidak menulis apa pun.
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -133,6 +133,7 @@ export class RecapService {
         workload: this.workloadTab(caseRows),
         brands,
         billing,
+        finance: this.financeTab(caseRows),
         audit,
         popinava,
         modules,
@@ -348,6 +349,88 @@ export class RecapService {
         avgPerCase: pool.length > 0 ? money(subtotal / pool.length) : 0,
       },
       rows: list.slice(0, 8),
+    };
+  }
+
+  private financeTab(rows: any[]) {
+    const pool = rows.filter((r) => r.billing === 'ON-CALL');
+    const map = new Map<string, any>();
+    const totals = {
+      brand: 'Total',
+      count: 0,
+      validated: 0,
+      unvalidated: 0,
+      charges: 0,
+      ppn: 0,
+      subtotal: 0,
+      paid: 0,
+      outstanding: 0,
+    };
+
+    for (const r of pool) {
+      const key = upper(r.brand);
+      let b = map.get(key);
+      if (!b) {
+        b = { brand: r.brand, count: 0, validated: 0, unvalidated: 0, charges: 0, ppn: 0, subtotal: 0, paid: 0, outstanding: 0 };
+        map.set(key, b);
+      }
+      b.count += 1;
+      totals.count += 1;
+      if (r.validated) {
+        b.validated += 1;
+        totals.validated += 1;
+      } else {
+        b.unvalidated += 1;
+        totals.unvalidated += 1;
+      }
+      b.charges += r.charges;
+      b.ppn += r.ppn;
+      b.subtotal += r.subtotal;
+      if (r.invoice === 'PAID') b.paid += r.subtotal;
+
+      totals.charges += r.charges;
+      totals.ppn += r.ppn;
+      totals.subtotal += r.subtotal;
+      if (r.invoice === 'PAID') totals.paid += r.subtotal;
+    }
+
+    totals.outstanding = totals.subtotal - totals.paid;
+    const list = [...map.values()]
+      .map((b) => ({
+        brand: b.brand,
+        count: b.count,
+        validated: b.validated,
+        unvalidated: b.unvalidated,
+        charges: money(b.charges),
+        ppn: money(b.ppn),
+        subtotal: money(b.subtotal),
+        paid: money(b.paid),
+        outstanding: money(b.subtotal - b.paid),
+      }))
+      .sort((a, b) => b.outstanding - a.outstanding || b.subtotal - a.subtotal || a.brand.localeCompare(b.brand));
+
+    return {
+      kpis: {
+        count: totals.count,
+        validated: totals.validated,
+        unvalidated: totals.unvalidated,
+        charges: money(totals.charges),
+        ppn: money(totals.ppn),
+        subtotal: money(totals.subtotal),
+        paid: money(totals.paid),
+        outstanding: money(totals.outstanding),
+      },
+      rows: list,
+      totals: {
+        count: totals.count,
+        validated: totals.validated,
+        unvalidated: totals.unvalidated,
+        charges: money(totals.charges),
+        ppn: money(totals.ppn),
+        subtotal: money(totals.subtotal),
+        paid: money(totals.paid),
+        outstanding: money(totals.outstanding),
+      },
     };
   }
 

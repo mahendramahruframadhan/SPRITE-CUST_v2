@@ -1,4 +1,4 @@
-// Uji RecapService 10 tab: agregasi kasus, kontrak, POPI NAVA, follow-up,
+// Uji RecapService 11 tab: agregasi kasus, kontrak, POPI NAVA, follow-up,
 // aktivitas, dan data quality. node:test + pg-mem.
 process.env.DATABASE_URL = '';
 
@@ -68,7 +68,7 @@ function todayShift(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-describe('RecapService 10 tab', () => {
+describe('RecapService 11 tab', () => {
   let recap: any;
 
   before(async () => {
@@ -152,6 +152,49 @@ describe('RecapService 10 tab', () => {
     assert.equal(t.kpis.subtotal, 1660000);
     assert.equal(t.kpis.paid, 1110000);
     assert.equal(t.kpis.outstanding, 550000);
+  });
+
+  it('finance: semua ON-CALL per brand, nominal tanpa syarat validasi', () => {
+    const t = recap.tabs.finance;
+    assert.equal(t.kpis.count, 3);
+    assert.equal(t.kpis.validated, 3);
+    assert.equal(t.kpis.unvalidated, 0);
+    assert.equal(t.kpis.subtotal, 1660000);
+    assert.equal(t.kpis.paid, 1110000);
+    assert.equal(t.kpis.outstanding, 550000);
+    const a = t.rows.find((b: any) => b.brand === 'BRAND-A');
+    assert.equal(a.count, 2);
+    assert.equal(a.validated, 2);
+    assert.equal(a.subtotal, 1660000);
+    assert.equal(a.outstanding, 550000);
+    assert.equal(t.totals.count, 3);
+    assert.equal(t.totals.outstanding, 550000);
+  });
+
+  it('finance: ON-CALL belum tervalidasi tetap masuk tagihan', () => {
+    const rows = [
+      { brand: 'BRAND-A', billing: 'ON-CALL', validated: true, charges: 100, ppn: 11, subtotal: 111, invoice: 'PAID' },
+      { brand: 'BRAND-A', billing: 'ON-CALL', validated: false, charges: 200, ppn: 22, subtotal: 222, invoice: 'MENUNGGU INVOICE' },
+      { brand: 'BRAND-B', billing: 'MONTHLY', validated: true, charges: 300, ppn: 33, subtotal: 333, invoice: 'PAID' },
+    ];
+    const t = (new RecapService(new AnalyticsService()) as any).financeTab(rows);
+    assert.equal(t.kpis.count, 2);
+    assert.equal(t.kpis.validated, 1);
+    assert.equal(t.kpis.unvalidated, 1);
+    assert.equal(t.kpis.charges, 300);
+    assert.equal(t.kpis.ppn, 33);
+    assert.equal(t.kpis.subtotal, 333);
+    assert.equal(t.kpis.paid, 111);
+    assert.equal(t.kpis.outstanding, 222);
+    assert.equal(t.rows.length, 1);
+    assert.equal(t.rows[0].brand, 'BRAND-A');
+    assert.equal(t.rows[0].count, 2);
+    assert.equal(t.rows[0].validated, 1);
+    assert.equal(t.rows[0].unvalidated, 1);
+    assert.equal(t.rows[0].charges, 300);
+    assert.equal(t.rows[0].subtotal, 333);
+    assert.equal(t.rows[0].paid, 111);
+    assert.equal(t.rows[0].outstanding, 222);
   });
 
   it('audit: funnel dan needCheck', () => {

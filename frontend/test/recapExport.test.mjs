@@ -34,6 +34,13 @@ describe('buildRecapCsv', () => {
     assert.match(csv, /User/);
     assert.doesNotMatch(csv, /undefined/);
   });
+
+  it('menulis baris total bila data punya totals', () => {
+    const finance = findRecapTab('finance');
+    const totals = { count: 3, validated: 2, unvalidated: 1, charges: 0, ppn: 0, subtotal: 500, paid: 0, outstanding: 500 };
+    const csv = buildRecapCsv(finance, { kpis: {}, rows: [], totals }, { periode: 'x', basis: 'y' });
+    assert.ok(csv.includes('"Total","3","2","1","0","0","500","0","500"'), csv);
+  });
 });
 
 describe('recapCsvFilename', () => {

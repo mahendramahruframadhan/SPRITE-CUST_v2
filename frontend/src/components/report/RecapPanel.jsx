@@ -17,6 +17,7 @@ export default function RecapPanel({ tab, data, loading = false, error = '', per
   const columns = tab.columns || [];
   const values = data?.kpis || {};
   const rows = Array.isArray(data?.rows) ? data.rows : [];
+  const totals = data?.totals;
   const basis = data?.note ? `${tab.basis} · ${data.note}` : tab.basis;
   const dataAt = generatedAt ? formatRecapValue('datetime', generatedAt) : '';
 
@@ -34,8 +35,8 @@ export default function RecapPanel({ tab, data, loading = false, error = '', per
   return (
     <section
       id={`recap-panel-${tab.id}`}
-      role="tabpanel"
-      aria-labelledby={`recap-tab-${tab.id}`}
+      role="region"
+      aria-label={`Panel rekap ${tab.label}`}
       data-section={`recap-${tab.id}`}
       className="space-y-5"
     >
@@ -135,6 +136,22 @@ export default function RecapPanel({ tab, data, loading = false, error = '', per
                 ))
               )}
             </tbody>
+            {totals && !loading && !error && rows.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 font-extrabold text-slate-900 dark:text-white">
+                  {columns.map((c, i) => {
+                    const raw = totals[c.key];
+                    const text = i === 0 ? 'Total' : raw === undefined || raw === null || raw === '' ? '' : formatRecapValue(c.type, raw);
+                    const numeric = c.type === 'number' || c.type === 'money';
+                    return (
+                      <td key={c.key} className={`py-2.5 px-3 ${numeric ? 'text-right tabular-nums whitespace-nowrap' : 'whitespace-nowrap'}`}>
+                        {text}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>

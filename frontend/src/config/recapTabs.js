@@ -1,4 +1,4 @@
-// Metadata 10 tab rekap /report. Satu sumber untuk tab bar, kartu KPI,
+// Metadata 11 tab rekap /report. Satu sumber untuk tab bar, kartu KPI,
 // tabel, dan ekspor CSV. Tanpa React agar bisa diuji unit.
 export const RECAP_TABS = [
   {
@@ -74,6 +74,31 @@ export const RECAP_TABS = [
       { key: 'ppn', label: 'PPN', type: 'money' },
       { key: 'subtotal', label: 'Subtotal', type: 'money' },
       { key: 'paid', label: 'Paid', type: 'money' },
+      { key: 'outstanding', label: 'Outstanding', type: 'money' },
+    ],
+  },
+  {
+    id: 'finance',
+    label: 'Finance ON-CALL',
+    description: 'Rekap tagihan ON-CALL per brand: semua kasus tampil dengan nominal, pembayaran, dan outstanding.',
+    basis: 'Semua ON-CALL periode · date_issue',
+    empty: 'Belum ada kasus ON-CALL pada periode ini.',
+    kpis: [
+      { key: 'count', label: 'Total ON-CALL', type: 'number' },
+      { key: 'validated', label: 'Tervalidasi', type: 'number' },
+      { key: 'unvalidated', label: 'Belum Validasi', type: 'number' },
+      { key: 'subtotal', label: 'Total Tagihan', type: 'money' },
+      { key: 'outstanding', label: 'Outstanding', type: 'money' },
+    ],
+    columns: [
+      { key: 'brand', label: 'Brand' },
+      { key: 'count', label: 'ON-CALL', type: 'number' },
+      { key: 'validated', label: 'Tervalidasi', type: 'number' },
+      { key: 'unvalidated', label: 'Belum', type: 'number' },
+      { key: 'charges', label: 'Charges', type: 'money' },
+      { key: 'ppn', label: 'PPN', type: 'money' },
+      { key: 'subtotal', label: 'Total Tagihan', type: 'money' },
+      { key: 'paid', label: 'Dibayar', type: 'money' },
       { key: 'outstanding', label: 'Outstanding', type: 'money' },
     ],
   },

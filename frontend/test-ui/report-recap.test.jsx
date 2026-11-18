@@ -8,20 +8,22 @@ import { findRecapTab } from '../src/config/recapTabs.js';
 afterEach(() => vi.restoreAllMocks());
 
 describe('RecapTabs', () => {
-  it('menampilkan Ringkasan + 10 tab dan memanggil onChange saat diklik', () => {
+  it('menampilkan Ringkasan + 11 tab dan memanggil onChange saat dipilih', () => {
     const onChange = vi.fn();
     render(<RecapTabs active="ringkasan" onChange={onChange} />);
-    expect(screen.getAllByRole('tab')).toHaveLength(11);
-    expect(screen.getByRole('tab', { name: 'Ringkasan' })).toHaveAttribute('aria-selected', 'true');
-    fireEvent.click(screen.getByRole('tab', { name: 'Brand 360' }));
+    const select = screen.getByLabelText('Pilih tampilan laporan');
+    expect(within(select).getAllByRole('option')).toHaveLength(12);
+    expect(select).toHaveValue('ringkasan');
+    expect(within(select).getByRole('option', { name: 'Finance ON-CALL' })).toBeInTheDocument();
+    fireEvent.change(select, { target: { value: 'brands' } });
     expect(onChange).toHaveBeenCalledWith('brands');
   });
 
-  it('panah kanan memindah tab dari Ringkasan ke Beban Kerja User', () => {
-    const onChange = vi.fn();
-    render(<RecapTabs active="ringkasan" onChange={onChange} />);
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Ringkasan' }), { key: 'ArrowRight' });
-    expect(onChange).toHaveBeenCalledWith('workload');
+  it('menampilkan tab aktif sesuai URL dan opsi terakhir tetap tersedia', () => {
+    render(<RecapTabs active="quality" onChange={() => {}} />);
+    const select = screen.getByLabelText('Pilih tampilan laporan');
+    expect(select).toHaveValue('quality');
+    expect(within(select).getByRole('option', { name: 'Data Quality & Sync' })).toBeInTheDocument();
   });
 });
 
@@ -47,6 +49,18 @@ describe('RecapPanel', () => {
   it('menampilkan empty state khusus tab', () => {
     render(<RecapPanel tab={tab} data={{ kpis: {}, rows: [] }} />);
     expect(screen.getByText('Tidak ada kasus pada periode ini.')).toBeInTheDocument();
+  });
+
+  it('menampilkan baris total untuk rekap finance', () => {
+    const financeTab = findRecapTab('finance');
+    const data = {
+      kpis: { count: 2, validated: 1, unvalidated: 1, charges: 1000000, ppn: 100000, subtotal: 1100000, paid: 0, outstanding: 1100000 },
+      rows: [{ brand: 'BRAND-A', count: 2, validated: 1, unvalidated: 1, charges: 1000000, ppn: 100000, subtotal: 1100000, paid: 0, outstanding: 1100000 }],
+      totals: { count: 2, validated: 1, unvalidated: 1, charges: 1000000, ppn: 100000, subtotal: 1100000, paid: 0, outstanding: 1100000 },
+    };
+    render(<RecapPanel tab={financeTab} data={data} />);
+    const totalRow = screen.getByRole('row', { name: /^Total\b/ });
+    expect(within(totalRow).getAllByText('Rp 1.100.000')).toHaveLength(2);
   });
 
   it('tombol cetak memanggil print dan menandai section', () => {

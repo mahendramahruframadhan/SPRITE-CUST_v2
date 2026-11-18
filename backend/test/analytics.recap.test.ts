@@ -1,4 +1,4 @@
-// Uji rekap 10 tab Report Summary: helper bersama, agregasi kasus, dan
+// Uji rekap 11 tab Report Summary: helper bersama, agregasi kasus, dan
 // tabel pendukung. node:test + pg-mem; jangan menyentuh Postgres asli.
 process.env.DATABASE_URL = '';
 
