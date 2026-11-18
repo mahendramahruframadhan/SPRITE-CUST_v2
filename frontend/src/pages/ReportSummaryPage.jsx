@@ -400,7 +400,7 @@ export default function ReportSummaryPage() {
                 )}
                 . Dari jumlah itu, <span className="font-bold tabular-nums">{Number(wlTotals.done || 0).toLocaleString('id-ID')}</span> DONE dan{' '}
                 <span className="font-bold tabular-nums">{Number(wlTotals.open || 0).toLocaleString('id-ID')}</span> masih open, dengan{' '}
-                <span className="font-bold tabular-nums">{Number(wlTotals.validated || 0).toLocaleString('id-ID')}</span> kasus ON-CALL
+                <span className="font-bold tabular-nums">{Number(wlOnCall.validated || 0).toLocaleString('id-ID')}</span> kasus ON-CALL
                 tervalidasi senilai{' '}
                 <span className="font-bold tabular-nums">{fmtMoney(wlOnCall.subtotal)}</span>.
               </p>
