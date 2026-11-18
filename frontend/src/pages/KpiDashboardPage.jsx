@@ -1,6 +1,6 @@
 /* eslint-disable react/forbid-elements -- kontrol periode mengikuti CSS template (.seg button), bukan varian Button */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Line, Doughnut, Radar } from 'react-chartjs-2';
+import { Line, Bar, Doughnut, Radar } from 'react-chartjs-2';
 import { useCases } from '../hooks/useCases.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 
@@ -177,6 +177,16 @@ export default function KpiDashboardPage() {
     setColors({ ok: v('--ok'), warn: v('--warn'), bad: v('--bad'), pri: v('--pri'), pri2: v('--pri2'), line: v('--line'), mut: v('--mut'), card: v('--card'), ink: v('--ink') });
   }, [theme, loading]);
 
+  const bulanKerja = useMemo(() => {
+    const out = new Map();
+    cases.forEach((r) => {
+      const k = monthKey(r.startDate);
+      if (k) out.set(k, (out.get(k) || 0) + 1);
+    });
+    return [...out.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [cases]);
+  const rataDikerjakan = bulanKerja.length ? bulanKerja.reduce((a, x) => a + x[1], 0) / bulanKerja.length : 0;
+
   const idx = periode ? Math.max(0, periods.indexOf(periode)) : periods.length - 1;
   const avg = (field) => (perBulan.length ? perBulan.reduce((a, x) => a + x[field], 0) / perBulan.length : 0);
   const targetDone = Math.max(1, Math.ceil(avg('done') * 1.1));
@@ -294,6 +304,20 @@ export default function KpiDashboardPage() {
                   </div>
                 );
               })}
+            </div>
+
+            <div className="g">
+              <div className="c s12">
+                <h2>Rata-rata tiket mulai dikerjakan per bulan</h2>
+                <p className="s">Rata-rata {fmt(rataDikerjakan)} tiket/bulan, dihitung dari tanggal mulai (startDate) tiap kasus.</p>
+                <div className="ch"><Bar data={{
+                  labels: bulanKerja.map(([k]) => labelBulan(k)),
+                  datasets: [
+                    { type: 'bar', label: 'Tiket mulai dikerjakan', data: bulanKerja.map(([, v]) => v), backgroundColor: bulanKerja.map(([k]) => (k === periode ? c.pri2 : c.pri)), borderRadius: 8, maxBarThickness: 56 },
+                    { type: 'line', label: `Rata-rata ${fmt(rataDikerjakan)} tiket`, data: bulanKerja.map(() => rataDikerjakan), borderColor: c.warn, borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false },
+                  ],
+                }} options={{ ...base, plugins: { ...base.plugins, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)} tiket` } } }, scales: { x: { grid: { display: false }, ticks: { color: c.mut } }, y: { beginAtZero: true, grid: { color: c.line }, ticks: { color: c.mut } } } }} /></div>
+              </div>
             </div>
 
             <div className="g">
