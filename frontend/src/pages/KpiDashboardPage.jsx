@@ -12,6 +12,7 @@ const STYLES = `
 .kpi-dash{--card:#fff;--ink:#14182e;--mut:#6a7290;--line:#e3e7f2;--pri:#3b4cca;--pri2:#8a6cff;--ok:#0fa99b;--warn:#f0a020;--bad:#f2557a;--hero1:#2a2f8f;--hero2:#4b3bd1;color-scheme:light;background:transparent;color:var(--ink);font-family:"Plus Jakarta Sans",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
 .dark .kpi-dash{--card:#171b35;--ink:#eceffd;--mut:#9aa3c7;--line:#262b4f;--pri:#7d8bff;--pri2:#b39cff;--ok:#35d0c0;--warn:#ffc04d;--bad:#ff7d9b;--hero1:#1a1f66;--hero2:#33279e;color-scheme:dark}
 .kpi-dash *{box-sizing:border-box}
+.kpi-dash .page{max-width:1600px}
 .kpi-dash .top{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin:0}
 .kpi-dash .top h1{font-size:20px;margin:0;font-weight:800;letter-spacing:-.01em}
 .kpi-dash .top p{margin:0;font-size:13px;color:var(--mut)}
