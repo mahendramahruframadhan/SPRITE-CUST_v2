@@ -1,5 +1,6 @@
 import { Controller, Get, Query, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import { AnalyticsService, billingKeyOf } from './analytics.service';
+import { RecapService } from './recap.service';
 import { Perm, PermGuard } from '../auth/perm.guard';
 import { SessionGuard } from '../auth/session.guard';
 
@@ -17,7 +18,7 @@ function checkRange(from: string, to: string) {
 @UseGuards(SessionGuard)
 @Controller('analytics')
 export class AnalyticsController {
-  constructor(private analytics: AnalyticsService) {}
+  constructor(private analytics: AnalyticsService, private recap: RecapService) {}
 
   @Get('overview')
   @UseGuards(PermGuard)
@@ -52,6 +53,19 @@ export class AnalyticsController {
       brand: String(q.brand || ''),
       module: String(q.module || ''),
       billing,
+    });
+  }
+
+  @Get('recap')
+  @UseGuards(PermGuard)
+  @Perm('analytics')
+  async recapRoute(@Query() q: any) {
+    const from = String(q.from || '');
+    const to = String(q.to || '');
+    checkRange(from, to);
+    return this.recap.getRecap(from || '1970-01-01', to || '2999-12-31', {
+      brand: String(q.brand || ''),
+      module: String(q.module || ''),
     });
   }
 

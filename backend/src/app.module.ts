@@ -28,12 +28,13 @@ import { ShotsController } from './shots/shots.controller';
 import { ShotsService } from './shots/shots.service';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { AnalyticsService } from './analytics/analytics.service';
+import { RecapService } from './analytics/recap.service';
 import { NotificationsController } from './notifications/notifications.controller';
 import { NotificationsService } from './notifications/notifications.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
   controllers: [HealthController, CasesController, SyncController, BillingController, ConfigController, AiConfigController, MastersController, AuthController, SetupController, RolesController, AiController, PdfController, ClientsController, PopinavaController, AuditScheduleController, ShotsController, AnalyticsController, FollowupsController, NotificationsController],
-  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService, ShotsService, AnalyticsService, FollowupsService, NotificationsService],
+  providers: [DrizzleService, CasesService, SheetsService, SyncService, PdfService, ClientsService, ShotsService, AnalyticsService, RecapService, FollowupsService, NotificationsService],
 })
 export class AppModule {}

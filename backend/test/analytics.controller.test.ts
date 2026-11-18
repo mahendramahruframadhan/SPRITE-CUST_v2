@@ -67,4 +67,21 @@ describe('analytics controller guard', () => {
     assert.equal(got.assignee, 'rama');
     assert.equal(got.validation, 'validated');
   });
+
+  it('recap menolak range invalid 422', async () => {
+    const ctl = new AnalyticsController({} as any, {} as any);
+    await assert.rejects(
+      () => ctl.recapRoute({ from: '2026-12-31', to: '2026-01-01' }),
+      (e: any) => e?.response?.code === 'ANALYTICS_INVALID_RANGE',
+    );
+  });
+
+  it('recap meneruskan default sentinel dan filter brand/module', async () => {
+    let got: any = null;
+    const fake = { getRecap: async (f: string, t: string, o: any) => { got = { f, t, o }; return { ok: true }; } };
+    const ctl = new AnalyticsController({} as any, fake as any);
+    const r: any = await ctl.recapRoute({ brand: 'B', module: 'M' });
+    assert.equal(r.ok, true);
+    assert.deepEqual(got, { f: '1970-01-01', t: '2999-12-31', o: { brand: 'B', module: 'M' } });
+  });
 });
