@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Reveal } from '../components/Reveal.jsx';
 import { useFinanceTax } from '../hooks/useFinanceTax.js';
 import { useFilters } from '../hooks/useFilters.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { fetchAnalyticsOverview, fetchAnalyticsDrilldown, fetchAnalyticsWorkload } from '../lib/api.js';
+import { fetchAnalyticsOverview, fetchAnalyticsDrilldown, fetchAnalyticsWorkload, fetchAnalyticsRecap } from '../lib/api.js';
 import { analyticsRangeError } from '../lib/analyticsRange.js';
 import { billingRows, userRows, financialHint, detailFilterLabel, workloadKpiCards } from '../lib/workloadSummary.js';
 import { isTaxableRow } from '../lib/taxSummary.js';
@@ -14,6 +14,9 @@ import FilterLabel from '../components/FilterLabel.jsx';
 import { EmptyRow, LoadingRow, Pill } from '../components/DataTable.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { fmtDate8 } from '../utils/format.js';
+import { findRecapTab } from '../config/recapTabs.js';
+import RecapTabs from '../components/report/RecapTabs.jsx';
+import RecapPanel from '../components/report/RecapPanel.jsx';
 import { invLabel, invoiceTone, billingTone, moduleTone } from '../utils/tones.js';
 
 // Halaman Report Summary: dokumen rekap read-only operasional & finansial.
@@ -113,6 +116,18 @@ export default function ReportSummaryPage() {
     brand: '', module: '', dUser: '', dBill: '', dValidation: 'all',
   });
   const { month, from, to, brand, module, dUser, dBill, dValidation } = filters;
+
+  // Tab aktif dari ?tab=<id>; id tak dikenal kembali ke Ringkasan.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') || '';
+  const activeTab = findRecapTab(tabParam)?.id || 'ringkasan';
+  const activeRecapTab = findRecapTab(activeTab);
+  const changeTab = (id) => {
+    const next = new URLSearchParams(searchParams);
+    if (id === 'ringkasan') next.delete('tab');
+    else next.set('tab', id);
+    setSearchParams(next, { replace: true });
+  };
   const applyMonth = (ym) => {
     const r = rangeOfMonth(ym);
     setManyFilters({ month: ym, from: r.from, to: r.to });
@@ -195,6 +210,37 @@ export default function ReportSummaryPage() {
         setWorkload(null);
         setWorkloadError(e.message || 'Gagal memuat data');
         setWorkloadLoading(false);
+      }
+    );
+  }, [from, to, brand, module, rangeError]);
+
+  // Rekap 10 tab: sekali per perubahan periode/brand/module, dipakai ulang
+  // saat berpindah tab tanpa fetch tambahan.
+  const [recap, setRecap] = useState(null);
+  const [recapLoading, setRecapLoading] = useState(true);
+  const [recapError, setRecapError] = useState('');
+  const rcSeq = useRef(0);
+  useEffect(() => {
+    const my = ++rcSeq.current;
+    setRecap(null);
+    if (rangeError) {
+      setRecapLoading(false);
+      setRecapError('');
+      return;
+    }
+    setRecapLoading(true);
+    setRecapError('');
+    fetchAnalyticsRecap({ from, to, brand, module }).then(
+      (r) => {
+        if (rcSeq.current !== my) return;
+        setRecap(r);
+        setRecapLoading(false);
+      },
+      (e) => {
+        if (rcSeq.current !== my) return;
+        setRecap(null);
+        setRecapError(e.message || 'Gagal memuat data');
+        setRecapLoading(false);
       }
     );
   }, [from, to, brand, module, rangeError]);
@@ -356,8 +402,11 @@ export default function ReportSummaryPage() {
     <div className="page">
       {/* Kop cetak: hanya tampil saat print */}
       <div className="print-kop" aria-hidden="true">
-        <h1>Report Summary — Rekap Operasional &amp; Finansial</h1>
-        <p>Periode: {periodeLabel} · Dicetak: {todayLabel}</p>
+        <h1>Report Summary — {activeRecapTab ? activeRecapTab.label : 'Rekap Operasional & Finansial'}</h1>
+        <p>
+          Periode: {periodeLabel}
+          {activeRecapTab ? ` · Basis: ${activeRecapTab.basis}` : ''} · Dicetak: {todayLabel}
+        </p>
       </div>
 
       {/* ===== HERO (juga jadi kop dokumen saat print) ===== */}
@@ -491,6 +540,8 @@ export default function ReportSummaryPage() {
         </div>
       </Reveal>
 
+      <RecapTabs active={activeTab} onChange={changeTab} />
+
       {(error || tableError) && (
         <div className="no-print bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300" role="alert">
           Backend tidak terjangkau — {error || tableError}
@@ -506,7 +557,14 @@ export default function ReportSummaryPage() {
           Backend tidak terjangkau — rekap operasional gagal dimuat ({workloadError})
         </div>
       )}
+      {activeTab !== 'ringkasan' && recapError && !rangeError && (
+        <div className="no-print bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300" role="alert">
+          Backend tidak terjangkau — rekap tab gagal dimuat ({recapError})
+        </div>
+      )}
 
+      {activeTab === 'ringkasan' ? (
+      <div id="report-panel-ringkasan" role="tabpanel" aria-labelledby="recap-tab-ringkasan" className="space-y-5">
       {/* ===== Rekap Operasional: KPI + per billing + per user + brand/module ===== */}
       <Reveal data-section="kpi-operasional" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-between gap-2">
@@ -1108,6 +1166,18 @@ export default function ReportSummaryPage() {
           <span className="tabular-nums">Total subtotal: <span className="text-base font-extrabold text-slate-900 dark:text-white">{fmtMoney(detailTotal)}</span></span>
         </div>
       </Reveal>
+      </div>
+      ) : (
+        <RecapPanel
+          tab={activeRecapTab}
+          data={recap?.tabs?.[activeTab]}
+          loading={recapLoading}
+          error={recapError}
+          periode={periodeLabel}
+          to={to}
+          generatedAt={recap?.generatedAt || ''}
+        />
+      )}
     </div>
   );
 }
