@@ -80,6 +80,13 @@ function parse8(s) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 const monthKey = (s) => (s && /^\d{6}/.test(s) ? `${s.slice(0, 4)}-${s.slice(4, 6)}` : '');
+const mingguOf = (s) => {
+  const d = parse8(s);
+  if (!d) return -1;
+  const awal = new Date(d.getFullYear(), d.getMonth(), 1);
+  const minggu = (x) => { const y = new Date(x); y.setDate(y.getDate() - y.getDay()); return y.getTime(); };
+  return (minggu(d) - minggu(awal)) / 604800000 + 1;
+};
 const labelBulan = (key) => {
   const [y, m] = key.split('-').map(Number);
   return `${NAMA_BULAN[m - 1] || m} ${y}`;
@@ -98,30 +105,29 @@ const LABEL_TONE = { ok: 'Tercapai', warn: 'Mendekati', bad: 'Di bawah target' }
 function hitung(rows) {
   const done = rows.filter((r) => r.status === 'DONE');
   const same = done.filter(sameDay);
-  const hitungPer = (keyOf) => {
+  const hitungPer = (keyOf, source) => {
     const out = new Map();
-    rows.forEach((r) => {
+    source.forEach((r) => {
       const k = keyOf(r) || 'Lainnya';
       out.set(k, (out.get(k) || 0) + 1);
     });
     return [...out.entries()].sort((a, b) => b[1] - a[1]);
   };
-  const modul = hitungPer((r) => (r.module || '').trim().toUpperCase());
-  const pic = hitungPer((r) => (r.assignTo || '').trim().toUpperCase()).filter(([k]) => k !== 'LAINNYA');
-  const jenis = hitungPer((r) => (r.supportCategory || '').trim().toUpperCase());
+  const modul = hitungPer((r) => (r.module || '').trim().toUpperCase(), done);
+  const pic = hitungPer((r) => (r.assignTo || '').trim().toUpperCase(), done).filter(([k]) => k !== 'LAINNYA');
+  const jenis = hitungPer((r) => (r.supportCategory || '').trim().toUpperCase(), done);
   const masuk = Array(5).fill(0);
   const selesai = Array(5).fill(0);
   const heat = HARI.map(() => Array(5).fill(0));
   rows.forEach((r) => {
-    const w = Number(r.weeknum) - 1;
+    const w = Math.min(4, mingguOf(r.dateIssue) - 1);
     const di = parse8(r.dateIssue);
-    if (w >= 0 && w < 5) masuk[w] += 1;
-    const sf = parse8(r.finishDate);
-    const sw = sf ? Math.min(4, Math.max(0, Math.ceil(sf.getDate() / 7) - 1)) : -1;
+    if (w >= 0) masuk[w] += 1;
+    const sw = Math.min(4, mingguOf(r.finishDate) - 1);
     if (sw >= 0) selesai[sw] += 1;
     if (di) {
       const day = (di.getDay() + 6) % 7;
-      if (day < 5 && w >= 0 && w < 5) heat[day][w] += 1;
+      if (day < 5 && w >= 0) heat[day][w] += 1;
     }
   });
   return {
@@ -160,9 +166,9 @@ export default function KpiDashboardPage() {
   const [colors, setColors] = useState(null);
 
   const periods = useMemo(() => [...new Set(cases.map((r) => monthKey(r.dateIssue)).filter(Boolean))].sort(), [cases]);
-  const [periode, setPeriode] = useState('');
+  const [periode, setPeriode] = useState(null);
   useEffect(() => {
-    if (periods.length && !periode) setPeriode(periods[periods.length - 1]);
+    if (periode === null && periods.length) setPeriode(periods[periods.length - 1]);
   }, [periods, periode]);
 
   const semua = useMemo(() => hitung(cases), [cases]);
@@ -202,7 +208,7 @@ export default function KpiDashboardPage() {
     { n: 'Backlog', u: '', t: 20, hb: 0, v: perBulan.map((x) => x.backlog), cur: m.backlog },
   ];
 
-  const score = kpis.length ? Math.round(kpis.reduce((a, k) => a + Math.min(pct(k.cur, k.t, k.hb), 100), 0) / kpis.length) : 0;
+  const score = !m.total || !kpis.length ? 0 : Math.round(kpis.reduce((a, k) => a + Math.min(pct(k.cur, k.t, k.hb), 100), 0) / kpis.length);
   const okCount = kpis.filter((k) => pct(k.cur, k.t, k.hb) >= 100).length;
   const buruk = kpis.filter((k) => pct(k.cur, k.t, k.hb) < 85);
   const judul = score >= 90 ? 'Kinerja sehat' : score >= 80 ? 'Kinerja baik, ada yang perlu dibenahi' : 'Kinerja perlu perhatian';
@@ -217,7 +223,7 @@ export default function KpiDashboardPage() {
     ? ['Belum ada data kasus untuk periode ini.']
     : [
         `${m.done} tiket selesai di ${labelPeriode.toLowerCase()}, ${Math.round(m.samePct)}% di antaranya same-day.`,
-        modulTeratas ? `Modul ${modulTeratas[0]} menyumbang ${modulTeratas[1]} tiket (${Math.round((modulTeratas[1] / m.total) * 100)}% dari seluruh tiket).` : 'Data modul belum tersedia.',
+        modulTeratas ? `Modul ${modulTeratas[0]} menyumbang ${modulTeratas[1]} tiket selesai (${Math.round((modulTeratas[1] / Math.max(1, m.done)) * 100)}% dari tiket selesai).` : 'Data modul belum tersedia.',
         `Rata-rata durasi pengerjaan ${fmt(m.avgDur)} hari; ${m.done - m.same} tiket memakan lebih dari satu hari.`,
         picTeratas ? `PIC ${picTeratas[0]} menangani ${picTeratas[1]} tiket (${Math.round((picTeratas[1] / Math.max(1, m.done)) * 100)}% dari tiket selesai).` : 'Data PIC belum tersedia.',
       ];
@@ -298,7 +304,7 @@ export default function KpiDashboardPage() {
                     <div className="v">{fmt(k.cur)}<small>{k.u}</small></div>
                     <div dangerouslySetInnerHTML={{ __html: spark(k.v, idx, c[t]) }} />
                     <div className="f">
-                      <span className={`b ${t}`}>{LABEL_TONE[t]}</span>
+                      {m.total ? <span className={`b ${t}`}>{LABEL_TONE[t]}</span> : <span className="b" style={{ background: c.mut }}>Tanpa data</span>}
                       <span>target {fmt(k.t)}{k.u}</span>
                     </div>
                   </div>
@@ -334,7 +340,7 @@ export default function KpiDashboardPage() {
               </div>
               <div className="c s4">
                 <h2>Jenis masalah</h2>
-                <p className="s">{m.total} tiket berdasarkan kategori dukungan.</p>
+                <p className="s">{m.done} tiket selesai berdasarkan kategori dukungan.</p>
                 <div className="ch"><Doughnut data={{
                   labels: m.jenis.map(([k]) => k),
                   datasets: [{ data: m.jenis.map(([, v]) => v), backgroundColor: m.jenis.map((_, i) => jenisWarna[i % jenisWarna.length]), borderColor: c.card, borderWidth: 3 }],
