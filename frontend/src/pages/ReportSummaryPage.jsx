@@ -169,7 +169,7 @@ export default function ReportSummaryPage() {
     );
   }, [from, to, rangeError]);
 
-  // Rekap operasional ON-CALL saja; FREE/MONTHLY/LAINNYA tidak dihitung.
+  // Rekap operasional semua billing status; uang hanya dihitung untuk ON-CALL.
   const [workload, setWorkload] = useState(null);
   const [workloadLoading, setWorkloadLoading] = useState(true);
   const [workloadError, setWorkloadError] = useState('');
