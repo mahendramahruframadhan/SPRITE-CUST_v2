@@ -42,6 +42,22 @@ export function countActiveUsers(byAssignee) {
   return (byAssignee || []).filter((u) => String(u?.assignTo || '').trim().toUpperCase() !== 'TANPA USER').length;
 }
 
+// Kartu KPI rekap operasional: total + tiap status + user aktif + TANPA USER.
+// LAINNYA hanya jadi kartu bila ada kasus (di tabel selalu tampil bila > 0).
+export function workloadKpiCards(totals, byAssignee) {
+  const byBilling = totals?.byBilling || {};
+  const cards = [
+    { t: 'Total Kasus', v: num(totals?.count) },
+    { t: 'ON-CALL', v: num(byBilling['ON-CALL']?.count) },
+    { t: 'MONTHLY', v: num(byBilling.MONTHLY?.count) },
+    { t: 'FREE', v: num(byBilling.FREE?.count) },
+  ];
+  if (num(byBilling.LAINNYA?.count) > 0) cards.push({ t: 'LAINNYA', v: num(byBilling.LAINNYA.count) });
+  cards.push({ t: 'User Aktif', v: countActiveUsers(byAssignee) });
+  cards.push({ t: 'Kasus TANPA USER', v: num((byAssignee || []).find((u) => String(u?.assignTo || '').trim().toUpperCase() === 'TANPA USER')?.count) });
+  return cards;
+}
+
 // 'YYYY-MM' -> 'Okt 2026'; format lain -> ''.
 export function fmtMonthLabel(ym) {
   const m = /^(\d{4})-(\d{2})$/.exec(String(ym || '').trim());

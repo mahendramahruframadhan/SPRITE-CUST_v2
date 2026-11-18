@@ -277,7 +277,7 @@ export class AnalyticsService {
       const assignTo = userOf(r.assign_to);
       let u = users.get(assignTo);
       if (!u) {
-        u = { assignTo, count: 0, done: 0, open: 0, validated: 0, byBilling: zeroBillingCount(), onCallCharges: 0, onCallPpn: 0, onCallSubtotal: 0 };
+        u = { assignTo, count: 0, done: 0, open: 0, validated: 0, byBilling: zeroBillingCount(), brandSet: new Set<string>(), moduleSet: new Set<string>(), onCallCharges: 0, onCallPpn: 0, onCallSubtotal: 0 };
         users.set(assignTo, u);
       }
       u.count += 1;
@@ -309,12 +309,21 @@ export class AnalyticsService {
       mo.count += 1;
       mo.byBilling[billing] += 1;
       if (billing === 'ON-CALL') mo.onCallSubtotal += subtotal;
+
+      u.brandSet.add(brandKey);
+      u.moduleSet.add(moduleKey);
     }
 
     totals.open = totals.count - totals.done;
     totals.unvalidated = totals.count - totals.validated;
     for (const key of BILLING_KEYS) byBilling[key].open = byBilling[key].count - byBilling[key].done;
-    for (const u of users.values()) u.open = u.count - u.done;
+    for (const u of users.values()) {
+      u.open = u.count - u.done;
+      u.brandCount = u.brandSet.size;
+      u.moduleCount = u.moduleSet.size;
+      delete u.brandSet;
+      delete u.moduleSet;
+    }
 
     const byAssignee = [...users.values()].sort((a, b) => b.count - a.count || a.assignTo.localeCompare(b.assignTo));
     const byBrand = [...brands.values()].sort((a, b) => b.count - a.count || a.brand.localeCompare(b.brand));

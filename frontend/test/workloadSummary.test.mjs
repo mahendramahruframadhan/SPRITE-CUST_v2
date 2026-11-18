@@ -2,7 +2,7 @@
 // Jalankan: npm test
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { billingRows, userRows, countActiveUsers, fmtMonthLabel, financialHint, detailFilterLabel } from '../src/lib/workloadSummary.js';
+import { billingRows, userRows, countActiveUsers, fmtMonthLabel, financialHint, detailFilterLabel, workloadKpiCards } from '../src/lib/workloadSummary.js';
 
 const totals = { count: 10, byBilling: {
   'ON-CALL': { count: 3, done: 2, open: 1, validated: 1, charges: 1000, ppn: 110, subtotal: 1110 },
@@ -61,5 +61,27 @@ describe('countActiveUsers', () => {
     assert.equal(countActiveUsers([{ assignTo: 'RAMA' }, { assignTo: 'TANPA USER' }, { assignTo: 'EDU' }]), 2);
     assert.equal(countActiveUsers([{ assignTo: 'TANPA USER' }]), 0);
     assert.equal(countActiveUsers([]), 0);
+  });
+});
+
+describe('workloadKpiCards', () => {
+  const byAssignee = [{ assignTo: 'RAMA', count: 7 }, { assignTo: 'TANPA USER', count: 3 }, { assignTo: 'EDU', count: 1 }];
+  it('enam kartu dasar: total, tiga status, user aktif, TANPA USER', () => {
+    assert.deepEqual(workloadKpiCards(totals, byAssignee), [
+      { t: 'Total Kasus', v: 10 },
+      { t: 'ON-CALL', v: 3 },
+      { t: 'MONTHLY', v: 2 },
+      { t: 'FREE', v: 5 },
+      { t: 'User Aktif', v: 2 },
+      { t: 'Kasus TANPA USER', v: 3 },
+    ]);
+  });
+  it('LAINNYA muncul sebagai kartu hanya bila count > 0', () => {
+    const withOther = workloadKpiCards(
+      { count: 12, byBilling: { ...totals.byBilling, LAINNYA: { count: 2 } } },
+      byAssignee,
+    );
+    assert.deepEqual(withOther.map((c) => c.t), ['Total Kasus', 'ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA', 'User Aktif', 'Kasus TANPA USER']);
+    assert.equal(withOther[4].v, 2);
   });
 });

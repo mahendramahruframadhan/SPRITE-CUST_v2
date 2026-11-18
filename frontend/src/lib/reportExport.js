@@ -7,6 +7,8 @@ const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
 const num = (v) => Number(v) || 0;
 
+const BILLING_KEYS = ['ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA'];
+
 function sectionRow(label, b) {
   return [label, b.count, b.charges, b.ppn, b.subtotal].map(esc).join(',');
 }
@@ -25,7 +27,7 @@ function operationalSections(workload) {
     ['TERVALIDASI', num(totals.validated)].map(esc).join(','),
   ];
 
-  const rows = ['ON-CALL'].filter((k) => num(byBilling[k]?.count) > 0);
+  const rows = BILLING_KEYS.filter((k) => num(byBilling[k]?.count) > 0);
   if (rows.length) {
     lines.push(
       '',
@@ -45,8 +47,22 @@ function operationalSections(workload) {
     lines.push(
       '',
       ['RINCIAN PER USER'].map(esc).join(','),
-      ['USER', 'ON-CALL', 'TOTAL', 'DONE', 'OPEN', 'NILAI ON-CALL', 'TERVALIDASI'].map(esc).join(','),
-      ...users.map((u) => [u.assignTo, num(u.byBilling?.['ON-CALL']), num(u.count), num(u.done), num(u.open), num(u.onCallSubtotal), num(u.validated)].map(esc).join(',')),
+      ['USER', 'ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA', 'TOTAL', 'DONE', 'OPEN', 'PORSI', 'BRAND', 'MODUL', 'NILAI ON-CALL', 'TERVALIDASI'].map(esc).join(','),
+      ...users.map((u) => [
+        u.assignTo,
+        num(u.byBilling?.['ON-CALL']),
+        num(u.byBilling?.MONTHLY),
+        num(u.byBilling?.FREE),
+        num(u.byBilling?.LAINNYA),
+        num(u.count),
+        num(u.done),
+        num(u.open),
+        total > 0 ? Math.round((num(u.count) / total) * 100) : 0,
+        num(u.brandCount),
+        num(u.moduleCount),
+        num(u.onCallSubtotal),
+        num(u.validated),
+      ].map(esc).join(',')),
     );
   }
 
@@ -59,8 +75,8 @@ function operationalSections(workload) {
     lines.push(
       '',
       [title].map(esc).join(','),
-      [nameKey.toUpperCase(), 'ON-CALL', 'TOTAL', 'NILAI ON-CALL'].map(esc).join(','),
-      ...list.map((g) => [g[nameKey], num(g.byBilling?.['ON-CALL']), num(g.count), num(g.onCallSubtotal)].map(esc).join(',')),
+      [nameKey.toUpperCase(), 'ON-CALL', 'MONTHLY', 'FREE', 'LAINNYA', 'TOTAL', 'NILAI ON-CALL'].map(esc).join(','),
+      ...list.map((g) => [g[nameKey], num(g.byBilling?.['ON-CALL']), num(g.byBilling?.MONTHLY), num(g.byBilling?.FREE), num(g.byBilling?.LAINNYA), num(g.count), num(g.onCallSubtotal)].map(esc).join(',')),
     );
   }
 
