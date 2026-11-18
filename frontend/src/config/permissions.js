@@ -12,6 +12,7 @@ export const DEFAULT_PERMS = {
 // Path route → modul izin (menu /kasus memakai modul 'cases')
 export const ROUTE_PERM = {
   '/dashboard': 'dashboard',
+  '/kpi': 'dashboard',
   '/kasus': 'cases',
   '/mockup': 'mockup',
   '/form': 'form',
@@ -30,4 +31,4 @@ export const ROUTE_PERM = {
 };
 
 // id menu sidebar → modul izin
-export const menuPerm = (menuId) => (menuId === 'kasus' ? 'cases' : menuId);
+export const menuPerm = (menuId) => (menuId === 'kasus' ? 'cases' : menuId === 'kpi' ? 'dashboard' : menuId);

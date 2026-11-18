@@ -3,6 +3,7 @@
 export const MODULES = [
   { group: 'Menu Utama' },
   { path: '/dashboard', id: 'dashboard', title: 'Dashboard', sub: 'Ringkasan, percakapan, status & laporan bantuan' },
+  { path: '/kpi', id: 'kpi', title: 'Dashboard KPI', sub: 'KPI tim support & development dari data kasus' },
   { path: '/kasus', id: 'kasus', title: 'Data Kasus', sub: 'Semua data kasus support dari Google Sheets' },
   { path: '/mockup', id: 'mockup', title: 'Dashboard Mockup', sub: 'Visualisasi data Google Sheets' },
   { group: 'Operasional' },

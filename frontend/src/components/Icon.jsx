@@ -63,7 +63,7 @@ const PATHS = {
 };
 
 // Nama ikon sidebar per id modul (dipakai AppLayout & test navigasi).
-export const iconNav = (id) => (id === 'kasus' ? 'cases' : id === 'popinava' ? 'store' : id);
+export const iconNav = (id) => (id === 'kasus' ? 'cases' : id === 'popinava' ? 'store' : id === 'kpi' ? 'mockup' : id);
 
 export default function Icon({ name, className = 'w-5 h-5', strokeWidth = 1.8 }) {
   const nilai = PATHS[name];

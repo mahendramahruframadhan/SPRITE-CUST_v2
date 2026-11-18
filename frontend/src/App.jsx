@@ -14,6 +14,7 @@ import { useViewTransitionLocation } from './hooks/useViewTransitionLocation.js'
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage.jsx'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'));
+const KpiDashboardPage = lazy(() => import('./pages/KpiDashboardPage.jsx'));
 const DataKasusPage = lazy(() => import('./pages/DataKasusPage.jsx'));
 const MockupPage = lazy(() => import('./pages/MockupPage.jsx'));
 const FormKasusPage = lazy(() => import('./pages/FormKasusPage.jsx'));
@@ -55,6 +56,7 @@ function AnimatedRoutes() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<RequirePerm module="dashboard"><DashboardPage /></RequirePerm>} />
+        <Route path="/kpi" element={<RequirePerm module="dashboard"><KpiDashboardPage /></RequirePerm>} />
         <Route path="/kasus" element={<RequirePerm module="cases"><DataKasusPage /></RequirePerm>} />
         <Route path="/mockup" element={<RequirePerm module="mockup"><MockupPage /></RequirePerm>} />
         <Route path="/form" element={<RequirePerm module="form"><FormKasusPage /></RequirePerm>} />
