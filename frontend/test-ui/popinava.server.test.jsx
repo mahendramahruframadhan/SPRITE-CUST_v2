@@ -18,16 +18,45 @@ vi.setConfig({ testTimeout: 20000 });
 // sinkronisasi Sheets tiap 5 menit → tunggu async naik dari default 1000ms.
 configure({ asyncUtilTimeout: 8000 });
 
-const backendUp = await fetch(`${API}/health`)
+const nativeFetch = globalThis.fetch;
+const backendUp = await nativeFetch(`${API}/health`)
   .then((r) => r.ok)
   .catch(() => false);
 
-let token = '';
-let saToken = '';
+// Browser menyimpan cookie httpOnly otomatis; jsdom + fetch Node tidak punya
+// cookie jar. Test ini meniru browser: tangkap Set-Cookie saat sign-in, lalu
+// kirimkan sebagai header Cookie untuk request frontend ke backend.
+let adminCookie = '';
+let superAdminCookie = '';
+let sessionCookie = '';
+
+globalThis.fetch = (input, init = {}) => {
+  const url = typeof input === 'string' ? input : input.url;
+  if (!url.startsWith(API) || !sessionCookie) return nativeFetch(input, init);
+  const headers = new Headers(init.headers || {});
+  headers.set('cookie', sessionCookie);
+  // Fetch Node tidak menambahkan Origin seperti browser; backend mewajibkan
+  // Origin/Referer dikenal untuk mutasi ber-cookie (csrf.ts).
+  headers.set('origin', 'http://localhost:5173');
+  return nativeFetch(input, { ...init, headers });
+};
+
+async function signIn(email, password) {
+  const r = await nativeFetch(`${API}/auth/sign-in/email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const raw = r.headers.get('set-cookie') || '';
+  const match = raw.match(/better-auth\.session_token=([^;]+)/);
+  expect(match, `sign-in ${email} harus mengirim cookie sesi`).toBeTruthy();
+  return `better-auth.session_token=${match[1]}`;
+}
+
 const api = (p, opts = {}) =>
   fetch(`${API}${p}`, {
     ...opts,
-    headers: { 'Content-Type': 'application/json', 'x-auth-token': token, ...(opts.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
   });
 
 async function apiJson(p, opts) {
@@ -51,7 +80,6 @@ function seedSession() {
   localStorage.setItem('userEmail', 'it.popinava@revota.id');
   localStorage.setItem('userName', 'IT Integrasi');
   localStorage.setItem('userRole', 'Admin CS');
-  localStorage.setItem('authToken', token);
 }
 
 async function renderPage() {
@@ -99,19 +127,10 @@ async function fillOutlet(dlg, city = 'Bekasi') {
 
 describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () => {
   beforeAll(async () => {
-    const r = await apiJson('/auth/sign-in/email', {
-      method: 'POST',
-      body: JSON.stringify({ email: 'it.popinava@revota.id', password: 'password123' }),
-    });
-    token = r.token;
-    expect(token, 'sign-in integrasi harus menghasilkan token').toBeTruthy();
+    adminCookie = await signIn('it.popinava@revota.id', 'password123');
     // Sesi Super Admin, hanya untuk panggilan riwayat per outlet (403 bagi role lain).
-    const rsa = await apiJson('/auth/sign-in/email', {
-      method: 'POST',
-      body: JSON.stringify({ email: 'admin@revota.id', password: '12345' }),
-    });
-    saToken = rsa.token;
-    expect(saToken, 'sign-in Super Admin harus menghasilkan token').toBeTruthy();
+    superAdminCookie = await signIn('admin@revota.id', '12345');
+    sessionCookie = adminCookie;
     seedSession();
     // Bersihkan sisa run sebelumnya (hanya baris uji milik kita).
     const d = await apiJson('/popinava?page=1&pageSize=5000');
@@ -121,7 +140,8 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
   });
 
   afterAll(async () => {
-    if (!token) return;
+    if (!adminCookie) return;
+    sessionCookie = adminCookie;
     const d = await apiJson('/popinava?page=1&pageSize=5000').catch(() => ({ items: [] }));
     for (const item of d.items.filter((x) => String(x.dept_channel_name || '').startsWith('Toko IT'))) {
       await api(`/popinava/${item.uuid}`, { method: 'DELETE' }).catch(() => {});
@@ -210,9 +230,8 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
 
     // Riwayat outlet → kapan & siapa (entri server, bukan localStorage).
     // Backend menolak role selain Super Admin (403) meski popinava=1, jadi
-    // tukar token sesi ke Super Admin hanya untuk panggilan riwayat ini;
-    // api.js membaca token dari localStorage tiap request.
-    localStorage.setItem('authToken', saToken);
+    // tukar cookie sesi ke Super Admin hanya untuk panggilan riwayat ini.
+    sessionCookie = superAdminCookie;
     localStorage.setItem('userEmail', 'admin@revota.id');
     fireEvent.click(await screen.findByRole('button', { name: 'Riwayat Toko IT' }));
     // Modal kini memakai InvoiceHistoryModal: nama dialog = judul (nama outlet),
@@ -227,7 +246,7 @@ describe.skipIf(!backendUp)('integrasi frontend ↔ backend /api/popinava', () =
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Tutup riwayat' })).toBeNull());
 
     // Kembalikan sesi Admin CS untuk sisa test (toggle pulih + hapus).
-    localStorage.setItem('authToken', token);
+    sessionCookie = adminCookie;
     localStorage.setItem('userEmail', 'it.popinava@revota.id');
 
     // Pulihkan status aktif (tanpa modal) untuk test hapus berikutnya.
